@@ -36,6 +36,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import { CalendarIcon } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
+import { Combobox } from "@/components/ui/combobox";
 
 
 const formSchema = z.object({
@@ -90,18 +91,16 @@ export function InvoiceForm({ patients, onSave, onOpenChange }: InvoiceFormProps
                         render={({ field }) => (
                             <FormItem>
                             <FormLabel>Patient</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                <FormControl>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select a patient" />
-                                </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                {patients.map(patient => (
-                                    <SelectItem key={patient.id} value={patient.id}>{patient.name}</SelectItem>
-                                ))}
-                                </SelectContent>
-                            </Select>
+                            <FormControl>
+                                <Combobox
+                                    options={patients.map(p => ({ value: p.id, label: p.name }))}
+                                    value={field.value}
+                                    onChange={field.onChange}
+                                    placeholder="Select a patient"
+                                    searchPlaceholder="Search patients..."
+                                    emptyMessage="No patient found."
+                                />
+                            </FormControl>
                             <FormMessage />
                             </FormItem>
                         )}
