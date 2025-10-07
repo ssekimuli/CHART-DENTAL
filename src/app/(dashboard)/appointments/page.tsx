@@ -46,6 +46,7 @@ import {
   import { getAppointments, getPatients, getEmployees, createAppointment, updateAppointment, deleteAppointment } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter } from "next/navigation";
+import { format } from "date-fns";
 
 export default function AppointmentsPage() {
   const router = useRouter();
@@ -90,12 +91,22 @@ export default function AppointmentsPage() {
     return doctors.filter(d => d.branchId === currentUser.branchId);
   }, [selectedBranch, allEmployees]);
   
-  const appointments = useMemo(() => {
+  const branchAppointments = useMemo(() => {
     if (currentUser.role === 'Super Admin') {
       return allAppointments.filter(a => a.branchId === selectedBranch);
     }
     return allAppointments.filter(a => a.branchId === currentUser.branchId);
   }, [selectedBranch, allAppointments]);
+
+  const appointmentsForDate = useMemo(() => {
+    if (!selectedDate) return [];
+    const formattedDate = format(selectedDate, "yyyy-MM-dd");
+    return branchAppointments.filter(a => a.date === formattedDate);
+  }, [selectedDate, branchAppointments]);
+
+  const appointmentDates = useMemo(() => {
+    return branchAppointments.map(a => new Date(a.date));
+  }, [branchAppointments]);
 
   const handleOpenForm = (appointment?: Appointment) => {
     setSelectedAppointment(appointment);
@@ -151,7 +162,7 @@ export default function AppointmentsPage() {
               <div>
                 <CardTitle>Appointments</CardTitle>
                 <CardDescription>
-                  Manage and view patient appointments.
+                  {selectedDate ? `Showing appointments for ${format(selectedDate, 'PPP')}` : 'Select a date to view appointments.'}
                 </CardDescription>
               </div>
               <Button onClick={() => handleOpenForm()}>
@@ -174,13 +185,12 @@ export default function AppointmentsPage() {
                     <TableHead>Doctor</TableHead>
                     <TableHead>Treatment</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Date</TableHead>
                     <TableHead>Time</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {appointments.map((appointment) => (
+                  {appointmentsForDate.map((appointment) => (
                     <TableRow key={appointment.id}>
                       <TableCell>
                         <div className="font-medium">{appointment.patientName}</div>
@@ -200,7 +210,6 @@ export default function AppointmentsPage() {
                           {appointment.status}
                         </Badge>
                       </TableCell>
-                      <TableCell>{appointment.date}</TableCell>
                       <TableCell>{appointment.time}</TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
@@ -230,10 +239,10 @@ export default function AppointmentsPage() {
                       </TableCell>
                     </TableRow>
                   ))}
-                  {appointments.length === 0 && (
+                  {appointmentsForDate.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={7} className="h-24 text-center">
-                        No appointments scheduled for this branch.
+                      <TableCell colSpan={6} className="h-24 text-center">
+                        No appointments scheduled for this day.
                       </TableCell>
                     </TableRow>
                   )}
@@ -251,6 +260,12 @@ export default function AppointmentsPage() {
                 selected={selectedDate}
                 onSelect={setSelectedDate}
                 className="rounded-md"
+                modifiers={{
+                    hasAppointment: appointmentDates
+                }}
+                modifiersClassNames={{
+                    hasAppointment: 'has-appointment'
+                }}
               />
             </CardContent>
           </Card>
