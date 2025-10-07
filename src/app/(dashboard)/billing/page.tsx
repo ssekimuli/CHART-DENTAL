@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   Card,
@@ -19,7 +19,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { invoices as initialInvoices, patients as allPatients } from "@/lib/data";
 import { Button } from "@/components/ui/button";
 import { FileDown, PlusCircle, MoreHorizontal, Pencil, Trash, Eye } from "lucide-react";
 import type { Invoice, Patient, Treatment } from "@/lib/types";
@@ -44,14 +43,30 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
   } from "@/components/ui/alert-dialog";
+import { createInvoice, deleteInvoice, getInvoices, getPatients, updateInvoice } from "@/lib/api";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function BillingPage() {
   const router = useRouter();
   const { selectedBranch } = useBranch();
-  const [allInvoices, setAllInvoices] = useState<Invoice[]>(initialInvoices);
+  const [allInvoices, setAllInvoices] = useState<Invoice[]>([]);
+  const [allPatients, setAllPatients] = useState<Patient[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | undefined>(undefined);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
+      const [invoicesData, patientsData] = await Promise.all([getInvoices(), getPatients()]);
+      setAllInvoices(invoicesData);
+      setAllPatients(patientsData);
+      setIsLoading(false);
+    };
+    fetchData();
+  }, []);
 
   const getStatusVariant = (status: "Paid" | "Pending" | "Overdue") => {
     switch (status) {
@@ -69,7 +84,7 @@ export default function BillingPage() {
       return allPatients.filter(p => p.branchId === selectedBranch);
     }
     return allPatients.filter(p => p.branchId === currentUser.branchId);
-  }, [selectedBranch]);
+  }, [selectedBranch, allPatients]);
 
   const invoices = useMemo(() => {
     if (currentUser.role === 'Super Admin') {
@@ -88,33 +103,29 @@ export default function BillingPage() {
     setIsFormOpen(false);
   }
 
-  const handleSaveInvoice = (data: Omit<Invoice, 'id' | 'patientName' | 'branchId' | 'amount'>, treatments: Treatment[]) => {
+  const handleSaveInvoice = async (data: Omit<Invoice, 'id' | 'patientName' | 'branchId' | 'amount'>, treatments: Treatment[]) => {
     const patient = filteredPatients.find(p => p.id === data.patientId);
     if (!patient) return;
 
-    const amount = treatments.reduce((sum, t) => sum + t.cost, 0);
-
     if (selectedInvoice) {
         // Update
-        const updatedInvoice = { ...selectedInvoice, ...data, amount, patientName: patient.name, treatmentIds: treatments.map(t => t.id) };
-        setAllInvoices(prev => prev.map(i => i.id === updatedInvoice.id ? updatedInvoice : i));
+        const updated = await updateInvoice(selectedInvoice.id, { ...data, patientName: patient.name });
+        if(updated) {
+            setAllInvoices(prev => prev.map(i => i.id === updated.id ? updated : i));
+        }
     } else {
         // Create
-        const newInvoice: Invoice = {
-          ...data,
-          id: `inv${allInvoices.length + 1}`,
-          patientName: patient.name,
-          amount,
-          treatmentIds: treatments.map(t => t.id),
-          branchId: selectedBranch,
-        };
-        setAllInvoices(prev => [...prev, newInvoice]);
+        const newInvoice = await createInvoice({ ...data, patientName: patient.name, branchId: selectedBranch });
+        if (newInvoice) {
+            setAllInvoices(prev => [...prev, newInvoice]);
+        }
     }
     handleCloseForm();
   };
 
-  const handleDeleteInvoice = () => {
+  const handleDeleteInvoice = async () => {
     if (selectedInvoice) {
+        await deleteInvoice(selectedInvoice.id);
         setAllInvoices(prev => prev.filter(i => i.id !== selectedInvoice.id));
     }
     setIsDeleteAlertOpen(false);
@@ -152,6 +163,13 @@ export default function BillingPage() {
           </div>
         </CardHeader>
         <CardContent>
+          {isLoading ? (
+            <div className="space-y-4">
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-12 w-full" />
+            </div>
+          ) : (
           <Table>
             <TableHeader>
               <TableRow>
@@ -205,7 +223,7 @@ export default function BillingPage() {
                   </TableCell>
                 </TableRow>
               ))}
-              {invoices.length === 0 && (
+              {invoices.length === 0 && !isLoading && (
                  <TableRow>
                     <TableCell colSpan={7} className="h-24 text-center">
                         No invoices found for this branch.
@@ -214,6 +232,7 @@ export default function BillingPage() {
               )}
             </TableBody>
           </Table>
+          )}
         </CardContent>
       </Card>
       {isFormOpen && (

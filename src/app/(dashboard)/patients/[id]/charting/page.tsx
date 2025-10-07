@@ -2,7 +2,6 @@
 "use client";
 
 import { notFound, useRouter } from "next/navigation";
-import { patients as initialPatients } from "@/lib/data";
 import {
   Card,
   CardContent,
@@ -13,15 +12,16 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DentalChart } from "../components/dental-chart";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { Patient, DentalRecord, Treatment, PeriodontalRecord, OcclusalRecord, OrthodonticRecord, SoftTissueRecord } from "@/lib/types";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { PeriodontalChart } from "./components/periodontal-chart";
 import { OcclusalChart } from "./components/occlusal-chart";
 import { SoftTissueChart } from "./components/soft-tissue-chart";
 import { TreatmentPlanForm } from "../components/treatment-plan-form";
 import { OrthodonticChart } from "./components/orthodontic-chart";
+import { getPatientById, updatePatient } from "@/lib/api";
 
 export default function PatientChartingPage({
   params,
@@ -29,21 +29,51 @@ export default function PatientChartingPage({
   params: { id: string };
 }) {
   const router = useRouter();
-  const [allPatients, setAllPatients] = useState(initialPatients);
-  const [patient, setPatient] = useState<Patient | undefined>(
-    allPatients.find((p) => p.id === params.id)
-  );
+  const [patient, setPatient] = useState<Patient | undefined>(undefined);
+  const [isLoading, setIsLoading] = useState(true);
 
   const [isTreatmentFormOpen, setIsTreatmentFormOpen] = useState(false);
   const [selectedToothForTreatment, setSelectedToothForTreatment] = useState<number | undefined>(undefined);
 
-  if (!patient) {
-    const foundPatient = allPatients.find(p => p.id === params.id);
-    if(foundPatient) {
-        setPatient(foundPatient);
-        return null;
+  useEffect(() => {
+    if (typeof params.id !== 'string') return;
+    const fetchData = async () => {
+        setIsLoading(true);
+        const patientData = await getPatientById(params.id);
+        setPatient(patientData);
+        setIsLoading(false);
     }
+    fetchData();
+  }, [params.id]);
+
+
+  if (isLoading) {
+    return (
+        <div className="flex flex-col gap-6">
+            <div className="flex items-center gap-4">
+                <Loader2 className="h-6 w-6 animate-spin" />
+                <h1 className="text-xl font-semibold">Loading Charting...</h1>
+            </div>
+            <Card>
+                <CardHeader>
+                    <div className="h-8 w-3/4 bg-gray-200 rounded animate-pulse"></div>
+                    <div className="h-4 w-1/2 bg-gray-200 rounded animate-pulse"></div>
+                </CardHeader>
+                <CardContent>
+                    <div className="h-96 w-full bg-gray-200 rounded animate-pulse"></div>
+                </CardContent>
+            </Card>
+        </div>
+    )
+  }
+
+  if (!patient) {
     notFound();
+  }
+
+  const handleUpdatePatient = async (updatedPatient: Patient) => {
+    setPatient(updatedPatient); // Optimistic update
+    await updatePatient(updatedPatient.id, updatedPatient);
   }
 
   const handleAddTreatment = (newTreatment: Omit<Treatment, 'id' | 'date'>) => {
@@ -58,7 +88,7 @@ export default function PatientChartingPage({
         ...prevPatient,
         treatmentPlans: [...prevPatient.treatmentPlans, newPlan],
       };
-      setAllPatients(prevAll => prevAll.map(p => p.id === updatedPatient.id ? updatedPatient : p));
+      handleUpdatePatient(updatedPatient);
       return updatedPatient;
     });
     setIsTreatmentFormOpen(false);
@@ -80,7 +110,7 @@ export default function PatientChartingPage({
             dentalRecords: newRecords,
         };
 
-        setAllPatients(prevAll => prevAll.map(p => p.id === updatedPatient.id ? updatedPatient : p));
+        handleUpdatePatient(updatedPatient);
         
         return updatedPatient;
     });
@@ -93,7 +123,7 @@ export default function PatientChartingPage({
             ...prevPatient,
             periodontalRecords: records,
         };
-        setAllPatients(prevAll => prevAll.map(p => p.id === updatedPatient.id ? updatedPatient : p));
+        handleUpdatePatient(updatedPatient);
         return updatedPatient;
     });
   }
@@ -105,7 +135,7 @@ export default function PatientChartingPage({
         ...prevPatient,
         occlusalRecords: record,
       };
-      setAllPatients(prevAll => prevAll.map(p => p.id === updatedPatient.id ? updatedPatient : p));
+      handleUpdatePatient(updatedPatient);
       return updatedPatient;
     });
   };
@@ -121,7 +151,7 @@ export default function PatientChartingPage({
         ...prevPatient,
         orthodonticRecords: [...prevPatient.orthodonticRecords, newRecord].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
       };
-      setAllPatients(prevAll => prevAll.map(p => p.id === updatedPatient.id ? updatedPatient : p));
+      handleUpdatePatient(updatedPatient);
       return updatedPatient;
     });
   }
@@ -133,7 +163,7 @@ export default function PatientChartingPage({
         ...prevPatient,
         orthodonticRecords: prevPatient.orthodonticRecords.map(r => r.id === record.id ? record : r).sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
       };
-      setAllPatients(prevAll => prevAll.map(p => p.id === updatedPatient.id ? updatedPatient : p));
+      handleUpdatePatient(updatedPatient);
       return updatedPatient;
     });
   }
@@ -145,7 +175,7 @@ export default function PatientChartingPage({
         ...prevPatient,
         orthodonticRecords: prevPatient.orthodonticRecords.filter(r => r.id !== recordId),
       };
-      setAllPatients(prevAll => prevAll.map(p => p.id === updatedPatient.id ? updatedPatient : p));
+      handleUpdatePatient(updatedPatient);
       return updatedPatient;
     });
   }
@@ -161,7 +191,7 @@ export default function PatientChartingPage({
        ...prevPatient,
        softTissueRecords: [...prevPatient.softTissueRecords, newRecord].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
      };
-     setAllPatients(prevAll => prevAll.map(p => p.id === updatedPatient.id ? updatedPatient : p));
+     handleUpdatePatient(updatedPatient);
      return updatedPatient;
    });
  }
@@ -173,7 +203,7 @@ export default function PatientChartingPage({
        ...prevPatient,
        softTissueRecords: prevPatient.softTissueRecords.map(r => r.id === record.id ? record : r).sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
      };
-     setAllPatients(prevAll => prevAll.map(p => p.id === updatedPatient.id ? updatedPatient : p));
+     handleUpdatePatient(updatedPatient);
      return updatedPatient;
    });
  }
@@ -185,7 +215,7 @@ export default function PatientChartingPage({
        ...prevPatient,
        softTissueRecords: prevPatient.softTissueRecords.filter(r => r.id !== recordId),
      };
-     setAllPatients(prevAll => prevAll.map(p => p.id === updatedPatient.id ? updatedPatient : p));
+     handleUpdatePatient(updatedPatient);
      return updatedPatient;
    });
  }

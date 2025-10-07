@@ -2,33 +2,67 @@
 "use client";
 
 import { notFound, useParams } from 'next/navigation';
-import { employees as initialEmployees } from '@/lib/data';
-import { useState, useMemo } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { useState, useEffect } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import type { Employee } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { getEmployeeById } from '@/lib/api';
 
 export default function EmployeeDetailPage() {
   const router = useRouter();
   const params = useParams();
   const { id } = params;
 
-  const [employee, setEmployee] = useState<Employee | undefined>(initialEmployees.find(e => e.id === id));
-  
-  if (!employee) {
-    if(!employee) {
-        const foundEmployee = initialEmployees.find(e => e.id === id);
-        if (foundEmployee) {
-            setEmployee(foundEmployee);
-        } else {
-            notFound();
-        }
+  const [employee, setEmployee] = useState<Employee | undefined>(undefined);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (typeof id !== 'string') return;
+    const fetchData = async () => {
+        setIsLoading(true);
+        const data = await getEmployeeById(id);
+        setEmployee(data);
+        setIsLoading(false);
     }
-    return null;
+    fetchData();
+  }, [id]);
+  
+  if (isLoading) {
+      return (
+          <div className="flex flex-col gap-6">
+              <div className="flex items-center gap-4">
+                  <Button variant="outline" size="icon" onClick={() => router.back()}>
+                      <ArrowLeft className="h-4 w-4" />
+                      <span className="sr-only">Back</span>
+                  </Button>
+                  <h1 className="flex-1 shrink-0 whitespace-nowrap text-xl font-semibold tracking-tight sm:grow-0">
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin inline-block" /> Loading Employee...
+                  </h1>
+              </div>
+              <Card>
+                  <CardHeader className="flex flex-row items-center gap-4">
+                      <Avatar className="h-24 w-24 border">
+                          <AvatarFallback></AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 space-y-2">
+                           <div className="h-8 w-1/2 bg-gray-200 rounded animate-pulse"></div>
+                           <div className="h-6 w-1/3 bg-gray-200 rounded animate-pulse"></div>
+                      </div>
+                  </CardHeader>
+                  <CardContent>
+                      <div className="h-20 w-full bg-gray-200 rounded animate-pulse"></div>
+                  </CardContent>
+              </Card>
+          </div>
+      )
+  }
+
+  if (!employee) {
+    notFound();
   }
 
   return (

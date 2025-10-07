@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -11,7 +11,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { PlusCircle } from "lucide-react";
-import { branches as initialBranches } from "@/lib/data";
 import type { Branch } from "@/lib/types";
 import { BranchForm } from "./components/branch-form";
 import {
@@ -22,17 +21,29 @@ import {
     TableHeader,
     TableRow,
   } from "@/components/ui/table";
+import { createBranch, getBranches } from "@/lib/api";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function BranchesPage() {
-    const [branches, setBranches] = useState<Branch[]>(initialBranches);
+    const [branches, setBranches] = useState<Branch[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
     const [isFormOpen, setIsFormOpen] = useState(false);
 
-    const handleSaveBranch = (data: Omit<Branch, 'id'>) => {
-        const newBranch: Branch = {
-            ...data,
-            id: `b${branches.length + 1}`
+    useEffect(() => {
+        const fetchData = async () => {
+            setIsLoading(true);
+            const branchesData = await getBranches();
+            setBranches(branchesData);
+            setIsLoading(false);
         };
-        setBranches(prev => [...prev, newBranch]);
+        fetchData();
+    }, []);
+
+    const handleSaveBranch = async (data: Omit<Branch, 'id'>) => {
+        const newBranch = await createBranch(data);
+        if (newBranch) {
+            setBranches(prev => [...prev, newBranch]);
+        }
         setIsFormOpen(false);
     }
 
@@ -52,6 +63,12 @@ export default function BranchesPage() {
             </Button>
         </CardHeader>
         <CardContent>
+            {isLoading ? (
+                 <div className="space-y-2">
+                    <Skeleton className="h-12 w-full" />
+                    <Skeleton className="h-12 w-full" />
+                </div>
+            ) : (
              <Table>
                 <TableHeader>
                     <TableRow>
@@ -68,6 +85,7 @@ export default function BranchesPage() {
                     ))}
                 </TableBody>
             </Table>
+            )}
         </CardContent>
         </Card>
         {isFormOpen && (

@@ -10,10 +10,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { PlusCircle } from "lucide-react";
-import { patients as allPatients } from "@/lib/data";
 import { PatientsTable } from "./components/patients-table";
 import { useBranch } from "@/context/branch-context";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { currentUser } from "@/lib/user";
 import type { Patient, BasePatient } from "@/lib/types";
 import { PatientForm } from "./components/patient-form";
@@ -28,14 +27,27 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
   } from "@/components/ui/alert-dialog";
+import { createPatient, deletePatient, getPatients, updatePatient } from "@/lib/api";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function PatientsPage() {
   const router = useRouter();
   const { selectedBranch } = useBranch();
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [patientsData, setPatientsData] = useState(allPatients);
+  const [patientsData, setPatientsData] = useState<Patient[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedPatient, setSelectedPatient] = useState<Patient | undefined>(undefined);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
+
+  useEffect(() => {
+    const fetchData = async () => {
+        setIsLoading(true);
+        const data = await getPatients();
+        setPatientsData(data);
+        setIsLoading(false);
+    }
+    fetchData();
+  }, []);
 
   const patients = useMemo(() => {
     if (currentUser.role === 'Super Admin') {
@@ -54,27 +66,19 @@ export default function PatientsPage() {
     setIsFormOpen(false);
   }
 
-  const handleSavePatient = (data: BasePatient) => {
+  const handleSavePatient = async (data: BasePatient) => {
     if (selectedPatient) {
         // Update
-        const updatedPatient = { ...selectedPatient, ...data };
-        setPatientsData(prev => prev.map(p => p.id === updatedPatient.id ? updatedPatient : p));
+        const updated = await updatePatient(selectedPatient.id, data);
+        if (updated) {
+            setPatientsData(prev => prev.map(p => p.id === updated.id ? updated : p));
+        }
     } else {
         // Create
-        const newPatient: Patient = {
-        ...data,
-        id: `p${patientsData.length + 1}`,
-        dentalRecords: [],
-        treatmentPlans: [],
-        imaging: [],
-        lastVisit: new Date().toISOString().split('T')[0],
-        branchId: selectedBranch,
-        periodontalRecords: [],
-        occlusalRecords: { overbite: 0, overjet: 0, crossbite: 'None', openbite: 'None', malocclusion: 'Class I' },
-        softTissueRecords: [],
-        orthodonticRecords: [],
-        };
-        setPatientsData(prev => [...prev, newPatient]);
+        const newPatient = await createPatient({ ...data, branchId: selectedBranch });
+        if (newPatient) {
+            setPatientsData(prev => [...prev, newPatient]);
+        }
     }
     handleCloseForm();
   }
@@ -84,8 +88,9 @@ export default function PatientsPage() {
     setIsDeleteAlertOpen(true);
   }
 
-  const handleDeletePatient = () => {
+  const handleDeletePatient = async () => {
     if (selectedPatient) {
+        await deletePatient(selectedPatient.id);
         setPatientsData(prev => prev.filter(p => p.id !== selectedPatient.id));
     }
     setIsDeleteAlertOpen(false);
@@ -112,12 +117,21 @@ export default function PatientsPage() {
         </Button>
       </CardHeader>
       <CardContent>
-        <PatientsTable 
-            data={patients} 
-            onEdit={handleOpenForm}
-            onDelete={openDeleteDialog}
-            onView={handleViewPatient}
-        />
+        {isLoading ? (
+             <div className="space-y-4">
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+             </div>
+        ) : (
+            <PatientsTable 
+                data={patients} 
+                onEdit={handleOpenForm}
+                onDelete={openDeleteDialog}
+                onView={handleViewPatient}
+            />
+        )}
       </CardContent>
     </Card>
     {isFormOpen && (

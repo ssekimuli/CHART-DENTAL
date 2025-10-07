@@ -29,11 +29,12 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
-import { recentPatients as allRecentPatients, appointments as allAppointments, chartData as allChartData } from "@/lib/data";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useBranch } from "@/context/branch-context";
-import { useMemo } from "react";
-import type { Patient, Appointment } from "@/lib/types";
+import { useMemo, useState, useEffect } from "react";
+import type { Patient, Appointment, ChartData } from "@/lib/types";
+import { getPatients, getAppointments, getChartData } from "@/lib/api";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const chartConfig = {
   revenue: {
@@ -44,6 +45,26 @@ const chartConfig = {
 
 export default function DashboardPage() {
   const { selectedBranch } = useBranch();
+  const [allAppointments, setAllAppointments] = useState<Appointment[]>([]);
+  const [allRecentPatients, setAllRecentPatients] = useState<Patient[]>([]);
+  const [allChartData, setAllChartData] = useState<ChartData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
+      const [appointmentsData, patientsData, chartDataResult] = await Promise.all([
+        getAppointments(),
+        getPatients(), 
+        getChartData()
+      ]);
+      setAllAppointments(appointmentsData);
+      setAllRecentPatients(patientsData);
+      setAllChartData(chartDataResult);
+      setIsLoading(false);
+    };
+    fetchData();
+  }, []);
 
   const { recentPatients, appointments, chartData, totalRevenue, activePatients, newAppointments, newPatients } = useMemo(() => {
     const filteredAppointments = allAppointments.filter(a => a.branchId === selectedBranch);
@@ -61,7 +82,7 @@ export default function DashboardPage() {
       newAppointments: filteredAppointments.filter(a => new Date(a.date) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)).length,
       newPatients: filteredPatients.filter(p => new Date(p.lastVisit) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)).length,
     }
-  }, [selectedBranch]);
+  }, [selectedBranch, allAppointments, allRecentPatients, allChartData]);
 
 
   return (
@@ -75,7 +96,7 @@ export default function DashboardPage() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${totalRevenue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+            {isLoading ? <Skeleton className="h-8 w-3/4" /> : <div className="text-2xl font-bold">${totalRevenue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>}
             <p className="text-xs text-muted-foreground">
               For selected branch
             </p>
@@ -89,7 +110,7 @@ export default function DashboardPage() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">+{activePatients}</div>
+             {isLoading ? <Skeleton className="h-8 w-1/4" /> : <div className="text-2xl font-bold">+{activePatients}</div>}
             <p className="text-xs text-muted-foreground">
               In selected branch
             </p>
@@ -101,7 +122,7 @@ export default function DashboardPage() {
             <CalendarCheck className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">+{newAppointments}</div>
+            {isLoading ? <Skeleton className="h-8 w-1/4" /> : <div className="text-2xl font-bold">+{newAppointments}</div>}
             <p className="text-xs text-muted-foreground">
               in the last 30 days
             </p>
@@ -113,7 +134,7 @@ export default function DashboardPage() {
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">+{newPatients}</div>
+            {isLoading ? <Skeleton className="h-8 w-1/4" /> : <div className="text-2xl font-bold">+{newPatients}</div>}
             <p className="text-xs text-muted-foreground">
              in the last 30 days
             </p>
@@ -127,6 +148,7 @@ export default function DashboardPage() {
             <CardTitle>Overview</CardTitle>
           </CardHeader>
           <CardContent className="pl-2">
+            {isLoading ? <Skeleton className="h-[300px] w-full" /> : (
             <ChartContainer config={chartConfig} className="h-[300px] w-full">
               <BarChart accessibilityLayer data={chartData}>
                 <CartesianGrid vertical={false} />
@@ -154,6 +176,7 @@ export default function DashboardPage() {
                 />
               </BarChart>
             </ChartContainer>
+            )}
           </CardContent>
         </Card>
 
@@ -161,12 +184,18 @@ export default function DashboardPage() {
           <CardHeader>
             <CardTitle>Recent Patients</CardTitle>
             <CardDescription>
-              You have {recentPatients.length} recent patients in this branch.
+              {isLoading ? <Skeleton className="h-4 w-1/2" /> : `You have ${recentPatients.length} recent patients in this branch.`}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {recentPatients.map((patient) => (
+              {isLoading ? (
+                <>
+                  <Skeleton className="h-10 w-full" />
+                  <Skeleton className="h-10 w-full" />
+                  <Skeleton className="h-10 w-full" />
+                </>
+              ) : recentPatients.map((patient) => (
                 <div className="flex items-center" key={patient.id}>
                   <Avatar className="h-9 w-9">
                     <AvatarImage src={patient.avatar} alt="Avatar" />
@@ -183,7 +212,7 @@ export default function DashboardPage() {
                   <div className="ml-auto font-medium">{patient.lastVisit}</div>
                 </div>
               ))}
-               {recentPatients.length === 0 && (
+               {recentPatients.length === 0 && !isLoading && (
                  <p className="text-sm text-muted-foreground text-center">No recent patients in this branch.</p>
                 )}
             </div>
@@ -196,6 +225,7 @@ export default function DashboardPage() {
           <CardTitle>Upcoming Appointments</CardTitle>
         </CardHeader>
         <CardContent>
+          {isLoading ? <Skeleton className="h-48 w-full" /> : (
           <Table>
             <TableHeader>
               <TableRow>
@@ -224,7 +254,7 @@ export default function DashboardPage() {
                   <TableCell>{appointment.time}</TableCell>
                 </TableRow>
               ))}
-              {appointments.length === 0 && (
+              {appointments.length === 0 && !isLoading && (
                 <TableRow>
                     <TableCell colSpan={6} className="h-24 text-center">
                         No upcoming appointments in this branch.
@@ -233,6 +263,7 @@ export default function DashboardPage() {
               )}
             </TableBody>
           </Table>
+          )}
         </CardContent>
       </Card>
     </div>

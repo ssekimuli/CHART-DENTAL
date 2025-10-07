@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,7 +12,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { PlusCircle } from "lucide-react";
-import { employees as initialEmployees } from "@/lib/data";
 import { EmployeesTable } from "./components/employees-table";
 import type { Employee } from "@/lib/types";
 import { EmployeeForm } from "./components/employee-form";
@@ -28,15 +27,29 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
   } from "@/components/ui/alert-dialog";
+import { createEmployee, deleteEmployee, getEmployees, updateEmployee } from "@/lib/api";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function EmployeesPage() {
     const router = useRouter();
     const { selectedBranch } = useBranch();
-    const [allEmployees, setAllEmployees] = useState<Employee[]>(initialEmployees);
+    const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [selectedEmployee, setSelectedEmployee] = useState<Employee | undefined>(undefined);
     const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
     
+    useEffect(() => {
+        const fetchData = async () => {
+            setIsLoading(true);
+            const data = await getEmployees();
+            setAllEmployees(data);
+            setIsLoading(false);
+        };
+        fetchData();
+    }, []);
+
     const employees = useMemo(() => {
         if (currentUser.role === 'Super Admin') {
           return allEmployees.filter(e => e.branchId === selectedBranch);
@@ -54,17 +67,17 @@ export default function EmployeesPage() {
         setIsFormOpen(false);
     };
 
-    const handleSaveEmployee = (data: Omit<Employee, 'id' | 'branchId'>) => {
+    const handleSaveEmployee = async (data: Omit<Employee, 'id' | 'branchId'>) => {
         if (selectedEmployee) {
-            const updatedEmployee = { ...selectedEmployee, ...data };
-            setAllEmployees(prev => prev.map(e => e.id === updatedEmployee.id ? updatedEmployee : e));
+            const updated = await updateEmployee(selectedEmployee.id, data);
+            if(updated) {
+                setAllEmployees(prev => prev.map(e => e.id === updated.id ? updated : e));
+            }
         } else {
-            const newEmployee: Employee = {
-                ...data,
-                id: `emp${allEmployees.length + 1}`,
-                branchId: selectedBranch,
-            };
-            setAllEmployees(prev => [...prev, newEmployee]);
+            const newEmployee = await createEmployee({ ...data, branchId: selectedBranch });
+            if(newEmployee) {
+                setAllEmployees(prev => [...prev, newEmployee]);
+            }
         }
         handleCloseForm();
     };
@@ -74,8 +87,9 @@ export default function EmployeesPage() {
         setIsDeleteAlertOpen(true);
     };
     
-    const handleDeleteEmployee = () => {
+    const handleDeleteEmployee = async () => {
         if (selectedEmployee) {
+            await deleteEmployee(selectedEmployee.id);
             setAllEmployees(prev => prev.filter(e => e.id !== selectedEmployee.id));
         }
         setIsDeleteAlertOpen(false);
@@ -102,12 +116,20 @@ export default function EmployeesPage() {
             </Button>
         </CardHeader>
         <CardContent>
-            <EmployeesTable 
-                data={employees}
-                onEdit={handleOpenForm}
-                onDelete={openDeleteDialog}
-                onView={handleViewEmployee}
-            />
+            {isLoading ? (
+                <div className="space-y-4">
+                    <Skeleton className="h-12 w-full" />
+                    <Skeleton className="h-12 w-full" />
+                    <Skeleton className="h-12 w-full" />
+                </div>
+            ) : (
+                <EmployeesTable 
+                    data={employees}
+                    onEdit={handleOpenForm}
+                    onDelete={openDeleteDialog}
+                    onView={handleViewEmployee}
+                />
+            )}
         </CardContent>
         </Card>
         {isFormOpen && (

@@ -18,9 +18,8 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
-import { appointments as initialAppointments, patients as allPatients, employees as allEmployees } from "@/lib/data";
-import { useState, useMemo } from "react";
-import type { Appointment } from "@/lib/types";
+import { useState, useMemo, useEffect } from "react";
+import type { Appointment, Employee, Patient } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { MoreHorizontal, PlusCircle, Trash, Pencil } from "lucide-react";
 import { AppointmentForm } from "./components/appointment-form";
@@ -44,21 +43,42 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
   } from "@/components/ui/alert-dialog";
+  import { getAppointments, getPatients, getEmployees, createAppointment, updateAppointment, deleteAppointment } from "@/lib/api";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function AppointmentsPage() {
   const { selectedBranch } = useBranch();
-  const [allAppointments, setAllAppointments] = useState<Appointment[]>(initialAppointments);
+  const [allAppointments, setAllAppointments] = useState<Appointment[]>([]);
+  const [allPatients, setAllPatients] = useState<Patient[]>([]);
+  const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | undefined>(undefined);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   
+  useEffect(() => {
+    const fetchData = async () => {
+        setIsLoading(true);
+        const [appointmentsData, patientsData, employeesData] = await Promise.all([
+            getAppointments(),
+            getPatients(),
+            getEmployees()
+        ]);
+        setAllAppointments(appointmentsData);
+        setAllPatients(patientsData);
+        setAllEmployees(employeesData);
+        setIsLoading(false);
+    };
+    fetchData();
+  }, []);
+
   const filteredPatients = useMemo(() => {
      if (currentUser.role === 'Super Admin') {
       return allPatients.filter(p => p.branchId === selectedBranch);
     }
     return allPatients.filter(p => p.branchId === currentUser.branchId);
-  }, [selectedBranch]);
+  }, [selectedBranch, allPatients]);
 
   const filteredDoctors = useMemo(() => {
     const doctors = allEmployees.filter(e => e.role === 'Dentist');
@@ -66,7 +86,7 @@ export default function AppointmentsPage() {
       return doctors.filter(d => d.branchId === selectedBranch);
     }
     return doctors.filter(d => d.branchId === currentUser.branchId);
-  }, [selectedBranch]);
+  }, [selectedBranch, allEmployees]);
   
   const appointments = useMemo(() => {
     if (currentUser.role === 'Super Admin') {
@@ -85,25 +105,26 @@ export default function AppointmentsPage() {
     setIsFormOpen(false);
   }
 
-  const handleSaveAppointment = (data: Omit<Appointment, 'id' | 'branchId'>) => {
+  const handleSaveAppointment = async (data: Omit<Appointment, 'id' | 'branchId'>) => {
     if (selectedAppointment) {
         // Update
-        const updatedAppointment = { ...selectedAppointment, ...data };
-        setAllAppointments(prev => prev.map(a => a.id === updatedAppointment.id ? updatedAppointment : a));
+        const updated = await updateAppointment(selectedAppointment.id, data);
+        if (updated) {
+          setAllAppointments(prev => prev.map(a => a.id === updated.id ? updated : a));
+        }
     } else {
         // Create
-        const newAppointment: Appointment = {
-            ...data,
-            id: `a${allAppointments.length + 1}`,
-            branchId: selectedBranch,
-        };
-        setAllAppointments(prev => [...prev, newAppointment]);
+        const newAppointment = await createAppointment({ ...data, branchId: selectedBranch });
+        if (newAppointment) {
+          setAllAppointments(prev => [...prev, newAppointment]);
+        }
     }
     handleCloseForm();
   };
 
-  const handleDeleteAppointment = () => {
+  const handleDeleteAppointment = async () => {
     if (selectedAppointment) {
+        await deleteAppointment(selectedAppointment.id);
         setAllAppointments(prev => prev.filter(a => a.id !== selectedAppointment.id));
     }
     setIsDeleteAlertOpen(false);
@@ -133,6 +154,13 @@ export default function AppointmentsPage() {
               </Button>
             </CardHeader>
             <CardContent>
+              {isLoading ? (
+                <div className="space-y-4">
+                  <Skeleton className="h-12 w-full" />
+                  <Skeleton className="h-12 w-full" />
+                  <Skeleton className="h-12 w-full" />
+                </div>
+              ) : (
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -201,6 +229,7 @@ export default function AppointmentsPage() {
                   )}
                 </TableBody>
               </Table>
+              )}
             </CardContent>
           </Card>
         </div>

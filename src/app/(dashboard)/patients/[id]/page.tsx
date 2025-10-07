@@ -2,7 +2,6 @@
 "use client";
 
 import { notFound, useRouter } from "next/navigation";
-import { patients as initialPatients } from "@/lib/data";
 import {
   Card,
   CardContent,
@@ -27,7 +26,7 @@ import { Badge } from "@/components/ui/badge";
 import { useEffect, useState } from "react";
 import type { Patient, Treatment, BasePatient } from "@/lib/types";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Trash, Pencil, FileText } from "lucide-react";
+import { PlusCircle, Trash, Pencil, FileText, Loader2 } from "lucide-react";
 import { TreatmentPlanForm } from "./components/treatment-plan-form";
 import { PatientForm } from "../components/patient-form";
 import {
@@ -40,6 +39,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { deletePatient, getPatientById, updatePatient } from "@/lib/api";
 
 export default function PatientDetailPage({
   params,
@@ -47,10 +47,8 @@ export default function PatientDetailPage({
   params: { id: string };
 }) {
   const router = useRouter();
-  const [allPatients, setAllPatients] = useState(initialPatients);
-  const [patient, setPatient] = useState<Patient | undefined>(
-    allPatients.find((p) => p.id === params.id)
-  );
+  const [patient, setPatient] = useState<Patient | undefined>(undefined);
+  const [isLoading, setIsLoading] = useState(true);
 
   const [isTreatmentFormOpen, setIsTreatmentFormOpen] = useState(false);
   const [isPatientFormOpen, setIsPatientFormOpen] = useState(false);
@@ -58,34 +56,51 @@ export default function PatientDetailPage({
   const [historySummary, setHistorySummary] = useState<{ summary: string } | null>(null);
 
   useEffect(() => {
-    if (patient) {
-      summarizePatientHistory({ patientHistory: patient.history }).then(setHistorySummary);
-    } else {
-        const foundPatient = allPatients.find(p => p.id === params.id);
-        setPatient(foundPatient);
+    if (typeof params.id !== "string") return;
+    const fetchData = async () => {
+        setIsLoading(true);
+        const patientData = await getPatientById(params.id);
+        setPatient(patientData);
+        if (patientData) {
+            summarizePatientHistory({ patientHistory: patientData.history }).then(setHistorySummary);
+        }
+        setIsLoading(false);
     }
-  }, [patient, params.id, allPatients]);
+    fetchData();
+  }, [params.id]);
 
+
+  if (isLoading) {
+      return (
+        <div className="flex flex-col gap-6">
+            <Card>
+                <CardHeader className="flex flex-row items-start gap-4">
+                    <div className="h-20 w-20 bg-gray-200 rounded-full animate-pulse"></div>
+                     <div className="flex-1 space-y-2">
+                        <div className="h-8 w-1/2 bg-gray-200 rounded animate-pulse"></div>
+                        <div className="h-6 w-1/3 bg-gray-200 rounded animate-pulse"></div>
+                     </div>
+                </CardHeader>
+            </Card>
+             <div className="h-48 w-full bg-gray-200 rounded animate-pulse"></div>
+        </div>
+      )
+  }
 
   if (!patient) {
-    // This will be caught by the notFound() call in the next render if patient is still not found
-    return null; 
+    notFound(); 
   }
   
-  const handleUpdatePatient = (data: BasePatient) => {
-    setPatient(prevPatient => {
-        if (!prevPatient) return prevPatient;
-        const updatedPatient = { ...prevPatient, ...data };
-        
-        setAllPatients(prevAll => prevAll.map(p => p.id === updatedPatient.id ? updatedPatient : p));
-        
-        return updatedPatient;
-    });
+  const handleUpdatePatient = async (data: BasePatient) => {
+    const updated = await updatePatient(patient.id, data);
+    if(updated) {
+        setPatient(updated);
+    }
     setIsPatientFormOpen(false);
   }
 
-  const handleDeletePatient = () => {
-    setAllPatients(prevAll => prevAll.filter(p => p.id !== params.id));
+  const handleDeletePatient = async () => {
+    await deletePatient(params.id as string);
     router.push('/patients');
     setIsDeleteAlertOpen(false);
   }
@@ -102,7 +117,7 @@ export default function PatientDetailPage({
         ...prevPatient,
         treatmentPlans: [...prevPatient.treatmentPlans, newPlan],
       };
-      setAllPatients(prevAll => prevAll.map(p => p.id === updatedPatient.id ? updatedPatient : p));
+      updatePatient(updatedPatient.id, updatedPatient);
       return updatedPatient;
     });
     setIsTreatmentFormOpen(false);

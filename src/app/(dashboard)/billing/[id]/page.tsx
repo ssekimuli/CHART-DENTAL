@@ -2,25 +2,37 @@
 "use client";
 
 import { notFound, useParams } from 'next/navigation';
-import { invoices as initialInvoices, patients as initialPatients } from '@/lib/data';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import type { Invoice, Patient, Treatment } from '@/lib/types';
+import type { Invoice, Patient } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { Printer, Download } from 'lucide-react';
+import { Printer, Download, Loader2 } from 'lucide-react';
+import { getInvoiceById, getPatientById } from '@/lib/api';
 
 export default function InvoiceDetailPage() {
   const params = useParams();
   const { id } = params;
 
-  const [invoice, setInvoice] = useState<Invoice | undefined>(initialInvoices.find(i => i.id === id));
-  
-  const patient = useMemo(() => {
-    if (!invoice) return undefined;
-    return initialPatients.find(p => p.id === invoice.patientId);
-  }, [invoice]);
+  const [invoice, setInvoice] = useState<Invoice | undefined>(undefined);
+  const [patient, setPatient] = useState<Patient | undefined>(undefined);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (typeof id !== 'string') return;
+    const fetchData = async () => {
+      setIsLoading(true);
+      const invoiceData = await getInvoiceById(id as string);
+      if (invoiceData) {
+        setInvoice(invoiceData);
+        const patientData = await getPatientById(invoiceData.patientId);
+        setPatient(patientData);
+      }
+      setIsLoading(false);
+    };
+    fetchData();
+  }, [id]);
 
   const treatments = useMemo(() => {
     if (!patient || !invoice) return [];
@@ -28,17 +40,25 @@ export default function InvoiceDetailPage() {
   }, [patient, invoice]);
 
 
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle><Loader2 className="mr-2 h-6 w-6 animate-spin" />Loading Invoice...</CardTitle>
+        </CardHeader>
+        <CardContent>
+            <div className="space-y-4">
+                <div className="h-8 w-1/4 bg-gray-200 rounded animate-pulse"></div>
+                <div className="h-20 w-full bg-gray-200 rounded animate-pulse"></div>
+                <div className="h-40 w-full bg-gray-200 rounded animate-pulse"></div>
+            </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   if (!invoice || !patient) {
-    // We could show a loading state here
-    if(!invoice) {
-        const foundInvoice = initialInvoices.find(i => i.id === id);
-        if (foundInvoice) {
-            setInvoice(foundInvoice);
-        } else {
-            notFound();
-        }
-    }
-    return null;
+    notFound();
   }
   
   const getStatusVariant = (status: "Paid" | "Pending" | "Overdue") => {

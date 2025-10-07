@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -11,24 +11,38 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Download, PlusCircle } from "lucide-react";
-import { payrolls as initialPayrolls, employees as allEmployees } from "@/lib/data";
 import { PayrollTable } from "./components/payroll-table";
-import type { Payroll } from "@/lib/types";
+import type { Employee, Payroll } from "@/lib/types";
 import { PayrollForm } from "./components/payroll-form";
 import { useBranch } from "@/context/branch-context";
 import { currentUser } from "@/lib/user";
+import { createPayroll, getEmployees, getPayrolls } from "@/lib/api";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function PayrollPage() {
   const { selectedBranch } = useBranch();
-  const [allPayrolls, setAllPayrolls] = useState<Payroll[]>(initialPayrolls);
+  const [allPayrolls, setAllPayrolls] = useState<Payroll[]>([]);
+  const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
+
+  useEffect(() => {
+      const fetchData = async () => {
+          setIsLoading(true);
+          const [payrolls, employees] = await Promise.all([getPayrolls(), getEmployees()]);
+          setAllPayrolls(payrolls);
+          setAllEmployees(employees);
+          setIsLoading(false);
+      }
+      fetchData();
+  }, []);
 
   const filteredEmployees = useMemo(() => {
     if (currentUser.role === 'Super Admin') {
       return allEmployees.filter(e => e.branchId === selectedBranch);
     }
     return allEmployees.filter(e => e.branchId === currentUser.branchId);
-  }, [selectedBranch]);
+  }, [selectedBranch, allEmployees]);
 
   const payrolls = useMemo(() => {
      if (currentUser.role === 'Super Admin') {
@@ -37,17 +51,14 @@ export default function PayrollPage() {
     return allPayrolls.filter(p => p.branchId === currentUser.branchId);
   }, [selectedBranch, allPayrolls]);
 
-  const handleSavePayroll = (data: Omit<Payroll, 'id' | 'employeeName' | 'branchId'>) => {
+  const handleSavePayroll = async (data: Omit<Payroll, 'id' | 'employeeName' | 'branchId'>) => {
     const employee = filteredEmployees.find(e => e.id === data.employeeId);
     if (!employee) return;
 
-    const newPayroll: Payroll = {
-        ...data,
-        id: `pay${allPayrolls.length + 1}`,
-        employeeName: employee.name,
-        branchId: selectedBranch,
-    };
-    setAllPayrolls(prev => [newPayroll, ...prev]);
+    const newPayroll = await createPayroll({ ...data, employeeName: employee.name, branchId: selectedBranch });
+    if(newPayroll) {
+        setAllPayrolls(prev => [newPayroll, ...prev]);
+    }
     setIsFormOpen(false);
   }
 
@@ -73,7 +84,15 @@ export default function PayrollPage() {
             </div>
         </CardHeader>
         <CardContent>
-            <PayrollTable data={payrolls} />
+            {isLoading ? (
+                <div className="space-y-4">
+                    <Skeleton className="h-12 w-full" />
+                    <Skeleton className="h-12 w-full" />
+                    <Skeleton className="h-12 w-full" />
+                </div>
+            ) : (
+                <PayrollTable data={payrolls} />
+            )}
         </CardContent>
         </Card>
         {isFormOpen && (
