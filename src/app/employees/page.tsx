@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -15,17 +15,28 @@ import { employees as initialEmployees } from "@/lib/data";
 import { EmployeesTable } from "./components/employees-table";
 import type { Employee } from "@/lib/types";
 import { EmployeeForm } from "./components/employee-form";
+import { useBranch } from "@/context/branch-context";
+import { currentUser } from "@/lib/user";
 
 export default function EmployeesPage() {
-    const [employees, setEmployees] = useState<Employee[]>(initialEmployees);
+    const { selectedBranch } = useBranch();
+    const [allEmployees, setAllEmployees] = useState<Employee[]>(initialEmployees);
     const [isFormOpen, setIsFormOpen] = useState(false);
+    
+    const employees = useMemo(() => {
+        if (currentUser.role === 'Super Admin') {
+          return allEmployees.filter(e => e.branchId === selectedBranch);
+        }
+        return allEmployees.filter(e => e.branchId === currentUser.branchId);
+      }, [selectedBranch, allEmployees]);
 
-    const handleSaveEmployee = (data: Omit<Employee, 'id'>) => {
+    const handleSaveEmployee = (data: Omit<Employee, 'id' | 'branchId'>) => {
         const newEmployee: Employee = {
             ...data,
-            id: `emp${employees.length + 1}`
+            id: `emp${allEmployees.length + 1}`,
+            branchId: selectedBranch,
         };
-        setEmployees(prev => [...prev, newEmployee]);
+        setAllEmployees(prev => [...prev, newEmployee]);
         setIsFormOpen(false);
     }
 

@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -28,8 +29,11 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
-import { recentPatients, appointments, chartData } from "@/lib/data";
+import { recentPatients as allRecentPatients, appointments as allAppointments, chartData as allChartData } from "@/lib/data";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useBranch } from "@/context/branch-context";
+import { useMemo } from "react";
+import type { Patient, Appointment } from "@/lib/types";
 
 const chartConfig = {
   revenue: {
@@ -39,6 +43,27 @@ const chartConfig = {
 };
 
 export default function DashboardPage() {
+  const { selectedBranch } = useBranch();
+
+  const { recentPatients, appointments, chartData, totalRevenue, activePatients, newAppointments, newPatients } = useMemo(() => {
+    const filteredAppointments = allAppointments.filter(a => a.branchId === selectedBranch);
+    const filteredPatients = allRecentPatients.filter(p => p.branchId === selectedBranch);
+    const filteredChartData = allChartData.filter(c => c.branchId === selectedBranch);
+    
+    const totalRevenue = filteredChartData.reduce((acc, item) => acc + item.revenue, 0);
+
+    return {
+      recentPatients: filteredPatients.slice(0, 5),
+      appointments: filteredAppointments,
+      chartData: filteredChartData,
+      totalRevenue: totalRevenue,
+      activePatients: filteredPatients.filter(p => p.status === 'Active').length,
+      newAppointments: filteredAppointments.filter(a => new Date(a.date) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)).length,
+      newPatients: filteredPatients.filter(p => new Date(p.lastVisit) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)).length,
+    }
+  }, [selectedBranch]);
+
+
   return (
     <div className="flex flex-col gap-6">
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -50,9 +75,9 @@ export default function DashboardPage() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">$45,231.89</div>
+            <div className="text-2xl font-bold">${totalRevenue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
             <p className="text-xs text-muted-foreground">
-              +20.1% from last month
+              For selected branch
             </p>
           </CardContent>
         </Card>
@@ -64,9 +89,9 @@ export default function DashboardPage() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">+2350</div>
+            <div className="text-2xl font-bold">+{activePatients}</div>
             <p className="text-xs text-muted-foreground">
-              +180.1% from last month
+              In selected branch
             </p>
           </CardContent>
         </Card>
@@ -76,9 +101,9 @@ export default function DashboardPage() {
             <CalendarCheck className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">+12</div>
+            <div className="text-2xl font-bold">+{newAppointments}</div>
             <p className="text-xs text-muted-foreground">
-              +19% from last month
+              in the last 30 days
             </p>
           </CardContent>
         </Card>
@@ -88,9 +113,9 @@ export default function DashboardPage() {
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">+573</div>
+            <div className="text-2xl font-bold">+{newPatients}</div>
             <p className="text-xs text-muted-foreground">
-              +201 since last week
+             in the last 30 days
             </p>
           </CardContent>
         </Card>
@@ -136,7 +161,7 @@ export default function DashboardPage() {
           <CardHeader>
             <CardTitle>Recent Patients</CardTitle>
             <CardDescription>
-              You have {recentPatients.length} recent patients.
+              You have {recentPatients.length} recent patients in this branch.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -158,6 +183,9 @@ export default function DashboardPage() {
                   <div className="ml-auto font-medium">{patient.lastVisit}</div>
                 </div>
               ))}
+               {recentPatients.length === 0 && (
+                 <p className="text-sm text-muted-foreground text-center">No recent patients in this branch.</p>
+                )}
             </div>
           </CardContent>
         </Card>
@@ -192,6 +220,13 @@ export default function DashboardPage() {
                   <TableCell>{appointment.time}</TableCell>
                 </TableRow>
               ))}
+              {appointments.length === 0 && (
+                <TableRow>
+                    <TableCell colSpan={5} className="h-24 text-center">
+                        No upcoming appointments in this branch.
+                    </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>

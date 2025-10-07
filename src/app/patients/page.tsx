@@ -1,3 +1,6 @@
+
+"use client";
+
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -7,10 +10,22 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { PlusCircle } from "lucide-react";
-import { patients } from "@/lib/data";
+import { patients as allPatients } from "@/lib/data";
 import { PatientsTable } from "./components/patients-table";
+import { useBranch } from "@/context/branch-context";
+import { useMemo } from "react";
+import { currentUser } from "@/lib/user";
 
 export default function PatientsPage() {
+  const { selectedBranch } = useBranch();
+
+  const patients = useMemo(() => {
+    if (currentUser.role === 'Super Admin') {
+      return allPatients.filter(p => p.branchId === selectedBranch);
+    }
+    return allPatients.filter(p => p.branchId === currentUser.branchId);
+  }, [selectedBranch]);
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">

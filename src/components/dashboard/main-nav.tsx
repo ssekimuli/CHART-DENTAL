@@ -18,6 +18,7 @@ import {
   Building,
 } from "lucide-react";
 import type { EmployeeRole } from "@/lib/types";
+import { currentUser } from "@/lib/user";
 
 const allLinks = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard, roles: ['Super Admin', 'Account', 'HR', 'Dentist', 'Hygienist', 'Receptionist', 'Assistant'] as EmployeeRole[] },
@@ -29,12 +30,6 @@ const allLinks = [
   { href: "/branches", label: "Branches", icon: Building, roles: ['Super Admin'] as EmployeeRole[] },
   { href: "/settings", label: "Settings", icon: Settings, roles: ['Super Admin', 'Account', 'HR', 'Dentist', 'Hygienist', 'Receptionist', 'Assistant'] as EmployeeRole[] },
 ];
-
-// Mock current user - in a real app, this would come from an auth context
-const currentUser: { role: EmployeeRole } = {
-  role: 'Super Admin',
-};
-
 
 export function MainNav() {
   const pathname = usePathname();

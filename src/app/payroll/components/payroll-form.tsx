@@ -41,7 +41,7 @@ const formSchema = z.object({
 
 type PayrollFormProps = {
     employees: Employee[];
-    onSave: (data: Omit<Payroll, 'id' | 'employeeName'>) => void;
+    onSave: (data: Omit<Payroll, 'id' | 'employeeName' | 'branchId'>) => void;
     onOpenChange: (open: boolean) => void;
 };
 

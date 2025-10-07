@@ -55,6 +55,7 @@ export type Invoice = {
 export type ChartData = {
   month: string;
   revenue: number;
+  branchId: string;
 };
 
 export type EmployeeRole = 'Super Admin' | 'Account' | 'HR' | 'Dentist' | 'Hygienist' | 'Receptionist' | 'Assistant';
@@ -81,6 +82,7 @@ export type Payroll = {
   deductions: number;
   payDate: string;
   status: 'Paid' | 'Pending';
+  branchId: string;
 };
 
 export type Branch = {

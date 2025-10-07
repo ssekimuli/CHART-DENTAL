@@ -44,7 +44,7 @@ const formSchema = z.object({
 
 type AppointmentFormProps = {
     patients: Patient[];
-    onSave: (data: Omit<Appointment, 'id'>) => void;
+    onSave: (data: Omit<Appointment, 'id' | 'branchId'>) => void;
     onOpenChange: (open: boolean) => void;
 };
 

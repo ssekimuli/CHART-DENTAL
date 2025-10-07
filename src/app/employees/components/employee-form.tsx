@@ -51,7 +51,7 @@ const formSchema = z.object({
 });
 
 type EmployeeFormProps = {
-    onSave: (data: Omit<Employee, 'id'>) => void;
+    onSave: (data: Omit<Employee, 'id' | 'branchId'>) => void;
     onOpenChange: (open: boolean) => void;
 };
 

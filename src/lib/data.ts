@@ -67,6 +67,34 @@ export const patients: Patient[] = [
     imaging: [],
     history: "Requires follow-up for periodontal scaling."
   },
+   {
+    id: "4",
+    name: "Mike Williams",
+    avatar: "https://picsum.photos/seed/p4/200/200",
+    email: "mike.williams@example.com",
+    dateOfBirth: "1990-09-01",
+    lastVisit: "2024-07-15",
+    status: "Active",
+    branchId: "b2",
+    dentalRecords: [],
+    treatmentPlans: [],
+    imaging: [],
+    history: "New patient."
+  },
+  {
+    id: "5",
+    name: "Sarah Brown",
+    avatar: "https://picsum.photos/seed/p5/200/200",
+    email: "sarah.brown@example.com",
+    dateOfBirth: "1988-02-25",
+    lastVisit: "2024-07-14",
+    status: "Active",
+    branchId: "b1",
+    dentalRecords: [],
+    treatmentPlans: [],
+    imaging: [],
+    history: "Regular patient."
+  }
 ];
 
 export const recentPatients = patients.slice(0, 5);
@@ -74,24 +102,30 @@ export const recentPatients = patients.slice(0, 5);
 export const appointments: Appointment[] = [
   { id: "a1", patientName: "John Doe", patientId: "1", treatment: "Check-up", status: "Scheduled", date: "2024-07-20", time: "10:00 AM", branchId: "b1" },
   { id: "a2", patientName: "Jane Smith", patientId: "2", treatment: "Cleaning", status: "Scheduled", date: "2024-07-21", time: "11:30 AM", branchId: "b2" },
-  { id: "a3", patientName: "Mike Williams", patientId: "4", treatment: "Filling", status: "Completed", date: "2024-07-15", time: "02:00 PM", branchId: "b1" },
-  { id: "a4", patientName: "Sarah Brown", patientId: "5", treatment: "Consultation", status: "Cancelled", date: "2024-07-14", time: "09:00 AM", branchId: "b2" },
+  { id: "a3", patientName: "Mike Williams", patientId: "4", treatment: "Filling", status: "Completed", date: "2024-07-15", time: "02:00 PM", branchId: "b2" },
+  { id: "a4", patientName: "Sarah Brown", patientId: "5", treatment: "Consultation", status: "Cancelled", date: "2024-07-14", time: "09:00 AM", branchId: "b1" },
 ];
 
 export const invoices: Invoice[] = [
   { id: "inv1", patientName: "John Doe", patientId: "1", amount: 250, status: "Pending", issueDate: "2024-05-10", dueDate: "2024-06-10", branchId: "b1" },
   { id: "inv2", patientName: "Jane Smith", patientId: "2", amount: 150, status: "Paid", issueDate: "2024-04-22", dueDate: "2024-05-22", branchId: "b2" },
-  { id: "inv3", patientName: "Mike Williams", patientId: "4", amount: 300, status: "Paid", issueDate: "2024-07-15", dueDate: "2024-08-15", branchId: "b1" },
+  { id: "inv3", patientName: "Mike Williams", patientId: "4", amount: 300, status: "Paid", issueDate: "2024-07-15", dueDate: "2024-08-15", branchId: "b2" },
   { id: "inv4", patientName: "John Doe", patientId: "1", amount: 75, status: "Overdue", issueDate: "2024-03-01", dueDate: "2024-04-01", branchId: "b1" },
 ];
 
 export const chartData: ChartData[] = [
-    { month: "January", revenue: 18600 },
-    { month: "February", revenue: 30500 },
-    { month: "March", revenue: 23700 },
-    { month: "April", revenue: 27800 },
-    { month: "May", revenue: 45231 },
-    { month: "June", revenue: 34900 },
+    { month: "January", revenue: 18600, branchId: "b1" },
+    { month: "February", revenue: 30500, branchId: "b1" },
+    { month: "March", revenue: 23700, branchId: "b1" },
+    { month: "April", revenue: 27800, branchId: "b1" },
+    { month: "May", revenue: 45231, branchId: "b1" },
+    { month: "June", revenue: 34900, branchId: "b1" },
+    { month: "January", revenue: 15000, branchId: "b2" },
+    { month: "February", revenue: 28000, branchId: "b2" },
+    { month: "March", revenue: 21000, branchId: "b2" },
+    { month: "April", revenue: 25000, branchId: "b2" },
+    { month: "May", revenue: 41000, branchId: "b2" },
+    { month: "June", revenue: 32000, branchId: "b2" },
 ];
 
 export const employees: Employee[] = [
@@ -102,7 +136,8 @@ export const employees: Employee[] = [
 ];
 
 export const payrolls: Payroll[] = [
-    { id: 'pay1', employeeId: 'emp1', employeeName: 'Dr. Lisa Cuddy', payPeriod: '2024-06-01 to 2024-06-15', grossPay: 6250, deductions: 1200, netPay: 5050, payDate: '2024-06-15', status: 'Paid' },
-    { id: 'pay2', employeeId: 'emp2', employeeName: 'James Wilson', payPeriod: '2024-06-01 to 2024-06-15', grossPay: 3125, deductions: 600, netPay: 2525, payDate: '2024-06-15', status: 'Paid' },
-    { id: 'pay3', employeeId: 'emp3', employeeName: 'Allison Cameron', payPeriod: '2024-06-16 to 2024-06-30', grossPay: 2083.33, deductions: 400, netPay: 1683.33, payDate: '2024-06-30', status: 'Pending' },
+    { id: 'pay1', employeeId: 'emp1', employeeName: 'Dr. Lisa Cuddy', payPeriod: '2024-06-01 to 2024-06-15', grossPay: 6250, deductions: 1200, netPay: 5050, payDate: '2024-06-15', status: 'Paid', branchId: 'b1' },
+    { id: 'pay2', employeeId: 'emp2', employeeName: 'James Wilson', payPeriod: '2024-06-01 to 2024-06-15', grossPay: 3125, deductions: 600, netPay: 2525, payDate: '2024-06-15', status: 'Paid', branchId: 'b1' },
+    { id: 'pay3', employeeId: 'emp3', employeeName: 'Allison Cameron', payPeriod: '2024-06-16 to 2024-06-30', grossPay: 2083.33, deductions: 400, netPay: 1683.33, payDate: '2024-06-30', status: 'Pending', branchId: 'b2' },
+    { id: 'pay4', employeeId: 'emp4', employeeName: 'Robert Chase', payPeriod: '2024-06-16 to 2024-06-30', grossPay: 2291.67, deductions: 450, netPay: 1841.67, payDate: '2024-06-30', status: 'Pending', branchId: 'b2' },
 ];

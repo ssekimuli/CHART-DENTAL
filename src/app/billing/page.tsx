@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   Card,
   CardContent,
@@ -18,14 +18,17 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { invoices as initialInvoices, patients } from "@/lib/data";
+import { invoices as initialInvoices, patients as allPatients } from "@/lib/data";
 import { Button } from "@/components/ui/button";
 import { FileDown, PlusCircle } from "lucide-react";
 import type { Invoice } from "@/lib/types";
 import { InvoiceForm } from "./components/invoice-form";
+import { useBranch } from "@/context/branch-context";
+import { currentUser } from "@/lib/user";
 
 export default function BillingPage() {
-  const [invoices, setInvoices] = useState<Invoice[]>(initialInvoices);
+  const { selectedBranch } = useBranch();
+  const [allInvoices, setAllInvoices] = useState<Invoice[]>(initialInvoices);
   const [isFormOpen, setIsFormOpen] = useState(false);
 
   const getStatusVariant = (status: "Paid" | "Pending" | "Overdue") => {
@@ -38,17 +41,32 @@ export default function BillingPage() {
         return "destructive";
     }
   };
+  
+  const filteredPatients = useMemo(() => {
+     if (currentUser.role === 'Super Admin') {
+      return allPatients.filter(p => p.branchId === selectedBranch);
+    }
+    return allPatients.filter(p => p.branchId === currentUser.branchId);
+  }, [selectedBranch]);
 
-  const handleSaveInvoice = (data: Omit<Invoice, 'id' | 'patientName'>) => {
-    const patient = patients.find(p => p.id === data.patientId);
+  const invoices = useMemo(() => {
+    if (currentUser.role === 'Super Admin') {
+      return allInvoices.filter(i => i.branchId === selectedBranch);
+    }
+    return allInvoices.filter(i => i.branchId === currentUser.branchId);
+  }, [selectedBranch, allInvoices]);
+
+  const handleSaveInvoice = (data: Omit<Invoice, 'id' | 'patientName' | 'branchId'>) => {
+    const patient = filteredPatients.find(p => p.id === data.patientId);
     if (!patient) return;
 
     const newInvoice: Invoice = {
       ...data,
-      id: `inv${invoices.length + 1}`,
+      id: `inv${allInvoices.length + 1}`,
       patientName: patient.name,
+      branchId: selectedBranch,
     };
-    setInvoices(prev => [...prev, newInvoice]);
+    setAllInvoices(prev => [...prev, newInvoice]);
     setIsFormOpen(false);
   };
 
@@ -105,7 +123,7 @@ export default function BillingPage() {
               {invoices.length === 0 && (
                  <TableRow>
                     <TableCell colSpan={6} className="h-24 text-center">
-                        No invoices found.
+                        No invoices found for this branch.
                     </TableCell>
                  </TableRow>
               )}
@@ -115,7 +133,7 @@ export default function BillingPage() {
       </Card>
       {isFormOpen && (
         <InvoiceForm 
-            patients={patients}
+            patients={filteredPatients}
             onSave={handleSaveInvoice}
             onOpenChange={setIsFormOpen}
         />

@@ -18,24 +18,43 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
-import { appointments as initialAppointments, patients } from "@/lib/data";
-import { useState } from "react";
+import { appointments as initialAppointments, patients as allPatients } from "@/lib/data";
+import { useState, useMemo } from "react";
 import type { Appointment } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { PlusCircle } from "lucide-react";
 import { AppointmentForm } from "./components/appointment-form";
+import { useBranch } from "@/context/branch-context";
+import { currentUser } from "@/lib/user";
 
 export default function AppointmentsPage() {
-  const [appointments, setAppointments] = useState<Appointment[]>(initialAppointments);
+  const { selectedBranch } = useBranch();
+  const [allAppointments, setAllAppointments] = useState<Appointment[]>(initialAppointments);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  
+  const filteredPatients = useMemo(() => {
+     if (currentUser.role === 'Super Admin') {
+      return allPatients.filter(p => p.branchId === selectedBranch);
+    }
+    return allPatients.filter(p => p.branchId === currentUser.branchId);
+  }, [selectedBranch]);
+  
+  const appointments = useMemo(() => {
+    if (currentUser.role === 'Super Admin') {
+      return allAppointments.filter(a => a.branchId === selectedBranch);
+    }
+    return allAppointments.filter(a => a.branchId === currentUser.branchId);
+  }, [selectedBranch, allAppointments]);
 
-  const handleSaveAppointment = (data: Omit<Appointment, 'id'>) => {
+
+  const handleSaveAppointment = (data: Omit<Appointment, 'id' | 'branchId'>) => {
     const newAppointment: Appointment = {
       ...data,
-      id: `a${appointments.length + 1}`,
+      id: `a${allAppointments.length + 1}`,
+      branchId: selectedBranch,
     };
-    setAppointments(prev => [...prev, newAppointment]);
+    setAllAppointments(prev => [...prev, newAppointment]);
     setIsFormOpen(false);
   };
 
@@ -96,7 +115,7 @@ export default function AppointmentsPage() {
                   {appointments.length === 0 && (
                     <TableRow>
                       <TableCell colSpan={5} className="h-24 text-center">
-                        No appointments scheduled.
+                        No appointments scheduled for this branch.
                       </TableCell>
                     </TableRow>
                   )}
@@ -120,7 +139,7 @@ export default function AppointmentsPage() {
       </div>
       {isFormOpen && (
         <AppointmentForm 
-            patients={patients}
+            patients={filteredPatients}
             onSave={handleSaveAppointment}
             onOpenChange={setIsFormOpen}
         />

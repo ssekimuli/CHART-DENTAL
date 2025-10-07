@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -11,25 +11,43 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Download, PlusCircle } from "lucide-react";
-import { payrolls as initialPayrolls, employees } from "@/lib/data";
+import { payrolls as initialPayrolls, employees as allEmployees } from "@/lib/data";
 import { PayrollTable } from "./components/payroll-table";
 import type { Payroll } from "@/lib/types";
 import { PayrollForm } from "./components/payroll-form";
+import { useBranch } from "@/context/branch-context";
+import { currentUser } from "@/lib/user";
 
 export default function PayrollPage() {
-  const [payrolls, setPayrolls] = useState<Payroll[]>(initialPayrolls);
+  const { selectedBranch } = useBranch();
+  const [allPayrolls, setAllPayrolls] = useState<Payroll[]>(initialPayrolls);
   const [isFormOpen, setIsFormOpen] = useState(false);
 
-  const handleSavePayroll = (data: Omit<Payroll, 'id' | 'employeeName'>) => {
-    const employee = employees.find(e => e.id === data.employeeId);
+  const filteredEmployees = useMemo(() => {
+    if (currentUser.role === 'Super Admin') {
+      return allEmployees.filter(e => e.branchId === selectedBranch);
+    }
+    return allEmployees.filter(e => e.branchId === currentUser.branchId);
+  }, [selectedBranch]);
+
+  const payrolls = useMemo(() => {
+     if (currentUser.role === 'Super Admin') {
+      return allPayrolls.filter(p => p.branchId === selectedBranch);
+    }
+    return allPayrolls.filter(p => p.branchId === currentUser.branchId);
+  }, [selectedBranch, allPayrolls]);
+
+  const handleSavePayroll = (data: Omit<Payroll, 'id' | 'employeeName' | 'branchId'>) => {
+    const employee = filteredEmployees.find(e => e.id === data.employeeId);
     if (!employee) return;
 
     const newPayroll: Payroll = {
         ...data,
-        id: `pay${payrolls.length + 1}`,
+        id: `pay${allPayrolls.length + 1}`,
         employeeName: employee.name,
+        branchId: selectedBranch,
     };
-    setPayrolls(prev => [newPayroll, ...prev]);
+    setAllPayrolls(prev => [newPayroll, ...prev]);
     setIsFormOpen(false);
   }
 
@@ -60,7 +78,7 @@ export default function PayrollPage() {
         </Card>
         {isFormOpen && (
             <PayrollForm
-                employees={employees}
+                employees={filteredEmployees}
                 onSave={handleSavePayroll}
                 onOpenChange={setIsFormOpen}
             />
