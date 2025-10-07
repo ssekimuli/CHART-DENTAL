@@ -9,13 +9,19 @@ export type Patient = {
   status: 'Active' | 'Inactive';
   dentalRecords: DentalRecord[];
   treatmentPlans: Treatment[];
-  imaging: string[];
+  imaging: PatientImage[];
   history: string;
   branchId: string;
   periodontalRecords: PeriodontalRecord;
   occlusalRecords: OcclusalRecord;
   softTissueRecords: SoftTissueRecord[];
   orthodonticRecords: OrthodonticRecord[];
+};
+
+export type PatientImage = {
+  url: string;
+  description: string;
+  date: string;
 };
 
 export type DentalCondition = 'Healthy' | 'Caries' | 'Filling' | 'Crown' | 'Missing' | 'Fracture';
@@ -168,4 +174,3 @@ export type OrthodonticRecord = {
   bracketChanges?: string[];
   notes: string;
 };
-

@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useEffect, useState } from "react";
-import type { Patient, Treatment, BasePatient } from "@/lib/types";
+import type { Patient, Treatment, BasePatient, PatientImage } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, Trash, Pencil, FileText, Loader2, Upload } from "lucide-react";
 import { TreatmentPlanForm } from "./components/treatment-plan-form";
@@ -40,6 +40,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { deletePatient, getPatientById, updatePatient } from "@/lib/api";
+import { ImageUploadForm } from "./components/image-upload-form";
 
 export default function PatientDetailPage({
   params,
@@ -53,6 +54,7 @@ export default function PatientDetailPage({
   const [isTreatmentFormOpen, setIsTreatmentFormOpen] = useState(false);
   const [isPatientFormOpen, setIsPatientFormOpen] = useState(false);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
+  const [isImageFormOpen, setIsImageFormOpen] = useState(false);
   const [historySummary, setHistorySummary] = useState<{ summary: string } | null>(null);
 
   useEffect(() => {
@@ -123,17 +125,21 @@ export default function PatientDetailPage({
     setIsTreatmentFormOpen(false);
   }
   
-  const handleUploadImage = () => {
+  const handleAddImage = (newImage: Omit<PatientImage, 'date'>) => {
     setPatient(prevPatient => {
       if (!prevPatient) return prevPatient;
-      const newImage = `https://picsum.photos/seed/newxray${Date.now()}/800/600`;
+      const fullNewImage: PatientImage = {
+        ...newImage,
+        date: new Date().toISOString().split('T')[0],
+      }
       const updatedPatient = {
         ...prevPatient,
-        imaging: [...prevPatient.imaging, newImage],
+        imaging: [...prevPatient.imaging, fullNewImage],
       };
       updatePatient(updatedPatient.id, updatedPatient);
       return updatedPatient;
     });
+    setIsImageFormOpen(false);
   };
 
   return (
@@ -245,23 +251,27 @@ export default function PatientDetailPage({
                   X-Rays and other patient images.
                 </CardDescription>
               </div>
-               <Button size="sm" onClick={handleUploadImage}>
+               <Button size="sm" onClick={() => setIsImageFormOpen(true)}>
                   <Upload className="mr-2 h-4 w-4" />
                   Upload Image
                 </Button>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
-                {patient.imaging.map((src, index) => (
-                  <div key={index} className="overflow-hidden rounded-lg border">
+                {patient.imaging.map((image, index) => (
+                  <div key={index} className="overflow-hidden rounded-lg border group relative">
                     <Image
-                      src={src}
-                      alt={`Patient image ${index + 1}`}
+                      src={image.url}
+                      alt={image.description || `Patient image ${index + 1}`}
                       width={400}
                       height={300}
                       className="aspect-video h-auto w-full object-cover"
                       data-ai-hint="dental xray"
                     />
+                     <div className="absolute bottom-0 left-0 right-0 bg-black/50 p-2 text-white opacity-0 transition-opacity group-hover:opacity-100">
+                        <p className="text-xs font-bold">{image.description}</p>
+                        <p className="text-xs">{image.date}</p>
+                    </div>
                   </div>
                 ))}
                  {patient.imaging.length === 0 && (
@@ -307,6 +317,12 @@ export default function PatientDetailPage({
             patient={patient}
             onSave={handleUpdatePatient}
             onOpenChange={setIsPatientFormOpen}
+        />
+      )}
+       {isImageFormOpen && (
+        <ImageUploadForm
+            onSave={handleAddImage}
+            onOpenChange={setIsImageFormOpen}
         />
       )}
       <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
