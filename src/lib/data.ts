@@ -1,4 +1,9 @@
-import type { Patient, Appointment, Invoice, ChartData, Employee, Payroll } from "@/lib/types";
+import type { Patient, Appointment, Invoice, ChartData, Employee, Payroll, Branch } from "@/lib/types";
+
+export const branches: Branch[] = [
+  { id: "b1", name: "Downtown Clinic", address: "123 Main St, Cityville" },
+  { id: "b2", name: "Uptown Dental", address: "456 Oak Ave, Townburg" },
+];
 
 export const patients: Patient[] = [
   {
@@ -9,6 +14,7 @@ export const patients: Patient[] = [
     dateOfBirth: "1985-05-20",
     lastVisit: "2024-05-10",
     status: "Active",
+    branchId: "b1",
     dentalRecords: [
       { toothId: 18, condition: "Healthy", notes: "" },
       { toothId: 17, condition: "Filling", notes: "Amalgam filling from 2015." },
@@ -39,6 +45,7 @@ export const patients: Patient[] = [
     dateOfBirth: "1992-08-15",
     lastVisit: "2024-04-22",
     status: "Active",
+    branchId: "b2",
     dentalRecords: [],
     treatmentPlans: [],
     imaging: [
@@ -54,6 +61,7 @@ export const patients: Patient[] = [
     dateOfBirth: "1978-11-30",
     lastVisit: "2023-12-15",
     status: "Inactive",
+    branchId: "b1",
     dentalRecords: [],
     treatmentPlans: [],
     imaging: [],
@@ -64,17 +72,17 @@ export const patients: Patient[] = [
 export const recentPatients = patients.slice(0, 5);
 
 export const appointments: Appointment[] = [
-  { id: "a1", patientName: "John Doe", patientId: "1", treatment: "Check-up", status: "Scheduled", date: "2024-07-20", time: "10:00 AM" },
-  { id: "a2", patientName: "Jane Smith", patientId: "2", treatment: "Cleaning", status: "Scheduled", date: "2024-07-21", time: "11:30 AM" },
-  { id: "a3", patientName: "Mike Williams", patientId: "4", treatment: "Filling", status: "Completed", date: "2024-07-15", time: "02:00 PM" },
-  { id: "a4", patientName: "Sarah Brown", patientId: "5", treatment: "Consultation", status: "Cancelled", date: "2024-07-14", time: "09:00 AM" },
+  { id: "a1", patientName: "John Doe", patientId: "1", treatment: "Check-up", status: "Scheduled", date: "2024-07-20", time: "10:00 AM", branchId: "b1" },
+  { id: "a2", patientName: "Jane Smith", patientId: "2", treatment: "Cleaning", status: "Scheduled", date: "2024-07-21", time: "11:30 AM", branchId: "b2" },
+  { id: "a3", patientName: "Mike Williams", patientId: "4", treatment: "Filling", status: "Completed", date: "2024-07-15", time: "02:00 PM", branchId: "b1" },
+  { id: "a4", patientName: "Sarah Brown", patientId: "5", treatment: "Consultation", status: "Cancelled", date: "2024-07-14", time: "09:00 AM", branchId: "b2" },
 ];
 
 export const invoices: Invoice[] = [
-  { id: "inv1", patientName: "John Doe", patientId: "1", amount: 250, status: "Pending", issueDate: "2024-05-10", dueDate: "2024-06-10" },
-  { id: "inv2", patientName: "Jane Smith", patientId: "2", amount: 150, status: "Paid", issueDate: "2024-04-22", dueDate: "2024-05-22" },
-  { id: "inv3", patientName: "Mike Williams", patientId: "4", amount: 300, status: "Paid", issueDate: "2024-07-15", dueDate: "2024-08-15" },
-  { id: "inv4", patientName: "John Doe", patientId: "1", amount: 75, status: "Overdue", issueDate: "2024-03-01", dueDate: "2024-04-01" },
+  { id: "inv1", patientName: "John Doe", patientId: "1", amount: 250, status: "Pending", issueDate: "2024-05-10", dueDate: "2024-06-10", branchId: "b1" },
+  { id: "inv2", patientName: "Jane Smith", patientId: "2", amount: 150, status: "Paid", issueDate: "2024-04-22", dueDate: "2024-05-22", branchId: "b2" },
+  { id: "inv3", patientName: "Mike Williams", patientId: "4", amount: 300, status: "Paid", issueDate: "2024-07-15", dueDate: "2024-08-15", branchId: "b1" },
+  { id: "inv4", patientName: "John Doe", patientId: "1", amount: 75, status: "Overdue", issueDate: "2024-03-01", dueDate: "2024-04-01", branchId: "b1" },
 ];
 
 export const chartData: ChartData[] = [
@@ -87,10 +95,10 @@ export const chartData: ChartData[] = [
 ];
 
 export const employees: Employee[] = [
-  { id: 'emp1', name: 'Dr. Lisa Cuddy', avatar: 'https://picsum.photos/seed/emp1/200/200', email: 'lisa.cuddy@example.com', role: 'Super Admin', status: 'Active', salary: 150000, hireDate: '2020-01-15' },
-  { id: 'emp2', name: 'James Wilson', avatar: 'https://picsum.photos/seed/emp2/200/200', email: 'james.wilson@example.com', role: 'Hygienist', status: 'Active', salary: 75000, hireDate: '2021-03-20' },
-  { id: 'emp3', name: 'Allison Cameron', avatar: 'https://picsum.photos/seed/emp3/200/200', email: 'allison.cameron@example.com', role: 'Receptionist', status: 'Active', salary: 50000, hireDate: '2022-07-01' },
-  { id: 'emp4', name: 'Robert Chase', avatar: 'https://picsum.photos/seed/emp4/200/200', email: 'robert.chase@example.com', role: 'Assistant', status: 'On Leave', salary: 55000, hireDate: '2021-09-10' },
+  { id: 'emp1', name: 'Dr. Lisa Cuddy', avatar: 'https://picsum.photos/seed/emp1/200/200', email: 'lisa.cuddy@example.com', role: 'Super Admin', status: 'Active', salary: 150000, hireDate: '2020-01-15', branchId: 'b1' },
+  { id: 'emp2', name: 'James Wilson', avatar: 'https://picsum.photos/seed/emp2/200/200', email: 'james.wilson@example.com', role: 'Hygienist', status: 'Active', salary: 75000, hireDate: '2021-03-20', branchId: 'b1' },
+  { id: 'emp3', name: 'Allison Cameron', avatar: 'https://picsum.photos/seed/emp3/200/200', email: 'allison.cameron@example.com', role: 'Receptionist', status: 'Active', salary: 50000, hireDate: '2022-07-01', branchId: 'b2' },
+  { id: 'emp4', name: 'Robert Chase', avatar: 'https://picsum.photos/seed/emp4/200/200', email: 'robert.chase@example.com', role: 'Assistant', status: 'On Leave', salary: 55000, hireDate: '2021-09-10', branchId: 'b2' },
 ];
 
 export const payrolls: Payroll[] = [

@@ -10,6 +10,7 @@ export type Patient = {
   treatmentPlans: Treatment[];
   imaging: string[];
   history: string;
+  branchId: string;
 };
 
 export type DentalCondition = 'Healthy' | 'Caries' | 'Filling' | 'Crown' | 'Missing' | 'Fracture';
@@ -37,6 +38,7 @@ export type Appointment = {
   status: 'Scheduled' | 'Completed' | 'Cancelled';
   date: string;
   time: string;
+  branchId: string;
 };
 
 export type Invoice = {
@@ -47,6 +49,7 @@ export type Invoice = {
   status: 'Paid' | 'Pending' | 'Overdue';
   issueDate: string;
   dueDate: string;
+  branchId: string;
 };
 
 export type ChartData = {
@@ -65,6 +68,7 @@ export type Employee = {
   status: 'Active' | 'On Leave';
   salary: number;
   hireDate: string;
+  branchId: string;
 };
 
 export type Payroll = {
@@ -77,4 +81,10 @@ export type Payroll = {
   deductions: number;
   payDate: string;
   status: 'Paid' | 'Pending';
+};
+
+export type Branch = {
+  id: string;
+  name: string;
+  address: string;
 };
