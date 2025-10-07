@@ -25,7 +25,7 @@ import type { EmployeeRole } from "@/lib/types";
 import { currentUser } from "@/lib/user";
 
 const allLinks = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard, roles: ['Super Admin', 'Account', 'HR', 'Dentist', 'Hygienist', 'Receptionist', 'Assistant'] as EmployeeRole[] },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ['Super Admin', 'Account', 'HR', 'Dentist', 'Hygienist', 'Receptionist', 'Assistant'] as EmployeeRole[] },
   { href: "/patients", label: "Patients", icon: Users, roles: ['Super Admin', 'Dentist', 'Hygienist', 'Receptionist', 'Assistant'] as EmployeeRole[] },
   { href: "/appointments", label: "Appointments", icon: Calendar, roles: ['Super Admin', 'Dentist', 'Hygienist', 'Receptionist', 'Assistant'] as EmployeeRole[] },
   { href: "/billing", label: "Billing", icon: CreditCard, roles: ['Super Admin', 'Account', 'Receptionist'] as EmployeeRole[] },
@@ -59,8 +59,8 @@ export function MainNav() {
             <SidebarMenuButton
               asChild
               isActive={
-                link.href === "/"
-                  ? pathname === "/"
+                link.href === "/dashboard"
+                  ? pathname === "/dashboard"
                   : pathname.startsWith(link.href)
               }
               tooltip={link.label}
