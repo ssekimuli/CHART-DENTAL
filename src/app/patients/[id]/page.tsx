@@ -246,9 +246,9 @@ export default function PatientDetailPage({
               </div>
               <div>
                 <h3 className="font-semibold">Full History</h3>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {patient.history}
-                </p>
+                <div className="mt-1 rounded-md border bg-secondary/30 p-4 text-sm text-muted-foreground">
+                    <p className="whitespace-pre-wrap">{patient.history}</p>
+                </div>
               </div>
             </CardContent>
           </Card>
