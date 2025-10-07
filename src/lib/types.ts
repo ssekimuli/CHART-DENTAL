@@ -101,3 +101,16 @@ export type InventoryItem = {
     status: 'In Stock' | 'Low Stock' | 'Out of Stock';
     branchId: string;
 };
+
+export type LaboratoryOrder = {
+  id: string;
+  patientId: string;
+  patientName: string;
+  lab: string;
+  item: string;
+  tooth?: number;
+  status: 'Sent' | 'Received' | 'Completed' | 'Cancelled';
+  sentDate: string;
+  dueDate: string;
+  branchId: string;
+};

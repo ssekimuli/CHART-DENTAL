@@ -17,6 +17,7 @@ import {
   HandCoins,
   Building,
   Package,
+  FlaskConical,
 } from "lucide-react";
 import type { EmployeeRole } from "@/lib/types";
 import { currentUser } from "@/lib/user";
@@ -27,6 +28,7 @@ const allLinks = [
   { href: "/appointments", label: "Appointments", icon: Calendar, roles: ['Super Admin', 'Dentist', 'Hygienist', 'Receptionist', 'Assistant'] as EmployeeRole[] },
   { href: "/billing", label: "Billing", icon: CreditCard, roles: ['Super Admin', 'Account', 'Receptionist'] as EmployeeRole[] },
   { href: "/inventory", label: "Inventory", icon: Package, roles: ['Super Admin', 'Receptionist', 'Assistant'] as EmployeeRole[] },
+  { href: "/laboratory", label: "Laboratory", icon: FlaskConical, roles: ['Super Admin', 'Dentist', 'Assistant'] as EmployeeRole[] },
   { href: "/employees", label: "Employees", icon: Briefcase, roles: ['Super Admin', 'HR'] as EmployeeRole[] },
   { href: "/payroll", label: "Payroll", icon: HandCoins, roles: ['Super Admin', 'HR', 'Account'] as EmployeeRole[] },
   { href: "/branches", label: "Branches", icon: Building, roles: ['Super Admin'] as EmployeeRole[] },

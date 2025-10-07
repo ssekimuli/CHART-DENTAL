@@ -1,4 +1,4 @@
-import type { Patient, Appointment, Invoice, ChartData, Employee, Payroll, Branch, InventoryItem } from "@/lib/types";
+import type { Patient, Appointment, Invoice, ChartData, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder } from "@/lib/types";
 
 export const branches: Branch[] = [
   { id: "b1", name: "Downtown Clinic", address: "123 Main St, Cityville" },
@@ -148,4 +148,11 @@ export const inventory: InventoryItem[] = [
     { id: 'item3', name: 'Composite Resin (Syringe)', supplier: '3M Dental', stock: 100, reorderLevel: 50, price: 85.00, status: 'In Stock', branchId: 'b2' },
     { id: 'item4', name: 'Anesthetic Cartridges', supplier: 'PharmaPlus', stock: 5, reorderLevel: 20, price: 55.00, status: 'Low Stock', branchId: 'b2' },
     { id: 'item5', name: 'X-Ray Film', supplier: 'Kodak', stock: 0, reorderLevel: 10, price: 120.00, status: 'Out of Stock', branchId: 'b1' },
+];
+
+export const labOrders: LaboratoryOrder[] = [
+    { id: 'lab1', patientId: '1', patientName: 'John Doe', lab: 'Precision Dental Labs', item: 'Zirconia Crown', tooth: 48, status: 'Sent', sentDate: '2024-06-02', dueDate: '2024-06-16', branchId: 'b1'},
+    { id: 'lab2', patientId: '2', patientName: 'Jane Smith', lab: 'Aesthetic Creations', item: 'Night Guard', status: 'Received', sentDate: '2024-05-15', dueDate: '2024-05-30', branchId: 'b2'},
+    { id: 'lab3', patientId: '4', patientName: 'Mike Williams', lab: 'Precision Dental Labs', item: 'Inlay', tooth: 15, status: 'Completed', sentDate: '2024-07-16', dueDate: '2024-07-30', branchId: 'b2'},
+    { id: 'lab4', patientId: '1', patientName: 'John Doe', lab: 'City Labs', item: 'Denture Repair', status: 'Cancelled', sentDate: '2024-07-01', dueDate: '2024-07-10', branchId: 'b1'},
 ];
