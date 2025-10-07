@@ -43,7 +43,7 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
   } from "@/components/ui/alert-dialog";
-import { createInvoice, deleteInvoice, getInvoices, getPatients, updateInvoice } from "@/lib/api";
+import { createInvoice, deleteInvoice, getInvoices, getPatients, updateInvoice, updatePatient } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function BillingPage() {
@@ -117,9 +117,15 @@ export default function BillingPage() {
         // Create
         const newInvoice = await createInvoice({ ...data, patientName: patient.name, branchId: selectedBranch });
         if (newInvoice) {
-            setAllInvoices(prev => [...prev, newInvoice]);
+            setAllInvoices(prev => [newInvoice, ...prev]);
         }
     }
+
+    // This is a bit of a hack to refresh patient data after invoice creation/update
+    // In a real app, this might be handled by re-fetching or a more sophisticated state management
+    const patientsData = await getPatients();
+    setAllPatients(patientsData);
+    
     handleCloseForm();
   };
 
@@ -262,3 +268,5 @@ export default function BillingPage() {
     </>
   );
 }
+
+    

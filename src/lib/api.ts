@@ -164,31 +164,89 @@ export const deleteAppointment = async (id: string): Promise<{ success: boolean 
 export const createInvoice = async (data: Omit<Invoice, 'id' | 'amount'> & { treatmentIds: string[], patientName: string, branchId: string }): Promise<Invoice> => {
     await delay(200);
     const patient = patients.find(p => p.id === data.patientId);
-    const amount = patient?.treatmentPlans
+    if (!patient) throw new Error("Patient not found");
+
+    const amount = patient.treatmentPlans
         .filter(t => data.treatmentIds.includes(t.id))
-        .reduce((sum, t) => sum + t.cost, 0) ?? 0;
+        .reduce((sum, t) => sum + t.cost, 0);
+
+    const newInvoiceId = `inv${invoices.length + 1}`;
     
     const newInvoice: Invoice = {
         ...data,
-        id: `inv${invoices.length + 1}`,
+        id: newInvoiceId,
         amount,
     };
-    invoices = [...invoices, newInvoice];
+    invoices = [newInvoice, ...invoices];
+
+    // Mark treatments as billed
+    patients = patients.map(p => {
+        if (p.id === data.patientId) {
+            return {
+                ...p,
+                treatmentPlans: p.treatmentPlans.map(t => 
+                    data.treatmentIds.includes(t.id) ? { ...t, invoiceId: newInvoiceId } : t
+                )
+            };
+        }
+        return p;
+    });
+
     return newInvoice;
 }
 
-export const updateInvoice = async (id: string, data: Partial<Invoice>): Promise<Invoice | undefined> => {
+export const updateInvoice = async (id: string, data: Partial<Omit<Invoice, 'amount' | 'id'>> & { treatmentIds?: string[] }): Promise<Invoice | undefined> => {
     await delay(200);
     let updatedInvoice: Invoice | undefined;
+
+    const originalInvoice = invoices.find(i => i.id === id);
+    if (!originalInvoice) return undefined;
+
+    // Reset invoiceId for treatments that were on the original invoice but are not on the updated one
+    const patientIdForUpdate = data.patientId || originalInvoice.patientId;
+    const patient = patients.find(p => p.id === patientIdForUpdate);
+    if (!patient) return undefined;
+    
+    const treatmentsToRemoveInvoiceId = originalInvoice.treatmentIds.filter(tid => !data.treatmentIds?.includes(tid));
+
+    patients = patients.map(p => {
+        if (p.id === patient.id) {
+            return {
+                ...p,
+                treatmentPlans: p.treatmentPlans.map(t => {
+                    if (treatmentsToRemoveInvoiceId.includes(t.id)) {
+                        const { invoiceId, ...rest } = t;
+                        return rest;
+                    }
+                    return t;
+                })
+            }
+        }
+        return p;
+    });
+
+
     invoices = invoices.map(i => {
         if (i.id === id) {
-            const patient = patients.find(p => p.id === (data.patientId || i.patientId));
             const treatmentIds = data.treatmentIds || i.treatmentIds;
-            const amount = patient?.treatmentPlans
+            const amount = patient.treatmentPlans
                 .filter(t => treatmentIds.includes(t.id))
-                .reduce((sum, t) => sum + t.cost, 0) ?? (data.amount || i.amount);
+                .reduce((sum, t) => sum + t.cost, 0);
 
-            updatedInvoice = { ...i, ...data, amount };
+            updatedInvoice = { ...i, ...data, amount, treatmentIds };
+            
+            // Mark new treatments as billed
+            patients = patients.map(p => {
+                if (p.id === patient.id) {
+                    return {
+                        ...p,
+                        treatmentPlans: p.treatmentPlans.map(t => 
+                            treatmentIds.includes(t.id) ? { ...t, invoiceId: id } : t
+                        )
+                    };
+                }
+                return p;
+            });
             return updatedInvoice;
         }
         return i;
@@ -198,9 +256,30 @@ export const updateInvoice = async (id: string, data: Partial<Invoice>): Promise
 
 export const deleteInvoice = async (id: string): Promise<{ success: boolean }> => {
     await delay(200);
+    const invoiceToDelete = invoices.find(i => i.id === id);
+    if (invoiceToDelete) {
+        // Unlink treatments from this invoice
+        patients = patients.map(p => {
+            if (p.id === invoiceToDelete.patientId) {
+                return {
+                    ...p,
+                    treatmentPlans: p.treatmentPlans.map(t => {
+                        if (t.invoiceId === id) {
+                            const { invoiceId, ...rest } = t;
+                            return rest;
+                        }
+                        return t;
+                    })
+                };
+            }
+            return p;
+        });
+    }
+
     invoices = invoices.filter(i => i.id !== id);
     return { success: true };
 }
+
 
 // Employees
 export const createEmployee = async (data: Omit<Employee, 'id'>): Promise<Employee> => {
@@ -277,3 +356,5 @@ export const createPayroll = async (data: Omit<Payroll, 'id'>): Promise<Payroll>
     payrolls = [newPayroll, ...payrolls];
     return newPayroll;
 }
+
+    

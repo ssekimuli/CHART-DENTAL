@@ -79,6 +79,7 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
     if (!patientId) return [];
     const patient = patients.find(p => p.id === patientId);
     if (!patient) return [];
+    // Treatments that are completed and either don't have an invoiceId OR belong to the current invoice being edited
     return patient.treatmentPlans.filter(t => t.status === 'Completed' && (!t.invoiceId || (invoice && invoice.treatmentIds.includes(t.id))));
   }, [patientId, patients, invoice]);
 
@@ -90,6 +91,7 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
             setSelectedTreatments(invoiceTreatments);
         }
     } else {
+        // When patientId changes, reset selected treatments
         setSelectedTreatments([]);
     }
   }, [invoice, patientId, patients]);
@@ -110,7 +112,8 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
             : [...prev, treatment]
     );
   }
-
+  
+  // This function is for the CommandItem onSelect
   const handleTreatmentSelect = (treatmentId: string) => {
     const treatment = availableTreatments.find(t => t.id === treatmentId);
     if (treatment) {
@@ -128,7 +131,7 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
             <DialogHeader>
                 <DialogTitle>{invoice ? 'Edit Invoice' : 'Create Invoice'}</DialogTitle>
                 <DialogDescription>
-                   {invoice ? 'Update the details for the invoice.' : 'Fill out the details for the new invoice.'}
+                   {invoice ? 'Update the details for the invoice.' : 'Select a patient to see completed treatments available for billing.'}
                 </DialogDescription>
             </DialogHeader>
             <Form {...form}>
@@ -145,6 +148,7 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
                                     value={field.value}
                                     onChange={(value) => {
                                         field.onChange(value);
+                                        // Reset treatments when patient changes
                                         setSelectedTreatments([]);
                                     }}
                                     placeholder="Select a patient"
@@ -160,11 +164,12 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
                     {patientId && (
                         <FormItem>
                             <FormLabel>Treatments to Include</FormLabel>
-                            <div className="rounded-md border">
+                            <p className="text-xs text-muted-foreground">Select from the list of completed, unbilled treatments for this patient.</p>
+                            <div className="rounded-md border h-48 overflow-y-auto">
                                 <Command>
                                     <CommandInput placeholder="Search treatments..." />
                                     <CommandList>
-                                        <CommandEmpty>No treatments found for this patient.</CommandEmpty>
+                                        <CommandEmpty>No available treatments found for this patient.</CommandEmpty>
                                         <CommandGroup>
                                             {availableTreatments.map(treatment => (
                                                 <CommandItem
@@ -192,7 +197,7 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
 
                     {selectedTreatments.length > 0 && (
                         <div>
-                             <p className="text-sm font-medium mb-2">Selected Treatments</p>
+                             <p className="text-sm font-medium mb-2">Selected Treatments for Invoice</p>
                             <div className="flex flex-wrap gap-2">
                                 {selectedTreatments.map(treatment => (
                                     <Badge key={treatment.id} variant="secondary" className="flex items-center gap-1">
