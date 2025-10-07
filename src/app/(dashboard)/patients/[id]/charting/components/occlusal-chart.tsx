@@ -1,7 +1,6 @@
 
 "use client";
 
-import { useState } from "react";
 import {
   Card,
   CardContent,
@@ -28,21 +27,26 @@ type OcclusalChartProps = {
 };
 
 export function OcclusalChart({ initialRecord, onSave }: OcclusalChartProps) {
-  const [record, setRecord] = useState<OcclusalRecord>(initialRecord);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setRecord((prev) => ({
-      ...prev,
-      [name]: value === "" ? 0 : parseInt(value, 10),
-    }));
+    const updatedRecord = {
+        ...initialRecord,
+        [name]: value === "" ? 0 : parseInt(value, 10),
+    };
+    onSave(updatedRecord);
   };
 
   const handleSelectChange = (name: keyof OcclusalRecord, value: string) => {
-    setRecord((prev) => ({
-      ...prev,
+     const updatedRecord = {
+      ...initialRecord,
       [name]: value,
-    }));
+    };
+    onSave(updatedRecord);
+  };
+
+   const handleSave = () => {
+    onSave(initialRecord);
   };
 
   return (
@@ -60,7 +64,7 @@ export function OcclusalChart({ initialRecord, onSave }: OcclusalChartProps) {
             id="overjet"
             name="overjet"
             type="number"
-            value={record.overjet}
+            value={initialRecord.overjet}
             onChange={handleInputChange}
             placeholder="e.g., 2"
           />
@@ -71,7 +75,7 @@ export function OcclusalChart({ initialRecord, onSave }: OcclusalChartProps) {
             id="overbite"
             name="overbite"
             type="number"
-            value={record.overbite}
+            value={initialRecord.overbite}
             onChange={handleInputChange}
             placeholder="e.g., 2"
           />
@@ -79,7 +83,7 @@ export function OcclusalChart({ initialRecord, onSave }: OcclusalChartProps) {
         <div className="space-y-2">
             <Label htmlFor="malocclusion">Malocclusion</Label>
             <Select
-                value={record.malocclusion}
+                value={initialRecord.malocclusion}
                 onValueChange={(value) => handleSelectChange("malocclusion", value)}
             >
                 <SelectTrigger id="malocclusion">
@@ -95,7 +99,7 @@ export function OcclusalChart({ initialRecord, onSave }: OcclusalChartProps) {
          <div className="space-y-2">
             <Label htmlFor="crossbite">Crossbite</Label>
             <Select
-                value={record.crossbite}
+                value={initialRecord.crossbite}
                 onValueChange={(value) => handleSelectChange("crossbite", value)}
             >
                 <SelectTrigger id="crossbite">
@@ -111,7 +115,7 @@ export function OcclusalChart({ initialRecord, onSave }: OcclusalChartProps) {
          <div className="space-y-2">
             <Label htmlFor="openbite">Open Bite</Label>
             <Select
-                value={record.openbite}
+                value={initialRecord.openbite}
                 onValueChange={(value) => handleSelectChange("openbite", value)}
             >
                 <SelectTrigger id="openbite">
@@ -126,7 +130,7 @@ export function OcclusalChart({ initialRecord, onSave }: OcclusalChartProps) {
         </div>
       </CardContent>
       <CardFooter>
-        <Button onClick={() => onSave(record)}>Save Chart</Button>
+        <Button onClick={handleSave}>Save Chart</Button>
       </CardFooter>
     </Card>
   );
