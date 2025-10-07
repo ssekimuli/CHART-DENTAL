@@ -276,6 +276,7 @@ export default function AppointmentsPage() {
             appointment={selectedAppointment}
             patients={filteredPatients}
             doctors={filteredDoctors}
+            appointments={branchAppointments}
             onSave={handleSaveAppointment}
             onOpenChange={handleCloseForm}
         />

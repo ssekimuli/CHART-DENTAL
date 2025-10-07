@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { format, parse } from "date-fns";
+import { useMemo } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -28,7 +29,7 @@ import {
 import type { Appointment, Employee, Patient } from "@/lib/types";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Clock } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Combobox } from "@/components/ui/combobox";
 
@@ -47,11 +48,35 @@ type AppointmentFormProps = {
     appointment?: Appointment;
     patients: Patient[];
     doctors: Employee[];
+    appointments: Appointment[];
     onSave: (data: Omit<Appointment, 'id' | 'branchId'>) => void;
     onOpenChange: (open: boolean) => void;
 };
 
-export function AppointmentForm({ appointment, patients, doctors, onSave, onOpenChange }: AppointmentFormProps) {
+// Generate time slots from 9 AM to 5 PM in 30-minute intervals
+const generateTimeSlots = () => {
+    const slots = [];
+    for (let i = 9; i < 17; i++) {
+        slots.push(`${i}:00 AM`.replace('12:', '12:').replace('13:', '1:').replace('14:', '2:').replace('15:', '3:').replace('16:', '4:').replace('17:', '5:') + (i < 12 ? ' AM' : ' PM'));
+        slots.push(`${i}:30 AM`.replace('12:', '12:').replace('13:', '1:').replace('14:', '2:').replace('15:', '3:').replace('16:', '4:').replace('17:', '5:') + (i < 12 ? ' AM' : ' PM'));
+    }
+     slots[6] = '12:00 PM';
+     slots[7] = '12:30 PM';
+     slots[8] = '1:00 PM';
+     slots[9] = '1:30 PM';
+     slots[10] = '2:00 PM';
+     slots[11] = '2:30 PM';
+     slots[12] = '3:00 PM';
+     slots[13] = '3:30 PM';
+     slots[14] = '4:00 PM';
+     slots[15] = '4:30 PM';
+    return slots;
+}
+
+const allTimeSlots = generateTimeSlots();
+
+
+export function AppointmentForm({ appointment, patients, doctors, appointments, onSave, onOpenChange }: AppointmentFormProps) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -62,6 +87,23 @@ export function AppointmentForm({ appointment, patients, doctors, onSave, onOpen
         time: appointment?.time ?? "",
     },
   });
+
+  const selectedDoctorId = form.watch("doctorId");
+  const selectedDate = form.watch("date");
+
+  const availableSlots = useMemo(() => {
+    if (!selectedDoctorId || !selectedDate) {
+      return allTimeSlots;
+    }
+
+    const formattedDate = format(selectedDate, "yyyy-MM-dd");
+    const bookedTimes = appointments
+      .filter(a => a.doctorId === selectedDoctorId && a.date === formattedDate && a.id !== appointment?.id)
+      .map(a => a.time);
+      
+    return allTimeSlots.filter(slot => !bookedTimes.includes(slot));
+  }, [selectedDoctorId, selectedDate, appointments, appointment]);
+
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     const patient = patients.find(p => p.id === values.patientId);
@@ -81,7 +123,7 @@ export function AppointmentForm({ appointment, patients, doctors, onSave, onOpen
 
   return (
     <Dialog open={true} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-md">
             <DialogHeader>
                 <DialogTitle>{appointment ? 'Edit Appointment' : 'Create Appointment'}</DialogTitle>
                 <DialogDescription>
@@ -199,6 +241,32 @@ export function AppointmentForm({ appointment, patients, doctors, onSave, onOpen
                             )}
                         />
                     </div>
+
+                    {selectedDoctorId && selectedDate && (
+                        <div>
+                            <FormLabel>Available Slots</FormLabel>
+                            <div className="mt-2 grid grid-cols-4 gap-2">
+                                {availableSlots.length > 0 ? availableSlots.map(slot => (
+                                    <Button
+                                        type="button"
+                                        key={slot}
+                                        variant="outline"
+                                        size="sm"
+                                        className={cn("text-xs", form.getValues("time") === slot && "bg-primary text-primary-foreground")}
+                                        onClick={() => form.setValue("time", slot, { shouldValidate: true })}
+                                    >
+                                        {slot}
+                                    </Button>
+                                )) : (
+                                    <div className="col-span-4 text-center text-sm text-muted-foreground p-4 border rounded-md">
+                                        No available slots for this doctor on the selected date.
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+
                      <DialogFooter>
                         <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
                         <Button type="submit">Save Appointment</Button>
