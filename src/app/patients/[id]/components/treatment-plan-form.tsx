@@ -131,7 +131,7 @@ export function TreatmentPlanForm({ onSave, onOpenChange }: TreatmentPlanFormPro
                                     <Input type="number" placeholder="0.00" {...field} />
                                 </FormControl>
                                 <FormMessage />
-                                </Formİtem>
+                                </FormItem>
                             )}
                         />
                     </div>
@@ -145,4 +145,3 @@ export function TreatmentPlanForm({ onSave, onOpenChange }: TreatmentPlanFormPro
     </Dialog>
   );
 }
-
