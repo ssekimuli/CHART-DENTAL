@@ -4,7 +4,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { format } from "date-fns";
+import { format, parse } from "date-fns";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -43,16 +43,20 @@ const formSchema = z.object({
 });
 
 type AppointmentFormProps = {
+    appointment?: Appointment;
     patients: Patient[];
     onSave: (data: Omit<Appointment, 'id' | 'branchId'>) => void;
     onOpenChange: (open: boolean) => void;
 };
 
-export function AppointmentForm({ patients, onSave, onOpenChange }: AppointmentFormProps) {
+export function AppointmentForm({ appointment, patients, onSave, onOpenChange }: AppointmentFormProps) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-        treatment: "",
+        patientId: appointment?.patientId ?? "",
+        treatment: appointment?.treatment ?? "",
+        date: appointment ? parse(appointment.date, "yyyy-MM-dd", new Date()) : new Date(),
+        time: appointment?.time ?? "",
     },
   });
 
@@ -63,7 +67,7 @@ export function AppointmentForm({ patients, onSave, onOpenChange }: AppointmentF
     onSave({
         ...values,
         patientName: patient.name,
-        status: 'Scheduled',
+        status: appointment?.status ?? 'Scheduled',
         date: format(values.date, "yyyy-MM-dd"),
     });
   }
@@ -72,9 +76,9 @@ export function AppointmentForm({ patients, onSave, onOpenChange }: AppointmentF
     <Dialog open={true} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
-                <DialogTitle>Create Appointment</DialogTitle>
+                <DialogTitle>{appointment ? 'Edit Appointment' : 'Create Appointment'}</DialogTitle>
                 <DialogDescription>
-                    Fill out the details for the new appointment.
+                    Fill out the details for the appointment.
                 </DialogDescription>
             </DialogHeader>
             <Form {...form}>
@@ -144,7 +148,7 @@ export function AppointmentForm({ patients, onSave, onOpenChange }: AppointmentF
                                         selected={field.value}
                                         onSelect={field.onChange}
                                         disabled={(date) =>
-                                            date < new Date() || date < new Date("1900-01-01")
+                                            date < new Date("1900-01-01")
                                         }
                                         initialFocus
                                     />
