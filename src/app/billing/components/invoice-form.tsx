@@ -111,6 +111,13 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
     );
   }
 
+  const handleTreatmentSelect = (treatmentId: string) => {
+    const treatment = availableTreatments.find(t => t.id === treatmentId);
+    if (treatment) {
+        handleTreatmentToggle(treatment);
+    }
+  }
+
   const totalAmount = useMemo(() => {
     return selectedTreatments.reduce((sum, t) => sum + t.cost, 0);
   }, [selectedTreatments]);
@@ -163,7 +170,7 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
                                                 <CommandItem
                                                     key={treatment.id}
                                                     value={treatment.id}
-                                                    onSelect={() => handleTreatmentToggle(treatment)}
+                                                    onSelect={handleTreatmentSelect}
                                                     className="flex justify-between items-center cursor-pointer"
                                                 >
                                                    <div>
