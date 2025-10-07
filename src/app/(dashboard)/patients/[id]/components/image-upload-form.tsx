@@ -27,7 +27,8 @@ import type { PatientImage } from "@/lib/types";
 import { Textarea } from "@/components/ui/textarea";
 
 const formSchema = z.object({
-  url: z.string().url({ message: "Please enter a valid URL." }),
+  // The file input is not directly validated by Zod in this basic setup.
+  // We'll add a description validation.
   description: z.string().min(1, "Description is required."),
 });
 
@@ -40,13 +41,17 @@ export function ImageUploadForm({ onSave, onOpenChange }: ImageUploadFormProps) 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      url: `https://picsum.photos/seed/newxray${Date.now()}/800/600`,
       description: "",
     },
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    onSave(values);
+    // In a real app, you would handle the file upload here.
+    // For this prototype, we'll use a placeholder URL.
+    onSave({
+      url: `https://picsum.photos/seed/newxray${Date.now()}/800/600`,
+      description: values.description,
+    });
   }
 
   return (
@@ -60,19 +65,13 @@ export function ImageUploadForm({ onSave, onOpenChange }: ImageUploadFormProps) 
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="url"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Image URL</FormLabel>
-                  <FormControl>
-                    <Input placeholder="https://example.com/image.jpg" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+             <FormItem>
+              <FormLabel>Image File</FormLabel>
+              <FormControl>
+                <Input type="file" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
             <FormField
               control={form.control}
               name="description"
