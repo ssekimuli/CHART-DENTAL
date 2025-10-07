@@ -31,8 +31,6 @@ import {
     SelectValue,
   } from "@/components/ui/select";
 import type { Treatment, DentalCondition } from "@/lib/types";
-import { useEffect } from "react";
-
 
 const formSchema = z.object({
   procedure: z.string().min(2, {
@@ -44,82 +42,42 @@ const formSchema = z.object({
   condition: z.enum(['Healthy', 'Caries', 'Filling', 'Crown', 'Missing', 'Fracture']).optional(),
 });
 
-const conditions: DentalCondition[] = [
-  "Healthy",
-  "Caries",
-  "Filling",
-  "Crown",
-  "Missing",
-  "Fracture",
-];
-
 type TreatmentPlanFormProps = {
-    onSave: (data: Omit<Treatment, 'id' | 'date'>, condition?: DentalCondition) => void;
+    treatment?: Treatment;
+    onSave: (data: Omit<Treatment, 'id' | 'date'>) => void;
     onOpenChange: (open: boolean) => void;
     toothId?: number;
-    currentCondition?: DentalCondition;
 };
 
-export function TreatmentPlanForm({ onSave, onOpenChange, toothId, currentCondition }: TreatmentPlanFormProps) {
+export function TreatmentPlanForm({ treatment, onSave, onOpenChange, toothId }: TreatmentPlanFormProps) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      procedure: "",
-      status: 'Proposed',
-      tooth: toothId,
-      condition: currentCondition,
+      procedure: treatment?.procedure ?? "",
+      status: treatment?.status ?? 'Proposed',
+      tooth: treatment?.tooth ?? toothId,
+      cost: treatment?.cost,
     },
   });
-  
-  useEffect(() => {
-    if (toothId) {
-        form.setValue('tooth', toothId);
-    }
-    if (currentCondition) {
-        form.setValue('condition', currentCondition);
-    }
-  }, [toothId, currentCondition, form]);
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    const { condition, ...treatmentData } = values;
-    onSave(treatmentData, condition);
+    const { condition, ...treatmentData } = values; // Condition is handled in charting now
+    onSave(treatmentData);
   }
+
+  const isEditing = !!treatment;
 
   return (
     <Dialog open={true} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-[600px]">
             <DialogHeader>
-                <DialogTitle>Add New Treatment for Tooth #{toothId}</DialogTitle>
+                <DialogTitle>{isEditing ? 'Edit Treatment' : `Add New Treatment`}</DialogTitle>
                 <DialogDescription>
-                    Fill out the details for the new treatment plan item and log the associated condition.
+                    {isEditing ? 'Update the details of this treatment.' : 'Fill out the details for the new treatment plan item.'}
                 </DialogDescription>
             </DialogHeader>
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                     <FormField
-                        control={form.control}
-                        name="condition"
-                        render={({ field }) => (
-                            <FormItem>
-                            <FormLabel>Associated Condition</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                <FormControl>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select a condition to log" />
-                                </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                    {conditions.map((cond) => (
-                                        <SelectItem key={cond} value={cond}>
-                                            {cond}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            <FormMessage />
-                            </FormItem>
-                        )}
-                    />
                     <FormField
                     control={form.control}
                     name="procedure"
@@ -132,6 +90,19 @@ export function TreatmentPlanForm({ onSave, onOpenChange, toothId, currentCondit
                         <FormMessage />
                         </FormItem>
                     )}
+                    />
+                     <FormField
+                        control={form.control}
+                        name="tooth"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Tooth # (optional)</FormLabel>
+                            <FormControl>
+                                <Input type="number" placeholder="e.g., 16" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                            </FormItem>
+                        )}
                     />
                     <div className="grid grid-cols-2 gap-4">
                         <FormField
@@ -173,7 +144,7 @@ export function TreatmentPlanForm({ onSave, onOpenChange, toothId, currentCondit
                     </div>
                      <DialogFooter>
                         <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-                        <Button type="submit">Add Treatment</Button>
+                        <Button type="submit">{isEditing ? 'Save Changes' : 'Add Treatment'}</Button>
                     </DialogFooter>
                 </form>
             </Form>
@@ -181,3 +152,5 @@ export function TreatmentPlanForm({ onSave, onOpenChange, toothId, currentCondit
     </Dialog>
   );
 }
+
+    

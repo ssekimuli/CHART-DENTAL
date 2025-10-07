@@ -26,9 +26,16 @@ import { Badge } from "@/components/ui/badge";
 import { useEffect, useState } from "react";
 import type { Patient, Treatment, BasePatient, PatientImage } from "@/lib/types";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Trash, Pencil, FileText, Loader2, Upload } from "lucide-react";
+import { PlusCircle, Trash, Pencil, FileText, Loader2, Upload, MoreHorizontal } from "lucide-react";
 import { TreatmentPlanForm } from "./components/treatment-plan-form";
 import { PatientForm } from "../components/patient-form";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -52,6 +59,7 @@ export default function PatientDetailPage({
   const [isLoading, setIsLoading] = useState(true);
 
   const [isTreatmentFormOpen, setIsTreatmentFormOpen] = useState(false);
+  const [selectedTreatment, setSelectedTreatment] = useState<Treatment | undefined>(undefined);
   const [isPatientFormOpen, setIsPatientFormOpen] = useState(false);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const [isImageFormOpen, setIsImageFormOpen] = useState(false);
@@ -107,24 +115,48 @@ export default function PatientDetailPage({
     setIsDeleteAlertOpen(false);
   }
 
-  const handleAddTreatment = (newTreatment: Omit<Treatment, 'id' | 'date'>) => {
+  const handleSaveTreatment = (treatmentData: Omit<Treatment, 'id' | 'date'>) => {
     setPatient(prevPatient => {
       if (!prevPatient) return prevPatient;
-      const newPlan: Treatment = {
-        ...newTreatment,
-        id: `t${prevPatient.treatmentPlans.length + 1}`,
-        date: new Date().toISOString().split('T')[0],
-      };
+      let updatedPlans: Treatment[];
+
+      if (selectedTreatment) {
+        // Update existing treatment
+        updatedPlans = prevPatient.treatmentPlans.map(plan => 
+          plan.id === selectedTreatment.id ? { ...plan, ...treatmentData, date: selectedTreatment.date } : plan
+        );
+      } else {
+        // Add new treatment
+        const newPlan: Treatment = {
+          ...treatmentData,
+          id: `t${Date.now()}`, // More unique ID
+          date: new Date().toISOString().split('T')[0],
+        };
+        updatedPlans = [...prevPatient.treatmentPlans, newPlan];
+      }
+      
       const updatedPatient = {
         ...prevPatient,
-        treatmentPlans: [...prevPatient.treatmentPlans, newPlan],
+        treatmentPlans: updatedPlans,
       };
       updatePatient(updatedPatient.id, updatedPatient);
       return updatedPatient;
     });
-    setIsTreatmentFormOpen(false);
+    handleCloseTreatmentForm();
   }
   
+  const handleDeleteTreatment = (treatmentId: string) => {
+     setPatient(prevPatient => {
+      if (!prevPatient) return prevPatient;
+      const updatedPatient = {
+        ...prevPatient,
+        treatmentPlans: prevPatient.treatmentPlans.filter(p => p.id !== treatmentId),
+      };
+      updatePatient(updatedPatient.id, updatedPatient);
+      return updatedPatient;
+    });
+  }
+
   const handleAddImage = (newImage: Omit<PatientImage, 'date'>) => {
     setPatient(prevPatient => {
       if (!prevPatient) return prevPatient;
@@ -141,6 +173,16 @@ export default function PatientDetailPage({
     });
     setIsImageFormOpen(false);
   };
+  
+  const handleOpenTreatmentForm = (treatment?: Treatment) => {
+    setSelectedTreatment(treatment);
+    setIsTreatmentFormOpen(true);
+  }
+
+  const handleCloseTreatmentForm = () => {
+    setSelectedTreatment(undefined);
+    setIsTreatmentFormOpen(false);
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -198,7 +240,7 @@ export default function PatientDetailPage({
                     List of proposed and ongoing treatments.
                   </CardDescription>
                 </div>
-                <Button size="sm" onClick={() => setIsTreatmentFormOpen(true)}>
+                <Button size="sm" onClick={() => handleOpenTreatmentForm()}>
                   <PlusCircle className="mr-2 h-4 w-4" />
                   New Treatment
                 </Button>
@@ -210,7 +252,8 @@ export default function PatientDetailPage({
                       <TableHead>Procedure</TableHead>
                       <TableHead>Tooth</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Cost</TableHead>
+                      <TableHead>Cost</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -223,14 +266,35 @@ export default function PatientDetailPage({
                         <TableCell>
                           <Badge variant="outline">{plan.status}</Badge>
                         </TableCell>
-                        <TableCell className="text-right">
+                        <TableCell>
                           ${plan.cost.toFixed(2)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" className="h-8 w-8 p-0">
+                                <span className="sr-only">Open menu</span>
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                              <DropdownMenuItem onClick={() => handleOpenTreatmentForm(plan)}>
+                                <Pencil className="mr-2 h-4 w-4" />
+                                Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem className="text-red-600" onClick={() => handleDeleteTreatment(plan.id)}>
+                                <Trash className="mr-2 h-4 w-4" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </TableCell>
                       </TableRow>
                     ))}
                      {patient.treatmentPlans.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={4} className="h-24 text-center">
+                        <TableCell colSpan={5} className="h-24 text-center">
                           No treatment plans yet.
                         </TableCell>
                       </TableRow>
@@ -308,8 +372,9 @@ export default function PatientDetailPage({
       </Tabs>
       {isTreatmentFormOpen && (
         <TreatmentPlanForm
-            onSave={handleAddTreatment}
-            onOpenChange={setIsTreatmentFormOpen}
+            treatment={selectedTreatment}
+            onSave={handleSaveTreatment}
+            onOpenChange={handleCloseTreatmentForm}
         />
       )}
       {isPatientFormOpen && (
@@ -344,3 +409,5 @@ export default function PatientDetailPage({
     </div>
   );
 }
+
+    
