@@ -4,7 +4,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -51,17 +51,22 @@ const formSchema = z.object({
 });
 
 type EmployeeFormProps = {
+    employee?: Employee;
     onSave: (data: Omit<Employee, 'id' | 'branchId'>) => void;
     onOpenChange: (open: boolean) => void;
 };
 
-export function EmployeeForm({ onSave, onOpenChange }: EmployeeFormProps) {
+export function EmployeeForm({ employee, onSave, onOpenChange }: EmployeeFormProps) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-        name: "",
-        email: "",
-        status: 'Active',
+        name: employee?.name ?? "",
+        email: employee?.email ?? "",
+        role: employee?.role,
+        status: employee?.status ?? 'Active',
+        salary: employee?.salary,
+        hireDate: employee ? parseISO(employee.hireDate) : undefined,
+        avatar: employee?.avatar ?? "",
     },
   });
 
@@ -79,9 +84,9 @@ export function EmployeeForm({ onSave, onOpenChange }: EmployeeFormProps) {
     <Dialog open={true} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
-                <DialogTitle>Add Employee</DialogTitle>
+                <DialogTitle>{employee ? "Edit Employee" : "Add Employee"}</DialogTitle>
                 <DialogDescription>
-                    Fill out the details for the new staff member.
+                    {employee ? "Update the details for this staff member." : "Fill out the details for the new staff member."}
                 </DialogDescription>
             </DialogHeader>
             <Form {...form}>
@@ -214,7 +219,7 @@ export function EmployeeForm({ onSave, onOpenChange }: EmployeeFormProps) {
                     </div>
                      <DialogFooter>
                         <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-                        <Button type="submit">Save Employee</Button>
+                        <Button type="submit">{employee ? "Save Changes" : "Save Employee"}</Button>
                     </DialogFooter>
                 </form>
             </Form>

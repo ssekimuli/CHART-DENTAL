@@ -13,8 +13,25 @@ import {
 import { Badge } from "@/components/ui/badge";
 import type { Employee } from "@/lib/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { MoreHorizontal, Pencil, Trash, Eye } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
-export function EmployeesTable({ data }: { data: Employee[] }) {
+type EmployeesTableProps = {
+    data: Employee[];
+    onView: (employeeId: string) => void;
+    onEdit: (employee: Employee) => void;
+    onDelete: (employee: Employee) => void;
+};
+
+export function EmployeesTable({ data, onView, onEdit, onDelete }: EmployeesTableProps) {
 
   return (
     <div className="rounded-md border">
@@ -26,13 +43,13 @@ export function EmployeesTable({ data }: { data: Employee[] }) {
             <TableHead>Status</TableHead>
             <TableHead>Hire Date</TableHead>
             <TableHead className="text-right">Salary</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {data.map((employee) => (
             <TableRow
               key={employee.id}
-              className="cursor-pointer"
             >
               <TableCell>
                 <div className="flex items-center gap-3">
@@ -55,8 +72,41 @@ export function EmployeesTable({ data }: { data: Employee[] }) {
               </TableCell>
               <TableCell>{employee.hireDate}</TableCell>
               <TableCell className="text-right">${employee.salary.toLocaleString()}</TableCell>
+              <TableCell className="text-right">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="h-8 w-8 p-0">
+                      <span className="sr-only">Open menu</span>
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                    <DropdownMenuItem onClick={() => onView(employee.id)}>
+                        <Eye className="mr-2 h-4 w-4" />
+                        View
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => onEdit(employee)}>
+                        <Pencil className="mr-2 h-4 w-4" />
+                        Edit
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem className="text-red-600" onClick={() => onDelete(employee)}>
+                        <Trash className="mr-2 h-4 w-4" />
+                        Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </TableCell>
             </TableRow>
           ))}
+          {data.length === 0 && (
+            <TableRow>
+                <TableCell colSpan={6} className="h-24 text-center">
+                    No employees found for this branch.
+                </TableCell>
+            </TableRow>
+          )}
         </TableBody>
       </Table>
     </div>
