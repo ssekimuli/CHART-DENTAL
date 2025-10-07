@@ -1,3 +1,6 @@
+
+"use client";
+
 import { notFound } from "next/navigation";
 import { patients } from "@/lib/data";
 import {
@@ -22,21 +25,49 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { useEffect, useState } from "react";
+import type { Patient, Treatment } from "@/lib/types";
+import { Button } from "@/components/ui/button";
+import { PlusCircle } from "lucide-react";
+import { TreatmentPlanForm } from "./components/treatment-plan-form";
 
-export default async function PatientDetailPage({
+export default function PatientDetailPage({
   params,
 }: {
   params: { id: string };
 }) {
-  const patient = patients.find((p) => p.id === params.id);
+  const [patient, setPatient] = useState<Patient | undefined>(
+    patients.find((p) => p.id === params.id)
+  );
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [historySummary, setHistorySummary] = useState<{ summary: string } | null>(null);
+
+  useEffect(() => {
+    if (patient) {
+      summarizePatientHistory({ patientHistory: patient.history }).then(setHistorySummary);
+    }
+  }, [patient]);
+
 
   if (!patient) {
-    notFound();
+    return notFound();
   }
 
-  const historySummary = await summarizePatientHistory({
-    patientHistory: patient.history,
-  });
+  const handleAddTreatment = (newTreatment: Omit<Treatment, 'id' | 'date'>) => {
+    setPatient(prevPatient => {
+      if (!prevPatient) return prevPatient;
+      const newPlan: Treatment = {
+        ...newTreatment,
+        id: `t${prevPatient.treatmentPlans.length + 1}`,
+        date: new Date().toISOString().split('T')[0],
+      };
+      return {
+        ...prevPatient,
+        treatmentPlans: [...prevPatient.treatmentPlans, newPlan],
+      }
+    });
+    setIsFormOpen(false);
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -89,11 +120,17 @@ export default async function PatientDetailPage({
               dentalRecords={patient.dentalRecords}
             />
             <Card>
-              <CardHeader>
-                <CardTitle>Current Treatment Plan</CardTitle>
-                <CardDescription>
-                  List of proposed and ongoing treatments.
-                </CardDescription>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>Current Treatment Plan</CardTitle>
+                  <CardDescription>
+                    List of proposed and ongoing treatments.
+                  </CardDescription>
+                </div>
+                <Button size="sm" onClick={() => setIsFormOpen(true)}>
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  New Treatment
+                </Button>
               </CardHeader>
               <CardContent>
                 <Table>
@@ -120,6 +157,13 @@ export default async function PatientDetailPage({
                         </TableCell>
                       </TableRow>
                     ))}
+                     {patient.treatmentPlans.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={4} className="h-24 text-center">
+                          No treatment plans yet.
+                        </TableCell>
+                      </TableRow>
+                    )}
                   </TableBody>
                 </Table>
               </CardContent>
@@ -163,7 +207,7 @@ export default async function PatientDetailPage({
               <div>
                 <h3 className="font-semibold">AI Summary</h3>
                 <p className="mt-1 text-sm text-muted-foreground italic">
-                  {historySummary.summary}
+                  {historySummary?.summary || "Generating summary..."}
                 </p>
               </div>
               <div>
@@ -176,6 +220,12 @@ export default async function PatientDetailPage({
           </Card>
         </TabsContent>
       </Tabs>
+      {isFormOpen && (
+        <TreatmentPlanForm
+            onSave={handleAddTreatment}
+            onOpenChange={setIsFormOpen}
+        />
+      )}
     </div>
   );
 }
