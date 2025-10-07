@@ -47,6 +47,7 @@ export const patients: Patient[] = [
       malocclusion: "Class I",
     },
     softTissueRecords: [],
+    orthodonticRecords: [],
   },
   {
     id: "2",
@@ -74,6 +75,7 @@ export const patients: Patient[] = [
       malocclusion: "Class I",
     },
     softTissueRecords: [],
+    orthodonticRecords: [],
   },
   {
     id: "3",
@@ -97,6 +99,7 @@ export const patients: Patient[] = [
         malocclusion: "Class II",
       },
       softTissueRecords: [],
+      orthodonticRecords: [],
   },
    {
     id: "4",
@@ -122,6 +125,7 @@ export const patients: Patient[] = [
         malocclusion: "Class I",
       },
       softTissueRecords: [],
+      orthodonticRecords: [],
   },
   {
     id: "5",
@@ -145,6 +149,7 @@ export const patients: Patient[] = [
         malocclusion: "Class I",
       },
       softTissueRecords: [],
+      orthodonticRecords: [],
   }
 ];
 

@@ -21,6 +21,7 @@ import { PeriodontalChart } from "./components/periodontal-chart";
 import { OcclusalChart } from "./components/occlusal-chart";
 import { SoftTissueChart } from "./components/soft-tissue-chart";
 import { TreatmentPlanForm } from "../components/treatment-plan-form";
+import { OrthodonticChart } from "./components/orthodontic-chart";
 
 export default function PatientChartingPage({
   params,
@@ -124,11 +125,12 @@ export default function PatientChartingPage({
         </h1>
       </div>
       <Tabs defaultValue="odontogram">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="odontogram">Odontogram</TabsTrigger>
           <TabsTrigger value="periodontal">Periodontal</TabsTrigger>
           <TabsTrigger value="occlusal">Occlusal</TabsTrigger>
           <TabsTrigger value="soft-tissue">Soft Tissue</TabsTrigger>
+          <TabsTrigger value="orthodontic">Orthodontic</TabsTrigger>
         </TabsList>
 
         <TabsContent value="odontogram">
@@ -157,6 +159,9 @@ export default function PatientChartingPage({
         </TabsContent>
         <TabsContent value="soft-tissue">
             <SoftTissueChart />
+        </TabsContent>
+        <TabsContent value="orthodontic">
+            <OrthodonticChart />
         </TabsContent>
       </Tabs>
       {isTreatmentFormOpen && (

@@ -15,6 +15,7 @@ export type Patient = {
   periodontalRecords: PeriodontalRecord;
   occlusalRecords: OcclusalRecord;
   softTissueRecords: SoftTissueRecord[];
+  orthodonticRecords: OrthodonticRecord[];
 };
 
 export type DentalCondition = 'Healthy' | 'Caries' | 'Filling' | 'Crown' | 'Missing' | 'Fracture';
@@ -110,7 +111,7 @@ export type LaboratoryOrder = {
   branchId: string;
 };
 
-export type BasePatient = Omit<Patient, 'id' | 'dentalRecords' | 'treatmentPlans' | 'imaging' | 'lastVisit' | 'branchId' | 'periodontalRecords' | 'occlusalRecords' | 'softTissueRecords'>;
+export type BasePatient = Omit<Patient, 'id' | 'dentalRecords' | 'treatmentPlans' | 'imaging' | 'lastVisit' | 'branchId' | 'periodontalRecords' | 'occlusalRecords' | 'softTissueRecords' | 'orthodonticRecords'>;
 
 export type BaseInvoice = Omit<Invoice, 'id' | 'patientName' | 'branchId'>;
 
@@ -157,4 +158,13 @@ export type SoftTissueRecord = {
   type: 'Ulcer' | 'Lesion' | 'Color Change' | 'Swelling';
   description: string;
   date: string;
+};
+
+export type OrthodonticRecord = {
+  id: string;
+  date: string;
+  appliance: 'Braces' | 'Invisalign' | 'Retainer';
+  wireSize?: string;
+  bracketChanges?: string[];
+  notes: string;
 };

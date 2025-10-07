@@ -72,6 +72,7 @@ export default function PatientsPage() {
         periodontalRecords: [],
         occlusalRecords: { overbite: 0, overjet: 0, crossbite: 'None', openbite: 'None', malocclusion: 'Class I' },
         softTissueRecords: [],
+        orthodonticRecords: [],
         };
         setPatientsData(prev => [...prev, newPatient]);
     }
