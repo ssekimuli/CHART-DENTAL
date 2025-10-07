@@ -21,7 +21,6 @@ import {
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { ToothIcon } from "@/components/icons/tooth-icon";
 import Image from "next/image";
 
 export default function LoginPage() {
@@ -70,7 +69,14 @@ export default function LoginPage() {
     <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2">
       <div className="hidden bg-muted lg:block">
         <div className="flex h-full flex-col items-center justify-center gap-4 text-center">
-            <ToothIcon className="size-16 text-primary" />
+            <Image 
+                src="https://picsum.photos/seed/logo/100/100"
+                alt="DentalChart Pro Logo"
+                width={100}
+                height={100}
+                className="rounded-full"
+                data-ai-hint="logo"
+            />
             <h1 className="text-4xl font-bold text-primary-foreground">
                 DentalChart Pro
             </h1>
