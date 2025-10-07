@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -18,6 +19,7 @@ import {
   Building,
   Package,
   FlaskConical,
+  BarChart3,
 } from "lucide-react";
 import type { EmployeeRole } from "@/lib/types";
 import { currentUser } from "@/lib/user";
@@ -32,6 +34,7 @@ const allLinks = [
   { href: "/employees", label: "Employees", icon: Briefcase, roles: ['Super Admin', 'HR'] as EmployeeRole[] },
   { href: "/payroll", label: "Payroll", icon: HandCoins, roles: ['Super Admin', 'HR', 'Account'] as EmployeeRole[] },
   { href: "/branches", label: "Branches", icon: Building, roles: ['Super Admin'] as EmployeeRole[] },
+  { href: "/reports", label: "Reports", icon: BarChart3, roles: ['Super Admin', 'Account', 'HR'] as EmployeeRole[] },
   { href: "/settings", label: "Settings", icon: Settings, roles: ['Super Admin', 'Account', 'HR', 'Dentist', 'Hygienist', 'Receptionist', 'Assistant'] as EmployeeRole[] },
 ];
 
@@ -39,6 +42,10 @@ export function MainNav() {
   const pathname = usePathname();
 
   const accessibleLinks = allLinks.filter(link => link.roles.includes(currentUser.role)).sort((a, b) => {
+    if (a.label === 'Reports') {
+        const settingsIndex = b.label === 'Settings' ? -1 : 1;
+        if (b.label === 'Settings') return -1;
+    }
     if (a.href === '/settings') return 1;
     if (b.href === '/settings') return -1;
     return 0;
