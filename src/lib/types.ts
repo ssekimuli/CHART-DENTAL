@@ -90,3 +90,14 @@ export type Branch = {
   name: string;
   address: string;
 };
+
+export type InventoryItem = {
+    id: string;
+    name: string;
+    supplier: string;
+    stock: number;
+    reorderLevel: number;
+    price: number;
+    status: 'In Stock' | 'Low Stock' | 'Out of Stock';
+    branchId: string;
+};

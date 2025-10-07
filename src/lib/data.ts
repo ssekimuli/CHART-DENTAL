@@ -1,4 +1,4 @@
-import type { Patient, Appointment, Invoice, ChartData, Employee, Payroll, Branch } from "@/lib/types";
+import type { Patient, Appointment, Invoice, ChartData, Employee, Payroll, Branch, InventoryItem } from "@/lib/types";
 
 export const branches: Branch[] = [
   { id: "b1", name: "Downtown Clinic", address: "123 Main St, Cityville" },
@@ -140,4 +140,12 @@ export const payrolls: Payroll[] = [
     { id: 'pay2', employeeId: 'emp2', employeeName: 'James Wilson', payPeriod: '2024-06-01 to 2024-06-15', grossPay: 3125, deductions: 600, netPay: 2525, payDate: '2024-06-15', status: 'Paid', branchId: 'b1' },
     { id: 'pay3', employeeId: 'emp3', employeeName: 'Allison Cameron', payPeriod: '2024-06-16 to 2024-06-30', grossPay: 2083.33, deductions: 400, netPay: 1683.33, payDate: '2024-06-30', status: 'Pending', branchId: 'b2' },
     { id: 'pay4', employeeId: 'emp4', employeeName: 'Robert Chase', payPeriod: '2024-06-16 to 2024-06-30', grossPay: 2291.67, deductions: 450, netPay: 1841.67, payDate: '2024-06-30', status: 'Pending', branchId: 'b2' },
+];
+
+export const inventory: InventoryItem[] = [
+    { id: 'item1', name: 'Gloves (Box of 100)', supplier: 'Dental Supplies Co.', stock: 50, reorderLevel: 20, price: 15.00, status: 'In Stock', branchId: 'b1' },
+    { id: 'item2', name: 'Dental Masks (Box of 50)', supplier: 'MediWear', stock: 15, reorderLevel: 10, price: 25.00, status: 'Low Stock', branchId: 'b1' },
+    { id: 'item3', name: 'Composite Resin (Syringe)', supplier: '3M Dental', stock: 100, reorderLevel: 50, price: 85.00, status: 'In Stock', branchId: 'b2' },
+    { id: 'item4', name: 'Anesthetic Cartridges', supplier: 'PharmaPlus', stock: 5, reorderLevel: 20, price: 55.00, status: 'Low Stock', branchId: 'b2' },
+    { id: 'item5', name: 'X-Ray Film', supplier: 'Kodak', stock: 0, reorderLevel: 10, price: 120.00, status: 'Out of Stock', branchId: 'b1' },
 ];
