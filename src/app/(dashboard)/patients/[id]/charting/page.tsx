@@ -14,7 +14,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DentalChart } from "../components/dental-chart";
 import { useState } from "react";
-import type { Patient, DentalRecord, Treatment, PeriodontalRecord, OcclusalRecord, OrthodonticRecord } from "@/lib/types";
+import type { Patient, DentalRecord, Treatment, PeriodontalRecord, OcclusalRecord, OrthodonticRecord, SoftTissueRecord } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { PeriodontalChart } from "./components/periodontal-chart";
@@ -150,6 +150,46 @@ export default function PatientChartingPage({
     });
   }
 
+  const handleSaveSoftTissueRecord = (record: Omit<SoftTissueRecord, 'id'>) => {
+    setPatient(prevPatient => {
+     if (!prevPatient) return prevPatient;
+     const newRecord: SoftTissueRecord = {
+       ...record,
+       id: `soft${prevPatient.softTissueRecords.length + 1}`,
+     };
+     const updatedPatient = {
+       ...prevPatient,
+       softTissueRecords: [...prevPatient.softTissueRecords, newRecord].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
+     };
+     setAllPatients(prevAll => prevAll.map(p => p.id === updatedPatient.id ? updatedPatient : p));
+     return updatedPatient;
+   });
+ }
+
+ const handleUpdateSoftTissueRecord = (record: SoftTissueRecord) => {
+   setPatient(prevPatient => {
+     if (!prevPatient) return prevPatient;
+     const updatedPatient = {
+       ...prevPatient,
+       softTissueRecords: prevPatient.softTissueRecords.map(r => r.id === record.id ? record : r).sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
+     };
+     setAllPatients(prevAll => prevAll.map(p => p.id === updatedPatient.id ? updatedPatient : p));
+     return updatedPatient;
+   });
+ }
+
+ const handleDeleteSoftTissueRecord = (recordId: string) => {
+    setPatient(prevPatient => {
+     if (!prevPatient) return prevPatient;
+     const updatedPatient = {
+       ...prevPatient,
+       softTissueRecords: prevPatient.softTissueRecords.filter(r => r.id !== recordId),
+     };
+     setAllPatients(prevAll => prevAll.map(p => p.id === updatedPatient.id ? updatedPatient : p));
+     return updatedPatient;
+   });
+ }
+
   const handleOpenTreatmentForm = (toothId?: number) => {
     setSelectedToothForTreatment(toothId);
     setIsTreatmentFormOpen(true);
@@ -210,7 +250,12 @@ export default function PatientChartingPage({
             <OcclusalChart initialRecord={patient.occlusalRecords} onSave={handleSaveOcclusalRecord} />
         </TabsContent>
         <TabsContent value="soft-tissue">
-            <SoftTissueChart />
+            <SoftTissueChart
+              initialRecords={patient.softTissueRecords}
+              onSave={handleSaveSoftTissueRecord}
+              onUpdate={handleUpdateSoftTissueRecord}
+              onDelete={handleDeleteSoftTissueRecord}
+            />
         </TabsContent>
         <TabsContent value="orthodontic">
             <OrthodonticChart 
