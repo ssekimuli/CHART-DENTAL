@@ -114,3 +114,5 @@ export type LaboratoryOrder = {
   dueDate: string;
   branchId: string;
 };
+
+export type BasePatient = Omit<Patient, 'id' | 'dentalRecords' | 'treatmentPlans' | 'imaging' | 'lastVisit'>;

@@ -1,8 +1,8 @@
 
 "use client";
 
-import { notFound } from "next/navigation";
-import { patients } from "@/lib/data";
+import { notFound, useRouter } from "next/navigation";
+import { patients as initialPatients } from "@/lib/data";
 import {
   Card,
   CardContent,
@@ -26,32 +26,70 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useEffect, useState } from "react";
-import type { Patient, Treatment, DentalRecord } from "@/lib/types";
+import type { Patient, Treatment, DentalRecord, BasePatient } from "@/lib/types";
 import { Button } from "@/components/ui/button";
-import { PlusCircle } from "lucide-react";
+import { PlusCircle, Trash, Pencil } from "lucide-react";
 import { TreatmentPlanForm } from "./components/treatment-plan-form";
+import { PatientForm } from "../components/patient-form";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function PatientDetailPage({
   params,
 }: {
   params: { id: string };
 }) {
+  const router = useRouter();
+  const [allPatients, setAllPatients] = useState(initialPatients);
   const [patient, setPatient] = useState<Patient | undefined>(
-    patients.find((p) => p.id === params.id)
+    allPatients.find((p) => p.id === params.id)
   );
-  const [isFormOpen, setIsFormOpen] = useState(false);
+
+  const [isTreatmentFormOpen, setIsTreatmentFormOpen] = useState(false);
+  const [isPatientFormOpen, setIsPatientFormOpen] = useState(false);
+  const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const [selectedToothForTreatment, setSelectedToothForTreatment] = useState<number | undefined>(undefined);
   const [historySummary, setHistorySummary] = useState<{ summary: string } | null>(null);
 
   useEffect(() => {
     if (patient) {
       summarizePatientHistory({ patientHistory: patient.history }).then(setHistorySummary);
+    } else {
+        const foundPatient = allPatients.find(p => p.id === params.id);
+        setPatient(foundPatient);
     }
-  }, [patient]);
+  }, [patient, params.id, allPatients]);
 
 
   if (!patient) {
-    return notFound();
+    // This will be caught by the notFound() call in the next render if patient is still not found
+    return null; 
+  }
+  
+  const handleUpdatePatient = (data: BasePatient) => {
+    setPatient(prevPatient => {
+        if (!prevPatient) return prevPatient;
+        const updatedPatient = { ...prevPatient, ...data };
+        
+        setAllPatients(prevAll => prevAll.map(p => p.id === updatedPatient.id ? updatedPatient : p));
+        
+        return updatedPatient;
+    });
+    setIsPatientFormOpen(false);
+  }
+
+  const handleDeletePatient = () => {
+    setAllPatients(prevAll => prevAll.filter(p => p.id !== params.id));
+    router.push('/patients');
+    setIsDeleteAlertOpen(false);
   }
 
   const handleAddTreatment = (newTreatment: Omit<Treatment, 'id' | 'date'>) => {
@@ -67,7 +105,7 @@ export default function PatientDetailPage({
         treatmentPlans: [...prevPatient.treatmentPlans, newPlan],
       }
     });
-    setIsFormOpen(false);
+    setIsTreatmentFormOpen(false);
     setSelectedToothForTreatment(undefined);
   }
   
@@ -90,11 +128,11 @@ export default function PatientDetailPage({
 
   const handleOpenTreatmentForm = (toothId?: number) => {
     setSelectedToothForTreatment(toothId);
-    setIsFormOpen(true);
+    setIsTreatmentFormOpen(true);
   }
   
   const handleCloseTreatmentForm = () => {
-    setIsFormOpen(false);
+    setIsTreatmentFormOpen(false);
     setSelectedToothForTreatment(undefined);
   }
 
@@ -116,6 +154,16 @@ export default function PatientDetailPage({
               <span>Last Visit: {patient.lastVisit}</span>
               <Badge variant={patient.status === 'Active' ? 'default' : 'outline'}>{patient.status}</Badge>
             </div>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" size="icon" onClick={() => setIsPatientFormOpen(true)}>
+                <Pencil className="h-4 w-4" />
+                <span className="sr-only">Edit Patient</span>
+            </Button>
+             <Button variant="destructive" size="icon" onClick={() => setIsDeleteAlertOpen(true)}>
+                <Trash className="h-4 w-4" />
+                <span className="sr-only">Delete Patient</span>
+            </Button>
           </div>
         </CardHeader>
       </Card>
@@ -254,13 +302,36 @@ export default function PatientDetailPage({
           </Card>
         </TabsContent>
       </Tabs>
-      {isFormOpen && (
+      {isTreatmentFormOpen && (
         <TreatmentPlanForm
             onSave={handleAddTreatment}
             onOpenChange={handleCloseTreatmentForm}
             toothId={selectedToothForTreatment}
         />
       )}
+      {isPatientFormOpen && (
+        <PatientForm
+            patient={patient}
+            onSave={handleUpdatePatient}
+            onOpenChange={setIsPatientFormOpen}
+        />
+      )}
+      <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the patient record.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeletePatient} className="bg-destructive hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
