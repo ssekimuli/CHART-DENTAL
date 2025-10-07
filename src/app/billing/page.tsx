@@ -1,3 +1,7 @@
+
+"use client";
+
+import { useState } from "react";
 import {
   Card,
   CardContent,
@@ -14,11 +18,16 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { invoices } from "@/lib/data";
+import { invoices as initialInvoices, patients } from "@/lib/data";
 import { Button } from "@/components/ui/button";
 import { FileDown, PlusCircle } from "lucide-react";
+import type { Invoice } from "@/lib/types";
+import { InvoiceForm } from "./components/invoice-form";
 
 export default function BillingPage() {
+  const [invoices, setInvoices] = useState<Invoice[]>(initialInvoices);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+
   const getStatusVariant = (status: "Paid" | "Pending" | "Overdue") => {
     switch (status) {
       case "Paid":
@@ -30,58 +39,87 @@ export default function BillingPage() {
     }
   };
 
+  const handleSaveInvoice = (data: Omit<Invoice, 'id' | 'patientName'>) => {
+    const patient = patients.find(p => p.id === data.patientId);
+    if (!patient) return;
+
+    const newInvoice: Invoice = {
+      ...data,
+      id: `inv${invoices.length + 1}`,
+      patientName: patient.name,
+    };
+    setInvoices(prev => [...prev, newInvoice]);
+    setIsFormOpen(false);
+  };
+
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div>
-          <CardTitle>Billing</CardTitle>
-          <CardDescription>
-            Manage invoices and patient billing.
-          </CardDescription>
-        </div>
-        <div className="flex gap-2">
+    <>
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle>Billing</CardTitle>
+            <CardDescription>
+              Manage invoices and patient billing.
+            </CardDescription>
+          </div>
+          <div className="flex gap-2">
             <Button variant="outline">
-                <FileDown className="mr-2 h-4 w-4" />
-                Export
+              <FileDown className="mr-2 h-4 w-4" />
+              Export
             </Button>
-            <Button>
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Create Invoice
+            <Button onClick={() => setIsFormOpen(true)}>
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Create Invoice
             </Button>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Invoice ID</TableHead>
-              <TableHead>Patient</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Issue Date</TableHead>
-              <TableHead>Due Date</TableHead>
-              <TableHead className="text-right">Amount</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {invoices.map((invoice) => (
-              <TableRow key={invoice.id}>
-                <TableCell className="font-medium">{invoice.id}</TableCell>
-                <TableCell>{invoice.patientName}</TableCell>
-                <TableCell>
-                  <Badge variant={getStatusVariant(invoice.status)}>
-                    {invoice.status}
-                  </Badge>
-                </TableCell>
-                <TableCell>{invoice.issueDate}</TableCell>
-                <TableCell>{invoice.dueDate}</TableCell>
-                <TableCell className="text-right">
-                  ${invoice.amount.toFixed(2)}
-                </TableCell>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Invoice ID</TableHead>
+                <TableHead>Patient</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Issue Date</TableHead>
+                <TableHead>Due Date</TableHead>
+                <TableHead className="text-right">Amount</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </CardContent>
-    </Card>
+            </TableHeader>
+            <TableBody>
+              {invoices.map((invoice) => (
+                <TableRow key={invoice.id}>
+                  <TableCell className="font-medium">{invoice.id}</TableCell>
+                  <TableCell>{invoice.patientName}</TableCell>
+                  <TableCell>
+                    <Badge variant={getStatusVariant(invoice.status)}>
+                      {invoice.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>{invoice.issueDate}</TableCell>
+                  <TableCell>{invoice.dueDate}</TableCell>
+                  <TableCell className="text-right">
+                    ${invoice.amount.toFixed(2)}
+                  </TableCell>
+                </TableRow>
+              ))}
+              {invoices.length === 0 && (
+                 <TableRow>
+                    <TableCell colSpan={6} className="h-24 text-center">
+                        No invoices found.
+                    </TableCell>
+                 </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+      {isFormOpen && (
+        <InvoiceForm 
+            patients={patients}
+            onSave={handleSaveInvoice}
+            onOpenChange={setIsFormOpen}
+        />
+      )}
+    </>
   );
 }
