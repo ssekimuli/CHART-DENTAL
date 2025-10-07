@@ -21,7 +21,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { useState, useMemo, useEffect } from "react";
 import type { Appointment, Employee, Patient } from "@/lib/types";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, PlusCircle, Trash, Pencil } from "lucide-react";
+import { MoreHorizontal, PlusCircle, Trash, Pencil, FileText } from "lucide-react";
 import { AppointmentForm } from "./components/appointment-form";
 import { useBranch } from "@/context/branch-context";
 import { currentUser } from "@/lib/user";
@@ -45,8 +45,10 @@ import {
   } from "@/components/ui/alert-dialog";
   import { getAppointments, getPatients, getEmployees, createAppointment, updateAppointment, deleteAppointment } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useRouter } from "next/navigation";
 
 export default function AppointmentsPage() {
+  const router = useRouter();
   const { selectedBranch } = useBranch();
   const [allAppointments, setAllAppointments] = useState<Appointment[]>([]);
   const [allPatients, setAllPatients] = useState<Patient[]>([]);
@@ -136,6 +138,10 @@ export default function AppointmentsPage() {
     setIsDeleteAlertOpen(true);
   }
 
+  const handleGoToChart = (patientId: string) => {
+    router.push(`/patients/${patientId}/charting`);
+  }
+
   return (
     <>
       <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-3">
@@ -206,6 +212,10 @@ export default function AppointmentsPage() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                <DropdownMenuItem onClick={() => handleGoToChart(appointment.patientId)}>
+                                    <FileText className="mr-2 h-4 w-4" />
+                                    Go to Chart
+                                </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => handleOpenForm(appointment)}>
                                     <Pencil className="mr-2 h-4 w-4" />
                                     Edit
