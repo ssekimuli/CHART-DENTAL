@@ -16,41 +16,48 @@ import {
   Briefcase,
   HandCoins,
 } from "lucide-react";
+import type { EmployeeRole } from "@/lib/types";
 
-const links = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/patients", label: "Patients", icon: Users },
-  { href: "/appointments", label: "Appointments", icon: Calendar },
-  { href: "/billing", label: "Billing", icon: CreditCard },
-  { href: "/employees", label: "Employees", icon: Briefcase },
-  { href: "/payroll", label: "Payroll", icon: HandCoins },
-  { href: "/settings", label: "Settings", icon: Settings },
+const allLinks = [
+  { href: "/", label: "Dashboard", icon: LayoutDashboard, roles: ['Super Admin', 'Account', 'HR', 'Dentist', 'Hygienist', 'Receptionist', 'Assistant'] as EmployeeRole[] },
+  { href: "/patients", label: "Patients", icon: Users, roles: ['Super Admin', 'Dentist', 'Hygienist', 'Receptionist', 'Assistant'] as EmployeeRole[] },
+  { href: "/appointments", label: "Appointments", icon: Calendar, roles: ['Super Admin', 'Dentist', 'Hygienist', 'Receptionist', 'Assistant'] as EmployeeRole[] },
+  { href: "/billing", label: "Billing", icon: CreditCard, roles: ['Super Admin', 'Account', 'Receptionist'] as EmployeeRole[] },
+  { href: "/employees", label: "Employees", icon: Briefcase, roles: ['Super Admin', 'HR'] as EmployeeRole[] },
+  { href: "/payroll", label: "Payroll", icon: HandCoins, roles: ['Super Admin', 'HR', 'Account'] as EmployeeRole[] },
+  { href: "/settings", label: "Settings", icon: Settings, roles: ['Super Admin', 'Account', 'HR', 'Dentist', 'Hygienist', 'Receptionist', 'Assistant'] as EmployeeRole[] },
 ];
+
+// Mock current user - in a real app, this would come from an auth context
+const currentUser: { role: EmployeeRole } = {
+  role: 'Super Admin',
+};
+
 
 export function MainNav() {
   const pathname = usePathname();
 
+  const accessibleLinks = allLinks.filter(link => link.roles.includes(currentUser.role));
+
   return (
     <div className="flex w-full flex-col gap-2 p-2">
       <SidebarMenu>
-        {links.map((link) => (
+        {accessibleLinks.map((link) => (
           <SidebarMenuItem key={link.href}>
-            <Link href={link.href} passHref>
-              <SidebarMenuButton
-                asChild
-                isActive={
-                  link.href === "/"
-                    ? pathname === "/"
-                    : pathname.startsWith(link.href)
-                }
-                tooltip={link.label}
-              >
-                <span>
-                  <link.icon />
-                  <span>{link.label}</span>
-                </span>
-              </SidebarMenuButton>
-            </Link>
+            <SidebarMenuButton
+              asChild
+              isActive={
+                link.href === "/"
+                  ? pathname === "/"
+                  : pathname.startsWith(link.href)
+              }
+              tooltip={link.label}
+            >
+              <Link href={link.href}>
+                <link.icon />
+                <span>{link.label}</span>
+              </Link>
+            </SidebarMenuButton>
           </SidebarMenuItem>
         ))}
       </SidebarMenu>
