@@ -31,6 +31,7 @@ import {
     SelectValue,
   } from "@/components/ui/select";
 import type { Treatment } from "@/lib/types";
+import { useEffect } from "react";
 
 
 const formSchema = z.object({
@@ -45,16 +46,24 @@ const formSchema = z.object({
 type TreatmentPlanFormProps = {
     onSave: (data: Omit<Treatment, 'id' | 'date'>) => void;
     onOpenChange: (open: boolean) => void;
+    toothId?: number;
 };
 
-export function TreatmentPlanForm({ onSave, onOpenChange }: TreatmentPlanFormProps) {
+export function TreatmentPlanForm({ onSave, onOpenChange, toothId }: TreatmentPlanFormProps) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       procedure: "",
       status: 'Proposed',
+      tooth: toothId,
     },
   });
+  
+  useEffect(() => {
+    if (toothId) {
+        form.setValue('tooth', toothId);
+    }
+  }, [toothId, form]);
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     onSave(values);

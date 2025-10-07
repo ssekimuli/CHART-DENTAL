@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useEffect, useState } from "react";
-import type { Patient, Treatment } from "@/lib/types";
+import type { Patient, Treatment, DentalRecord } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { PlusCircle } from "lucide-react";
 import { TreatmentPlanForm } from "./components/treatment-plan-form";
@@ -40,6 +40,7 @@ export default function PatientDetailPage({
     patients.find((p) => p.id === params.id)
   );
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [selectedToothForTreatment, setSelectedToothForTreatment] = useState<number | undefined>(undefined);
   const [historySummary, setHistorySummary] = useState<{ summary: string } | null>(null);
 
   useEffect(() => {
@@ -67,6 +68,34 @@ export default function PatientDetailPage({
       }
     });
     setIsFormOpen(false);
+    setSelectedToothForTreatment(undefined);
+  }
+  
+  const handleSaveDentalRecord = (record: DentalRecord) => {
+    setPatient(prevPatient => {
+        if (!prevPatient) return prevPatient;
+        const newRecords = [...prevPatient.dentalRecords];
+        const existingRecordIndex = newRecords.findIndex(r => r.toothId === record.toothId);
+        if (existingRecordIndex > -1) {
+            newRecords[existingRecordIndex] = record;
+        } else {
+            newRecords.push(record);
+        }
+        return {
+            ...prevPatient,
+            dentalRecords: newRecords,
+        };
+    });
+  }
+
+  const handleOpenTreatmentForm = (toothId?: number) => {
+    setSelectedToothForTreatment(toothId);
+    setIsFormOpen(true);
+  }
+  
+  const handleCloseTreatmentForm = () => {
+    setIsFormOpen(false);
+    setSelectedToothForTreatment(undefined);
   }
 
   return (
@@ -104,11 +133,16 @@ export default function PatientDetailPage({
             <CardHeader>
               <CardTitle>Interactive Dental Chart</CardTitle>
               <CardDescription>
-                Click on a tooth to log conditions and notes.
+                Click on a tooth to log conditions or add treatments.
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <DentalChart initialRecords={patient.dentalRecords} />
+              <DentalChart 
+                initialRecords={patient.dentalRecords}
+                treatmentPlans={patient.treatmentPlans}
+                onSaveRecord={handleSaveDentalRecord}
+                onAddTreatment={handleOpenTreatmentForm}
+              />
             </CardContent>
           </Card>
         </TabsContent>
@@ -127,7 +161,7 @@ export default function PatientDetailPage({
                     List of proposed and ongoing treatments.
                   </CardDescription>
                 </div>
-                <Button size="sm" onClick={() => setIsFormOpen(true)}>
+                <Button size="sm" onClick={() => handleOpenTreatmentForm()}>
                   <PlusCircle className="mr-2 h-4 w-4" />
                   New Treatment
                 </Button>
@@ -223,7 +257,8 @@ export default function PatientDetailPage({
       {isFormOpen && (
         <TreatmentPlanForm
             onSave={handleAddTreatment}
-            onOpenChange={setIsFormOpen}
+            onOpenChange={handleCloseTreatmentForm}
+            toothId={selectedToothForTreatment}
         />
       )}
     </div>

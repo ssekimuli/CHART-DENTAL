@@ -3,9 +3,20 @@
 
 import React, { useState } from "react";
 import { Tooth } from "./tooth";
-import type { DentalRecord, DentalCondition } from "@/lib/types";
+import type { DentalRecord, DentalCondition, Treatment } from "@/lib/types";
 import { ConditionLogger } from "./condition-logger";
 import { cn } from "@/lib/utils";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
 
 const upperRightQuadrant = [18, 17, 16, 15, 14, 13, 12, 11];
 const upperLeftQuadrant = [21, 22, 23, 24, 25, 26, 27, 28];
@@ -23,18 +34,31 @@ const conditionInfo: { condition: DentalCondition; color: string; twColor: strin
 
 type DentalChartProps = {
   initialRecords: DentalRecord[];
+  treatmentPlans: Treatment[];
+  onSaveRecord: (record: DentalRecord) => void;
+  onAddTreatment: (toothId: number) => void;
 };
 
-export function DentalChart({ initialRecords }: DentalChartProps) {
+export function DentalChart({ initialRecords, treatmentPlans, onSaveRecord, onAddTreatment }: DentalChartProps) {
   const [records, setRecords] = useState<DentalRecord[]>(initialRecords);
   const [selectedTooth, setSelectedTooth] = useState<number | null>(null);
+  const [isActionSelectorOpen, setIsActionSelectorOpen] = useState(false);
+  const [isConditionLoggerOpen, setIsConditionLoggerOpen] = useState(false);
+
 
   const getRecordForTooth = (toothId: number) => {
     return records.find((r) => r.toothId === toothId);
   };
+  
+  const getTreatmentForTooth = (toothId: number) => {
+    return treatmentPlans.some(
+        plan => plan.tooth === toothId && (plan.status === 'Proposed' || plan.status === 'In Progress')
+    );
+  }
 
   const handleToothClick = (toothId: number) => {
     setSelectedTooth(toothId);
+    setIsActionSelectorOpen(true);
   };
 
   const handleSaveCondition = (
@@ -42,19 +66,38 @@ export function DentalChart({ initialRecords }: DentalChartProps) {
     condition: DentalCondition,
     notes: string
   ) => {
+    const newRecord = { toothId, condition, notes };
     setRecords((prevRecords) => {
       const existingRecordIndex = prevRecords.findIndex(
         (r) => r.toothId === toothId
       );
       if (existingRecordIndex > -1) {
         const updatedRecords = [...prevRecords];
-        updatedRecords[existingRecordIndex] = { toothId, condition, notes };
+        updatedRecords[existingRecordIndex] = newRecord;
         return updatedRecords;
       }
-      return [...prevRecords, { toothId, condition, notes }];
+      return [...prevRecords, newRecord];
     });
-    setSelectedTooth(null);
+    onSaveRecord(newRecord);
+    setIsConditionLoggerOpen(false);
   };
+  
+  const handleActionSelection = (action: 'condition' | 'treatment') => {
+      setIsActionSelectorOpen(false);
+      if (!selectedTooth) return;
+
+      if (action === 'condition') {
+          setIsConditionLoggerOpen(true);
+      } else {
+          onAddTreatment(selectedTooth);
+      }
+  }
+  
+  const closeAll = () => {
+    setSelectedTooth(null);
+    setIsActionSelectorOpen(false);
+    setIsConditionLoggerOpen(false);
+  }
 
   const renderQuadrant = (quadrant: number[], reverse: boolean = false) => {
     const teeth = reverse ? [...quadrant].reverse() : quadrant;
@@ -65,6 +108,7 @@ export function DentalChart({ initialRecords }: DentalChartProps) {
             key={toothId}
             toothId={toothId}
             condition={getRecordForTooth(toothId)?.condition ?? "Healthy"}
+            hasTreatmentPlan={getTreatmentForTooth(toothId)}
             onClick={() => handleToothClick(toothId)}
           />
         ))}
@@ -85,6 +129,10 @@ export function DentalChart({ initialRecords }: DentalChartProps) {
         </div>
       </div>
       <div className="mt-4 flex flex-wrap justify-center gap-x-6 gap-y-2">
+        <div className="flex items-center gap-2">
+            <div className="h-4 w-4 rounded-full border border-blue-500 bg-transparent ring-2 ring-blue-500/50"></div>
+            <span className="text-sm text-muted-foreground">Treatment Plan</span>
+        </div>
         {conditionInfo.map(({ condition, twColor }) => (
           <div key={condition} className="flex items-center gap-2">
             <div className={cn('h-4 w-4 rounded-full border', twColor, {'border-gray-400': condition === 'Healthy'})}></div>
@@ -92,12 +140,34 @@ export function DentalChart({ initialRecords }: DentalChartProps) {
           </div>
         ))}
       </div>
-      {selectedTooth && (
+      {isActionSelectorOpen && selectedTooth && (
+         <AlertDialog open={isActionSelectorOpen} onOpenChange={setIsActionSelectorOpen}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Action for Tooth #{selectedTooth}</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        What would you like to do for this tooth?
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter className="sm:justify-center gap-2">
+                    <AlertDialogCancel onClick={closeAll}>Cancel</AlertDialogCancel>
+                    <Button variant="outline" onClick={() => handleActionSelection('condition')}>
+                        Log Condition
+                    </Button>
+                    <AlertDialogAction onClick={() => handleActionSelection('treatment')}>
+                        Add Treatment
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+         </AlertDialog>
+      )}
+
+      {isConditionLoggerOpen && selectedTooth && (
         <ConditionLogger
           toothId={selectedTooth}
           currentRecord={getRecordForTooth(selectedTooth)}
           onSave={handleSaveCondition}
-          onOpenChange={() => setSelectedTooth(null)}
+          onOpenChange={closeAll}
         />
       )}
     </>

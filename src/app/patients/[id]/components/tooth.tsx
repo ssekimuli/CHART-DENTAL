@@ -11,6 +11,7 @@ import {
 type ToothProps = {
   toothId: number;
   condition: DentalCondition;
+  hasTreatmentPlan: boolean;
   onClick: () => void;
 };
 
@@ -23,7 +24,7 @@ const conditionColors: Record<DentalCondition, string> = {
   Fracture: "fill-red-500",
 };
 
-export function Tooth({ toothId, condition, onClick }: ToothProps) {
+export function Tooth({ toothId, condition, hasTreatmentPlan, onClick }: ToothProps) {
   const isUpper = toothId < 30;
   const isMolnar = [4, 5, 6, 7, 8].includes(toothId % 10);
   
@@ -50,7 +51,8 @@ export function Tooth({ toothId, condition, onClick }: ToothProps) {
                 }
                 className={cn(
                   "stroke-gray-600 dark:stroke-gray-400 stroke-2",
-                  conditionColors[condition]
+                  conditionColors[condition],
+                   hasTreatmentPlan && "stroke-blue-500"
                 )}
               />
               {condition === "Fracture" && (
@@ -63,6 +65,7 @@ export function Tooth({ toothId, condition, onClick }: ToothProps) {
         <TooltipContent>
           <p>Tooth #{toothId}</p>
           <p>Condition: {condition}</p>
+          {hasTreatmentPlan && <p className="text-blue-500">Treatment Planned</p>}
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
