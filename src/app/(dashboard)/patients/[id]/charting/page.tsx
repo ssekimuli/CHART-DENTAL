@@ -14,7 +14,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DentalChart } from "../components/dental-chart";
 import { useState } from "react";
-import type { Patient, DentalRecord, Treatment } from "@/lib/types";
+import type { Patient, DentalRecord, Treatment, PeriodontalRecord } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { PeriodontalChart } from "./components/periodontal-chart";
@@ -84,6 +84,18 @@ export default function PatientChartingPage({
         return updatedPatient;
     });
   }
+  
+  const handleSavePeriodontalRecord = (records: PeriodontalRecord) => {
+     setPatient(prevPatient => {
+        if (!prevPatient) return prevPatient;
+        const updatedPatient = {
+            ...prevPatient,
+            periodontalRecords: records,
+        };
+        setAllPatients(prevAll => prevAll.map(p => p.id === updatedPatient.id ? updatedPatient : p));
+        return updatedPatient;
+    });
+  }
 
   const handleOpenTreatmentForm = (toothId?: number) => {
     setSelectedToothForTreatment(toothId);
@@ -138,7 +150,7 @@ export default function PatientChartingPage({
             </Card>
         </TabsContent>
         <TabsContent value="periodontal">
-            <PeriodontalChart />
+            <PeriodontalChart initialRecords={patient.periodontalRecords} onSave={handleSavePeriodontalRecord} />
         </TabsContent>
         <TabsContent value="occlusal">
             <OcclusalChart />

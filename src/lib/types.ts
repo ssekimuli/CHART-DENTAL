@@ -114,23 +114,34 @@ export type BasePatient = Omit<Patient, 'id' | 'dentalRecords' | 'treatmentPlans
 
 export type BaseInvoice = Omit<Invoice, 'id' | 'patientName' | 'branchId'>;
 
-export type PeriodontalPocket = {
-  toothId: number;
-  distobuccal: number;
-  buccal: number;
-  mesiobuccal: number;
-  distolingual: number;
-  lingual: number;
-  mesiolingual: number;
+export type PeriodontalPocketDepth = {
+  distobuccal?: number;
+  buccal?: number;
+  mesiobuccal?: number;
+  distolingual?: number;
+  lingual?: number;
+  mesiolingual?: number;
 };
 
-export type PeriodontalRecord = {
-  pockets: PeriodontalPocket[];
-  recession: { [toothId: number]: number };
-  bleeding: number[];
-  mobility: { [toothId: number]: '0' | '1' | '2' | '3' };
-  furcation: { [toothId: number]: 'I' | 'II' | 'III' };
+export type PeriodontalConditions = {
+  bleeding?: boolean;
+  suppuration?: boolean;
+  plaque?: boolean;
+  calculus?: boolean;
 };
+
+export type PeriodontalMeasurement = {
+  toothId: number;
+  pockets: PeriodontalPocketDepth;
+  recession?: number;
+  mobility?: '0' | '1' | '2' | '3';
+  furcation?: 'I' | 'II' | 'III';
+  conditions: PeriodontalConditions;
+};
+
+
+export type PeriodontalRecord = PeriodontalMeasurement[];
+
 
 export type OcclusalRecord = {
   overbite: number;
