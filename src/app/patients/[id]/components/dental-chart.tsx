@@ -5,6 +5,7 @@ import React, { useState } from "react";
 import { Tooth } from "./tooth";
 import type { DentalRecord, DentalCondition } from "@/lib/types";
 import { ConditionLogger } from "./condition-logger";
+import { cn } from "@/lib/utils";
 
 const upperRightQuadrant = [18, 17, 16, 15, 14, 13, 12, 11];
 const upperLeftQuadrant = [21, 22, 23, 24, 25, 26, 27, 28];
