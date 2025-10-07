@@ -24,6 +24,8 @@ export const patients: Patient[] = [
     imaging: [
       "https://picsum.photos/seed/xray1/800/600",
       "https://picsum.photos/seed/xray2/800/600",
+      "https://picsum.photos/seed/xray3/800/600",
+      "https://picsum.photos/seed/xray4/800/600",
     ],
     history: "Patient has a history of grinding teeth (bruxism). Regular check-ups every 6 months. No known allergies. Previous treatments include multiple fillings and one extraction."
   },
@@ -37,7 +39,9 @@ export const patients: Patient[] = [
     status: "Active",
     dentalRecords: [],
     treatmentPlans: [],
-    imaging: [],
+    imaging: [
+        "https://picsum.photos/seed/xray5/800/600",
+    ],
     history: "Good oral hygiene. No major issues reported."
   },
   {
