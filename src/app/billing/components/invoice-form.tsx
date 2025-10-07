@@ -162,7 +162,7 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
                                             {availableTreatments.map(treatment => (
                                                 <CommandItem
                                                     key={treatment.id}
-                                                    value={treatment.procedure}
+                                                    value={treatment.id}
                                                     onSelect={() => handleTreatmentToggle(treatment)}
                                                     className="flex justify-between items-center cursor-pointer"
                                                 >
