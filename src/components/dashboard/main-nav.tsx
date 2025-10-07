@@ -13,6 +13,8 @@ import {
   Calendar,
   CreditCard,
   Settings,
+  Briefcase,
+  HandCoins,
 } from "lucide-react";
 
 const links = [
@@ -20,6 +22,8 @@ const links = [
   { href: "/patients", label: "Patients", icon: Users },
   { href: "/appointments", label: "Appointments", icon: Calendar },
   { href: "/billing", label: "Billing", icon: CreditCard },
+  { href: "/employees", label: "Employees", icon: Briefcase },
+  { href: "/payroll", label: "Payroll", icon: HandCoins },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 

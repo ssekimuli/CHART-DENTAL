@@ -53,3 +53,26 @@ export type ChartData = {
   month: string;
   revenue: number;
 };
+
+export type Employee = {
+  id: string;
+  name: string;
+  avatar: string;
+  email: string;
+  role: 'Dentist' | 'Hygienist' | 'Receptionist' | 'Assistant';
+  status: 'Active' | 'On Leave';
+  salary: number;
+  hireDate: string;
+};
+
+export type Payroll = {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  payPeriod: string;
+  grossPay: number;
+  netPay: number;
+  deductions: number;
+  payDate: string;
+  status: 'Paid' | 'Pending';
+};

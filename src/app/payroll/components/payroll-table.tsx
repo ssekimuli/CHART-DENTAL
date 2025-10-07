@@ -1,0 +1,67 @@
+
+"use client";
+
+import * as React from "react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import type { Payroll } from "@/lib/types";
+
+export function PayrollTable({ data }: { data: Payroll[] }) {
+    const getStatusVariant = (status: "Paid" | "Pending") => {
+        switch (status) {
+          case "Paid":
+            return "secondary";
+          case "Pending":
+            return "default";
+        }
+    };
+
+  return (
+    <div className="rounded-md border">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Employee</TableHead>
+            <TableHead>Pay Period</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Pay Date</TableHead>
+            <TableHead className="text-right">Net Pay</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {data.map((payroll) => (
+            <TableRow
+              key={payroll.id}
+            >
+              <TableCell className="font-medium">{payroll.employeeName}</TableCell>
+              <TableCell>{payroll.payPeriod}</TableCell>
+              <TableCell>
+                <Badge variant={getStatusVariant(payroll.status)}>
+                  {payroll.status}
+                </Badge>
+              </TableCell>
+              <TableCell>{payroll.payDate}</TableCell>
+              <TableCell className="text-right">
+                ${payroll.netPay.toFixed(2)}
+              </TableCell>
+            </TableRow>
+          ))}
+           {data.length === 0 && (
+                <TableRow>
+                    <TableCell colSpan={5} className="h-24 text-center">
+                        No payroll records found.
+                    </TableCell>
+                </TableRow>
+            )}
+        </TableBody>
+      </Table>
+    </div>
+  );
+}
