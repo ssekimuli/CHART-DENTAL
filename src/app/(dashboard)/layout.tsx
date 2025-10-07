@@ -10,14 +10,12 @@ import {
   SidebarFooter,
 } from "@/components/ui/sidebar";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Search } from "lucide-react";
-import { Input } from "@/components/ui/input";
 import { UserNav } from "@/components/dashboard/user-nav";
 import { MainNav } from "@/components/dashboard/main-nav";
 import { ToothIcon } from "@/components/icons/tooth-icon";
 import { BranchProvider } from "@/context/branch-context";
 import { BranchSwitcher } from "@/components/dashboard/branch-switcher";
+import { PatientSearch } from "@/components/dashboard/patient-search";
 
 export const metadata: Metadata = {
   title: "DentalChart Pro",
@@ -56,16 +54,9 @@ export default function DashboardLayout({
                 </div>
 
                 <div className="flex w-full items-center gap-4 md:ml-auto md:gap-2 lg:gap-4">
-                  <form className="ml-auto flex-1 sm:flex-initial">
-                    <div className="relative">
-                      <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        type="search"
-                        placeholder="Search patients..."
-                        className="pl-8 sm:w-[300px] md:w-[200px] lg:w-[300px]"
-                      />
-                    </div>
-                  </form>
+                  <div className="ml-auto flex-1 sm:flex-initial">
+                    <PatientSearch />
+                  </div>
                   <UserNav />
                 </div>
               </header>
