@@ -4,19 +4,7 @@
 import React, { useState } from "react";
 import { Tooth } from "./tooth";
 import type { DentalRecord, DentalCondition, Treatment } from "@/lib/types";
-import { ConditionLogger } from "./condition-logger";
 import { cn } from "@/lib/utils";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
 
 const upperRightQuadrant = [18, 17, 16, 15, 14, 13, 12, 11];
 const upperLeftQuadrant = [21, 22, 23, 24, 25, 26, 27, 28];
@@ -35,19 +23,13 @@ const conditionInfo: { condition: DentalCondition; color: string; twColor: strin
 type DentalChartProps = {
   initialRecords: DentalRecord[];
   treatmentPlans: Treatment[];
-  onSaveRecord: (record: DentalRecord) => void;
   onAddTreatment: (toothId: number) => void;
 };
 
-export function DentalChart({ initialRecords, treatmentPlans, onSaveRecord, onAddTreatment }: DentalChartProps) {
-  const [records, setRecords] = useState<DentalRecord[]>(initialRecords);
-  const [selectedTooth, setSelectedTooth] = useState<number | null>(null);
-  const [isActionSelectorOpen, setIsActionSelectorOpen] = useState(false);
-  const [isConditionLoggerOpen, setIsConditionLoggerOpen] = useState(false);
-
+export function DentalChart({ initialRecords, treatmentPlans, onAddTreatment }: DentalChartProps) {
 
   const getRecordForTooth = (toothId: number) => {
-    return records.find((r) => r.toothId === toothId);
+    return initialRecords.find((r) => r.toothId === toothId);
   };
   
   const getTreatmentForTooth = (toothId: number) => {
@@ -57,47 +39,8 @@ export function DentalChart({ initialRecords, treatmentPlans, onSaveRecord, onAd
   }
 
   const handleToothClick = (toothId: number) => {
-    setSelectedTooth(toothId);
-    setIsActionSelectorOpen(true);
+    onAddTreatment(toothId);
   };
-
-  const handleSaveCondition = (
-    toothId: number,
-    condition: DentalCondition,
-    notes: string
-  ) => {
-    const newRecord = { toothId, condition, notes };
-    setRecords((prevRecords) => {
-      const existingRecordIndex = prevRecords.findIndex(
-        (r) => r.toothId === toothId
-      );
-      if (existingRecordIndex > -1) {
-        const updatedRecords = [...prevRecords];
-        updatedRecords[existingRecordIndex] = newRecord;
-        return updatedRecords;
-      }
-      return [...prevRecords, newRecord];
-    });
-    onSaveRecord(newRecord);
-    setIsConditionLoggerOpen(false);
-  };
-  
-  const handleActionSelection = (action: 'condition' | 'treatment') => {
-      setIsActionSelectorOpen(false);
-      if (!selectedTooth) return;
-
-      if (action === 'condition') {
-          setIsConditionLoggerOpen(true);
-      } else {
-          onAddTreatment(selectedTooth);
-      }
-  }
-  
-  const closeAll = () => {
-    setSelectedTooth(null);
-    setIsActionSelectorOpen(false);
-    setIsConditionLoggerOpen(false);
-  }
 
   const renderQuadrant = (quadrant: number[], reverse: boolean = false) => {
     const teeth = reverse ? [...quadrant].reverse() : quadrant;
@@ -140,36 +83,6 @@ export function DentalChart({ initialRecords, treatmentPlans, onSaveRecord, onAd
           </div>
         ))}
       </div>
-      {isActionSelectorOpen && selectedTooth && (
-         <AlertDialog open={isActionSelectorOpen} onOpenChange={setIsActionSelectorOpen}>
-            <AlertDialogContent>
-                <AlertDialogHeader>
-                    <AlertDialogTitle>Action for Tooth #{selectedTooth}</AlertDialogTitle>
-                    <AlertDialogDescription>
-                        What would you like to do for this tooth?
-                    </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter className="sm:justify-center gap-2">
-                    <AlertDialogCancel onClick={closeAll}>Cancel</AlertDialogCancel>
-                    <Button variant="outline" onClick={() => handleActionSelection('condition')}>
-                        Log Condition
-                    </Button>
-                    <AlertDialogAction onClick={() => handleActionSelection('treatment')}>
-                        Add Treatment
-                    </AlertDialogAction>
-                </AlertDialogFooter>
-            </AlertDialogContent>
-         </AlertDialog>
-      )}
-
-      {isConditionLoggerOpen && selectedTooth && (
-        <ConditionLogger
-          toothId={selectedTooth}
-          currentRecord={getRecordForTooth(selectedTooth)}
-          onSave={handleSaveCondition}
-          onOpenChange={closeAll}
-        />
-      )}
     </>
   );
 }

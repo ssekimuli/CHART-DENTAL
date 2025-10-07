@@ -13,7 +13,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DentalChart } from "../components/dental-chart";
 import { useState, useEffect } from "react";
-import type { Patient, DentalRecord, Treatment, PeriodontalRecord, OcclusalRecord, OrthodonticRecord, SoftTissueRecord } from "@/lib/types";
+import type { Patient, DentalRecord, Treatment, PeriodontalRecord, OcclusalRecord, OrthodonticRecord, SoftTissueRecord, DentalCondition } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { PeriodontalChart } from "./components/periodontal-chart";
@@ -76,7 +76,7 @@ export default function PatientChartingPage({
     await updatePatient(updatedPatient.id, updatedPatient);
   }
 
-  const handleAddTreatment = (newTreatment: Omit<Treatment, 'id' | 'date'>) => {
+  const handleAddTreatment = (newTreatment: Omit<Treatment, 'id' | 'date'>, condition?: DentalCondition) => {
     setPatient(prevPatient => {
       if (!prevPatient) return prevPatient;
       const newPlan: Treatment = {
@@ -84,10 +84,25 @@ export default function PatientChartingPage({
         id: `t${prevPatient.treatmentPlans.length + 1}`,
         date: new Date().toISOString().split('T')[0],
       };
+      
+      let updatedDentalRecords = prevPatient.dentalRecords;
+      // If a condition is logged with the treatment, update the dental record
+      if (condition && newTreatment.tooth) {
+        const newRecord: DentalRecord = { toothId: newTreatment.tooth, condition: condition, notes: `Condition related to treatment: ${newTreatment.procedure}` };
+        const existingRecordIndex = updatedDentalRecords.findIndex(r => r.toothId === newTreatment.tooth);
+        if (existingRecordIndex > -1) {
+          updatedDentalRecords[existingRecordIndex] = newRecord;
+        } else {
+          updatedDentalRecords.push(newRecord);
+        }
+      }
+
       const updatedPatient = {
         ...prevPatient,
+        dentalRecords: updatedDentalRecords,
         treatmentPlans: [...prevPatient.treatmentPlans, newPlan],
       };
+
       handleUpdatePatient(updatedPatient);
       return updatedPatient;
     });
@@ -267,7 +282,6 @@ export default function PatientChartingPage({
                     <DentalChart 
                         initialRecords={patient.dentalRecords}
                         treatmentPlans={patient.treatmentPlans}
-                        onSaveRecord={handleSaveDentalRecord}
                         onAddTreatment={handleOpenTreatmentForm}
                     />
                 </CardContent>
@@ -301,6 +315,7 @@ export default function PatientChartingPage({
             onSave={handleAddTreatment}
             onOpenChange={handleCloseTreatmentForm}
             toothId={selectedToothForTreatment}
+            currentCondition={patient.dentalRecords.find(r => r.toothId === selectedToothForTreatment)?.condition}
         />
       )}
     </div>
