@@ -26,7 +26,7 @@ import { Badge } from "@/components/ui/badge";
 import { useEffect, useState } from "react";
 import type { Patient, Treatment, BasePatient } from "@/lib/types";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Trash, Pencil, FileText, Loader2 } from "lucide-react";
+import { PlusCircle, Trash, Pencil, FileText, Loader2, Upload } from "lucide-react";
 import { TreatmentPlanForm } from "./components/treatment-plan-form";
 import { PatientForm } from "../components/patient-form";
 import {
@@ -123,6 +123,19 @@ export default function PatientDetailPage({
     setIsTreatmentFormOpen(false);
   }
   
+  const handleUploadImage = () => {
+    setPatient(prevPatient => {
+      if (!prevPatient) return prevPatient;
+      const newImage = `https://picsum.photos/seed/newxray${Date.now()}/800/600`;
+      const updatedPatient = {
+        ...prevPatient,
+        imaging: [...prevPatient.imaging, newImage],
+      };
+      updatePatient(updatedPatient.id, updatedPatient);
+      return updatedPatient;
+    });
+  };
+
   return (
     <div className="flex flex-col gap-6">
       <Card>
@@ -225,11 +238,17 @@ export default function PatientDetailPage({
 
         <TabsContent value="imaging">
           <Card>
-            <CardHeader>
-              <CardTitle>Patient Imaging</CardTitle>
-              <CardDescription>
-                X-Rays and other patient images.
-              </CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Patient Imaging</CardTitle>
+                <CardDescription>
+                  X-Rays and other patient images.
+                </CardDescription>
+              </div>
+               <Button size="sm" onClick={handleUploadImage}>
+                  <Upload className="mr-2 h-4 w-4" />
+                  Upload Image
+                </Button>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
