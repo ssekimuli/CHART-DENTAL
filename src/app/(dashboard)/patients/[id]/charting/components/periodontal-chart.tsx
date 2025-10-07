@@ -141,7 +141,7 @@ export function PeriodontalChart({
     const record = getRecord(toothId);
     const isUpper = toothId < 30;
 
-    const pocketInputs = (
+    const buccalPocketInputs = (
       <div className="flex flex-col gap-px">
         {pocketPositions.slice(0, 3).map((pos) => (
           <Input
@@ -149,8 +149,8 @@ export function PeriodontalChart({
             type="number"
             min="0"
             max="20"
-            className="h-6 w-10 rounded-none border-x-0 border-t-0 p-1 text-center text-xs"
-            placeholder={pos.charAt(0).toUpperCase()}
+            className="h-6 w-10 rounded-none border-x-0 border-t-0 bg-background/30 p-1 text-center text-xs"
+            placeholder={pos.slice(0,1).toUpperCase()}
             value={record.pockets[pos] ?? ""}
             onChange={(e) => handlePocketChange(toothId, pos, e.target.value)}
           />
@@ -165,8 +165,8 @@ export function PeriodontalChart({
             type="number"
             min="0"
             max="20"
-            className="h-6 w-10 rounded-none border-x-0 border-t-0 p-1 text-center text-xs"
-            placeholder={pos.charAt(0).toUpperCase()}
+            className="h-6 w-10 rounded-none border-x-0 border-t-0 bg-background/30 p-1 text-center text-xs"
+            placeholder={pos.slice(0,1).toUpperCase()}
             value={record.pockets[pos] ?? ""}
             onChange={(e) => handlePocketChange(toothId, pos, e.target.value)}
           />
@@ -183,7 +183,12 @@ export function PeriodontalChart({
             className={cn(
               "h-3 w-3 rounded-full border text-xs",
               record.conditions[con]
-                ? "bg-red-500 border-red-700"
+                ? {
+                    "bleeding": "bg-red-500 border-red-700",
+                    "suppuration": "bg-yellow-400 border-yellow-600",
+                    "plaque": "bg-blue-400 border-blue-600",
+                    "calculus": "bg-green-500 border-green-700",
+                  }[con]
                 : "bg-gray-200 dark:bg-gray-700"
             )}
             title={con.charAt(0).toUpperCase() + con.slice(1)}
@@ -233,6 +238,26 @@ export function PeriodontalChart({
       </div>
     );
 
+    const chartBody = isUpper ? (
+        <>
+        {buccalPocketInputs}
+        <div className="my-1 h-px w-full bg-border" />
+        {conditionToggles}
+        {otherInputs}
+        <div className="my-1 h-px w-full bg-border" />
+        {lingualPocketInputs}
+      </>
+    ) : (
+        <>
+        {lingualPocketInputs}
+        <div className="my-1 h-px w-full bg-border" />
+        {otherInputs}
+        {conditionToggles}
+        <div className="my-1 h-px w-full bg-border" />
+        {buccalPocketInputs}
+        </>
+    )
+
     return (
       <div
         key={toothId}
@@ -241,32 +266,13 @@ export function PeriodontalChart({
         <div className="text-xs font-medium text-muted-foreground">
           {toothId}
         </div>
-        {isUpper ? (
-          <>
-            {pocketInputs}
-            <div className="my-1 h-8 w-px bg-border" />
-            {conditionToggles}
-            {otherInputs}
-             <div className="my-1 h-8 w-px bg-border" />
-            {lingualPocketInputs}
-          </>
-        ) : (
-          <>
-            {lingualPocketInputs}
-            <div className="my-1 h-8 w-px bg-border" />
-            {otherInputs}
-            {conditionToggles}
-            <div className="my-1 h-8 w-px bg-border" />
-            {pocketInputs}
-          </>
-        )}
+        {chartBody}
       </div>
     );
   };
 
   const renderQuadrant = (
     quadrant: number[],
-    label: string,
     isReversed: boolean = false
   ) => {
     const teeth = isReversed ? [...quadrant].reverse() : quadrant;
@@ -287,20 +293,29 @@ export function PeriodontalChart({
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="flex flex-col items-center overflow-x-auto rounded-lg border p-4">
-          <div className="text-sm font-bold text-muted-foreground">UPPER</div>
+        <div className="flex flex-col items-center overflow-x-auto rounded-lg border bg-muted/30 p-2">
+          <div className="mb-1 text-sm font-bold text-muted-foreground">UPPER</div>
           <div className="flex w-full justify-between">
-            {renderQuadrant(quadrants.upperRight, "UR", true)}
-            {renderQuadrant(quadrants.upperLeft, "UL")}
+            <div className="flex items-center"><div className="w-8 -rotate-90 text-center text-xs tracking-widest text-muted-foreground/70">BUCCAL</div></div>
+            {renderQuadrant(quadrants.upperRight, true)}
+            {renderQuadrant(quadrants.upperLeft)}
+            <div className="flex items-center"><div className="w-8 -rotate-90 text-center text-xs tracking-widest text-muted-foreground/70">BUCCAL</div></div>
           </div>
-          <div className="my-4 h-px w-full bg-border" />
+           <div className="my-2 h-px w-full bg-border" />
+           <div className="flex w-full justify-between text-xs tracking-widest text-muted-foreground/70">
+                <div>LINGUAL</div>
+                <div>LINGUAL</div>
+           </div>
+          <div className="my-2 h-px w-full bg-border" />
           <div className="flex w-full justify-between">
-            {renderQuadrant(quadrants.lowerRight, "LR", true)}
-            {renderQuadrant(quadrants.lowerLeft, "LL")}
+             <div className="flex items-center"><div className="w-8 -rotate-90 text-center text-xs tracking-widest text-muted-foreground/70">BUCCAL</div></div>
+            {renderQuadrant(quadrants.lowerRight, true)}
+            {renderQuadrant(quadrants.lowerLeft)}
+             <div className="flex items-center"><div className="w-8 -rotate-90 text-center text-xs tracking-widest text-muted-foreground/70">BUCCAL</div></div>
           </div>
-           <div className="text-sm font-bold text-muted-foreground mt-2">LOWER</div>
+           <div className="mt-1 text-sm font-bold text-muted-foreground">LOWER</div>
         </div>
-        <div className="mt-4 flex flex-wrap justify-center gap-x-4 gap-y-2">
+        <div className="mt-4 flex flex-wrap justify-center gap-x-4 gap-y-2 rounded-md border p-2">
             <div className="flex items-center gap-2">
                 <div className="h-3 w-3 rounded-full border bg-red-500 border-red-700"></div>
                 <span className="text-xs">Bleeding</span>
@@ -325,3 +340,4 @@ export function PeriodontalChart({
     </Card>
   );
 }
+
