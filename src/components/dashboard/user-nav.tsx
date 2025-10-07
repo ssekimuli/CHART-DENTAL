@@ -13,21 +13,21 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { CreditCard, LogOut, Settings, User } from "lucide-react";
-import { useUser, useAuth } from "@/firebase";
-import { signOut } from "firebase/auth";
 import { useRouter } from "next/navigation";
+import { currentUser } from "@/lib/user";
 
 export function UserNav() {
-  const user = useUser();
-  const auth = useAuth();
   const router = useRouter();
 
-  const handleLogout = async () => {
-    if (auth) {
-      await signOut(auth);
-      router.push("/");
-    }
+  const handleLogout = () => {
+    router.push("/");
   };
+
+  const user = {
+      displayName: "Dr. Lisa Cuddy",
+      email: "lisa.cuddy@example.com",
+      photoURL: `https://picsum.photos/seed/emp1/200/200`,
+  }
 
   return (
     <DropdownMenu>
@@ -35,7 +35,7 @@ export function UserNav() {
         <Button variant="ghost" className="relative h-8 w-8 rounded-full">
           <Avatar className="h-9 w-9">
             <AvatarImage
-              src={user?.photoURL ?? `https://picsum.photos/seed/${user?.uid}/200/200`}
+              src={user?.photoURL ?? ''}
               alt={user?.displayName ?? "User"}
               data-ai-hint="person face"
             />
