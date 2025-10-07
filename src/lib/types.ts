@@ -145,8 +145,8 @@ export type PeriodontalRecord = PeriodontalMeasurement[];
 
 
 export type OcclusalRecord = {
-  overbite: number;
-  overjet: number;
+  overbite: number | string;
+  overjet: number | string;
   crossbite: string;
   openbite: string;
   malocclusion: string;
@@ -168,3 +168,4 @@ export type OrthodonticRecord = {
   bracketChanges?: string[];
   notes: string;
 };
+
