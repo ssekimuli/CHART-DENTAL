@@ -1,3 +1,4 @@
+
 export type Patient = {
   id: string;
   name: string;
@@ -28,19 +29,7 @@ export type Treatment = {
   status: 'Proposed' | 'In Progress' | 'Completed' | 'Cancelled';
   cost: number;
   date: string;
-};
-
-export type Appointment = {
-  id: string;
-  patientName: string;
-  patientId: string;
-  doctorName: string;
-  doctorId: string;
-  treatment: string;
-  status: 'Scheduled' | 'Completed' | 'Cancelled';
-  date: string;
-  time: string;
-  branchId: string;
+  invoiceId?: string;
 };
 
 export type Invoice = {
@@ -52,6 +41,7 @@ export type Invoice = {
   issueDate: string;
   dueDate: string;
   branchId: string;
+  treatmentIds: string[];
 };
 
 export type ChartData = {

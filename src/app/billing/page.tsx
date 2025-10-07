@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import {
   Card,
   CardContent,
@@ -20,8 +21,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { invoices as initialInvoices, patients as allPatients } from "@/lib/data";
 import { Button } from "@/components/ui/button";
-import { FileDown, PlusCircle, MoreHorizontal, Pencil, Trash } from "lucide-react";
-import type { Invoice } from "@/lib/types";
+import { FileDown, PlusCircle, MoreHorizontal, Pencil, Trash, Eye } from "lucide-react";
+import type { Invoice, Patient, Treatment } from "@/lib/types";
 import { InvoiceForm } from "./components/invoice-form";
 import { useBranch } from "@/context/branch-context";
 import { currentUser } from "@/lib/user";
@@ -45,6 +46,7 @@ import {
   } from "@/components/ui/alert-dialog";
 
 export default function BillingPage() {
+  const router = useRouter();
   const { selectedBranch } = useBranch();
   const [allInvoices, setAllInvoices] = useState<Invoice[]>(initialInvoices);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -86,13 +88,15 @@ export default function BillingPage() {
     setIsFormOpen(false);
   }
 
-  const handleSaveInvoice = (data: Omit<Invoice, 'id' | 'branchId'>) => {
+  const handleSaveInvoice = (data: Omit<Invoice, 'id' | 'patientName' | 'branchId' | 'amount'>, treatments: Treatment[]) => {
     const patient = filteredPatients.find(p => p.id === data.patientId);
     if (!patient) return;
 
+    const amount = treatments.reduce((sum, t) => sum + t.cost, 0);
+
     if (selectedInvoice) {
         // Update
-        const updatedInvoice = { ...selectedInvoice, ...data, patientName: patient.name };
+        const updatedInvoice = { ...selectedInvoice, ...data, amount, patientName: patient.name, treatmentIds: treatments.map(t => t.id) };
         setAllInvoices(prev => prev.map(i => i.id === updatedInvoice.id ? updatedInvoice : i));
     } else {
         // Create
@@ -100,6 +104,8 @@ export default function BillingPage() {
           ...data,
           id: `inv${allInvoices.length + 1}`,
           patientName: patient.name,
+          amount,
+          treatmentIds: treatments.map(t => t.id),
           branchId: selectedBranch,
         };
         setAllInvoices(prev => [...prev, newInvoice]);
@@ -119,6 +125,10 @@ export default function BillingPage() {
     setSelectedInvoice(invoice);
     setIsDeleteAlertOpen(true);
   }
+
+  const handleViewInvoice = (invoiceId: string) => {
+    router.push(`/billing/${invoiceId}`);
+  };
 
   return (
     <>
@@ -177,6 +187,10 @@ export default function BillingPage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                             <DropdownMenuItem onClick={() => handleViewInvoice(invoice.id)}>
+                                <Eye className="mr-2 h-4 w-4" />
+                                View Invoice
+                            </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => handleOpenForm(invoice)}>
                                 <Pencil className="mr-2 h-4 w-4" />
                                 Edit

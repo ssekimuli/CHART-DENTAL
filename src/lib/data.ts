@@ -1,3 +1,4 @@
+
 import type { Patient, Appointment, Invoice, ChartData, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder } from "@/lib/types";
 
 export const branches: Branch[] = [
@@ -24,8 +25,9 @@ export const patients: Patient[] = [
       { toothId: 48, condition: "Fracture", notes: "Mesial-occlusal fracture." },
     ],
     treatmentPlans: [
-      { id: "t1", procedure: "Filling for #16", tooth: 16, status: "Proposed", cost: 250, date: "2024-06-01" },
+      { id: "t1", procedure: "Filling for #16", tooth: 16, status: "Completed", cost: 250, date: "2024-05-10", invoiceId: "inv1" },
       { id: "t2", procedure: "Crown for #48", tooth: 48, status: "Proposed", cost: 1200, date: "2024-06-01" },
+      { id: "t3", procedure: "Regular Checkup", status: "Completed", cost: 75, date: "2024-03-01", invoiceId: "inv4" },
     ],
     imaging: [
       "https://picsum.photos/seed/xray1/800/600",
@@ -47,7 +49,9 @@ export const patients: Patient[] = [
     status: "Active",
     branchId: "b2",
     dentalRecords: [],
-    treatmentPlans: [],
+    treatmentPlans: [
+      { id: "t4", procedure: "Cleaning", status: "Completed", cost: 150, date: "2024-04-22", invoiceId: "inv2" },
+    ],
     imaging: [
         "https://picsum.photos/seed/xray7/800/600",
     ],
@@ -77,7 +81,9 @@ export const patients: Patient[] = [
     status: "Active",
     branchId: "b2",
     dentalRecords: [],
-    treatmentPlans: [],
+    treatmentPlans: [
+      { id: "t5", procedure: "Filling", status: "Completed", cost: 300, date: "2024-07-15", invoiceId: "inv3" }
+    ],
     imaging: [],
     history: "New patient."
   },
@@ -107,10 +113,10 @@ export const appointments: Appointment[] = [
 ];
 
 export const invoices: Invoice[] = [
-  { id: "inv1", patientName: "John Doe", patientId: "1", amount: 250, status: "Pending", issueDate: "2024-05-10", dueDate: "2024-06-10", branchId: "b1" },
-  { id: "inv2", patientName: "Jane Smith", patientId: "2", amount: 150, status: "Paid", issueDate: "2024-04-22", dueDate: "2024-05-22", branchId: "b2" },
-  { id: "inv3", patientName: "Mike Williams", patientId: "4", amount: 300, status: "Paid", issueDate: "2024-07-15", dueDate: "2024-08-15", branchId: "b2" },
-  { id: "inv4", patientName: "John Doe", patientId: "1", amount: 75, status: "Overdue", issueDate: "2024-03-01", dueDate: "2024-04-01", branchId: "b1" },
+  { id: "inv1", patientName: "John Doe", patientId: "1", amount: 250, status: "Pending", issueDate: "2024-05-10", dueDate: "2024-06-10", branchId: "b1", treatmentIds: ['t1'] },
+  { id: "inv2", patientName: "Jane Smith", patientId: "2", amount: 150, status: "Paid", issueDate: "2024-04-22", dueDate: "2024-05-22", branchId: "b2", treatmentIds: ['t4'] },
+  { id: "inv3", patientName: "Mike Williams", patientId: "4", amount: 300, status: "Paid", issueDate: "2024-07-15", dueDate: "2024-08-15", branchId: "b2", treatmentIds: ['t5'] },
+  { id: "inv4", patientName: "John Doe", patientId: "1", amount: 75, status: "Overdue", issueDate: "2024-03-01", dueDate: "2024-04-01", branchId: "b1", treatmentIds: ['t3'] },
 ];
 
 export const chartData: ChartData[] = [
