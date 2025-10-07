@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -12,15 +13,25 @@ import {
 import { Badge } from "@/components/ui/badge";
 import type { Patient } from "@/lib/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { MoreHorizontal, Pencil, Trash, Eye } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
-export function PatientsTable({ data }: { data: Patient[] }) {
-  const router = useRouter();
+type PatientsTableProps = {
+    data: Patient[];
+    onView: (patientId: string) => void;
+    onEdit: (patient: Patient) => void;
+    onDelete: (patient: Patient) => void;
+};
 
-  const handleRowClick = (patientId: string) => {
-    router.push(`/patients/${patientId}`);
-  };
-
+export function PatientsTable({ data, onView, onEdit, onDelete }: PatientsTableProps) {
   return (
     <div className="rounded-md border">
       <Table>
@@ -29,15 +40,14 @@ export function PatientsTable({ data }: { data: Patient[] }) {
             <TableHead>Name</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Last Visit</TableHead>
-            <TableHead className="text-right">Date of Birth</TableHead>
+            <TableHead>Date of Birth</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {data.map((patient) => (
             <TableRow
               key={patient.id}
-              onClick={() => handleRowClick(patient.id)}
-              className="cursor-pointer"
             >
               <TableCell>
                 <div className="flex items-center gap-3">
@@ -58,9 +68,42 @@ export function PatientsTable({ data }: { data: Patient[] }) {
                 </Badge>
               </TableCell>
               <TableCell>{patient.lastVisit}</TableCell>
-              <TableCell className="text-right">{patient.dateOfBirth}</TableCell>
+              <TableCell>{patient.dateOfBirth}</TableCell>
+               <TableCell className="text-right">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="h-8 w-8 p-0">
+                      <span className="sr-only">Open menu</span>
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                    <DropdownMenuItem onClick={() => onView(patient.id)}>
+                        <Eye className="mr-2 h-4 w-4" />
+                        View
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => onEdit(patient)}>
+                        <Pencil className="mr-2 h-4 w-4" />
+                        Edit
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem className="text-red-600" onClick={() => onDelete(patient)}>
+                        <Trash className="mr-2 h-4 w-4" />
+                        Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </TableCell>
             </TableRow>
           ))}
+          {data.length === 0 && (
+            <TableRow>
+                <TableCell colSpan={5} className="h-24 text-center">
+                    No patients found for this branch.
+                </TableCell>
+            </TableRow>
+          )}
         </TableBody>
       </Table>
     </div>
