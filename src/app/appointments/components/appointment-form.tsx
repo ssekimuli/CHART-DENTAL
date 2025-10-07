@@ -25,7 +25,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import type { Appointment, Patient } from "@/lib/types";
+import type { Appointment, Employee, Patient } from "@/lib/types";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { CalendarIcon } from "lucide-react";
@@ -35,6 +35,7 @@ import { Combobox } from "@/components/ui/combobox";
 
 const formSchema = z.object({
   patientId: z.string({ required_error: "Please select a patient."}),
+  doctorId: z.string({ required_error: "Please select a doctor."}),
   treatment: z.string().min(2, "Treatment must be at least 2 characters."),
   date: z.date({
     required_error: "A date is required.",
@@ -45,15 +46,17 @@ const formSchema = z.object({
 type AppointmentFormProps = {
     appointment?: Appointment;
     patients: Patient[];
+    doctors: Employee[];
     onSave: (data: Omit<Appointment, 'id' | 'branchId'>) => void;
     onOpenChange: (open: boolean) => void;
 };
 
-export function AppointmentForm({ appointment, patients, onSave, onOpenChange }: AppointmentFormProps) {
+export function AppointmentForm({ appointment, patients, doctors, onSave, onOpenChange }: AppointmentFormProps) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
         patientId: appointment?.patientId ?? "",
+        doctorId: appointment?.doctorId ?? "",
         treatment: appointment?.treatment ?? "",
         date: appointment ? parse(appointment.date, "yyyy-MM-dd", new Date()) : new Date(),
         time: appointment?.time ?? "",
@@ -63,10 +66,14 @@ export function AppointmentForm({ appointment, patients, onSave, onOpenChange }:
   function onSubmit(values: z.infer<typeof formSchema>) {
     const patient = patients.find(p => p.id === values.patientId);
     if (!patient) return;
+    const doctor = doctors.find(d => d.id === values.doctorId);
+    if (!doctor) return;
+
 
     onSave({
         ...values,
         patientName: patient.name,
+        doctorName: doctor.name,
         status: appointment?.status ?? 'Scheduled',
         date: format(values.date, "yyyy-MM-dd"),
     });
@@ -97,6 +104,26 @@ export function AppointmentForm({ appointment, patients, onSave, onOpenChange }:
                                     placeholder="Select a patient"
                                     searchPlaceholder="Search patients..."
                                     emptyMessage="No patient found."
+                                />
+                            </FormControl>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                     <FormField
+                        control={form.control}
+                        name="doctorId"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Doctor</FormLabel>
+                            <FormControl>
+                                <Combobox
+                                    options={doctors.map(d => ({ value: d.id, label: d.name }))}
+                                    value={field.value}
+                                    onChange={field.onChange}
+                                    placeholder="Select a doctor"
+                                    searchPlaceholder="Search doctors..."
+                                    emptyMessage="No doctor found."
                                 />
                             </FormControl>
                             <FormMessage />

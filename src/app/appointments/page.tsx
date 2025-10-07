@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
-import { appointments as initialAppointments, patients as allPatients } from "@/lib/data";
+import { appointments as initialAppointments, patients as allPatients, employees as allEmployees } from "@/lib/data";
 import { useState, useMemo } from "react";
 import type { Appointment } from "@/lib/types";
 import { Button } from "@/components/ui/button";
@@ -58,6 +58,14 @@ export default function AppointmentsPage() {
       return allPatients.filter(p => p.branchId === selectedBranch);
     }
     return allPatients.filter(p => p.branchId === currentUser.branchId);
+  }, [selectedBranch]);
+
+  const filteredDoctors = useMemo(() => {
+    const doctors = allEmployees.filter(e => e.role === 'Dentist');
+    if (currentUser.role === 'Super Admin') {
+      return doctors.filter(d => d.branchId === selectedBranch);
+    }
+    return doctors.filter(d => d.branchId === currentUser.branchId);
   }, [selectedBranch]);
   
   const appointments = useMemo(() => {
@@ -129,6 +137,7 @@ export default function AppointmentsPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Patient</TableHead>
+                    <TableHead>Doctor</TableHead>
                     <TableHead>Treatment</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Date</TableHead>
@@ -142,6 +151,7 @@ export default function AppointmentsPage() {
                       <TableCell>
                         <div className="font-medium">{appointment.patientName}</div>
                       </TableCell>
+                      <TableCell>{appointment.doctorName}</TableCell>
                       <TableCell>{appointment.treatment}</TableCell>
                       <TableCell>
                         <Badge
@@ -184,7 +194,7 @@ export default function AppointmentsPage() {
                   ))}
                   {appointments.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={6} className="h-24 text-center">
+                      <TableCell colSpan={7} className="h-24 text-center">
                         No appointments scheduled for this branch.
                       </TableCell>
                     </TableRow>
@@ -211,6 +221,7 @@ export default function AppointmentsPage() {
         <AppointmentForm 
             appointment={selectedAppointment}
             patients={filteredPatients}
+            doctors={filteredDoctors}
             onSave={handleSaveAppointment}
             onOpenChange={handleCloseForm}
         />

@@ -200,6 +200,7 @@ export default function DashboardPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Patient</TableHead>
+                <TableHead>Doctor</TableHead>
                 <TableHead>Treatment</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Date</TableHead>
@@ -212,6 +213,9 @@ export default function DashboardPage() {
                   <TableCell>
                     <div className="font-medium">{appointment.patientName}</div>
                   </TableCell>
+                  <TableCell>
+                    <div className="font-medium">{appointment.doctorName}</div>
+                  </TableCell>
                   <TableCell>{appointment.treatment}</TableCell>
                   <TableCell>
                     <Badge variant="outline">{appointment.status}</Badge>
@@ -222,7 +226,7 @@ export default function DashboardPage() {
               ))}
               {appointments.length === 0 && (
                 <TableRow>
-                    <TableCell colSpan={5} className="h-24 text-center">
+                    <TableCell colSpan={6} className="h-24 text-center">
                         No upcoming appointments in this branch.
                     </TableCell>
                 </TableRow>
