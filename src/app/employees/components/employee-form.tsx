@@ -31,7 +31,7 @@ import {
     SelectTrigger,
     SelectValue,
   } from "@/components/ui/select";
-import type { Employee } from "@/lib/types";
+import type { Employee, EmployeeRole } from "@/lib/types";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { CalendarIcon } from "lucide-react";
@@ -41,7 +41,7 @@ import { Calendar } from "@/components/ui/calendar";
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
   email: z.string().email("Please enter a valid email."),
-  role: z.enum(['Dentist', 'Hygienist', 'Receptionist', 'Assistant']),
+  role: z.enum(['Super Admin', 'Account', 'HR', 'Dentist', 'Hygienist', 'Receptionist', 'Assistant']),
   status: z.enum(['Active', 'On Leave']),
   salary: z.coerce.number().positive("Salary must be a positive number."),
   hireDate: z.date({
@@ -72,6 +72,8 @@ export function EmployeeForm({ onSave, onOpenChange }: EmployeeFormProps) {
         avatar: values.avatar || `https://picsum.photos/seed/emp${Math.random()}/200/200`,
     });
   }
+
+  const roles: EmployeeRole[] = ['Super Admin', 'Account', 'HR', 'Dentist', 'Hygienist', 'Receptionist', 'Assistant'];
 
   return (
     <Dialog open={true} onOpenChange={onOpenChange}>
@@ -126,10 +128,9 @@ export function EmployeeForm({ onSave, onOpenChange }: EmployeeFormProps) {
                                     </SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
-                                        <SelectItem value="Dentist">Dentist</SelectItem>
-                                        <SelectItem value="Hygienist">Hygienist</SelectItem>
-                                        <SelectItem value="Receptionist">Receptionist</SelectItem>
-                                        <SelectItem value="Assistant">Assistant</SelectItem>
+                                        {roles.map(role => (
+                                            <SelectItem key={role} value={role}>{role}</SelectItem>
+                                        ))}
                                     </SelectContent>
                                 </Select>
                                 <FormMessage />

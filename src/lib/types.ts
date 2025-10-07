@@ -54,12 +54,14 @@ export type ChartData = {
   revenue: number;
 };
 
+export type EmployeeRole = 'Super Admin' | 'Account' | 'HR' | 'Dentist' | 'Hygienist' | 'Receptionist' | 'Assistant';
+
 export type Employee = {
   id: string;
   name: string;
   avatar: string;
   email: string;
-  role: 'Dentist' | 'Hygienist' | 'Receptionist' | 'Assistant';
+  role: EmployeeRole;
   status: 'Active' | 'On Leave';
   salary: number;
   hireDate: string;

@@ -87,7 +87,7 @@ export const chartData: ChartData[] = [
 ];
 
 export const employees: Employee[] = [
-  { id: 'emp1', name: 'Dr. Lisa Cuddy', avatar: 'https://picsum.photos/seed/emp1/200/200', email: 'lisa.cuddy@example.com', role: 'Dentist', status: 'Active', salary: 150000, hireDate: '2020-01-15' },
+  { id: 'emp1', name: 'Dr. Lisa Cuddy', avatar: 'https://picsum.photos/seed/emp1/200/200', email: 'lisa.cuddy@example.com', role: 'Super Admin', status: 'Active', salary: 150000, hireDate: '2020-01-15' },
   { id: 'emp2', name: 'James Wilson', avatar: 'https://picsum.photos/seed/emp2/200/200', email: 'james.wilson@example.com', role: 'Hygienist', status: 'Active', salary: 75000, hireDate: '2021-03-20' },
   { id: 'emp3', name: 'Allison Cameron', avatar: 'https://picsum.photos/seed/emp3/200/200', email: 'allison.cameron@example.com', role: 'Receptionist', status: 'Active', salary: 50000, hireDate: '2022-07-01' },
   { id: 'emp4', name: 'Robert Chase', avatar: 'https://picsum.photos/seed/emp4/200/200', email: 'robert.chase@example.com', role: 'Assistant', status: 'On Leave', salary: 55000, hireDate: '2021-09-10' },
