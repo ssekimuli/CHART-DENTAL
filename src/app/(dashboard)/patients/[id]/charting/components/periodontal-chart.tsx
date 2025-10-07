@@ -293,6 +293,24 @@ export function PeriodontalChart({
         </CardDescription>
       </CardHeader>
       <CardContent>
+         <div className="mb-4 flex flex-wrap justify-center gap-x-4 gap-y-2 rounded-md border p-2">
+            <div className="flex items-center gap-2">
+                <div className="h-3 w-3 rounded-full border bg-red-500 border-red-700"></div>
+                <span className="text-xs">Bleeding</span>
+            </div>
+            <div className="flex items-center gap-2">
+                <div className="h-3 w-3 rounded-full border bg-yellow-400 border-yellow-600"></div>
+                <span className="text-xs">Suppuration</span>
+            </div>
+            <div className="flex items-center gap-2">
+                <div className="h-3 w-3 rounded-full border bg-blue-400 border-blue-600"></div>
+                <span className="text-xs">Plaque</span>
+            </div>
+            <div className="flex items-center gap-2">
+                <div className="h-3 w-3 rounded-full border bg-green-500 border-green-700"></div>
+                <span className="text-xs">Calculus</span>
+            </div>
+        </div>
         <div className="flex flex-col items-center overflow-x-auto rounded-lg border bg-muted/30 p-2">
           <div className="mb-1 text-sm font-bold text-muted-foreground">UPPER</div>
           <div className="flex w-full justify-between">
@@ -315,24 +333,6 @@ export function PeriodontalChart({
           </div>
            <div className="mt-1 text-sm font-bold text-muted-foreground">LOWER</div>
         </div>
-        <div className="mt-4 flex flex-wrap justify-center gap-x-4 gap-y-2 rounded-md border p-2">
-            <div className="flex items-center gap-2">
-                <div className="h-3 w-3 rounded-full border bg-red-500 border-red-700"></div>
-                <span className="text-xs">Bleeding</span>
-            </div>
-            <div className="flex items-center gap-2">
-                <div className="h-3 w-3 rounded-full border bg-yellow-400 border-yellow-600"></div>
-                <span className="text-xs">Suppuration</span>
-            </div>
-            <div className="flex items-center gap-2">
-                <div className="h-3 w-3 rounded-full border bg-blue-400 border-blue-600"></div>
-                <span className="text-xs">Plaque</span>
-            </div>
-            <div className="flex items-center gap-2">
-                <div className="h-3 w-3 rounded-full border bg-green-500 border-green-700"></div>
-                <span className="text-xs">Calculus</span>
-            </div>
-        </div>
       </CardContent>
       <CardFooter>
         <Button onClick={() => onSave(records)}>Save Chart</Button>
@@ -340,4 +340,3 @@ export function PeriodontalChart({
     </Card>
   );
 }
-
