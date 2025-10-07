@@ -69,6 +69,9 @@ export default function PatientsPage() {
         imaging: [],
         lastVisit: new Date().toISOString().split('T')[0],
         branchId: selectedBranch,
+        periodontalRecords: { pockets: [], recession: {}, bleeding: [], mobility: {}, furcation: {} },
+        occlusalRecords: { overbite: 0, overjet: 0, crossbite: 'None', openbite: 'None', malocclusion: 'Class I' },
+        softTissueRecords: [],
         };
         setPatientsData(prev => [...prev, newPatient]);
     }

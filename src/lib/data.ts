@@ -37,7 +37,22 @@ export const patients: Patient[] = [
       "https://picsum.photos/seed/xray5/800/600",
       "https://picsum.photos/seed/xray6/800/600",
     ],
-    history: "Patient has a history of grinding teeth (bruxism). Regular check-ups every 6 months. No known allergies. Previous treatments include multiple fillings and one extraction."
+    history: "Patient has a history of grinding teeth (bruxism). Regular check-ups every 6 months. No known allergies. Previous treatments include multiple fillings and one extraction.",
+    periodontalRecords: {
+      pockets: [],
+      recession: {},
+      bleeding: [],
+      mobility: {},
+      furcation: {},
+    },
+    occlusalRecords: {
+      overbite: 2,
+      overjet: 2,
+      crossbite: "None",
+      openbite: "None",
+      malocclusion: "Class I",
+    },
+    softTissueRecords: [],
   },
   {
     id: "2",
@@ -55,7 +70,22 @@ export const patients: Patient[] = [
     imaging: [
         "https://picsum.photos/seed/xray7/800/600",
     ],
-    history: "Good oral hygiene. No major issues reported."
+    history: "Good oral hygiene. No major issues reported.",
+    periodontalRecords: {
+      pockets: [],
+      recession: {},
+      bleeding: [],
+      mobility: {},
+      furcation: {},
+    },
+    occlusalRecords: {
+      overbite: 1,
+      overjet: 1,
+      crossbite: "None",
+      openbite: "None",
+      malocclusion: "Class I",
+    },
+    softTissueRecords: [],
   },
   {
     id: "3",
@@ -69,7 +99,22 @@ export const patients: Patient[] = [
     dentalRecords: [],
     treatmentPlans: [],
     imaging: [],
-    history: "Requires follow-up for periodontal scaling."
+    history: "Requires follow-up for periodontal scaling.",
+    periodontalRecords: {
+        pockets: [],
+        recession: {},
+        bleeding: [],
+        mobility: {},
+        furcation: {},
+      },
+      occlusalRecords: {
+        overbite: 2,
+        overjet: 3,
+        crossbite: "Posterior",
+        openbite: "None",
+        malocclusion: "Class II",
+      },
+      softTissueRecords: [],
   },
    {
     id: "4",
@@ -85,7 +130,22 @@ export const patients: Patient[] = [
       { id: "t5", procedure: "Filling", status: "Completed", cost: 300, date: "2024-07-15", invoiceId: "inv3" }
     ],
     imaging: [],
-    history: "New patient."
+    history: "New patient.",
+    periodontalRecords: {
+        pockets: [],
+        recession: {},
+        bleeding: [],
+        mobility: {},
+        furcation: {},
+      },
+      occlusalRecords: {
+        overbite: 2,
+        overjet: 2,
+        crossbite: "None",
+        openbite: "None",
+        malocclusion: "Class I",
+      },
+      softTissueRecords: [],
   },
   {
     id: "5",
@@ -99,7 +159,22 @@ export const patients: Patient[] = [
     dentalRecords: [],
     treatmentPlans: [],
     imaging: [],
-    history: "Regular patient."
+    history: "Regular patient.",
+    periodontalRecords: {
+        pockets: [],
+        recession: {},
+        bleeding: [],
+        mobility: {},
+        furcation: {},
+      },
+      occlusalRecords: {
+        overbite: 1,
+        overjet: 2,
+        crossbite: "None",
+        openbite: "None",
+        malocclusion: "Class I",
+      },
+      softTissueRecords: [],
   }
 ];
 

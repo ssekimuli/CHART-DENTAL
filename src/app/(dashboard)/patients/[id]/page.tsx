@@ -12,7 +12,6 @@ import {
 } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DentalChart } from "./components/dental-chart";
 import { AITreatmentPlan } from "./components/ai-treatment-plan";
 import Image from "next/image";
 import { summarizePatientHistory } from "@/ai/flows/summarize-patient-history";
@@ -26,9 +25,9 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useEffect, useState } from "react";
-import type { Patient, Treatment, DentalRecord, BasePatient } from "@/lib/types";
+import type { Patient, Treatment, BasePatient } from "@/lib/types";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Trash, Pencil } from "lucide-react";
+import { PlusCircle, Trash, Pencil, FileText } from "lucide-react";
 import { TreatmentPlanForm } from "./components/treatment-plan-form";
 import { PatientForm } from "../components/patient-form";
 import {
@@ -56,7 +55,6 @@ export default function PatientDetailPage({
   const [isTreatmentFormOpen, setIsTreatmentFormOpen] = useState(false);
   const [isPatientFormOpen, setIsPatientFormOpen] = useState(false);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
-  const [selectedToothForTreatment, setSelectedToothForTreatment] = useState<number | undefined>(undefined);
   const [historySummary, setHistorySummary] = useState<{ summary: string } | null>(null);
 
   useEffect(() => {
@@ -100,42 +98,16 @@ export default function PatientDetailPage({
         id: `t${prevPatient.treatmentPlans.length + 1}`,
         date: new Date().toISOString().split('T')[0],
       };
-      return {
+      const updatedPatient = {
         ...prevPatient,
         treatmentPlans: [...prevPatient.treatmentPlans, newPlan],
-      }
+      };
+      setAllPatients(prevAll => prevAll.map(p => p.id === updatedPatient.id ? updatedPatient : p));
+      return updatedPatient;
     });
     setIsTreatmentFormOpen(false);
-    setSelectedToothForTreatment(undefined);
   }
   
-  const handleSaveDentalRecord = (record: DentalRecord) => {
-    setPatient(prevPatient => {
-        if (!prevPatient) return prevPatient;
-        const newRecords = [...prevPatient.dentalRecords];
-        const existingRecordIndex = newRecords.findIndex(r => r.toothId === record.toothId);
-        if (existingRecordIndex > -1) {
-            newRecords[existingRecordIndex] = record;
-        } else {
-            newRecords.push(record);
-        }
-        return {
-            ...prevPatient,
-            dentalRecords: newRecords,
-        };
-    });
-  }
-
-  const handleOpenTreatmentForm = (toothId?: number) => {
-    setSelectedToothForTreatment(toothId);
-    setIsTreatmentFormOpen(true);
-  }
-  
-  const handleCloseTreatmentForm = () => {
-    setIsTreatmentFormOpen(false);
-    setSelectedToothForTreatment(undefined);
-  }
-
   return (
     <div className="flex flex-col gap-6">
       <Card>
@@ -156,6 +128,10 @@ export default function PatientDetailPage({
             </div>
           </div>
           <div className="flex gap-2">
+            <Button variant="outline" onClick={() => router.push(`/patients/${patient.id}/charting`)}>
+                <FileText className="mr-2 h-4 w-4" />
+                Charting
+            </Button>
             <Button variant="outline" size="icon" onClick={() => setIsPatientFormOpen(true)}>
                 <Pencil className="h-4 w-4" />
                 <span className="sr-only">Edit Patient</span>
@@ -168,33 +144,12 @@ export default function PatientDetailPage({
         </CardHeader>
       </Card>
 
-      <Tabs defaultValue="chart">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="chart">Dental Chart</TabsTrigger>
+      <Tabs defaultValue="treatment">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="treatment">Treatment Plan</TabsTrigger>
           <TabsTrigger value="imaging">Imaging</TabsTrigger>
           <TabsTrigger value="history">History</TabsTrigger>
         </TabsList>
-
-        <TabsContent value="chart">
-          <Card>
-            <CardHeader>
-              <CardTitle>Interactive Dental Chart</CardTitle>
-              <CardDescription>
-                Click on a tooth to log conditions or add treatments.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <DentalChart 
-                initialRecords={patient.dentalRecords}
-                treatmentPlans={patient.treatmentPlans}
-                onSaveRecord={handleSaveDentalRecord}
-                onAddTreatment={handleOpenTreatmentForm}
-              />
-            </CardContent>
-          </Card>
-        </TabsContent>
-
         <TabsContent value="treatment">
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <AITreatmentPlan
@@ -209,7 +164,7 @@ export default function PatientDetailPage({
                     List of proposed and ongoing treatments.
                   </CardDescription>
                 </div>
-                <Button size="sm" onClick={() => handleOpenTreatmentForm()}>
+                <Button size="sm" onClick={() => setIsTreatmentFormOpen(true)}>
                   <PlusCircle className="mr-2 h-4 w-4" />
                   New Treatment
                 </Button>
@@ -275,6 +230,11 @@ export default function PatientDetailPage({
                     />
                   </div>
                 ))}
+                 {patient.imaging.length === 0 && (
+                      <div className="col-span-full h-48 flex items-center justify-center">
+                        <p className="text-muted-foreground">No images found.</p>
+                      </div>
+                    )}
               </div>
             </CardContent>
           </Card>
@@ -305,8 +265,7 @@ export default function PatientDetailPage({
       {isTreatmentFormOpen && (
         <TreatmentPlanForm
             onSave={handleAddTreatment}
-            onOpenChange={handleCloseTreatmentForm}
-            toothId={selectedToothForTreatment}
+            onOpenChange={setIsTreatmentFormOpen}
         />
       )}
       {isPatientFormOpen && (

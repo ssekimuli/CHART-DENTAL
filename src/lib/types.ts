@@ -12,6 +12,9 @@ export type Patient = {
   imaging: string[];
   history: string;
   branchId: string;
+  periodontalRecords: PeriodontalRecord;
+  occlusalRecords: OcclusalRecord;
+  softTissueRecords: SoftTissueRecord[];
 };
 
 export type DentalCondition = 'Healthy' | 'Caries' | 'Filling' | 'Crown' | 'Missing' | 'Fracture';
@@ -107,6 +110,40 @@ export type LaboratoryOrder = {
   branchId: string;
 };
 
-export type BasePatient = Omit<Patient, 'id' | 'dentalRecords' | 'treatmentPlans' | 'imaging' | 'lastVisit' | 'branchId'>;
+export type BasePatient = Omit<Patient, 'id' | 'dentalRecords' | 'treatmentPlans' | 'imaging' | 'lastVisit' | 'branchId' | 'periodontalRecords' | 'occlusalRecords' | 'softTissueRecords'>;
 
 export type BaseInvoice = Omit<Invoice, 'id' | 'patientName' | 'branchId'>;
+
+export type PeriodontalPocket = {
+  toothId: number;
+  distobuccal: number;
+  buccal: number;
+  mesiobuccal: number;
+  distolingual: number;
+  lingual: number;
+  mesiolingual: number;
+};
+
+export type PeriodontalRecord = {
+  pockets: PeriodontalPocket[];
+  recession: { [toothId: number]: number };
+  bleeding: number[];
+  mobility: { [toothId: number]: '0' | '1' | '2' | '3' };
+  furcation: { [toothId: number]: 'I' | 'II' | 'III' };
+};
+
+export type OcclusalRecord = {
+  overbite: number;
+  overjet: number;
+  crossbite: string;
+  openbite: string;
+  malocclusion: string;
+};
+
+export type SoftTissueRecord = {
+  id: string;
+  location: string;
+  type: 'Ulcer' | 'Lesion' | 'Color Change' | 'Swelling';
+  description: string;
+  date: string;
+};

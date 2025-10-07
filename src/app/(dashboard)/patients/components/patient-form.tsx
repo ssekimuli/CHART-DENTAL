@@ -69,7 +69,11 @@ export function PatientForm({ patient, onSave, onOpenChange }: PatientFormProps)
   function onSubmit(values: z.infer<typeof formSchema>) {
     onSave({
         ...values,
+        name: values.name,
+        email: values.email,
+        status: values.status,
         dateOfBirth: format(values.dateOfBirth, "yyyy-MM-dd"),
+        history: values.history,
         avatar: values.avatar || `https://picsum.photos/seed/p${Math.random()}/200/200`,
     });
   }
