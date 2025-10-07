@@ -35,7 +35,7 @@ import {
 import type { Invoice, Patient, Treatment } from "@/lib/types";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { CalendarIcon, X } from "lucide-react";
+import { CalendarIcon, X, Check } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Combobox } from "@/components/ui/combobox";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
@@ -316,3 +316,5 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
     </Dialog>
   );
 }
+
+    
