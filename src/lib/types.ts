@@ -117,4 +117,6 @@ export type LaboratoryOrder = {
   branchId: string;
 };
 
-export type BasePatient = Omit<Patient, 'id' | 'dentalRecords' | 'treatmentPlans' | 'imaging' | 'lastVisit'>;
+export type BasePatient = Omit<Patient, 'id' | 'dentalRecords' | 'treatmentPlans' | 'imaging' | 'lastVisit' | 'branchId'>;
+
+export type BaseInvoice = Omit<Invoice, 'id' | 'patientName' | 'branchId'>;

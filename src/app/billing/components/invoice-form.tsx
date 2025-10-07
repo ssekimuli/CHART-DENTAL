@@ -4,7 +4,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -52,17 +52,21 @@ const formSchema = z.object({
 });
 
 type InvoiceFormProps = {
+    invoice?: Invoice;
     patients: Patient[];
     onSave: (data: Omit<Invoice, 'id' | 'patientName' | 'branchId'>) => void;
     onOpenChange: (open: boolean) => void;
 };
 
-export function InvoiceForm({ patients, onSave, onOpenChange }: InvoiceFormProps) {
+export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: InvoiceFormProps) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-        issueDate: new Date(),
-        status: 'Pending'
+        patientId: invoice?.patientId ?? "",
+        amount: invoice?.amount ?? undefined,
+        issueDate: invoice ? parseISO(invoice.issueDate) : new Date(),
+        dueDate: invoice ? parseISO(invoice.dueDate) : undefined,
+        status: invoice?.status ?? 'Pending'
     },
   });
 
@@ -78,9 +82,9 @@ export function InvoiceForm({ patients, onSave, onOpenChange }: InvoiceFormProps
     <Dialog open={true} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
-                <DialogTitle>Create Invoice</DialogTitle>
+                <DialogTitle>{invoice ? 'Edit Invoice' : 'Create Invoice'}</DialogTitle>
                 <DialogDescription>
-                    Fill out the details for the new invoice.
+                   {invoice ? 'Update the details for the invoice.' : 'Fill out the details for the new invoice.'}
                 </DialogDescription>
             </DialogHeader>
             <Form {...form}>
@@ -224,7 +228,7 @@ export function InvoiceForm({ patients, onSave, onOpenChange }: InvoiceFormProps
                     </div>
                      <DialogFooter>
                         <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-                        <Button type="submit">Save Invoice</Button>
+                        <Button type="submit">{invoice ? 'Save Changes' : 'Create Invoice'}</Button>
                     </DialogFooter>
                 </form>
             </Form>
