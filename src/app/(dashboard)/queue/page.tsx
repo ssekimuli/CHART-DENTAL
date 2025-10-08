@@ -18,7 +18,6 @@ import { useBranch } from "@/context/branch-context";
 import { currentUser } from "@/lib/user";
 import { format } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
 import { Clock, UserCheck, CheckCircle, PauseCircle, Ban } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useRouter } from "next/navigation";
@@ -59,24 +58,27 @@ export default function QueuePage() {
             ]);
             setAllAppointments(appointmentsData);
             setAllEmployees(employeesData);
+            
+            if (currentUser.role === 'Dentist') {
+                // This is a mock email, in a real app this would be from the user session
+                const currentUserEmployee = employeesData.find(e => e.email === 'lisa.cuddy@example.com');
+                if (currentUserEmployee) {
+                    setDoctorFilter(currentUserEmployee.id);
+                }
+            }
             setIsLoading(false);
         };
         fetchData();
     }, []);
 
     const doctorsInBranch = useMemo(() => {
-        return allEmployees.filter(e => e.role === 'Dentist' && e.branchId === selectedBranch);
+        const doctors = allEmployees.filter(e => e.role === 'Dentist');
+         if (currentUser.role === 'Super Admin') {
+            return doctors.filter(d => d.branchId === selectedBranch);
+        }
+        return doctors.filter(d => d.branchId === currentUser.branchId);
     }, [allEmployees, selectedBranch]);
     
-    useEffect(() => {
-        if (currentUser.role === 'Dentist') {
-            const currentUserEmployee = allEmployees.find(e => e.email === 'lisa.cuddy@example.com'); // mock user
-            if (currentUserEmployee) {
-                setDoctorFilter(currentUserEmployee.id);
-            }
-        }
-    }, [allEmployees]);
-
     const todaysAppointments = useMemo(() => {
         const today = format(new Date(), "yyyy-MM-dd");
         let filtered = allAppointments.filter(
@@ -107,13 +109,13 @@ export default function QueuePage() {
   return (
     <div className="flex flex-col gap-6">
         <Card>
-            <CardHeader className="flex-row items-center justify-between">
+            <CardHeader className="flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     <CardTitle>Today's Queue</CardTitle>
                     <CardDescription>Patient queue for {format(new Date(), "PPP")}</CardDescription>
                 </div>
-                {currentUser.role === 'Super Admin' && doctorsInBranch.length > 0 && (
-                    <div className="w-full max-w-xs">
+                {currentUser.role !== 'Dentist' && doctorsInBranch.length > 0 && (
+                    <div className="w-full sm:w-auto sm:max-w-xs">
                         <Select value={doctorFilter} onValueChange={setDoctorFilter}>
                             <SelectTrigger>
                                 <SelectValue placeholder="Filter by doctor..." />
@@ -141,7 +143,7 @@ export default function QueuePage() {
                         No appointments scheduled for today in this branch.
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-start">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-start">
                         {statusColumns.map(column => (
                             <div key={column.title} className="flex flex-col gap-4 rounded-lg bg-muted/50 p-4">
                                <div className="flex items-center gap-2">
@@ -151,24 +153,24 @@ export default function QueuePage() {
                                <div className="flex flex-col gap-4">
                                 {appointmentsByStatus(column.statuses).map(appointment => (
                                      <Card key={appointment.id} className="flex flex-col">
-                                        <CardHeader className="flex-row items-center gap-4">
-                                            <Avatar className="h-10 w-10">
+                                        <CardHeader className="flex-row items-start gap-3 space-y-0">
+                                            <Avatar className="h-10 w-10 border">
                                                 <AvatarImage src={`https://picsum.photos/seed/${appointment.patientId}/200/200`} />
                                                 <AvatarFallback>{appointment.patientName.charAt(0)}</AvatarFallback>
                                             </Avatar>
-                                            <div>
+                                            <div className="flex-1">
                                                 <CardTitle className="text-base">{appointment.patientName}</CardTitle>
                                                 <p className="text-xs text-muted-foreground">{appointment.treatment}</p>
                                             </div>
                                         </CardHeader>
-                                        <CardContent className="flex-grow space-y-1 text-sm">
+                                        <CardContent className="flex-grow space-y-1 text-sm pt-0">
                                             <p><strong>Time:</strong> {appointment.time}</p>
                                             <p><strong>Doctor:</strong> {appointment.doctorName}</p>
                                         </CardContent>
-                                        <CardFooter className="flex justify-end gap-2">
+                                        <CardFooter className="flex-col items-stretch gap-2 sm:flex-row sm:justify-end sm:items-center">
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
-                                                    <Button variant="secondary" size="sm">Change Status</Button>
+                                                    <Button variant="secondary" size="sm" className="flex-grow sm:flex-grow-0">Change Status</Button>
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent>
                                                     <DropdownMenuItem onClick={() => handleStatusChange(appointment.id, 'Waiting')}>
@@ -188,7 +190,7 @@ export default function QueuePage() {
                                                     </DropdownMenuItem>
                                                 </DropdownMenuContent>
                                             </DropdownMenu>
-                                            <Button variant="outline" size="sm" onClick={() => router.push(`/patients/${appointment.patientId}/charting`)}>Chart</Button>
+                                            <Button variant="outline" size="sm" className="flex-grow sm:flex-grow-0" onClick={() => router.push(`/patients/${appointment.patientId}/charting`)}>Chart</Button>
                                         </CardFooter>
                                     </Card>
                                 ))}
@@ -205,3 +207,5 @@ export default function QueuePage() {
     </div>
   );
 }
+
+    
