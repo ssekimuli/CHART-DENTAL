@@ -153,11 +153,14 @@ export const patients: Patient[] = [
 
 export const recentPatients = patients.slice(0, 5);
 
+const today = new Date().toISOString().split('T')[0];
 export const appointments: Appointment[] = [
   { id: "a1", patientName: "John Doe", patientId: "1", doctorName: "Dr. Lisa Cuddy", doctorId: 'emp1', treatment: "Check-up", status: "Scheduled", date: "2024-07-20", time: "10:00 AM", branchId: "b1" },
   { id: "a2", patientName: "Jane Smith", patientId: "2", doctorName: "Dr. Eric Foreman", doctorId: 'emp5', treatment: "Cleaning", status: "Scheduled", date: "2024-07-21", time: "11:30 AM", branchId: "b2" },
   { id: "a3", patientName: "Mike Williams", patientId: "4", doctorName: "Dr. Eric Foreman", doctorId: 'emp5', treatment: "Filling", status: "Completed", date: "2024-07-15", time: "02:00 PM", branchId: "b2" },
   { id: "a4", patientName: "Sarah Brown", patientId: "5", doctorName: "Dr. Lisa Cuddy", doctorId: 'emp1', treatment: "Consultation", status: "Cancelled", date: "2024-07-14", time: "09:00 AM", branchId: "b1" },
+  { id: "a5", patientName: "Peter Jones", patientId: "3", doctorName: "Dr. Lisa Cuddy", doctorId: 'emp1', treatment: "Periodontal Scaling", status: "Scheduled", date: today, time: "09:00 AM", branchId: "b1" },
+  { id: "a6", patientName: "John Doe", patientId: "1", doctorName: "Dr. Lisa Cuddy", doctorId: 'emp1', treatment: "Crown Follow-up", status: "Waiting", date: today, time: "09:30 AM", branchId: "b1" },
 ];
 
 export const invoices: Invoice[] = [
