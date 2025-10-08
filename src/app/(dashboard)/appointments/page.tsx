@@ -19,7 +19,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
 import { useState, useMemo, useEffect } from "react";
-import type { Appointment, Employee, Patient } from "@/lib/types";
+import type { Appointment, Employee, Patient, AppointmentStatus } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { MoreHorizontal, PlusCircle, Trash, Pencil, FileText } from "lucide-react";
 import { AppointmentForm } from "./components/appointment-form";
@@ -153,7 +153,7 @@ export default function AppointmentsPage() {
     router.push(`/patients/${patientId}/charting`);
   }
   
-  const getStatusVariant = (status: Appointment['status']) => {
+  const getStatusVariant = (status: AppointmentStatus) => {
     switch (status) {
       case "Scheduled":
         return "default";
@@ -164,6 +164,7 @@ export default function AppointmentsPage() {
       case "Waiting":
         return "outline";
       case "In Session":
+      case "On Hold":
         return "default"; // Or another color
     }
   };

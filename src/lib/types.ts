@@ -42,6 +42,8 @@ export type Treatment = {
   invoiceId?: string;
 };
 
+export type AppointmentStatus = "Scheduled" | "Completed" | "Cancelled" | "Waiting" | "In Session" | "On Hold";
+
 export type Appointment = {
   id: string;
   patientName: string;
@@ -49,7 +51,7 @@ export type Appointment = {
   doctorName: string;
   doctorId: string;
   treatment: string;
-  status: "Scheduled" | "Completed" | "Cancelled" | "Waiting" | "In Session";
+  status: AppointmentStatus;
   date: string;
   time: string;
   branchId: string;

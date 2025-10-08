@@ -12,16 +12,35 @@ import {
 } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import type { Appointment, Employee, Patient } from "@/lib/types";
-import { getAppointments, getEmployees, getPatients, updateAppointment } from "@/lib/api";
+import type { Appointment, Employee, AppointmentStatus } from "@/lib/types";
+import { getAppointments, getEmployees, updateAppointment } from "@/lib/api";
 import { useBranch } from "@/context/branch-context";
 import { currentUser } from "@/lib/user";
 import { format } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Clock, UserCheck, CheckCircle } from "lucide-react";
+import { Clock, UserCheck, CheckCircle, PauseCircle, Ban } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useRouter } from "next/navigation";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
+type StatusColumn = {
+  title: string;
+  statuses: AppointmentStatus[];
+  icon: React.ReactNode;
+};
+
+const statusColumns: StatusColumn[] = [
+  { title: "Waiting", statuses: ["Scheduled", "Waiting"], icon: <Clock className="h-5 w-5 text-blue-500" /> },
+  { title: "In Session", statuses: ["In Session"], icon: <UserCheck className="h-5 w-5 text-yellow-500" /> },
+  { title: "On Hold", statuses: ["On Hold"], icon: <PauseCircle className="h-5 w-5 text-orange-500" /> },
+  { title: "Completed", statuses: ["Completed"], icon: <CheckCircle className="h-5 w-5 text-green-500" /> },
+];
 
 export default function QueuePage() {
     const router = useRouter();
@@ -49,7 +68,6 @@ export default function QueuePage() {
         return allEmployees.filter(e => e.role === 'Dentist' && e.branchId === selectedBranch);
     }, [allEmployees, selectedBranch]);
     
-    // Set doctor filter to current user if they are a doctor
     useEffect(() => {
         if (currentUser.role === 'Dentist') {
             const currentUserEmployee = allEmployees.find(e => e.email === 'lisa.cuddy@example.com'); // mock user
@@ -71,7 +89,7 @@ export default function QueuePage() {
       }, [allAppointments, selectedBranch, doctorFilter]);
 
 
-    const handleStatusChange = async (appointmentId: string, status: "Waiting" | "In Session" | "Completed") => {
+    const handleStatusChange = async (appointmentId: string, status: AppointmentStatus) => {
         const appointment = allAppointments.find(a => a.id === appointmentId);
         if (!appointment) return;
 
@@ -81,18 +99,9 @@ export default function QueuePage() {
         }
     }
     
-    const getStatusInfo = (status: Appointment['status']) => {
-        switch (status) {
-            case 'Waiting':
-                return { icon: <Clock className="h-4 w-4" />, color: 'bg-blue-500' };
-            case 'In Session':
-                return { icon: <UserCheck className="h-4 w-4" />, color: 'bg-yellow-500' };
-            case 'Completed':
-                return { icon: <CheckCircle className="h-4 w-4" />, color: 'bg-green-500' };
-            default: // Scheduled
-                return { icon: <Clock className="h-4 w-4" />, color: 'bg-gray-400' };
-        }
-    };
+    const appointmentsByStatus = (statuses: AppointmentStatus[]) => {
+        return todaysAppointments.filter(a => statuses.includes(a.status));
+    }
 
 
   return (
@@ -121,52 +130,74 @@ export default function QueuePage() {
             </CardHeader>
             <CardContent>
                 {isLoading ? (
-                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        <Skeleton className="h-48 w-full" />
-                        <Skeleton className="h-48 w-full" />
-                        <Skeleton className="h-48 w-full" />
+                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <Skeleton className="h-96 w-full" />
+                        <Skeleton className="h-96 w-full" />
+                        <Skeleton className="h-96 w-full" />
+                        <Skeleton className="h-96 w-full" />
                     </div>
                 ) : todaysAppointments.length === 0 ? (
                     <div className="text-center py-12 text-muted-foreground">
                         No appointments scheduled for today in this branch.
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                        {todaysAppointments.map(appointment => {
-                           const patient = getPatients().then(pats => pats.find(p => p.id === appointment.patientId));
-                           const { icon, color } = getStatusInfo(appointment.status);
-                           return (
-                            <Card key={appointment.id} className="flex flex-col">
-                                <CardHeader className="flex-row items-center gap-4">
-                                     <div className={`relative h-12 w-12`}>
-                                        <Avatar className="h-12 w-12">
-                                            {/* This is a temporary fix for patient avatar */}
-                                            <AvatarImage src={`https://picsum.photos/seed/${appointment.patientId}/200/200`} />
-                                            <AvatarFallback>{appointment.patientName.charAt(0)}</AvatarFallback>
-                                        </Avatar>
-                                        <span className={`absolute bottom-0 right-0 block h-3.5 w-3.5 rounded-full border-2 border-background ${color}`} title={appointment.status} />
-                                     </div>
-                                    <div>
-                                        <CardTitle className="text-lg">{appointment.patientName}</CardTitle>
-                                        <p className="text-sm text-muted-foreground">{appointment.treatment}</p>
-                                    </div>
-                                </CardHeader>
-                                <CardContent className="flex-grow space-y-2">
-                                    <p className="text-sm"><strong>Time:</strong> {appointment.time}</p>
-                                    <p className="text-sm"><strong>Doctor:</strong> {appointment.doctorName}</p>
-                                     <p className="text-sm flex items-center gap-2"><strong>Status:</strong> <Badge variant="outline">{appointment.status}</Badge></p>
-                                </CardContent>
-                                <CardFooter className="flex justify-end gap-2">
-                                    <Button variant="outline" size="sm" onClick={() => router.push(`/patients/${appointment.patientId}/charting`)}>View Chart</Button>
-                                    {appointment.status === 'Scheduled' || appointment.status === 'Waiting' ? (
-                                        <Button size="sm" onClick={() => handleStatusChange(appointment.id, 'In Session')}>Call Patient</Button>
-                                    ): appointment.status === 'In Session' ? (
-                                        <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => handleStatusChange(appointment.id, 'Completed')}>Mark as Complete</Button>
-                                    ) : null}
-                                </CardFooter>
-                            </Card>
-                           )
-                        })}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-start">
+                        {statusColumns.map(column => (
+                            <div key={column.title} className="flex flex-col gap-4 rounded-lg bg-muted/50 p-4">
+                               <div className="flex items-center gap-2">
+                                   {column.icon}
+                                   <h3 className="font-semibold">{column.title} ({appointmentsByStatus(column.statuses).length})</h3>
+                               </div>
+                               <div className="flex flex-col gap-4">
+                                {appointmentsByStatus(column.statuses).map(appointment => (
+                                     <Card key={appointment.id} className="flex flex-col">
+                                        <CardHeader className="flex-row items-center gap-4">
+                                            <Avatar className="h-10 w-10">
+                                                <AvatarImage src={`https://picsum.photos/seed/${appointment.patientId}/200/200`} />
+                                                <AvatarFallback>{appointment.patientName.charAt(0)}</AvatarFallback>
+                                            </Avatar>
+                                            <div>
+                                                <CardTitle className="text-base">{appointment.patientName}</CardTitle>
+                                                <p className="text-xs text-muted-foreground">{appointment.treatment}</p>
+                                            </div>
+                                        </CardHeader>
+                                        <CardContent className="flex-grow space-y-1 text-sm">
+                                            <p><strong>Time:</strong> {appointment.time}</p>
+                                            <p><strong>Doctor:</strong> {appointment.doctorName}</p>
+                                        </CardContent>
+                                        <CardFooter className="flex justify-end gap-2">
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button variant="secondary" size="sm">Change Status</Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent>
+                                                    <DropdownMenuItem onClick={() => handleStatusChange(appointment.id, 'Waiting')}>
+                                                        <Clock className="mr-2 h-4 w-4"/> Waiting
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => handleStatusChange(appointment.id, 'In Session')}>
+                                                        <UserCheck className="mr-2 h-4 w-4"/> In Session
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => handleStatusChange(appointment.id, 'On Hold')}>
+                                                        <PauseCircle className="mr-2 h-4 w-4"/> On Hold
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => handleStatusChange(appointment.id, 'Completed')}>
+                                                        <CheckCircle className="mr-2 h-4 w-4"/> Completed
+                                                    </DropdownMenuItem>
+                                                     <DropdownMenuItem className="text-red-500" onClick={() => handleStatusChange(appointment.id, 'Cancelled')}>
+                                                        <Ban className="mr-2 h-4 w-4"/> Cancelled
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                            <Button variant="outline" size="sm" onClick={() => router.push(`/patients/${appointment.patientId}/charting`)}>Chart</Button>
+                                        </CardFooter>
+                                    </Card>
+                                ))}
+                                {appointmentsByStatus(column.statuses).length === 0 && (
+                                    <p className="text-sm text-center text-muted-foreground py-4">No patients in this status.</p>
+                                )}
+                               </div>
+                           </div>
+                        ))}
                     </div>
                 )}
             </CardContent>

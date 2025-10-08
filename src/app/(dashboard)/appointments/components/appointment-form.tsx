@@ -33,7 +33,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import type { Appointment, Employee, Patient } from "@/lib/types";
+import type { Appointment, Employee, Patient, AppointmentStatus } from "@/lib/types";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { CalendarIcon, Clock } from "lucide-react";
@@ -49,7 +49,7 @@ const formSchema = z.object({
     required_error: "A date is required.",
   }),
   time: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]\s(AM|PM)$/, "Please use HH:MM AM/PM format."),
-  status: z.enum(["Scheduled", "Completed", "Cancelled", "Waiting", "In Session"]),
+  status: z.enum(["Scheduled", "Completed", "Cancelled", "Waiting", "In Session", "On Hold"]),
 });
 
 type AppointmentFormProps = {
@@ -129,7 +129,7 @@ export function AppointmentForm({ appointment, patients, doctors, appointments, 
     });
   }
 
-  const appointmentStatuses: Appointment['status'][] = ["Scheduled", "Waiting", "In Session", "Completed", "Cancelled"];
+  const appointmentStatuses: AppointmentStatus[] = ["Scheduled", "Waiting", "In Session", "On Hold", "Completed", "Cancelled"];
 
   return (
     <Dialog open={true} onOpenChange={onOpenChange}>
@@ -282,7 +282,7 @@ export function AppointmentForm({ appointment, patients, doctors, appointments, 
                         render={({ field }) => (
                             <FormItem>
                             <FormLabel>Status</FormLabel>
-                            <Select onValueChange={(value) => field.onChange(value as Appointment['status'])} defaultValue={field.value}>
+                            <Select onValueChange={(value) => field.onChange(value as AppointmentStatus)} defaultValue={field.value}>
                                 <FormControl>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Select status" />
