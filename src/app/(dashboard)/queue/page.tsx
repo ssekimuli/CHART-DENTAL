@@ -41,6 +41,24 @@ const statusColumns: StatusColumn[] = [
   { title: "Completed", statuses: ["Completed"], icon: <CheckCircle className="h-5 w-5 text-green-500" /> },
 ];
 
+function playNotificationSound() {
+    const audioContext = new (window.AudioContext)();
+    if (!audioContext) return;
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+  
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+  
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(600, audioContext.currentTime);
+    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.5);
+  
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.5);
+}
+
 export default function QueuePage() {
     const router = useRouter();
     const { selectedBranch } = useBranch();
@@ -98,6 +116,7 @@ export default function QueuePage() {
         const updated = await updateAppointment(appointmentId, { status });
         if (updated) {
             setAllAppointments(prev => prev.map(a => a.id === updated.id ? updated : a));
+            playNotificationSound();
         }
     }
     
@@ -207,5 +226,3 @@ export default function QueuePage() {
     </div>
   );
 }
-
-    
