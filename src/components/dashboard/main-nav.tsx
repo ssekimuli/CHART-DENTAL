@@ -21,12 +21,14 @@ import {
   FlaskConical,
   BarChart3,
   FileText,
+  ClipboardList,
 } from "lucide-react";
 import type { EmployeeRole } from "@/lib/types";
 import { currentUser } from "@/lib/user";
 
 const allLinks = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ['Super Admin', 'Account', 'HR', 'Dentist', 'Hygienist', 'Receptionist', 'Assistant'] as EmployeeRole[] },
+  { href: "/queue", label: "Queue", icon: ClipboardList, roles: ['Super Admin', 'Dentist', 'Hygienist', 'Receptionist', 'Assistant'] as EmployeeRole[] },
   { href: "/patients", label: "Patients", icon: Users, roles: ['Super Admin', 'Dentist', 'Hygienist', 'Receptionist', 'Assistant'] as EmployeeRole[] },
   { href: "/charting", label: "Charting", icon: FileText, roles: ['Super Admin', 'Dentist', 'Hygienist'] as EmployeeRole[] },
   { href: "/appointments", label: "Appointments", icon: Calendar, roles: ['Super Admin', 'Dentist', 'Hygienist', 'Receptionist', 'Assistant'] as EmployeeRole[] },

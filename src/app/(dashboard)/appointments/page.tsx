@@ -152,6 +152,22 @@ export default function AppointmentsPage() {
   const handleGoToChart = (patientId: string) => {
     router.push(`/patients/${patientId}/charting`);
   }
+  
+  const getStatusVariant = (status: Appointment['status']) => {
+    switch (status) {
+      case "Scheduled":
+        return "default";
+      case "Completed":
+        return "secondary";
+      case "Cancelled":
+        return "destructive";
+      case "Waiting":
+        return "outline";
+      case "In Session":
+        return "default"; // Or another color
+    }
+  };
+
 
   return (
     <>
@@ -199,13 +215,7 @@ export default function AppointmentsPage() {
                       <TableCell>{appointment.treatment}</TableCell>
                       <TableCell>
                         <Badge
-                          variant={
-                            appointment.status === "Scheduled"
-                              ? "default"
-                              : appointment.status === "Completed"
-                              ? "secondary"
-                              : "destructive"
-                          }
+                          variant={getStatusVariant(appointment.status)}
                         >
                           {appointment.status}
                         </Badge>

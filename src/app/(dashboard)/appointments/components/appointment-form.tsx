@@ -17,6 +17,13 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+  } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import {
   Dialog,
@@ -42,6 +49,7 @@ const formSchema = z.object({
     required_error: "A date is required.",
   }),
   time: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]\s(AM|PM)$/, "Please use HH:MM AM/PM format."),
+  status: z.enum(["Scheduled", "Completed", "Cancelled", "Waiting", "In Session"]),
 });
 
 type AppointmentFormProps = {
@@ -85,6 +93,7 @@ export function AppointmentForm({ appointment, patients, doctors, appointments, 
         treatment: appointment?.treatment ?? "",
         date: appointment ? parse(appointment.date, "yyyy-MM-dd", new Date()) : new Date(),
         time: appointment?.time ?? "",
+        status: appointment?.status ?? 'Scheduled',
     },
   });
 
@@ -116,10 +125,11 @@ export function AppointmentForm({ appointment, patients, doctors, appointments, 
         ...values,
         patientName: patient.name,
         doctorName: doctor.name,
-        status: appointment?.status ?? 'Scheduled',
         date: format(values.date, "yyyy-MM-dd"),
     });
   }
+
+  const appointmentStatuses: Appointment['status'][] = ["Scheduled", "Waiting", "In Session", "Completed", "Cancelled"];
 
   return (
     <Dialog open={true} onOpenChange={onOpenChange}>
@@ -265,6 +275,29 @@ export function AppointmentForm({ appointment, patients, doctors, appointments, 
                             </div>
                         </div>
                     )}
+                    
+                    <FormField
+                        control={form.control}
+                        name="status"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Status</FormLabel>
+                            <Select onValueChange={(value) => field.onChange(value as Appointment['status'])} defaultValue={field.value}>
+                                <FormControl>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select status" />
+                                </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                {appointmentStatuses.map(status => (
+                                    <SelectItem key={status} value={status}>{status}</SelectItem>
+                                ))}
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                    />
 
 
                      <DialogFooter>
