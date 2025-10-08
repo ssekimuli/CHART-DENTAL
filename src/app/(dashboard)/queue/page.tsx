@@ -190,7 +190,7 @@ export default function QueuePage() {
                                </div>
                                <div className="flex flex-col gap-4">
                                 {appointmentsByStatus(column.statuses).map(appointment => (
-                                     <Card key={appointment.id} className="flex flex-col">
+                                     <Card key={appointment.id} className="flex flex-col isolate z-10">
                                         <CardHeader className="flex-row items-start gap-3 space-y-0 p-4">
                                             <Avatar className="h-10 w-10 border">
                                                 <AvatarImage src={`https://picsum.photos/seed/${appointment.patientId}/200/200`} />
