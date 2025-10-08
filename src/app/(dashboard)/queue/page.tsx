@@ -18,7 +18,7 @@ import { useBranch } from "@/context/branch-context";
 import { currentUser } from "@/lib/user";
 import { format } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Clock, UserCheck, CheckCircle, PauseCircle, Ban, Volume2, Loader2 } from "lucide-react";
+import { Clock, UserCheck, CheckCircle, PauseCircle, Ban, Loader2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useRouter } from "next/navigation";
 import {
@@ -43,6 +43,7 @@ const statusColumns: StatusColumn[] = [
 ];
 
 function playNotificationSound() {
+    if (typeof window === 'undefined') return;
     const audioContext = new (window.AudioContext)();
     if (!audioContext) return;
     const oscillator = audioContext.createOscillator();
@@ -107,25 +108,14 @@ export default function QueuePage() {
         if (doctorFilter !== "all") {
           filtered = filtered.filter((a) => a.doctorId === doctorFilter);
         }
-        return filtered.sort((a,b) => a.time.localeCompare(b.time));
+        return filtered.sort((a,b) => a.tokenNumber - b.tokenNumber);
       }, [allAppointments, selectedBranch, doctorFilter]);
 
-
-    const handleStatusChange = async (appointmentId: string, status: AppointmentStatus) => {
-        const appointment = allAppointments.find(a => a.id === appointmentId);
-        if (!appointment) return;
-
-        const updated = await updateAppointment(appointmentId, { status });
-        if (updated) {
-            setAllAppointments(prev => prev.map(a => a.id === updated.id ? updated : a));
-            playNotificationSound();
-        }
-    }
 
     const handleAnnounce = (appointment: Appointment) => {
         setCurrentlySpeaking(appointment.id);
         startTransition(async () => {
-            const announcement = `Token number ${appointment.tokenNumber}, ${appointment.patientName}`;
+            const announcement = `Token number ${appointment.tokenNumber}`;
             const audio = await speak(announcement);
             if (audio?.media) {
                 const audioPlayer = new Audio(audio.media);
@@ -135,6 +125,18 @@ export default function QueuePage() {
                 setCurrentlySpeaking(null);
             }
         });
+    }
+
+    const handleStatusChange = async (appointment: Appointment, status: AppointmentStatus) => {
+        const updated = await updateAppointment(appointment.id, { status });
+        if (updated) {
+            setAllAppointments(prev => prev.map(a => a.id === updated.id ? updated : a));
+            if (status === 'In Session') {
+                handleAnnounce(appointment);
+            } else {
+                playNotificationSound();
+            }
+        }
     }
     
     const appointmentsByStatus = (statuses: AppointmentStatus[]) => {
@@ -189,7 +191,7 @@ export default function QueuePage() {
                                <div className="flex flex-col gap-4">
                                 {appointmentsByStatus(column.statuses).map(appointment => (
                                      <Card key={appointment.id} className="flex flex-col">
-                                        <CardHeader className="flex-row items-start gap-3 space-y-0">
+                                        <CardHeader className="flex-row items-start gap-3 space-y-0 p-4">
                                             <Avatar className="h-10 w-10 border">
                                                 <AvatarImage src={`https://picsum.photos/seed/${appointment.patientId}/200/200`} />
                                                 <AvatarFallback>{appointment.patientName.charAt(0)}</AvatarFallback>
@@ -198,34 +200,33 @@ export default function QueuePage() {
                                                 <CardTitle className="text-base">{appointment.patientName}</CardTitle>
                                                 <p className="text-xs text-muted-foreground">{appointment.treatment}</p>
                                             </div>
-                                             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleAnnounce(appointment)} disabled={isSpeaking}>
-                                                {isSpeaking && currentlySpeaking === appointment.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <Volume2 className="h-4 w-4" />}
-                                             </Button>
+                                            <div className="flex items-center justify-center h-10 w-10 rounded-full bg-primary/10 border border-primary/20 text-primary font-bold text-lg">
+                                                {isSpeaking && currentlySpeaking === appointment.id ? <Loader2 className="h-5 w-5 animate-spin"/> : appointment.tokenNumber}
+                                            </div>
                                         </CardHeader>
-                                        <CardContent className="flex-grow space-y-1 text-sm pt-0">
-                                            <p><strong>Token:</strong> <span className="font-bold text-lg">{appointment.tokenNumber}</span></p>
+                                        <CardContent className="flex-grow space-y-1 text-sm px-4 pb-4">
                                             <p><strong>Time:</strong> {appointment.time}</p>
                                             <p><strong>Doctor:</strong> {appointment.doctorName}</p>
                                         </CardContent>
-                                        <CardFooter className="flex-col items-stretch gap-2 sm:flex-row sm:justify-end sm:items-center">
+                                        <CardFooter className="flex-col items-stretch gap-2 sm:flex-row sm:justify-end sm:items-center bg-background/50 border-t p-4">
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
                                                     <Button variant="secondary" size="sm" className="flex-grow sm:flex-grow-0">Change Status</Button>
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent>
-                                                    <DropdownMenuItem onClick={() => handleStatusChange(appointment.id, 'Waiting')}>
+                                                    <DropdownMenuItem onClick={() => handleStatusChange(appointment, 'Waiting')}>
                                                         <Clock className="mr-2 h-4 w-4"/> Waiting
                                                     </DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={() => handleStatusChange(appointment.id, 'In Session')}>
+                                                    <DropdownMenuItem onClick={() => handleStatusChange(appointment, 'In Session')}>
                                                         <UserCheck className="mr-2 h-4 w-4"/> In Session
                                                     </DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={() => handleStatusChange(appointment.id, 'On Hold')}>
+                                                    <DropdownMenuItem onClick={() => handleStatusChange(appointment, 'On Hold')}>
                                                         <PauseCircle className="mr-2 h-4 w-4"/> On Hold
                                                     </DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={() => handleStatusChange(appointment.id, 'Completed')}>
+                                                    <DropdownMenuItem onClick={() => handleStatusChange(appointment, 'Completed')}>
                                                         <CheckCircle className="mr-2 h-4 w-4"/> Completed
                                                     </DropdownMenuItem>
-                                                     <DropdownMenuItem className="text-red-500" onClick={() => handleStatusChange(appointment.id, 'Cancelled')}>
+                                                     <DropdownMenuItem className="text-red-500" onClick={() => handleStatusChange(appointment, 'Cancelled')}>
                                                         <Ban className="mr-2 h-4 w-4"/> Cancelled
                                                     </DropdownMenuItem>
                                                 </DropdownMenuContent>
