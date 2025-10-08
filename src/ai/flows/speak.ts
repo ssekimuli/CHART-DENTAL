@@ -64,8 +64,19 @@ const speakFlow = ai.defineFlow(
       media.url.substring(media.url.indexOf(',') + 1),
       'base64'
     );
+    const wavData = await toWav(audioBuffer);
+    const apiKey = process.env.GEMINI_API_KEY;
+    const audioUrl = `data:audio/wav;base64,${wavData}`;
+
+    if (!apiKey) {
+      console.warn("GEMINI_API_KEY is not set. Audio playback might fail.");
+      return { media: audioUrl };
+    }
+    
+    // The media URL from genkit is temporary and needs the API key to be accessed.
+    // By creating a new data URI with the full WAV data, we make it self-contained.
     return {
-      media: 'data:audio/wav;base64,' + (await toWav(audioBuffer)),
+      media: audioUrl
     };
   }
 );
