@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useTransition } from "react";
 import {
   Card,
   CardContent,
@@ -18,7 +18,7 @@ import { useBranch } from "@/context/branch-context";
 import { currentUser } from "@/lib/user";
 import { format } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Clock, UserCheck, CheckCircle, PauseCircle, Ban } from "lucide-react";
+import { Clock, UserCheck, CheckCircle, PauseCircle, Ban, Volume2, Loader2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useRouter } from "next/navigation";
 import {
@@ -27,6 +27,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { speak } from "@/ai/flows/speak";
 
 type StatusColumn = {
   title: string;
@@ -66,6 +67,8 @@ export default function QueuePage() {
     const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [doctorFilter, setDoctorFilter] = useState<string>("all");
+    const [isSpeaking, startTransition] = useTransition();
+    const [currentlySpeaking, setCurrentlySpeaking] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -78,7 +81,6 @@ export default function QueuePage() {
             setAllEmployees(employeesData);
             
             if (currentUser.role === 'Dentist') {
-                // This is a mock email, in a real app this would be from the user session
                 const currentUserEmployee = employeesData.find(e => e.email === 'lisa.cuddy@example.com');
                 if (currentUserEmployee) {
                     setDoctorFilter(currentUserEmployee.id);
@@ -118,6 +120,21 @@ export default function QueuePage() {
             setAllAppointments(prev => prev.map(a => a.id === updated.id ? updated : a));
             playNotificationSound();
         }
+    }
+
+    const handleAnnounce = (appointment: Appointment) => {
+        setCurrentlySpeaking(appointment.id);
+        startTransition(async () => {
+            const announcement = `Token number ${appointment.tokenNumber}, ${appointment.patientName}`;
+            const audio = await speak(announcement);
+            if (audio?.media) {
+                const audioPlayer = new Audio(audio.media);
+                audioPlayer.play();
+                audioPlayer.onended = () => setCurrentlySpeaking(null);
+            } else {
+                setCurrentlySpeaking(null);
+            }
+        });
     }
     
     const appointmentsByStatus = (statuses: AppointmentStatus[]) => {
@@ -181,8 +198,12 @@ export default function QueuePage() {
                                                 <CardTitle className="text-base">{appointment.patientName}</CardTitle>
                                                 <p className="text-xs text-muted-foreground">{appointment.treatment}</p>
                                             </div>
+                                             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleAnnounce(appointment)} disabled={isSpeaking}>
+                                                {isSpeaking && currentlySpeaking === appointment.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <Volume2 className="h-4 w-4" />}
+                                             </Button>
                                         </CardHeader>
                                         <CardContent className="flex-grow space-y-1 text-sm pt-0">
+                                            <p><strong>Token:</strong> <span className="font-bold text-lg">{appointment.tokenNumber}</span></p>
                                             <p><strong>Time:</strong> {appointment.time}</p>
                                             <p><strong>Doctor:</strong> {appointment.doctorName}</p>
                                         </CardContent>

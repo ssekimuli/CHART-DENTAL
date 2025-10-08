@@ -50,6 +50,7 @@ const formSchema = z.object({
   }),
   time: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]\s(AM|PM)$/, "Please use HH:MM AM/PM format."),
   status: z.enum(["Scheduled", "Completed", "Cancelled", "Waiting", "In Session", "On Hold"]),
+  tokenNumber: z.coerce.number().positive("Token must be a positive number."),
 });
 
 type AppointmentFormProps = {
@@ -94,6 +95,7 @@ export function AppointmentForm({ appointment, patients, doctors, appointments, 
         date: appointment ? parse(appointment.date, "yyyy-MM-dd", new Date()) : new Date(),
         time: appointment?.time ?? "",
         status: appointment?.status ?? 'Scheduled',
+        tokenNumber: appointment?.tokenNumber ?? Math.floor(Math.random() * 100) + 1,
     },
   });
 
@@ -276,28 +278,43 @@ export function AppointmentForm({ appointment, patients, doctors, appointments, 
                         </div>
                     )}
                     
-                    <FormField
-                        control={form.control}
-                        name="status"
-                        render={({ field }) => (
-                            <FormItem>
-                            <FormLabel>Status</FormLabel>
-                            <Select onValueChange={(value) => field.onChange(value as AppointmentStatus)} defaultValue={field.value}>
+                    <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                            control={form.control}
+                            name="status"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Status</FormLabel>
+                                <Select onValueChange={(value) => field.onChange(value as AppointmentStatus)} defaultValue={field.value}>
+                                    <FormControl>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select status" />
+                                    </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                    {appointmentStatuses.map(status => (
+                                        <SelectItem key={status} value={status}>{status}</SelectItem>
+                                    ))}
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                         <FormField
+                            control={form.control}
+                            name="tokenNumber"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Token Number</FormLabel>
                                 <FormControl>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select status" />
-                                </SelectTrigger>
+                                    <Input type="number" {...field} />
                                 </FormControl>
-                                <SelectContent>
-                                {appointmentStatuses.map(status => (
-                                    <SelectItem key={status} value={status}>{status}</SelectItem>
-                                ))}
-                                </SelectContent>
-                            </Select>
-                            <FormMessage />
-                            </FormItem>
-                        )}
-                    />
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    </div>
 
 
                      <DialogFooter>

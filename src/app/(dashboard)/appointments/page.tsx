@@ -198,6 +198,7 @@ export default function AppointmentsPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead>Token</TableHead>
                     <TableHead>Patient</TableHead>
                     <TableHead>Doctor</TableHead>
                     <TableHead>Treatment</TableHead>
@@ -209,6 +210,9 @@ export default function AppointmentsPage() {
                 <TableBody>
                   {appointmentsForDate.map((appointment) => (
                     <TableRow key={appointment.id}>
+                       <TableCell>
+                        <div className="font-bold">{appointment.tokenNumber}</div>
+                      </TableCell>
                       <TableCell>
                         <div className="font-medium">{appointment.patientName}</div>
                       </TableCell>
@@ -252,7 +256,7 @@ export default function AppointmentsPage() {
                   ))}
                   {appointmentsForDate.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={6} className="h-24 text-center">
+                      <TableCell colSpan={7} className="h-24 text-center">
                         No appointments scheduled for this day.
                       </TableCell>
                     </TableRow>

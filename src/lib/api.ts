@@ -356,5 +356,3 @@ export const createPayroll = async (data: Omit<Payroll, 'id'>): Promise<Payroll>
     payrolls = [newPayroll, ...payrolls];
     return newPayroll;
 }
-
-    
