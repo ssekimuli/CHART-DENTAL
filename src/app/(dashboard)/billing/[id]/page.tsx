@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { notFound, useParams } from 'next/navigation';
@@ -6,7 +7,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import type { Invoice, Patient } from '@/lib/types';
+import type { Invoice, Patient, PaymentMethod } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Printer, Download, Loader2 } from 'lucide-react';
 import { getInvoiceById, getPatientById } from '@/lib/api';
@@ -105,6 +106,7 @@ export default function InvoiceDetailPage() {
                 <p><strong>Issue Date:</strong> {invoice.issueDate}</p>
                 <p><strong>Due Date:</strong> {invoice.dueDate}</p>
                 <p><strong>Status:</strong> <Badge variant={getStatusVariant(invoice.status)}>{invoice.status}</Badge></p>
+                {invoice.paymentMethod && <p><strong>Payment Method:</strong> {invoice.paymentMethod}</p>}
             </div>
         </div>
 

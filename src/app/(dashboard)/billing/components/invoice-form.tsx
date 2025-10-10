@@ -34,7 +34,7 @@ import {
     SelectTrigger,
     SelectValue,
   } from "@/components/ui/select";
-import type { Invoice, Patient, InvoiceTreatment, OtherCharge, SystemTreatment } from "@/lib/types";
+import type { Invoice, Patient, InvoiceTreatment, OtherCharge, SystemTreatment, PaymentMethod } from "@/lib/types";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { CalendarIcon, X, Check, Trash2, PlusCircle } from "lucide-react";
@@ -54,6 +54,7 @@ const formSchema = z.object({
     required_error: "A due date is required.",
   }),
   status: z.enum(['Paid', 'Pending', 'Overdue']),
+  paymentMethod: z.enum(['Cash', 'Credit Card', 'Insurance', 'Bank Transfer']).optional(),
   otherCharges: z.array(z.object({
     description: z.string().min(1, "Description is required."),
     amount: z.coerce.number().min(0, "Amount must be zero or more."),
@@ -86,6 +87,7 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
         issueDate: invoice ? parseISO(invoice.issueDate) : new Date(),
         dueDate: invoice ? parseISO(invoice.dueDate) : undefined,
         status: invoice?.status ?? 'Pending',
+        paymentMethod: invoice?.paymentMethod,
         otherCharges: invoice?.otherCharges ?? [],
     },
   });
@@ -141,6 +143,8 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
   const totalAmount = useMemo(() => {
     return subTotal + otherChargesTotal;
   }, [subTotal, otherChargesTotal]);
+
+  const paymentMethods: PaymentMethod[] = ['Cash', 'Credit Card', 'Insurance', 'Bank Transfer'];
 
   return (
     <Dialog open={true} onOpenChange={onOpenChange}>
@@ -287,29 +291,54 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
                                 Add Other Charge
                             </Button>
                         </div>
+                        
+                        <div className="grid grid-cols-2 gap-4">
+                            <FormField
+                                control={form.control}
+                                name="status"
+                                render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel>Status</FormLabel>
+                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                        <FormControl>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Select status" />
+                                        </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            <SelectItem value="Pending">Pending</SelectItem>
+                                            <SelectItem value="Paid">Paid</SelectItem>
+                                            <SelectItem value="Overdue">Overdue</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                             <FormField
+                                control={form.control}
+                                name="paymentMethod"
+                                render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel>Payment Method</FormLabel>
+                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                        <FormControl>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Select method" />
+                                        </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            {paymentMethods.map(method => (
+                                                <SelectItem key={method} value={method}>{method}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        </div>
 
-                         <FormField
-                            control={form.control}
-                            name="status"
-                            render={({ field }) => (
-                                <FormItem>
-                                <FormLabel>Status</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                    <FormControl>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select status" />
-                                    </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                        <SelectItem value="Pending">Pending</SelectItem>
-                                        <SelectItem value="Paid">Paid</SelectItem>
-                                        <SelectItem value="Overdue">Overdue</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                <FormMessage />
-                                </FormItem>
-                            )}
-                        />
 
                         <div className="rounded-md border p-4 space-y-2">
                             <div className="flex justify-between text-sm">

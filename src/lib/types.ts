@@ -72,6 +72,8 @@ export type OtherCharge = {
   amount: number;
 };
 
+export type PaymentMethod = 'Cash' | 'Credit Card' | 'Insurance' | 'Bank Transfer';
+
 export type Invoice = {
   id: string;
   patientName: string;
@@ -84,6 +86,7 @@ export type Invoice = {
   treatmentIds: string[]; // This will now be deprecated in logic, but kept for data compatibility
   treatments: InvoiceTreatment[]; // New field for storing invoiced treatments
   otherCharges?: OtherCharge[];
+  paymentMethod?: PaymentMethod;
 };
 
 export type ChartData = {
