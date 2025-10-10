@@ -252,3 +252,16 @@ export type LeaveRequest = {
   status: LeaveStatus;
   branchId: string;
 };
+
+export type StaffAdvanceStatus = 'Pending' | 'Approved' | 'Paid' | 'Rejected';
+
+export type StaffAdvance = {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  amount: number;
+  date: string;
+  reason: string;
+  status: StaffAdvanceStatus;
+  branchId: string;
+};

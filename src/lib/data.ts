@@ -1,6 +1,6 @@
 
 
-import type { Patient, Appointment, Invoice, ChartData, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, SystemTreatment, PaymentMethod, PaymentTransaction, AttendanceRecord, LeaveRequest } from "@/lib/types";
+import type { Patient, Appointment, Invoice, ChartData, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, SystemTreatment, PaymentMethod, PaymentTransaction, AttendanceRecord, LeaveRequest, StaffAdvance } from "@/lib/types";
 
 export const branches: Branch[] = [
   { id: "b1", name: "Downtown Clinic", address: "123 Main St, Cityville" },
@@ -316,3 +316,9 @@ export const leaveRequests: LeaveRequest[] = [
   { id: 'leave3', employeeId: 'emp3', employeeName: 'Allison Cameron', leaveType: 'Annual', startDate: '2024-09-01', endDate: '2024-09-03', reason: 'Personal time', status: 'Pending', branchId: 'b2' },
   { id: 'leave4', employeeId: 'emp5', employeeName: 'Dr. Eric Foreman', leaveType: 'Unpaid', startDate: '2024-08-10', endDate: '2024-08-10', reason: 'Conference', status: 'Rejected', branchId: 'b2' },
 ];
+
+export const staffAdvances: StaffAdvance[] = [
+    { id: 'adv1', employeeId: 'emp3', employeeName: 'Allison Cameron', amount: 500, date: '2024-07-01', reason: 'Emergency', status: 'Approved', branchId: 'b2'},
+    { id: 'adv2', employeeId: 'emp5', employeeName: 'Dr. Eric Foreman', amount: 1000, date: '2024-07-10', reason: 'Travel expenses', status: 'Pending', branchId: 'b2'},
+    { id: 'adv3', employeeId: 'emp2', employeeName: 'James Wilson', amount: 200, date: '2024-06-20', reason: 'Personal', status: 'Rejected', branchId: 'b1'},
+]
