@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Search } from "lucide-react"
+import { Search, User } from "lucide-react"
 import {
   CommandDialog,
   CommandEmpty,
@@ -61,18 +61,25 @@ export function PatientSearch() {
         </kbd>
       </button>
       <CommandDialog open={open} onOpenChange={setOpen}>
-        <CommandInput placeholder="Type a name or email to search..." />
+        <CommandInput placeholder="Type a name, email, or ID to search..." />
         <CommandList>
           <CommandEmpty>No results found.</CommandEmpty>
           <CommandGroup heading="Patients">
             {patients.map((patient) => (
               <CommandItem
                 key={patient.id}
-                value={`${patient.name} ${patient.email}`}
+                value={`${patient.name} ${patient.email} ${patient.id}`}
                 onSelect={() => handleSelect(patient.id)}
+                className="flex items-start gap-2"
               >
-                <span>{patient.name}</span>
-                <span className="ml-2 text-xs text-muted-foreground">{patient.email}</span>
+                <div className="mt-1">
+                  <User className="h-4 w-4" />
+                </div>
+                <div className="flex flex-col">
+                  <span>{patient.name}</span>
+                  <span className="text-xs text-muted-foreground">{patient.email}</span>
+                  <span className="text-xs text-muted-foreground font-mono">ID: {patient.id}</span>
+                </div>
               </CommandItem>
             ))}
           </CommandGroup>
