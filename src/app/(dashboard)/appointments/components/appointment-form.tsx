@@ -36,7 +36,7 @@ import {
 import type { Appointment, Employee, Patient, AppointmentStatus } from "@/lib/types";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { CalendarIcon, Clock } from "lucide-react";
+import { CalendarIcon, RefreshCw } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Combobox } from "@/components/ui/combobox";
 
@@ -50,7 +50,7 @@ const formSchema = z.object({
   }),
   time: z.string().regex(/^(0?[1-9]|1[0-2]):[0-5][0-9] (AM|PM)$/, "Please use HH:MM AM/PM format."),
   status: z.enum(["Scheduled", "Completed", "Cancelled", "Waiting", "In Session", "On Hold"]),
-  tokenNumber: z.string(),
+  tokenNumber: z.string().min(1, "Please generate a token number."),
 });
 
 type AppointmentFormProps = {
@@ -65,16 +65,19 @@ type AppointmentFormProps = {
 // Generate time slots from 9 AM to 5 PM in 30-minute intervals
 const generateTimeSlots = () => {
     const slots = [];
-    const startTime = new Date();
-    startTime.setHours(9, 0, 0, 0); // 9:00 AM
-    const endTime = new Date();
-    endTime.setHours(17, 0, 0, 0); // 5:00 PM
-
-    let currentTime = new Date(startTime);
-
-    while (currentTime < endTime) {
-        slots.push(format(currentTime, "hh:mm a"));
-        currentTime.setMinutes(currentTime.getMinutes() + 30);
+    let hour = 9;
+    let minute = 0;
+  
+    while (hour < 17) {
+      const date = new Date();
+      date.setHours(hour, minute, 0, 0);
+      slots.push(format(date, "hh:mm a"));
+  
+      minute += 30;
+      if (minute >= 60) {
+        hour++;
+        minute = 0;
+      }
     }
     return slots;
 };
@@ -132,8 +135,22 @@ export function AppointmentForm({ appointment, patients, doctors, appointments, 
         patientName: patient.name,
         doctorName: doctor.name,
         date: format(values.date, "yyyy-MM-dd"),
-        tokenNumber: values.tokenNumber || generateToken(patient.name, doctor.name),
     });
+  }
+
+  const handleGenerateToken = () => {
+    const patientId = form.getValues("patientId");
+    const doctorId = form.getValues("doctorId");
+
+    const patient = patients.find(p => p.id === patientId);
+    const doctor = doctors.find(d => d.id === doctorId);
+
+    if (patient && doctor) {
+        const token = generateToken(patient.name, doctor.name);
+        form.setValue("tokenNumber", token, { shouldValidate: true });
+    } else {
+        form.setError("tokenNumber", { type: "manual", message: "Select patient & doctor first."})
+    }
   }
 
   const appointmentStatuses: AppointmentStatus[] = ["Scheduled", "Waiting", "In Session", "On Hold", "Completed", "Cancelled"];
@@ -147,9 +164,9 @@ export function AppointmentForm({ appointment, patients, doctors, appointments, 
                     Fill out the details for the appointment.
                 </DialogDescription>
             </DialogHeader>
-            <div className="flex-grow overflow-y-auto pr-6">
+            <div className="flex-grow overflow-y-auto pr-6 -mr-6">
             <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pr-1">
                     <FormField
                         control={form.control}
                         name="patientId"
@@ -312,18 +329,24 @@ export function AppointmentForm({ appointment, patients, doctors, appointments, 
                             name="tokenNumber"
                             render={({ field }) => (
                                 <FormItem>
-                                <FormLabel>Token Number</FormLabel>
-                                <FormControl>
-                                    <Input disabled {...field} />
-                                </FormControl>
-                                <FormMessage />
+                                    <FormLabel>Token Number</FormLabel>
+                                    <div className="flex items-center gap-2">
+                                        <FormControl>
+                                            <Input disabled {...field} />
+                                        </FormControl>
+                                        <Button type="button" variant="outline" size="icon" onClick={handleGenerateToken}>
+                                            <RefreshCw className="h-4 w-4" />
+                                            <span className="sr-only">Generate Token</span>
+                                        </Button>
+                                    </div>
+                                    <FormMessage />
                                 </FormItem>
                             )}
                         />
                     </div>
 
 
-                     <DialogFooter className="sticky bottom-0 bg-background pt-4">
+                     <DialogFooter className="sticky bottom-0 bg-background pt-4 -mx-6 px-6 pb-6 border-t">
                         <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
                         <Button type="submit">Save Appointment</Button>
                     </DialogFooter>
