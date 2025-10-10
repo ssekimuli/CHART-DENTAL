@@ -41,15 +41,25 @@ export default function AttendancePage() {
     const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>([]);
     
     useEffect(() => {
-        const fetchData = async () => {
+        const fetchInitialData = async () => {
             setIsLoading(true);
-            const [attendance, employees] = await Promise.all([getAttendance(), getEmployees()]);
-            setAllAttendance(attendance);
-            setAllEmployees(employees);
+            const employeesData = await getEmployees();
+            setAllEmployees(employeesData);
             setIsLoading(false);
         };
-        fetchData();
+        fetchInitialData();
     }, []);
+
+    useEffect(() => {
+        if (!selectedDate) return;
+        const fetchAttendanceData = async () => {
+            setIsLoading(true);
+            const attendanceData = await getAttendance();
+            setAllAttendance(attendanceData);
+            setIsLoading(false);
+        }
+        fetchAttendanceData();
+    }, [selectedDate, selectedBranch]);
 
     const filteredEmployees = useMemo(() => {
         if (currentUser.role === 'Super Admin') {
