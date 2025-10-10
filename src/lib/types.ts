@@ -55,7 +55,7 @@ export type Appointment = {
   date: string;
   time: string;
   branchId: string;
-  tokenNumber: number;
+  tokenNumber: string;
 };
 
 export type Invoice = {

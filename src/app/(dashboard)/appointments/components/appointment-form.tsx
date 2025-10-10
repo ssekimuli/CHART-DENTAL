@@ -48,9 +48,9 @@ const formSchema = z.object({
   date: z.date({
     required_error: "A date is required.",
   }),
-  time: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]\s(AM|PM)$/, "Please use HH:MM AM/PM format."),
+  time: z.string().regex(/^(0?[1-9]|1[0-2]):[0-5][0-9] (AM|PM)$/, "Please use HH:MM AM/PM format."),
   status: z.enum(["Scheduled", "Completed", "Cancelled", "Waiting", "In Session", "On Hold"]),
-  tokenNumber: z.coerce.number().positive("Token must be a positive number."),
+  tokenNumber: z.string(),
 });
 
 type AppointmentFormProps = {
@@ -66,13 +66,13 @@ type AppointmentFormProps = {
 const generateTimeSlots = () => {
     const slots = [];
     const startTime = new Date();
-    startTime.setHours(9, 0, 0, 0);
+    startTime.setHours(9, 0, 0, 0); // 9:00 AM
     const endTime = new Date();
-    endTime.setHours(16, 30, 0, 0);
+    endTime.setHours(17, 0, 0, 0); // 5:00 PM
 
     let currentTime = new Date(startTime);
 
-    while (currentTime <= endTime) {
+    while (currentTime < endTime) {
         slots.push(format(currentTime, "hh:mm a"));
         currentTime.setMinutes(currentTime.getMinutes() + 30);
     }
@@ -81,6 +81,12 @@ const generateTimeSlots = () => {
 
 const allTimeSlots = generateTimeSlots();
 
+const generateToken = (patientName: string, doctorName: string) => {
+    const patientInitials = patientName.split(' ').map(n => n[0]).join('');
+    const doctorInitials = doctorName.split(' ').map(n => n[0]).join('');
+    const randomNumber = Math.floor(100 + Math.random() * 900);
+    return `${patientInitials}${doctorInitials}${randomNumber}`;
+}
 
 export function AppointmentForm({ appointment, patients, doctors, appointments, onSave, onOpenChange }: AppointmentFormProps) {
   const form = useForm<z.infer<typeof formSchema>>({
@@ -92,11 +98,12 @@ export function AppointmentForm({ appointment, patients, doctors, appointments, 
         date: appointment ? parse(appointment.date, "yyyy-MM-dd", new Date()) : new Date(),
         time: appointment?.time ?? "",
         status: appointment?.status ?? 'Scheduled',
-        tokenNumber: appointment?.tokenNumber ?? Math.floor(Math.random() * 100) + 1,
+        tokenNumber: appointment?.tokenNumber,
     },
   });
 
   const selectedDoctorId = form.watch("doctorId");
+  const selectedPatientId = form.watch("patientId");
   const selectedDate = form.watch("date");
 
   const availableSlots = useMemo(() => {
@@ -125,6 +132,7 @@ export function AppointmentForm({ appointment, patients, doctors, appointments, 
         patientName: patient.name,
         doctorName: doctor.name,
         date: format(values.date, "yyyy-MM-dd"),
+        tokenNumber: values.tokenNumber || generateToken(patient.name, doctor.name),
     });
   }
 
@@ -306,7 +314,7 @@ export function AppointmentForm({ appointment, patients, doctors, appointments, 
                                 <FormItem>
                                 <FormLabel>Token Number</FormLabel>
                                 <FormControl>
-                                    <Input type="number" {...field} />
+                                    <Input disabled {...field} />
                                 </FormControl>
                                 <FormMessage />
                                 </FormItem>

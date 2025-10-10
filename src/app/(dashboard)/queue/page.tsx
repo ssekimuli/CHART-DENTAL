@@ -108,7 +108,12 @@ export default function QueuePage() {
         if (doctorFilter !== "all") {
           filtered = filtered.filter((a) => a.doctorId === doctorFilter);
         }
-        return filtered.sort((a,b) => a.tokenNumber - b.tokenNumber);
+        // sort by token number's numeric part
+        return filtered.sort((a, b) => {
+            const numA = parseInt(a.tokenNumber.replace(/\D/g, ''), 10);
+            const numB = parseInt(b.tokenNumber.replace(/\D/g, ''), 10);
+            return numA - numB;
+        });
       }, [allAppointments, selectedBranch, doctorFilter]);
 
 
