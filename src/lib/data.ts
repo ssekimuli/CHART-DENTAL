@@ -1,6 +1,6 @@
 
 
-import type { Patient, Appointment, Invoice, ChartData, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, SystemTreatment, PaymentMethod, PaymentTransaction, AttendanceRecord, LeaveRequest, StaffAdvance, Expense } from "@/lib/types";
+import type { Patient, Appointment, Invoice, ChartData, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, SystemTreatment, PaymentMethod, PaymentTransaction, AttendanceRecord, LeaveRequest, StaffAdvance, Expense, RolePermissions } from "@/lib/types";
 
 export const branches: Branch[] = [
   { id: "b1", name: "Downtown Clinic", address: "123 Main St, Cityville" },
@@ -329,4 +329,14 @@ export const expenses: Expense[] = [
     { id: 'exp3', branchId: 'b1', date: '2024-06-10', category: 'Supplies', description: 'Order from Dental Supplies Co.', amount: 1250 },
     { id: 'exp4', branchId: 'b2', date: '2024-06-01', category: 'Rent', description: 'June Rent - Uptown Dental', amount: 6500 },
     { id: 'exp5', branchId: 'b2', date: '2024-06-06', category: 'Utilities', description: 'Water & Gas Bill', amount: 300 },
+];
+
+export const roles: RolePermissions[] = [
+    { id: 'Super Admin', name: 'Super Admin', permissions: ['dashboard:read', 'queue:read', 'patients:read', 'patients:create', 'patients:update', 'patients:delete', 'charting:read', 'charting:update', 'appointments:read', 'appointments:create', 'appointments:update', 'appointments:delete', 'billing:read', 'billing:create', 'billing:update', 'billing:delete', 'accounting:read', 'accounting:create', 'inventory:read', 'inventory:create', 'inventory:update', 'laboratory:read', 'laboratory:create', 'laboratory:update', 'hrm:read', 'hrm:create', 'hrm:update', 'hrm:delete', 'branches:read', 'branches:create', 'reports:read', 'settings:manage', 'profile:read', 'profile:update'] },
+    { id: 'Account', name: 'Accountant', permissions: ['dashboard:read', 'billing:read', 'billing:create', 'billing:update', 'billing:delete', 'accounting:read', 'accounting:create', 'reports:read', 'settings:manage', 'profile:read', 'profile:update'] },
+    { id: 'HR', name: 'HR Manager', permissions: ['dashboard:read', 'hrm:read', 'hrm:create', 'hrm:update', 'hrm:delete', 'reports:read', 'settings:manage', 'profile:read', 'profile:update'] },
+    { id: 'Dentist', name: 'Dentist', permissions: ['dashboard:read', 'queue:read', 'patients:read', 'patients:create', 'patients:update', 'charting:read', 'charting:update', 'appointments:read', 'appointments:create', 'appointments:update', 'billing:read', 'laboratory:read', 'laboratory:create', 'laboratory:update', 'profile:read', 'profile:update'] },
+    { id: 'Hygienist', name: 'Hygienist', permissions: ['dashboard:read', 'queue:read', 'patients:read', 'charting:read', 'charting:update', 'appointments:read', 'profile:read', 'profile:update'] },
+    { id: 'Receptionist', name: 'Receptionist', permissions: ['dashboard:read', 'queue:read', 'patients:read', 'patients:create', 'patients:update', 'appointments:read', 'appointments:create', 'appointments:update', 'appointments:delete', 'billing:read', 'billing:create', 'billing:update', 'inventory:read', 'profile:read', 'profile:update'] },
+    { id: 'Assistant', name: 'Dental Assistant', permissions: ['dashboard:read', 'queue:read', 'patients:read', 'charting:read', 'appointments:read', 'inventory:read', 'inventory:create', 'inventory:update', 'laboratory:read', 'profile:read', 'profile:update'] }
 ];

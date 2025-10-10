@@ -284,3 +284,25 @@ export type CurrentUser = {
     email: string;
     avatar: string;
 };
+
+export type Permission = 
+  | 'dashboard:read'
+  | 'queue:read'
+  | 'patients:read' | 'patients:create' | 'patients:update' | 'patients:delete'
+  | 'charting:read' | 'charting:update'
+  | 'appointments:read' | 'appointments:create' | 'appointments:update' | 'appointments:delete'
+  | 'billing:read' | 'billing:create' | 'billing:update' | 'billing:delete'
+  | 'accounting:read' | 'accounting:create'
+  | 'inventory:read' | 'inventory:create' | 'inventory:update'
+  | 'laboratory:read' | 'laboratory:create' | 'laboratory:update'
+  | 'hrm:read' | 'hrm:create' | 'hrm:update' | 'hrm:delete'
+  | 'branches:read' | 'branches:create'
+  | 'reports:read'
+  | 'settings:manage'
+  | 'profile:read' | 'profile:update';
+
+export type RolePermissions = {
+    id: EmployeeRole;
+    name: string;
+    permissions: Permission[];
+};

@@ -14,9 +14,10 @@ import {
     attendance as initialAttendance,
     leaveRequests as initialLeaveRequests,
     staffAdvances as initialStaffAdvances,
-    expenses as initialExpenses
+    expenses as initialExpenses,
+    roles as initialRoles
 } from '@/lib/data';
-import type { Patient, Appointment, Invoice, ChartData, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, BasePatient, InvoiceTreatment, OtherCharge, SystemTreatment, PaymentMethod, PaymentTransaction, AttendanceRecord, LeaveRequest, StaffAdvance, StaffAdvanceStatus, Expense, ExpenseCategory } from '@/lib/types';
+import type { Patient, Appointment, Invoice, ChartData, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, BasePatient, InvoiceTreatment, OtherCharge, SystemTreatment, PaymentMethod, PaymentTransaction, AttendanceRecord, LeaveRequest, StaffAdvance, StaffAdvanceStatus, Expense, ExpenseCategory, RolePermissions, Permission } from '@/lib/types';
 
 // This is a mock API layer. In a real app, you would replace this with actual API calls to your backend.
 // We're using let instead of const so we can mutate the data in memory.
@@ -34,6 +35,7 @@ let attendance: AttendanceRecord[] = [...initialAttendance];
 let leaveRequests: LeaveRequest[] = [...initialLeaveRequests];
 let staffAdvances: StaffAdvance[] = [...initialStaffAdvances];
 let expenses: Expense[] = [...initialExpenses];
+let roles: RolePermissions[] = [...initialRoles];
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -124,6 +126,11 @@ export const getStaffAdvances = async (): Promise<StaffAdvance[]> => {
 export const getExpenses = async (): Promise<Expense[]> => {
     await delay(150);
     return JSON.parse(JSON.stringify(expenses));
+}
+
+export const getRoles = async (): Promise<RolePermissions[]> => {
+    await delay(100);
+    return JSON.parse(JSON.stringify(roles));
 }
 
 // --- WRITE OPERATIONS ---
@@ -449,4 +456,19 @@ export const createExpense = async (data: Omit<Expense, 'id'>): Promise<Expense>
     };
     expenses = [newExpense, ...expenses];
     return newExpense;
+}
+
+
+// Roles
+export const updateRole = async (roleId: string, permissions: Permission[]): Promise<RolePermissions | undefined> => {
+    await delay(200);
+    let updatedRole: RolePermissions | undefined;
+    roles = roles.map(r => {
+        if (r.id === roleId) {
+            updatedRole = { ...r, permissions };
+            return updatedRole;
+        }
+        return r;
+    });
+    return updatedRole;
 }
