@@ -104,8 +104,15 @@ export default function AppointmentsPage() {
     return branchAppointments.filter(a => a.date === formattedDate);
   }, [selectedDate, branchAppointments]);
 
-  const appointmentDates = useMemo(() => {
-    return branchAppointments.map(a => new Date(a.date));
+  const appointmentsByDate = useMemo(() => {
+    return branchAppointments.reduce((acc, appointment) => {
+      const date = appointment.date;
+      if (!acc[date]) {
+        acc[date] = 0;
+      }
+      acc[date]++;
+      return acc;
+    }, {} as Record<string, number>);
   }, [branchAppointments]);
 
   const handleOpenForm = (appointment?: Appointment) => {
@@ -275,11 +282,21 @@ export default function AppointmentsPage() {
                 selected={selectedDate}
                 onSelect={setSelectedDate}
                 className="rounded-md"
-                modifiers={{
-                    hasAppointment: appointmentDates
-                }}
-                modifiersClassNames={{
-                    hasAppointment: 'has-appointment'
+                components={{
+                  DayContent: (props) => {
+                    const date = format(props.date, 'yyyy-MM-dd');
+                    const count = appointmentsByDate[date];
+                    return (
+                      <div className="relative">
+                        {props.date.getDate()}
+                        {count > 0 && (
+                          <div className="appointment-count-badge">
+                            {count}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  },
                 }}
               />
             </CardContent>
