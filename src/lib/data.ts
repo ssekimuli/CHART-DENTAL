@@ -1,4 +1,5 @@
 
+
 import type { Patient, Appointment, Invoice, ChartData, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder } from "@/lib/types";
 
 export const branches: Branch[] = [
@@ -49,6 +50,7 @@ export const patients: Patient[] = [
       { id: "t1", procedure: "Filling for #16", tooth: 16, status: "Completed", cost: 250, date: "2024-05-10", invoiceId: "inv1" },
       { id: "t2", procedure: "Crown for #48", tooth: 48, status: "Proposed", cost: 1200, date: "2024-06-01" },
       { id: "t3", procedure: "Regular Checkup", status: "Completed", cost: 75, date: "2024-03-01", invoiceId: "inv4" },
+      { id: "t6", procedure: "Teeth Whitening", status: "Completed", cost: 450, date: "2024-07-20" }
     ],
     imaging: [
       { url: "https://picsum.photos/seed/xray1/800/600", description: "Initial panoramic X-ray", date: "2023-01-15" },
