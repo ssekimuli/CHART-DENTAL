@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export default function SettingsPage() {
   return (
@@ -54,7 +55,18 @@ export default function SettingsPage() {
               Update your dental practice's information.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-6">
+            <div className="flex items-center gap-6">
+                <Avatar className="h-24 w-24 border">
+                    <AvatarImage src="https://picsum.photos/seed/logo/200/200" alt="Practice Logo" data-ai-hint="logo company" />
+                    <AvatarFallback>PPD</AvatarFallback>
+                </Avatar>
+                <div className="grid w-full max-w-sm items-center gap-1.5">
+                    <Label htmlFor="logo">Practice Logo</Label>
+                    <Input id="logo" type="file" />
+                    <p className="text-xs text-muted-foreground">Recommended size: 200x200px</p>
+                </div>
+            </div>
             <div className="space-y-2">
               <Label htmlFor="practice-name">Practice Name</Label>
               <Input id="practice-name" defaultValue="Princeton-Plainsboro Dental" />
