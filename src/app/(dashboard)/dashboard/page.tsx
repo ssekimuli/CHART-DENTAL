@@ -209,8 +209,8 @@ export default function DashboardPage() {
         <Card className="lg:col-span-3">
           <CardHeader>
             <CardTitle>Recent Patients</CardTitle>
-            <CardDescription>
-              {isLoading ? <Skeleton className="h-4 w-1/2" /> : `You have ${recentPatients.length} recent patients in this branch.`}
+            <CardDescription asChild>
+              {isLoading ? <div className="text-sm text-muted-foreground"><Skeleton className="h-4 w-1/2" /></div> : <p className="text-sm text-muted-foreground">{`You have ${recentPatients.length} recent patients in this branch.`}</p>}
             </CardDescription>
           </CardHeader>
           <CardContent>
