@@ -44,7 +44,7 @@ const formSchema = z.object({
   email: z.string().email("Please enter a valid email."),
   role: z.enum(['Super Admin', 'Account', 'HR', 'Dentist', 'Hygienist', 'Receptionist', 'Assistant']),
   status: z.enum(['Active', 'On Leave']),
-  salary: z.coerce.number().positive("Salary must be a positive number."),
+  salary: z.coerce.number().positive("Salary must be a positive number.").optional(),
   monthlySalary: z.coerce.number().optional(),
   hireDate: z.date({
     required_error: "A hire date is required.",
@@ -77,6 +77,7 @@ export function EmployeeForm({ employee, onSave, onOpenChange }: EmployeeFormPro
   const monthlySalary = form.watch("monthlySalary");
 
   useEffect(() => {
+    if (annualSalary === undefined || annualSalary === null) return;
     const newMonthly = parseFloat((annualSalary / 12).toFixed(2));
     if (annualSalary && (!monthlySalary || newMonthly !== monthlySalary)) {
       form.setValue("monthlySalary", newMonthly);
@@ -95,6 +96,7 @@ export function EmployeeForm({ employee, onSave, onOpenChange }: EmployeeFormPro
   function onSubmit(values: z.infer<typeof formSchema>) {
     onSave({
         ...values,
+        salary: values.salary ?? 0,
         hireDate: format(values.hireDate, "yyyy-MM-dd"),
         avatar: values.avatar || `https://picsum.photos/seed/emp${Math.random()}/200/200`,
     });
