@@ -49,6 +49,7 @@ import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { DayContent, DayContentProps } from "react-day-picker";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export default function AppointmentsPage() {
   const router = useRouter();
@@ -187,14 +188,31 @@ export default function AppointmentsPage() {
   const CustomDay = (props: DayContentProps) => {
     const date = format(props.date, 'yyyy-MM-dd');
     const count = appointmentsByDate[date];
-    return (
-      <div className="relative flex flex-col items-center">
+    const content = (
+      <div className="relative flex h-full w-full flex-col items-center justify-center">
         <span>{props.date.getDate()}</span>
         {count > 0 && (
-          <div className={cn("appointment-indicator", getBadgeClassForCount(count))} title={`${count} appointments`}></div>
+          <div className={cn("appointment-indicator", getBadgeClassForCount(count))}></div>
         )}
       </div>
     );
+  
+    if (count > 0) {
+      return (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              {content}
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{count} appointment{count > 1 ? 's' : ''}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      );
+    }
+  
+    return <DayContent {...props} />;
   };
 
 
@@ -340,3 +358,5 @@ export default function AppointmentsPage() {
     </>
   );
 }
+
+    
