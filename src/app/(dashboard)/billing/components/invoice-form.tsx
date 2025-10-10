@@ -41,7 +41,7 @@ import { CalendarIcon, X, Check, Trash2, PlusCircle } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Combobox } from "@/components/ui/combobox";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getTreatments } from "@/lib/api";
 
 
@@ -217,15 +217,29 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
                         {selectedTreatments.length > 0 && (
                             <div>
                                 <p className="text-sm font-medium mb-2">Selected Treatments for Invoice</p>
-                                <div className="flex flex-wrap gap-2">
+                                <div className="rounded-md border">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Procedure</TableHead>
+                                            <TableHead className="text-right">Cost</TableHead>
+                                            <TableHead className="w-[50px]"></TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
                                     {selectedTreatments.map(treatment => (
-                                        <Badge key={treatment.procedure} variant="secondary" className="flex items-center gap-1">
-                                            {treatment.procedure}
-                                            <button type="button" onClick={() => handleTreatmentToggle(treatment)} className="rounded-full hover:bg-muted-foreground/20 p-0.5">
-                                                <X className="h-3 w-3" />
-                                            </button>
-                                        </Badge>
+                                        <TableRow key={treatment.procedure}>
+                                            <TableCell>{treatment.procedure}</TableCell>
+                                            <TableCell className="text-right">${treatment.cost.toFixed(2)}</TableCell>
+                                            <TableCell>
+                                                <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleTreatmentToggle(treatment)}>
+                                                    <X className="h-4 w-4 text-muted-foreground" />
+                                                </Button>
+                                            </TableCell>
+                                        </TableRow>
                                     ))}
+                                    </TableBody>
+                                </Table>
                                 </div>
                             </div>
                         )}
@@ -401,3 +415,4 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
     </Dialog>
   );
 }
+
