@@ -217,6 +217,14 @@ export default function QueuePage() {
                                         <CardFooter className="flex-col items-stretch gap-2 bg-background/50 border-t p-2">
                                             <div className="flex items-center justify-between gap-1">
                                                 <TooltipProvider>
+                                                     <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-500 hover:text-blue-600" onClick={() => handleStatusChange(appointment, 'Waiting')}>
+                                                                <Clock className="h-5 w-5"/>
+                                                            </Button>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent><p>Waiting</p></TooltipContent>
+                                                    </Tooltip>
                                                     <Tooltip>
                                                         <TooltipTrigger asChild>
                                                             <Button variant="ghost" size="icon" className="h-8 w-8 text-yellow-500 hover:text-yellow-600" onClick={() => handleStatusChange(appointment, 'In Session')}>
