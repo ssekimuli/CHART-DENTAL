@@ -226,6 +226,21 @@ export default function AppointmentsPage() {
   return (
     <>
       <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-3">
+        <div className="lg:col-span-1">
+          <Card>
+            <CardContent className="p-0">
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={setSelectedDate}
+                className="rounded-md"
+                components={{
+                  DayContent: CustomDay,
+                }}
+              />
+            </CardContent>
+          </Card>
+        </div>
         <div className="lg:col-span-2">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
@@ -324,21 +339,6 @@ export default function AppointmentsPage() {
             </CardContent>
           </Card>
         </div>
-        <div>
-          <Card>
-            <CardContent className="p-0">
-              <Calendar
-                mode="single"
-                selected={selectedDate}
-                onSelect={setSelectedDate}
-                className="rounded-md"
-                components={{
-                  DayContent: CustomDay,
-                }}
-              />
-            </CardContent>
-          </Card>
-        </div>
       </div>
       {isFormOpen && (
         <AppointmentForm 
@@ -369,6 +369,8 @@ export default function AppointmentsPage() {
     </>
   );
 }
+
+    
 
     
 
