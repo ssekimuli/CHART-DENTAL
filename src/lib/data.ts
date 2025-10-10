@@ -1,6 +1,6 @@
 
 
-import type { Patient, Appointment, Invoice, ChartData, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, SystemTreatment, PaymentMethod, PaymentTransaction } from "@/lib/types";
+import type { Patient, Appointment, Invoice, ChartData, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, SystemTreatment, PaymentMethod, PaymentTransaction, AttendanceRecord } from "@/lib/types";
 
 export const branches: Branch[] = [
   { id: "b1", name: "Downtown Clinic", address: "123 Main St, Cityville" },
@@ -286,6 +286,13 @@ export const payrolls: Payroll[] = [
     { id: 'pay2', employeeId: 'emp2', employeeName: 'James Wilson', payPeriod: '2024-06-01 to 2024-06-15', grossPay: 3125, deductions: 600, netPay: 2525, payDate: '2024-06-15', status: 'Paid', branchId: 'b1' },
     { id: 'pay3', employeeId: 'emp3', employeeName: 'Allison Cameron', payPeriod: '2024-06-16 to 2024-06-30', grossPay: 2083.33, deductions: 400, netPay: 1683.33, payDate: '2024-06-30', status: 'Pending', branchId: 'b2' },
     { id: 'pay4', employeeId: 'emp4', employeeName: 'Robert Chase', payPeriod: '2024-06-16 to 2024-06-30', grossPay: 2291.67, deductions: 450, netPay: 1841.67, payDate: '2024-06-30', status: 'Pending', branchId: 'b2' },
+];
+
+export const attendance: AttendanceRecord[] = [
+    { id: 'att1', employeeId: 'emp1', employeeName: 'Dr. Lisa Cuddy', date: today, status: 'Present', checkIn: '08:55 AM', checkOut: '05:05 PM', branchId: 'b1' },
+    { id: 'att2', employeeId: 'emp2', employeeName: 'James Wilson', date: today, status: 'Present', checkIn: '09:00 AM', checkOut: '05:00 PM', branchId: 'b1' },
+    { id: 'att3', employeeId: 'emp4', employeeName: 'Robert Chase', date: today, status: 'On Leave', branchId: 'b2' },
+    { id: 'att4', employeeId: 'emp5', employeeName: 'Dr. Eric Foreman', date: today, status: 'Absent', branchId: 'b2' },
 ];
 
 export const inventory: InventoryItem[] = [

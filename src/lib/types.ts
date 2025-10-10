@@ -131,6 +131,20 @@ export type Payroll = {
   branchId: string;
 };
 
+export type AttendanceStatus = 'Present' | 'Absent' | 'On Leave';
+
+export type AttendanceRecord = {
+    id: string;
+    employeeId: string;
+    employeeName: string;
+    date: string;
+    status: AttendanceStatus;
+    checkIn?: string;
+    checkOut?: string;
+    branchId: string;
+};
+
+
 export type Branch = {
   id: string;
   name: string;

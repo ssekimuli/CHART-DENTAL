@@ -10,9 +10,10 @@ import {
     branches as initialBranches,
     inventory as initialInventory,
     labOrders as initialLabOrders,
-    treatments as allTreatments
+    treatments as allTreatments,
+    attendance as initialAttendance
 } from '@/lib/data';
-import type { Patient, Appointment, Invoice, ChartData, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, BasePatient, InvoiceTreatment, OtherCharge, SystemTreatment, PaymentMethod, PaymentTransaction } from '@/lib/types';
+import type { Patient, Appointment, Invoice, ChartData, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, BasePatient, InvoiceTreatment, OtherCharge, SystemTreatment, PaymentMethod, PaymentTransaction, AttendanceRecord } from '@/lib/types';
 
 // This is a mock API layer. In a real app, you would replace this with actual API calls to your backend.
 // We're using let instead of const so we can mutate the data in memory.
@@ -26,6 +27,7 @@ let inventory: InventoryItem[] = [...initialInventory];
 let labOrders: LaboratoryOrder[] = [...initialLabOrders];
 let chartData: ChartData[] = [...allChartData];
 let treatments: SystemTreatment[] = [...allTreatments];
+let attendance: AttendanceRecord[] = [...initialAttendance];
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -96,6 +98,12 @@ export const getTreatments = async (): Promise<SystemTreatment[]> => {
     await delay(50);
     return JSON.parse(JSON.stringify(treatments));
 }
+
+export const getAttendance = async (): Promise<AttendanceRecord[]> => {
+    await delay(150);
+    return JSON.parse(JSON.stringify(attendance));
+}
+
 
 // --- WRITE OPERATIONS ---
 
@@ -324,4 +332,31 @@ export const createPayroll = async (data: Omit<Payroll, 'id'>): Promise<Payroll>
     };
     payrolls = [newPayroll, ...payrolls];
     return newPayroll;
+}
+
+
+// Attendance
+export const markAttendance = async(data: Omit<AttendanceRecord, 'id' | 'employeeName'>): Promise<AttendanceRecord> => {
+    await delay(200);
+    const employee = employees.find(e => e.id === data.employeeId);
+    if (!employee) throw new Error("Employee not found");
+
+    const newRecord: AttendanceRecord = {
+        ...data,
+        id: `att${attendance.length + 1}`,
+        employeeName: employee.name,
+    };
+    
+    // Check if a record for this employee and date already exists
+    const existingIndex = attendance.findIndex(
+      (att) => att.employeeId === data.employeeId && att.date === data.date
+    );
+
+    if (existingIndex > -1) {
+        attendance[existingIndex] = newRecord;
+    } else {
+        attendance.push(newRecord);
+    }
+    
+    return newRecord;
 }
