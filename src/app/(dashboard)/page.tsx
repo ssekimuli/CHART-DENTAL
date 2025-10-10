@@ -22,18 +22,20 @@ import {
   CalendarCheck,
   DollarSign,
   Users,
+  Send,
 } from "lucide-react";
 import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
+import { Button } from "@/components/ui/button";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useBranch } from "@/context/branch-context";
 import { useMemo, useState, useEffect } from "react";
-import type { Patient, Appointment, ChartData } from "@/lib/types";
-import { getPatients, getAppointments, getChartData } from "@/lib/api";
+import type { Patient, Appointment, ChartData, AppointmentStatus } from "@/lib/types";
+import { getPatients, getAppointments, getChartData, updateAppointment } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const chartConfig = {
@@ -67,14 +69,17 @@ export default function DashboardPage() {
   }, []);
 
   const { recentPatients, appointments, chartData, totalRevenue, activePatients, newAppointments, newPatients } = useMemo(() => {
-    const filteredAppointments = allAppointments.filter(a => a.branchId === selectedBranch);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const filteredAppointments = allAppointments.filter(a => a.branchId === selectedBranch && new Date(a.date) >= today).sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     const filteredPatients = allRecentPatients.filter(p => p.branchId === selectedBranch);
     const filteredChartData = allChartData.filter(c => c.branchId === selectedBranch);
     
     const totalRevenue = filteredChartData.reduce((acc, item) => acc + item.revenue, 0);
 
     return {
-      recentPatients: filteredPatients.slice(0, 5),
+      recentPatients: filteredPatients.sort((a,b) => new Date(b.lastVisit).getTime() - new Date(a.lastVisit).getTime()).slice(0, 5),
       appointments: filteredAppointments,
       chartData: filteredChartData,
       totalRevenue: totalRevenue,
@@ -83,6 +88,28 @@ export default function DashboardPage() {
       newPatients: filteredPatients.filter(p => new Date(p.lastVisit) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)).length,
     }
   }, [selectedBranch, allAppointments, allRecentPatients, allChartData]);
+
+  const handleSendToQueue = async (appointment: Appointment) => {
+    const updated = await updateAppointment(appointment.id, { status: "Waiting" });
+    if (updated) {
+      setAllAppointments(prev => prev.map(a => a.id === updated.id ? updated : a));
+    }
+  };
+
+  const getStatusVariant = (status: AppointmentStatus) => {
+    switch (status) {
+      case "Scheduled":
+      case "Waiting":
+        return "outline";
+      case "Completed":
+        return "secondary";
+      case "Cancelled":
+        return "destructive";
+      case "In Session":
+      case "On Hold":
+        return "default";
+    }
+  };
 
 
   return (
@@ -235,6 +262,7 @@ export default function DashboardPage() {
                 <TableHead>Status</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead>Time</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -248,15 +276,26 @@ export default function DashboardPage() {
                   </TableCell>
                   <TableCell>{appointment.treatment}</TableCell>
                   <TableCell>
-                    <Badge variant="outline">{appointment.status}</Badge>
+                    <Badge variant={getStatusVariant(appointment.status)}>{appointment.status}</Badge>
                   </TableCell>
                   <TableCell>{appointment.date}</TableCell>
                   <TableCell>{appointment.time}</TableCell>
+                  <TableCell className="text-right">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => handleSendToQueue(appointment)}
+                      disabled={appointment.status !== 'Scheduled'}
+                    >
+                      <Send className="mr-2 h-4 w-4" />
+                      Send to Queue
+                    </Button>
+                  </TableCell>
                 </TableRow>
               ))}
               {appointments.length === 0 && !isLoading && (
                 <TableRow>
-                    <TableCell colSpan={6} className="h-24 text-center">
+                    <TableCell colSpan={7} className="h-24 text-center">
                         No upcoming appointments in this branch.
                     </TableCell>
                 </TableRow>
@@ -269,3 +308,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
