@@ -23,6 +23,7 @@ import { DollarSign, UserCheck, CalendarDays, UserPlus, Loader2 } from "lucide-r
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { LeaveRequestForm } from "../hrm/components/leave-request-form";
+import { PayrollTable } from "../payroll/components/payroll-table";
 
 export default function ProfilePage() {
     const { toast } = useToast();
@@ -63,6 +64,11 @@ export default function ProfilePage() {
         }
         fetchData();
     }, []);
+
+    const userPayrolls = useMemo(() => {
+        if (!employee) return [];
+        return payrolls.filter(p => p.employeeId === employee.id);
+    }, [employee, payrolls]);
 
     const stats = useMemo(() => {
         if (!employee) return null;
@@ -150,8 +156,9 @@ export default function ProfilePage() {
             </Card>
 
             <Tabs defaultValue="overview">
-                <TabsList className="grid w-full grid-cols-3">
+                <TabsList className="grid w-full grid-cols-4">
                     <TabsTrigger value="overview">My Dashboard</TabsTrigger>
+                    <TabsTrigger value="payroll">Payroll</TabsTrigger>
                     <TabsTrigger value="leave">Leave Request</TabsTrigger>
                     <TabsTrigger value="account">My Account</TabsTrigger>
                 </TabsList>
@@ -238,6 +245,17 @@ export default function ProfilePage() {
                         </Card>
                     </div>
                 </TabsContent>
+                 <TabsContent value="payroll">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Payroll History</CardTitle>
+                            <CardDescription>Your past salary payments.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                           <PayrollTable data={userPayrolls} />
+                        </CardContent>
+                    </Card>
+                </TabsContent>
                 <TabsContent value="leave">
                     <Card>
                         <CardHeader>
@@ -316,3 +334,5 @@ export default function ProfilePage() {
     </>
     );
 }
+
+    
