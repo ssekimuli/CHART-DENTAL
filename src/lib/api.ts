@@ -166,9 +166,11 @@ export const createInvoice = async (data: Omit<Invoice, 'id' | 'amount'> & { tre
     const patient = patients.find(p => p.id === data.patientId);
     if (!patient) throw new Error("Patient not found");
 
-    const amount = patient.treatmentPlans
+    const treatmentsTotal = patient.treatmentPlans
         .filter(t => data.treatmentIds.includes(t.id))
         .reduce((sum, t) => sum + t.cost, 0);
+
+    const amount = treatmentsTotal + (data.otherCharges || 0);
 
     const newInvoiceId = `inv${invoices.length + 1}`;
     
@@ -229,11 +231,14 @@ export const updateInvoice = async (id: string, data: Partial<Omit<Invoice, 'amo
     invoices = invoices.map(i => {
         if (i.id === id) {
             const treatmentIds = data.treatmentIds || i.treatmentIds;
-            const amount = patient.treatmentPlans
+            const treatmentsTotal = patient.treatmentPlans
                 .filter(t => treatmentIds.includes(t.id))
                 .reduce((sum, t) => sum + t.cost, 0);
+            
+            const otherCharges = data.otherCharges ?? i.otherCharges ?? 0;
+            const amount = treatmentsTotal + otherCharges;
 
-            updatedInvoice = { ...i, ...data, amount, treatmentIds };
+            updatedInvoice = { ...i, ...data, amount, treatmentIds, otherCharges };
             
             // Mark new treatments as billed
             patients = patients.map(p => {

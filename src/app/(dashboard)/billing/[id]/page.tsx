@@ -39,6 +39,10 @@ export default function InvoiceDetailPage() {
     return patient.treatmentPlans.filter(t => invoice.treatmentIds.includes(t.id));
   }, [patient, invoice]);
 
+  const subtotal = useMemo(() => {
+    return treatments.reduce((sum, t) => sum + t.cost, 0);
+  }, [treatments]);
+
 
   if (isLoading) {
     return (
@@ -119,13 +123,28 @@ export default function InvoiceDetailPage() {
                             <TableCell className="text-right">${treatment.cost.toFixed(2)}</TableCell>
                         </TableRow>
                     ))}
+                    {treatments.length === 0 && (
+                        <TableRow>
+                            <TableCell colSpan={4} className="text-center text-muted-foreground">No treatments on this invoice.</TableCell>
+                        </TableRow>
+                    )}
                 </TableBody>
             </Table>
         </div>
       </CardContent>
       <CardFooter className="justify-end bg-muted/50 p-6">
-        <div className="grid gap-2 text-right">
-            <div className="flex justify-end gap-4 font-semibold">
+        <div className="w-full max-w-sm grid gap-2 text-right">
+            <div className="flex justify-between">
+                <span>Subtotal:</span>
+                <span>${subtotal.toFixed(2)}</span>
+            </div>
+            {invoice.otherCharges && invoice.otherCharges > 0 && (
+                 <div className="flex justify-between">
+                    <span>Other Charges:</span>
+                    <span>${invoice.otherCharges.toFixed(2)}</span>
+                </div>
+            )}
+            <div className="flex justify-between font-semibold text-lg border-t pt-2 mt-2">
                 <span>Total:</span>
                 <span>${invoice.amount.toFixed(2)}</span>
             </div>

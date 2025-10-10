@@ -68,6 +68,7 @@ export type Invoice = {
   dueDate: string;
   branchId: string;
   treatmentIds: string[];
+  otherCharges?: number;
 };
 
 export type ChartData = {

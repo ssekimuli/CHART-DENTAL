@@ -51,6 +51,7 @@ const formSchema = z.object({
     required_error: "A due date is required.",
   }),
   status: z.enum(['Paid', 'Pending', 'Overdue']),
+  otherCharges: z.coerce.number().min(0, "Other charges cannot be negative.").optional(),
 });
 
 type InvoiceFormProps = {
@@ -69,11 +70,13 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
         patientId: invoice?.patientId ?? "",
         issueDate: invoice ? parseISO(invoice.issueDate) : new Date(),
         dueDate: invoice ? parseISO(invoice.dueDate) : undefined,
-        status: invoice?.status ?? 'Pending'
+        status: invoice?.status ?? 'Pending',
+        otherCharges: invoice?.otherCharges ?? 0,
     },
   });
 
   const patientId = form.watch('patientId');
+  const otherCharges = form.watch('otherCharges') || 0;
 
   const availableTreatments = useMemo(() => {
     if (!patientId) return [];
@@ -121,9 +124,13 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
     }
   }
 
-  const totalAmount = useMemo(() => {
+  const subTotal = useMemo(() => {
     return selectedTreatments.reduce((sum, t) => sum + t.cost, 0);
   }, [selectedTreatments]);
+
+  const totalAmount = useMemo(() => {
+    return subTotal + otherCharges;
+  }, [subTotal, otherCharges]);
 
   return (
     <Dialog open={true} onOpenChange={onOpenChange}>
@@ -212,10 +219,19 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
                     )}
                     
                     <div className="grid grid-cols-2 gap-4">
-                        <FormItem>
-                            <FormLabel>Total Amount</FormLabel>
-                            <Input disabled value={`$${totalAmount.toFixed(2)}`} />
-                        </FormItem>
+                        <FormField
+                            control={form.control}
+                            name="otherCharges"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Other Charges</FormLabel>
+                                <FormControl>
+                                    <Input type="number" placeholder="0.00" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
                          <FormField
                             control={form.control}
                             name="status"
@@ -238,6 +254,20 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
                                 </FormItem>
                             )}
                         />
+                    </div>
+                     <div className="rounded-md border p-4 space-y-2">
+                        <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">Subtotal</span>
+                            <span>${subTotal.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">Other Charges</span>
+                            <span>${otherCharges.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between font-semibold text-lg border-t pt-2 mt-2">
+                            <span>Total Amount</span>
+                            <span>${totalAmount.toFixed(2)}</span>
+                        </div>
                     </div>
                     
                     <div className="grid grid-cols-2 gap-4">
@@ -320,7 +350,7 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
                     </div>
                      <DialogFooter>
                         <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-                        <Button type="submit" disabled={selectedTreatments.length === 0}>{invoice ? 'Save Changes' : 'Create Invoice'}</Button>
+                        <Button type="submit" disabled={selectedTreatments.length === 0 && otherCharges <= 0}>{invoice ? 'Save Changes' : 'Create Invoice'}</Button>
                     </DialogFooter>
                 </form>
             </Form>
