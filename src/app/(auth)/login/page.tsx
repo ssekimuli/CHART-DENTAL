@@ -8,12 +8,20 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { ToothIcon } from "@/components/icons/tooth-icon";
+import { getEmployees } from "@/lib/api";
+import type { Employee } from "@/lib/types";
+import { setCurrentUser } from "@/lib/user";
 
 export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [employees, setEmployees] = useState<Employee[]>([]);
+
+  useState(() => {
+    getEmployees().then(setEmployees);
+  });
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -24,11 +32,14 @@ export default function LoginPage() {
       });
       return;
     }
-    // Dummy login logic
-    if (email === "lisa.cuddy@example.com" && password === "password") {
+    
+    const employee = employees.find(emp => emp.email === email);
+
+    if (employee && password === "password") { // Using "password" for all users for this prototype
+       setCurrentUser({ role: employee.role, branchId: employee.branchId, email: employee.email, name: employee.name, avatar: employee.avatar });
        toast({
         title: "Login Successful",
-        description: "Welcome back!",
+        description: `Welcome back, ${employee.name}!`,
       });
       router.push("/dashboard");
     } else {
@@ -42,11 +53,16 @@ export default function LoginPage() {
 
   const handleGoogleSignIn = async () => {
     // Dummy Google sign-in
-    toast({
-        title: "Login Successful",
-        description: "Welcome back!",
-    });
-    router.push("/dashboard");
+    // For demo, we'll log in as the first employee
+    const employee = employees[0];
+    if (employee) {
+        setCurrentUser({ role: employee.role, branchId: employee.branchId, email: employee.email, name: employee.name, avatar: employee.avatar });
+        toast({
+            title: "Login Successful",
+            description: `Welcome back, ${employee.name}!`,
+        });
+        router.push("/dashboard");
+    }
   };
 
   return (

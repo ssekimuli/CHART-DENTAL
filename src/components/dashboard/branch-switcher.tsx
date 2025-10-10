@@ -9,14 +9,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { currentUser } from "@/lib/user";
+import { getCurrentUser } from "@/lib/user";
 import { Building } from "lucide-react";
 
 export function BranchSwitcher() {
   const { selectedBranch, setSelectedBranch, availableBranches } = useBranch();
+  const currentUser = getCurrentUser();
   const branchName = availableBranches.find(b => b.id === selectedBranch)?.name || "Select Branch";
 
-  if (currentUser.role !== 'Super Admin') {
+  if (!currentUser || currentUser.role !== 'Super Admin') {
     return <h1 className="text-lg font-semibold md:text-xl">{branchName}</h1>;
   }
 

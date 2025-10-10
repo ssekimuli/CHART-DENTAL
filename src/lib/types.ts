@@ -1,5 +1,6 @@
 
 
+
 export type Patient = {
   id: string;
   name: string;
@@ -264,4 +265,12 @@ export type StaffAdvance = {
   reason: string;
   status: StaffAdvanceStatus;
   branchId: string;
+};
+
+export type CurrentUser = {
+    role: EmployeeRole;
+    branchId: string;
+    name: string;
+    email: string;
+    avatar: string;
 };

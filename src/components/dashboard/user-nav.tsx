@@ -14,19 +14,31 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { CreditCard, LogOut, Settings, User } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { currentUser } from "@/lib/user";
+import { getCurrentUser, clearCurrentUser } from "@/lib/user";
+import { useEffect, useState } from "react";
+import type { CurrentUser } from "@/lib/types";
 
 export function UserNav() {
   const router = useRouter();
+  const [user, setUser] = useState<CurrentUser | null>(null);
+
+  useEffect(() => {
+    setUser(getCurrentUser());
+  }, []);
 
   const handleLogout = () => {
-    router.push("/");
+    clearCurrentUser();
+    router.push("/login");
   };
 
-  const user = {
-      displayName: "Dr. Lisa Cuddy",
-      email: "lisa.cuddy@example.com",
-      photoURL: `https://picsum.photos/seed/emp1/200/200`,
+  if (!user) {
+      return (
+        <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+            <Avatar className="h-9 w-9">
+                <AvatarFallback>U</AvatarFallback>
+            </Avatar>
+        </Button>
+      )
   }
 
   return (
@@ -35,12 +47,12 @@ export function UserNav() {
         <Button variant="ghost" className="relative h-8 w-8 rounded-full">
           <Avatar className="h-9 w-9">
             <AvatarImage
-              src={user?.photoURL ?? ''}
-              alt={user?.displayName ?? "User"}
+              src={user.avatar}
+              alt={user.name}
               data-ai-hint="person face"
             />
             <AvatarFallback>
-              {user?.email?.charAt(0).toUpperCase() ?? "U"}
+              {user.name.charAt(0).toUpperCase()}
             </AvatarFallback>
           </Avatar>
         </Button>
@@ -49,10 +61,10 @@ export function UserNav() {
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
             <p className="text-sm font-medium leading-none">
-              {user?.displayName ?? "User"}
+              {user.name}
             </p>
             <p className="text-xs leading-none text-muted-foreground">
-              {user?.email ?? ""}
+              {user.email}
             </p>
           </div>
         </DropdownMenuLabel>

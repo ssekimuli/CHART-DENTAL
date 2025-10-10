@@ -36,8 +36,7 @@ import {
 import type { EmployeeRole } from "@/lib/types";
 import { currentUser } from "@/lib/user";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../ui/collapsible";
-import { cn } from "@/lib/utils";
-import React from "react";
+import React, { useEffect, useState } from "react";
 
 const allLinks = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ['Super Admin', 'Account', 'HR', 'Dentist', 'Hygienist', 'Receptionist', 'Assistant'] as EmployeeRole[] },
@@ -69,13 +68,19 @@ const allLinks = [
 
 export function MainNav() {
   const pathname = usePathname();
+  const [userRole, setUserRole] = useState(currentUser.role);
+  
+  useEffect(() => {
+    // This effect can be used to update the role if it changes during the session
+    setUserRole(currentUser.role);
+  }, []);
 
   const isHrmActive = pathname.startsWith('/hrm');
 
   const accessibleLinks = allLinks.filter(link => {
-    if (link.roles.includes(currentUser.role)) {
+    if (link.roles.includes(userRole)) {
         if (link.subLinks) {
-            link.subLinks = link.subLinks.filter(sublink => sublink.roles.includes(currentUser.role));
+            link.subLinks = link.subLinks.filter(sublink => sublink.roles.includes(userRole));
             return link.subLinks.length > 0;
         }
         return true;
