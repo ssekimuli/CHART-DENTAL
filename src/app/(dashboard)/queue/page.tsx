@@ -198,7 +198,7 @@ export default function QueuePage() {
                                      <Card key={appointment.id} className="flex flex-col isolate z-10">
                                         <CardHeader className="flex-row items-start gap-3 space-y-0 p-4">
                                             <Avatar className="h-10 w-10 border">
-                                                <AvatarImage src={`https://picsum.photos/seed/${appointment.patientId}/200/200`} />
+                                                
                                                 <AvatarFallback>{appointment.patientName.charAt(0)}</AvatarFallback>
                                             </Avatar>
                                             <div className="flex-1">
