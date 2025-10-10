@@ -67,7 +67,22 @@ export const patients: Patient[] = [
       openbite: "None",
       malocclusion: "Class I",
     },
-    softTissueRecords: [],
+    softTissueRecords: [
+      {
+        id: 'st1',
+        date: '2024-05-10',
+        location: 'Right buccal mucosa',
+        type: 'Ulcer',
+        description: 'Small aphthous ulcer, 3mm diameter, non-indurated.'
+      },
+      {
+        id: 'st2',
+        date: '2023-11-20',
+        location: 'Floor of mouth',
+        type: 'Lesion',
+        description: 'Torus mandibularis, bony and asymptomatic.'
+      }
+    ],
     orthodonticRecords: [],
   },
   {
@@ -279,21 +294,21 @@ export const employees: Employee[] = [
   { id: 'emp5', name: 'Dr. Eric Foreman', avatar: 'https://picsum.photos/seed/emp5/200/200', email: 'eric.foreman@example.com', role: 'Dentist', status: 'Active', salary: 120000, hireDate: '2019-08-01', branchId: 'b2' },
 ];
 
-export const payrolls: Payroll[] = [
+export let payrolls: Payroll[] = [
     { id: 'pay1', employeeId: 'emp1', employeeName: 'Dr. Lisa Cuddy', payPeriod: '2024-06-01 to 2024-06-15', grossPay: 6250, deductions: 1200, netPay: 5050, payDate: '2024-06-15', status: 'Paid', branchId: 'b1' },
     { id: 'pay2', employeeId: 'emp2', employeeName: 'James Wilson', payPeriod: '2024-06-01 to 2024-06-15', grossPay: 3125, deductions: 600, netPay: 2525, payDate: '2024-06-15', status: 'Paid', branchId: 'b1' },
     { id: 'pay3', employeeId: 'emp3', employeeName: 'Allison Cameron', payPeriod: '2024-06-16 to 2024-06-30', grossPay: 2083.33, deductions: 400, netPay: 1683.33, payDate: '2024-06-30', status: 'Pending', branchId: 'b2' },
     { id: 'pay4', employeeId: 'emp4', employeeName: 'Robert Chase', payPeriod: '2024-06-16 to 2024-06-30', grossPay: 2291.67, deductions: 450, netPay: 1841.67, payDate: '2024-06-30', status: 'Pending', branchId: 'b2' },
 ];
 
-export const attendance: AttendanceRecord[] = [
+export let attendance: AttendanceRecord[] = [
     { id: 'att1', employeeId: 'emp1', employeeName: 'Dr. Lisa Cuddy', date: today, status: 'Present', checkIn: '08:55 AM', checkOut: '05:05 PM', branchId: 'b1' },
     { id: 'att2', employeeId: 'emp2', employeeName: 'James Wilson', date: today, status: 'Present', checkIn: '09:00 AM', checkOut: '05:00 PM', branchId: 'b1' },
     { id: 'att3', employeeId: 'emp4', employeeName: 'Robert Chase', date: today, status: 'On Leave', branchId: 'b2' },
     { id: 'att4', employeeId: 'emp5', employeeName: 'Dr. Eric Foreman', date: today, status: 'Absent', branchId: 'b2' },
 ];
 
-export const inventory: InventoryItem[] = [
+export let inventory: InventoryItem[] = [
     { id: 'item1', name: 'Gloves (Box of 100)', supplier: 'Dental Supplies Co.', stock: 50, reorderLevel: 20, price: 15.00, status: 'In Stock', branchId: 'b1' },
     { id: 'item2', name: 'Dental Masks (Box of 50)', supplier: 'MediWear', stock: 15, reorderLevel: 10, price: 25.00, status: 'Low Stock', branchId: 'b1' },
     { id: 'item3', name: 'Composite Resin (Syringe)', supplier: '3M Dental', stock: 100, reorderLevel: 50, price: 85.00, status: 'In Stock', branchId: 'b2' },
@@ -301,27 +316,27 @@ export const inventory: InventoryItem[] = [
     { id: 'item5', name: 'X-Ray Film', supplier: 'Kodak', stock: 0, reorderLevel: 10, price: 120.00, status: 'Out of Stock', branchId: 'b1' },
 ];
 
-export const labOrders: LaboratoryOrder[] = [
+export let labOrders: LaboratoryOrder[] = [
     { id: 'lab1', patientId: '1', patientName: 'John Doe', lab: 'Precision Dental Labs', item: 'Zirconia Crown', tooth: 48, status: 'Sent', sentDate: '2024-06-02', dueDate: '2024-06-16', branchId: 'b1'},
     { id: 'lab2', patientId: '2', patientName: 'Jane Smith', lab: 'Aesthetic Creations', item: 'Night Guard', status: 'Received', sentDate: '2024-05-15', dueDate: '2024-05-30', branchId: 'b2'},
     { id: 'lab3', patientId: '4', patientName: 'Mike Williams', lab: 'Precision Dental Labs', item: 'Inlay', tooth: 15, status: 'Completed', sentDate: '2024-07-16', dueDate: '2024-07-30', branchId: 'b2'},
     { id: 'lab4', patientId: '1', patientName: 'John Doe', lab: 'City Labs', item: 'Denture Repair', status: 'Cancelled', sentDate: '2024-07-01', dueDate: '2024-07-10', branchId: 'b1'},
 ];
 
-export const leaveRequests: LeaveRequest[] = [
+export let leaveRequests: LeaveRequest[] = [
   { id: 'leave1', employeeId: 'emp2', employeeName: 'James Wilson', leaveType: 'Annual', startDate: '2024-08-01', endDate: '2024-08-05', reason: 'Family vacation', status: 'Approved', branchId: 'b1' },
   { id: 'leave2', employeeId: 'emp4', employeeName: 'Robert Chase', leaveType: 'Sick', startDate: '2024-07-18', endDate: '2024-07-18', reason: 'Feeling unwell', status: 'Approved', branchId: 'b2' },
   { id: 'leave3', employeeId: 'emp3', employeeName: 'Allison Cameron', leaveType: 'Annual', startDate: '2024-09-01', endDate: '2024-09-03', reason: 'Personal time', status: 'Pending', branchId: 'b2' },
   { id: 'leave4', employeeId: 'emp5', employeeName: 'Dr. Eric Foreman', leaveType: 'Unpaid', startDate: '2024-08-10', endDate: '2024-08-10', reason: 'Conference', status: 'Rejected', branchId: 'b2' },
 ];
 
-export const staffAdvances: StaffAdvance[] = [
+export let staffAdvances: StaffAdvance[] = [
     { id: 'adv1', employeeId: 'emp3', employeeName: 'Allison Cameron', amount: 500, date: '2024-07-01', reason: 'Emergency', status: 'Approved', branchId: 'b2'},
     { id: 'adv2', employeeId: 'emp5', employeeName: 'Dr. Eric Foreman', amount: 1000, date: '2024-07-10', reason: 'Travel expenses', status: 'Pending', branchId: 'b2'},
     { id: 'adv3', employeeId: 'emp2', employeeName: 'James Wilson', amount: 200, date: '2024-06-20', reason: 'Personal', status: 'Rejected', branchId: 'b1'},
 ]
 
-export const expenses: Expense[] = [
+export let expenses: Expense[] = [
     { id: 'exp1', branchId: 'b1', date: '2024-06-01', category: 'Rent', description: 'June Rent - Downtown Clinic', amount: 5000 },
     { id: 'exp2', branchId: 'b1', date: '2024-06-05', category: 'Utilities', description: 'Electricity Bill', amount: 450 },
     { id: 'exp3', branchId: 'b1', date: '2024-06-10', category: 'Supplies', description: 'Order from Dental Supplies Co.', amount: 1250 },
@@ -329,7 +344,7 @@ export const expenses: Expense[] = [
     { id: 'exp5', branchId: 'b2', date: '2024-06-06', category: 'Utilities', description: 'Water & Gas Bill', amount: 300 },
 ];
 
-export const roles: RolePermissions[] = [
+export let roles: RolePermissions[] = [
     { id: 'Super Admin', name: 'Super Admin', permissions: ['dashboard:read', 'queue:read', 'patients:read', 'patients:create', 'patients:update', 'patients:delete', 'charting:read', 'charting:update', 'appointments:read', 'appointments:create', 'appointments:update', 'appointments:delete', 'billing:read', 'billing:create', 'billing:update', 'billing:delete', 'accounting:read', 'accounting:create', 'inventory:read', 'inventory:create', 'inventory:update', 'laboratory:read', 'laboratory:create', 'laboratory:update', 'hrm:read', 'hrm:create', 'hrm:update', 'hrm:delete', 'branches:read', 'branches:create', 'reports:read', 'settings:manage', 'profile:read', 'profile:update'] },
     { id: 'Account', name: 'Accountant', permissions: ['dashboard:read', 'billing:read', 'billing:create', 'billing:update', 'billing:delete', 'accounting:read', 'accounting:create', 'reports:read', 'settings:manage', 'profile:read', 'profile:update'] },
     { id: 'HR', name: 'HR Manager', permissions: ['dashboard:read', 'hrm:read', 'hrm:create', 'hrm:update', 'hrm:delete', 'reports:read', 'settings:manage', 'profile:read', 'profile:update'] },
@@ -338,3 +353,4 @@ export const roles: RolePermissions[] = [
     { id: 'Receptionist', name: 'Receptionist', permissions: ['dashboard:read', 'queue:read', 'patients:read', 'patients:create', 'patients:update', 'appointments:read', 'appointments:create', 'appointments:update', 'appointments:delete', 'billing:read', 'billing:create', 'billing:update', 'inventory:read', 'profile:read', 'profile:update'] },
     { id: 'Assistant', name: 'Dental Assistant', permissions: ['dashboard:read', 'queue:read', 'patients:read', 'charting:read', 'appointments:read', 'inventory:read', 'inventory:create', 'inventory:update', 'laboratory:read', 'profile:read', 'profile:update'] }
 ];
+
