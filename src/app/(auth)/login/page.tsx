@@ -22,6 +22,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
+import { ToothIcon } from "@/components/icons/tooth-icon";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -67,23 +68,23 @@ export default function LoginPage() {
 
   return (
     <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2">
-      <div className="hidden bg-muted lg:block">
-        <div className="flex h-full flex-col items-center justify-center gap-4 text-center">
-          <Image
-            src="https://picsum.photos/seed/logo/100/100"
-            alt="DentalChart Pro Logo"
-            width={100}
-            height={100}
-            className="rounded-full"
-            data-ai-hint="logo"
-          />
-          <h1 className="text-4xl font-bold text-primary-foreground">
-            DentalChart Pro
+      <div className="hidden bg-gradient-to-br from-gray-900 to-blue-900 lg:flex flex-col items-center justify-center p-10 text-white">
+        <div className="flex flex-col items-center justify-center gap-6 text-center">
+            <div className="relative w-64 h-64">
+                <div className="absolute inset-0 bg-blue-400/20 rounded-full blur-2xl"></div>
+                <ToothIcon className="w-64 h-64 text-white drop-shadow-[0_10px_10px_rgba(0,0,0,0.3)]" />
+            </div>
+          <h1 className="text-5xl font-bold tracking-tight">
+            <span className="text-gray-300">BUSINESS</span>
+            <br/>
+            <span className="text-blue-400">DENTAL CARE</span>
           </h1>
-          <p className="text-muted-foreground">The modern solution for dental practice management.</p>
+          <p className="max-w-sm text-gray-300">
+            The modern, AI-powered solution for dental practice management. Streamline your workflow and focus on what matters most—your patients.
+          </p>
         </div>
       </div>
-      <div className="flex items-center justify-center py-12">
+      <div className="flex items-center justify-center py-12 bg-background">
         <div className="mx-auto grid w-[350px] gap-6">
           <div className="grid gap-2 text-center">
             <h1 className="text-3xl font-bold">Login</h1>
