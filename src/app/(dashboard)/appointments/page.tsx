@@ -21,7 +21,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { useState, useMemo, useEffect } from "react";
 import type { Appointment, Employee, Patient, AppointmentStatus } from "@/lib/types";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, PlusCircle, Trash, Pencil, FileText } from "lucide-react";
+import { MoreHorizontal, PlusCircle, Trash, Pencil, FileText, Send } from "lucide-react";
 import { AppointmentForm } from "./components/appointment-form";
 import { useBranch } from "@/context/branch-context";
 import { currentUser } from "@/lib/user";
@@ -162,6 +162,13 @@ export default function AppointmentsPage() {
   const handleGoToChart = (patientId: string) => {
     router.push(`/patients/${patientId}/charting`);
   }
+
+  const handleSendToQueue = async (appointment: Appointment) => {
+    const updated = await updateAppointment(appointment.id, { status: "Waiting" });
+    if (updated) {
+      setAllAppointments(prev => prev.map(a => a.id === updated.id ? updated : a));
+    }
+  };
   
   const getStatusVariant = (status: AppointmentStatus) => {
     switch (status) {
@@ -290,6 +297,10 @@ export default function AppointmentsPage() {
                                     <Pencil className="mr-2 h-4 w-4" />
                                     Edit
                                 </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleSendToQueue(appointment)} disabled={appointment.status !== 'Scheduled'}>
+                                  <Send className="mr-2 h-4 w-4" />
+                                  Send to Queue
+                                </DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem className="text-red-600" onClick={() => openDeleteDialog(appointment)}>
                                     <Trash className="mr-2 h-4 w-4" />
@@ -358,5 +369,7 @@ export default function AppointmentsPage() {
     </>
   );
 }
+
+    
 
     
