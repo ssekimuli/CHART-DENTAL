@@ -4,6 +4,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -32,7 +33,7 @@ import {
   } from "@/components/ui/select";
 import type { Treatment, DentalCondition } from "@/lib/types";
 import { Combobox } from "@/components/ui/combobox";
-import { treatments } from "@/lib/treatments";
+import { getTreatments } from "@/lib/api";
 
 const formSchema = z.object({
   procedure: z.string().min(2, {
@@ -53,6 +54,8 @@ type TreatmentPlanFormProps = {
 };
 
 export function TreatmentPlanForm({ treatment, onSave, onOpenChange, toothId, currentCondition }: TreatmentPlanFormProps) {
+  const [treatments, setTreatments] = useState<string[]>([]);
+  
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -63,6 +66,14 @@ export function TreatmentPlanForm({ treatment, onSave, onOpenChange, toothId, cu
       condition: currentCondition,
     },
   });
+
+  useEffect(() => {
+    const fetchTreatments = async () => {
+        const data = await getTreatments();
+        setTreatments(data);
+    }
+    fetchTreatments();
+  }, [])
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     onSave(values, values.condition);
@@ -91,7 +102,9 @@ export function TreatmentPlanForm({ treatment, onSave, onOpenChange, toothId, cu
                             <Combobox
                                 options={treatments.map(t => ({ value: t, label: t }))}
                                 value={field.value}
-                                onChange={field.onChange}
+                                onChange={(value) => {
+                                  field.onChange(value);
+                                }}
                                 placeholder="Select a procedure"
                                 searchPlaceholder="Search procedures..."
                                 emptyMessage="No procedure found."

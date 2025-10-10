@@ -6,6 +6,27 @@ export const branches: Branch[] = [
   { id: "b2", name: "Uptown Dental", address: "456 Oak Ave, Townburg" },
 ];
 
+export const treatments = [
+    "Regular Checkup & Cleaning",
+    "Composite Filling",
+    "Amalgam Filling",
+    "Root Canal Therapy",
+    "Tooth Extraction",
+    "Dental Crown",
+    "Dental Bridge",
+    "Dental Implant",
+    "Single Tooth Implant",
+    "Implant-Supported Bridge",
+    "All-on-4 Implants",
+    "Teeth Whitening",
+    "Veneers",
+    "Periodontal Scaling and Root Planing",
+    "Dentures (Full)",
+    "Dentures (Partial)",
+    "Consultation",
+    "Emergency Exam",
+];
+
 export const patients: Patient[] = [
   {
     id: "1",

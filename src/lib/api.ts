@@ -9,7 +9,8 @@ import {
     payrolls as initialPayrolls,
     branches as initialBranches,
     inventory as initialInventory,
-    labOrders as initialLabOrders
+    labOrders as initialLabOrders,
+    treatments as allTreatments
 } from '@/lib/data';
 import type { Patient, Appointment, Invoice, ChartData, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, BasePatient, Treatment, OtherCharge } from '@/lib/types';
 
@@ -24,6 +25,7 @@ let branches: Branch[] = [...initialBranches];
 let inventory: InventoryItem[] = [...initialInventory];
 let labOrders: LaboratoryOrder[] = [...initialLabOrders];
 let chartData: ChartData[] = [...allChartData];
+let treatments: string[] = [...allTreatments];
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -88,6 +90,11 @@ export const getLabOrders = async (): Promise<LaboratoryOrder[]> => {
 export const getChartData = async (): Promise<ChartData[]> => {
     await delay(300);
     return JSON.parse(JSON.stringify(chartData));
+}
+
+export const getTreatments = async (): Promise<string[]> => {
+    await delay(50);
+    return JSON.parse(JSON.stringify(treatments));
 }
 
 // --- WRITE OPERATIONS ---

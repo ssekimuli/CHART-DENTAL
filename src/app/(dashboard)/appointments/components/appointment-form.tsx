@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { format, parse } from "date-fns";
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -39,7 +39,7 @@ import { cn } from "@/lib/utils";
 import { CalendarIcon, RefreshCw } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Combobox } from "@/components/ui/combobox";
-import { treatments } from "@/lib/treatments";
+import { getTreatments } from "@/lib/api";
 
 
 const formSchema = z.object({
@@ -93,6 +93,8 @@ const generateToken = (patientName: string, doctorName: string) => {
 }
 
 export function AppointmentForm({ appointment, patients, doctors, appointments, onSave, onOpenChange }: AppointmentFormProps) {
+  const [treatments, setTreatments] = useState<string[]>([]);
+  
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -105,6 +107,14 @@ export function AppointmentForm({ appointment, patients, doctors, appointments, 
         tokenNumber: appointment?.tokenNumber,
     },
   });
+
+  useEffect(() => {
+    const fetchTreatments = async () => {
+        const data = await getTreatments();
+        setTreatments(data);
+    }
+    fetchTreatments();
+  }, [])
 
   const selectedDoctorId = form.watch("doctorId");
   const selectedPatientId = form.watch("patientId");
@@ -178,7 +188,9 @@ export function AppointmentForm({ appointment, patients, doctors, appointments, 
                                 <Combobox
                                     options={patients.map(p => ({ value: p.id, label: p.name }))}
                                     value={field.value}
-                                    onChange={field.onChange}
+                                    onChange={(value) => {
+                                        field.onChange(value);
+                                    }}
                                     placeholder="Select a patient"
                                     searchPlaceholder="Search patients..."
                                     emptyMessage="No patient found."
@@ -198,7 +210,9 @@ export function AppointmentForm({ appointment, patients, doctors, appointments, 
                                 <Combobox
                                     options={doctors.map(d => ({ value: d.id, label: d.name }))}
                                     value={field.value}
-                                    onChange={field.onChange}
+                                    onChange={(value) => {
+                                        field.onChange(value);
+                                    }}
                                     placeholder="Select a doctor"
                                     searchPlaceholder="Search doctors..."
                                     emptyMessage="No doctor found."
@@ -218,7 +232,9 @@ export function AppointmentForm({ appointment, patients, doctors, appointments, 
                                 <Combobox
                                     options={treatments.map(t => ({ value: t, label: t }))}
                                     value={field.value}
-                                    onChange={field.onChange}
+                                    onChange={(value) => {
+                                        field.onChange(value);
+                                    }}
                                     placeholder="Select a treatment"
                                     searchPlaceholder="Search treatments..."
                                     emptyMessage="No treatment found."
