@@ -48,6 +48,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { DayContent, DayContentProps } from "react-day-picker";
 
 export default function AppointmentsPage() {
   const router = useRouter();
@@ -183,6 +184,19 @@ export default function AppointmentsPage() {
     return 'appointment-count-low';
   }
 
+  const CustomDay = (props: DayContentProps) => {
+    const date = format(props.date, 'yyyy-MM-dd');
+    const count = appointmentsByDate[date];
+    return (
+      <div className="relative flex flex-col items-center">
+        <span>{props.date.getDate()}</span>
+        {count > 0 && (
+          <div className={cn("appointment-indicator", getBadgeClassForCount(count))} title={`${count} appointments`}></div>
+        )}
+      </div>
+    );
+  };
+
 
   return (
     <>
@@ -290,20 +304,7 @@ export default function AppointmentsPage() {
                 onSelect={setSelectedDate}
                 className="rounded-md"
                 components={{
-                  DayContent: (props) => {
-                    const date = format(props.date, 'yyyy-MM-dd');
-                    const count = appointmentsByDate[date];
-                    return (
-                      <div className="relative">
-                        {props.date.getDate()}
-                        {count > 0 && (
-                          <div className={cn("appointment-count-badge", getBadgeClassForCount(count))}>
-                            {count}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  },
+                  DayContent: CustomDay,
                 }}
               />
             </CardContent>

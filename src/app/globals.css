@@ -82,8 +82,8 @@
   body {
     @apply bg-background text-foreground;
   }
-  .appointment-count-badge {
-    @apply absolute -top-2 -right-3 h-5 w-5 text-xs flex items-center justify-center rounded-full text-white font-bold shadow-md;
+  .appointment-indicator {
+    @apply h-1.5 w-1.5 rounded-full mt-0.5;
   }
   .appointment-count-low {
     @apply bg-blue-500;
