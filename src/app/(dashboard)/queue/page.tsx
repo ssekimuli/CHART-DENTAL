@@ -10,7 +10,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import type { Appointment, Employee, AppointmentStatus } from "@/lib/types";
 import { getAppointments, getEmployees, updateAppointment } from "@/lib/api";
@@ -21,12 +20,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Clock, UserCheck, CheckCircle, PauseCircle, Ban, Loader2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useRouter } from "next/navigation";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { speak } from "@/ai/flows/speak";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -37,7 +30,7 @@ type StatusColumn = {
 };
 
 const statusColumns: StatusColumn[] = [
-  { title: "Waiting", statuses: ["Scheduled", "Waiting"], icon: <Clock className="h-5 w-5 text-blue-500" /> },
+  { title: "Waiting", statuses: ["Waiting"], icon: <Clock className="h-5 w-5 text-blue-500" /> },
   { title: "In Session", statuses: ["In Session"], icon: <UserCheck className="h-5 w-5 text-yellow-500" /> },
   { title: "On Hold", statuses: ["On Hold"], icon: <PauseCircle className="h-5 w-5 text-orange-500" /> },
   { title: "Completed", statuses: ["Completed"], icon: <CheckCircle className="h-5 w-5 text-green-500" /> },
@@ -104,7 +97,7 @@ export default function QueuePage() {
     const todaysAppointments = useMemo(() => {
         const today = format(new Date(), "yyyy-MM-dd");
         let filtered = allAppointments.filter(
-          (a) => a.branchId === selectedBranch && a.date === today && a.status !== 'Cancelled'
+          (a) => a.branchId === selectedBranch && a.date === today && a.status !== 'Cancelled' && a.status !== 'Scheduled'
         );
         if (doctorFilter !== "all") {
           filtered = filtered.filter((a) => a.doctorId === doctorFilter);
@@ -184,7 +177,7 @@ export default function QueuePage() {
                     </div>
                 ) : todaysAppointments.length === 0 ? (
                     <div className="text-center py-12 text-muted-foreground">
-                        No appointments scheduled for today in this branch.
+                        No patients in the queue for today in this branch.
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-start">
@@ -198,8 +191,8 @@ export default function QueuePage() {
                                 {appointmentsByStatus(column.statuses).map(appointment => (
                                      <Card key={appointment.id} className="flex flex-col isolate z-10 overflow-hidden">
                                         <CardHeader className="flex-col items-center gap-2 space-y-0 p-4 bg-background/50 border-b">
-                                            <div className="flex items-center justify-center h-16 w-16 rounded-full bg-primary/10 border-2 border-primary/20 text-primary font-bold text-3xl">
-                                                {isSpeaking && currentlySpeaking === appointment.id ? <Loader2 className="h-8 w-8 animate-spin"/> : appointment.tokenNumber}
+                                             <div className="flex items-center justify-center h-12 w-12 rounded-full bg-primary/10 border-2 border-primary/20 text-primary font-bold text-2xl">
+                                                {isSpeaking && currentlySpeaking === appointment.id ? <Loader2 className="h-6 w-6 animate-spin"/> : appointment.tokenNumber}
                                             </div>
                                             <div className="text-center">
                                                 <CardTitle className="text-lg">{appointment.patientName}</CardTitle>
@@ -282,5 +275,7 @@ export default function QueuePage() {
     </div>
   );
 }
+
+    
 
     
