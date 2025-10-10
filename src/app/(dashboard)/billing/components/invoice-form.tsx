@@ -174,8 +174,8 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
                                             {availableTreatments.map(treatment => (
                                                 <CommandItem
                                                     key={treatment.id}
-                                                    value={treatment.id}
-                                                    onSelect={handleTreatmentSelect}
+                                                    value={`${treatment.id} ${treatment.procedure} ${treatment.tooth || ''} ${treatment.date}`}
+                                                    onSelect={() => handleTreatmentSelect(treatment.id)}
                                                     className="flex justify-between items-center cursor-pointer"
                                                 >
                                                    <div>
@@ -328,5 +328,3 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
     </Dialog>
   );
 }
-
-    
