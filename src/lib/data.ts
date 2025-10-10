@@ -28,7 +28,7 @@ export const treatments: SystemTreatment[] = [
     { procedure: "Emergency Exam", cost: 150 },
 ];
 
-export const patients: Patient[] = [
+export let patients: Patient[] = [
   {
     id: "1",
     name: "John Doe",
@@ -101,7 +101,7 @@ export const patients: Patient[] = [
     imaging: [
         { url: "https://picsum.photos/seed/xray7/800/600", description: "Annual Bitewing", date: "2024-04-22" },
     ],
-    history: "Good oral hygiene. No major issues reported.",
+    history: "Good oral hygiene. No major issues reported. Undergoing orthodontic treatment.",
     periodontalRecords: [],
     occlusalRecords: {
       overbite: 1,
@@ -111,7 +111,24 @@ export const patients: Patient[] = [
       malocclusion: "Class I",
     },
     softTissueRecords: [],
-    orthodonticRecords: [],
+    orthodonticRecords: [
+        {
+            id: 'ortho1',
+            date: '2024-01-10',
+            appliance: 'Braces',
+            wireSize: '.016 Nickel Titanium',
+            bracketChanges: [],
+            notes: 'Initial placement of ceramic braces on upper and lower arches. Patient instructed on proper care and hygiene.'
+        },
+        {
+            id: 'ortho2',
+            date: '2024-03-15',
+            appliance: 'Braces',
+            wireSize: '.018 Stainless Steel',
+            bracketChanges: ['14', '24'],
+            notes: 'Adjustment appointment. Progressing well. Repositioned brackets on #14 and #24 to improve rotation. Patient reports minor discomfort.'
+        },
+    ],
   },
   {
     id: "3",
@@ -190,7 +207,7 @@ export const patients: Patient[] = [
 ];
 
 const today = new Date().toISOString().split('T')[0];
-export const appointments: Appointment[] = [
+export let appointments: Appointment[] = [
   { id: "a1", patientName: "John Doe", patientId: "1", doctorName: "Dr. Lisa Cuddy", doctorId: 'emp1', treatment: "Check-up", status: "Scheduled", date: "2024-07-20", time: "10:00 AM", branchId: "b1", tokenNumber: 'JDLC1' },
   { id: "a2", patientName: "Jane Smith", patientId: "2", doctorName: "Dr. Eric Foreman", doctorId: 'emp5', treatment: "Cleaning", status: "Scheduled", date: "2024-07-21", time: "11:30 AM", branchId: "b2", tokenNumber: 'JSEF2' },
   { id: "a3", patientName: "Mike Williams", patientId: "4", doctorName: "Dr. Eric Foreman", doctorId: 'emp5', treatment: "Filling", status: "Completed", date: "2024-07-15", time: "02:00 PM", branchId: "b2", tokenNumber: 'MWEF3' },
@@ -199,7 +216,7 @@ export const appointments: Appointment[] = [
   { id: "a6", patientName: "John Doe", patientId: "1", doctorName: "Dr. Lisa Cuddy", doctorId: 'emp1', treatment: "Crown Follow-up", status: "Waiting", date: today, time: "09:30 AM", branchId: "b1", tokenNumber: 'JDLC6' },
 ];
 
-export const invoices: Invoice[] = [
+export let invoices: Invoice[] = [
   { 
     id: "inv1", 
     patientName: "John Doe", 
@@ -353,4 +370,5 @@ export let roles: RolePermissions[] = [
     { id: 'Receptionist', name: 'Receptionist', permissions: ['dashboard:read', 'queue:read', 'patients:read', 'patients:create', 'patients:update', 'appointments:read', 'appointments:create', 'appointments:update', 'appointments:delete', 'billing:read', 'billing:create', 'billing:update', 'inventory:read', 'profile:read', 'profile:update'] },
     { id: 'Assistant', name: 'Dental Assistant', permissions: ['dashboard:read', 'queue:read', 'patients:read', 'charting:read', 'appointments:read', 'inventory:read', 'inventory:create', 'inventory:update', 'laboratory:read', 'profile:read', 'profile:update'] }
 ];
+
 
