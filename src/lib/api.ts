@@ -11,9 +11,10 @@ import {
     inventory as initialInventory,
     labOrders as initialLabOrders,
     treatments as allTreatments,
-    attendance as initialAttendance
+    attendance as initialAttendance,
+    leaveRequests as initialLeaveRequests
 } from '@/lib/data';
-import type { Patient, Appointment, Invoice, ChartData, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, BasePatient, InvoiceTreatment, OtherCharge, SystemTreatment, PaymentMethod, PaymentTransaction, AttendanceRecord } from '@/lib/types';
+import type { Patient, Appointment, Invoice, ChartData, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, BasePatient, InvoiceTreatment, OtherCharge, SystemTreatment, PaymentMethod, PaymentTransaction, AttendanceRecord, LeaveRequest } from '@/lib/types';
 
 // This is a mock API layer. In a real app, you would replace this with actual API calls to your backend.
 // We're using let instead of const so we can mutate the data in memory.
@@ -28,6 +29,7 @@ let labOrders: LaboratoryOrder[] = [...initialLabOrders];
 let chartData: ChartData[] = [...allChartData];
 let treatments: SystemTreatment[] = [...allTreatments];
 let attendance: AttendanceRecord[] = [...initialAttendance];
+let leaveRequests: LeaveRequest[] = [...initialLeaveRequests];
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -102,6 +104,11 @@ export const getTreatments = async (): Promise<SystemTreatment[]> => {
 export const getAttendance = async (): Promise<AttendanceRecord[]> => {
     await delay(150);
     return JSON.parse(JSON.stringify(attendance));
+}
+
+export const getLeaveRequests = async (): Promise<LeaveRequest[]> => {
+    await delay(150);
+    return JSON.parse(JSON.stringify(leaveRequests));
 }
 
 
@@ -359,4 +366,33 @@ export const markAttendance = async(data: Omit<AttendanceRecord, 'id' | 'employe
     }
     
     return newRecord;
+}
+
+// Leave
+export const createLeaveRequest = async (data: Omit<LeaveRequest, 'id' | 'employeeName' | 'status'>): Promise<LeaveRequest> => {
+    await delay(200);
+    const employee = employees.find(e => e.id === data.employeeId);
+    if (!employee) throw new Error("Employee not found");
+
+    const newRequest: LeaveRequest = {
+        ...data,
+        id: `leave${leaveRequests.length + 1}`,
+        employeeName: employee.name,
+        status: 'Pending',
+    };
+    leaveRequests.push(newRequest);
+    return newRequest;
+}
+
+export const updateLeaveRequestStatus = async (id: string, status: LeaveRequest['status']): Promise<LeaveRequest | undefined> => {
+    await delay(200);
+    let updatedRequest: LeaveRequest | undefined;
+    leaveRequests = leaveRequests.map(req => {
+        if (req.id === id) {
+            updatedRequest = { ...req, status };
+            return updatedRequest;
+        }
+        return req;
+    });
+    return updatedRequest;
 }

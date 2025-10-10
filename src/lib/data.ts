@@ -1,6 +1,6 @@
 
 
-import type { Patient, Appointment, Invoice, ChartData, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, SystemTreatment, PaymentMethod, PaymentTransaction, AttendanceRecord } from "@/lib/types";
+import type { Patient, Appointment, Invoice, ChartData, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, SystemTreatment, PaymentMethod, PaymentTransaction, AttendanceRecord, LeaveRequest } from "@/lib/types";
 
 export const branches: Branch[] = [
   { id: "b1", name: "Downtown Clinic", address: "123 Main St, Cityville" },
@@ -308,4 +308,11 @@ export const labOrders: LaboratoryOrder[] = [
     { id: 'lab2', patientId: '2', patientName: 'Jane Smith', lab: 'Aesthetic Creations', item: 'Night Guard', status: 'Received', sentDate: '2024-05-15', dueDate: '2024-05-30', branchId: 'b2'},
     { id: 'lab3', patientId: '4', patientName: 'Mike Williams', lab: 'Precision Dental Labs', item: 'Inlay', tooth: 15, status: 'Completed', sentDate: '2024-07-16', dueDate: '2024-07-30', branchId: 'b2'},
     { id: 'lab4', patientId: '1', patientName: 'John Doe', lab: 'City Labs', item: 'Denture Repair', status: 'Cancelled', sentDate: '2024-07-01', dueDate: '2024-07-10', branchId: 'b1'},
+];
+
+export const leaveRequests: LeaveRequest[] = [
+  { id: 'leave1', employeeId: 'emp2', employeeName: 'James Wilson', leaveType: 'Annual', startDate: '2024-08-01', endDate: '2024-08-05', reason: 'Family vacation', status: 'Approved', branchId: 'b1' },
+  { id: 'leave2', employeeId: 'emp4', employeeName: 'Robert Chase', leaveType: 'Sick', startDate: '2024-07-18', endDate: '2024-07-18', reason: 'Feeling unwell', status: 'Approved', branchId: 'b2' },
+  { id: 'leave3', employeeId: 'emp3', employeeName: 'Allison Cameron', leaveType: 'Annual', startDate: '2024-09-01', endDate: '2024-09-03', reason: 'Personal time', status: 'Pending', branchId: 'b2' },
+  { id: 'leave4', employeeId: 'emp5', employeeName: 'Dr. Eric Foreman', leaveType: 'Unpaid', startDate: '2024-08-10', endDate: '2024-08-10', reason: 'Conference', status: 'Rejected', branchId: 'b2' },
 ];

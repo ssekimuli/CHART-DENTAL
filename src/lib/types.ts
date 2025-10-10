@@ -236,4 +236,19 @@ export type OrthodonticRecord = {
 export type SystemTreatment = {
     procedure: string;
     cost: number;
-}
+};
+
+export type LeaveType = 'Annual' | 'Sick' | 'Unpaid' | 'Maternity';
+export type LeaveStatus = 'Pending' | 'Approved' | 'Rejected';
+
+export type LeaveRequest = {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  leaveType: LeaveType;
+  startDate: string;
+  endDate: string;
+  reason: string;
+  status: LeaveStatus;
+  branchId: string;
+};
