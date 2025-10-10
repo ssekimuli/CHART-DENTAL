@@ -2,31 +2,15 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useAuth } from "@/firebase";
-import {
-  GoogleAuthProvider,
-  signInWithEmailAndPassword,
-  signInWithPopup,
-} from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import Image from "next/image";
 import { ToothIcon } from "@/components/icons/tooth-icon";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { auth } = useAuth();
   const { toast } = useToast();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -40,30 +24,29 @@ export default function LoginPage() {
       });
       return;
     }
-    try {
-      await signInWithEmailAndPassword(auth, email, password);
+    // Dummy login logic
+    if (email === "lisa.cuddy@example.com" && password === "password") {
+       toast({
+        title: "Login Successful",
+        description: "Welcome back!",
+      });
       router.push("/dashboard");
-    } catch (error: any) {
+    } else {
       toast({
         variant: "destructive",
         title: "Login Failed",
-        description: error.message,
+        description: "Invalid email or password.",
       });
     }
   };
 
   const handleGoogleSignIn = async () => {
-    const provider = new GoogleAuthProvider();
-    try {
-      await signInWithPopup(auth, provider);
-      router.push("/dashboard");
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Google Sign-In Failed",
-        description: error.message,
-      });
-    }
+    // Dummy Google sign-in
+    toast({
+        title: "Login Successful",
+        description: "Welcome back!",
+    });
+    router.push("/dashboard");
   };
 
   return (
@@ -75,9 +58,9 @@ export default function LoginPage() {
                 <ToothIcon className="w-64 h-64 text-white drop-shadow-[0_10px_10px_rgba(0,0,0,0.3)]" />
             </div>
           <h1 className="text-5xl font-bold tracking-tight">
-            <span className="text-gray-300">BUSINESS</span>
+            <span className="text-gray-300">DentalChart</span>
             <br/>
-            <span className="text-blue-400">DENTAL CARE</span>
+            <span className="text-blue-400">PRO</span>
           </h1>
           <p className="max-w-sm text-gray-300">
             The modern, AI-powered solution for dental practice management. Streamline your workflow and focus on what matters most—your patients.

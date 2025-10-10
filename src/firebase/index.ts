@@ -1,4 +1,3 @@
-
 'use client';
 
 import { initializeApp, getApps, type FirebaseOptions, type FirebaseApp } from 'firebase/app';
@@ -6,25 +5,12 @@ import { getAuth, connectAuthEmulator, type Auth } from 'firebase/auth';
 import { getFirestore, connectFirestoreEmulator, type Firestore } from 'firebase/firestore';
 
 // Explicitly import hooks and providers to re-export
-import { FirebaseProvider } from './provider';
-import { FirebaseClientProvider } from './client-provider';
-import { useUser } from './auth/use-user';
-import {
-  useFirebase,
-  useFirebaseApp,
-  useFirestore,
-  useAuth,
-} from './provider';
+import { useUser } from '@/hooks/use-user';
+
 
 // Re-export all the hooks and providers
 export {
-  FirebaseProvider,
-  FirebaseClientProvider,
   useUser,
-  useFirebase,
-  useFirebaseApp,
-  useFirestore,
-  useAuth,
 };
 
 let firebaseAppInstance: FirebaseApp | undefined;
