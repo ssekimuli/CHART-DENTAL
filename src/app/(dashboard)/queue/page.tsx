@@ -10,7 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import type { Appointment, Employee, AppointmentStatus } from "@/lib/types";
 import { getAppointments, getEmployees, updateAppointment } from "@/lib/api";
@@ -28,6 +28,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { speak } from "@/ai/flows/speak";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 type StatusColumn = {
   title: string;
@@ -213,30 +214,36 @@ export default function QueuePage() {
                                             <p><strong>Time:</strong> {appointment.time}</p>
                                             <p><strong>Doctor:</strong> {appointment.doctorName}</p>
                                         </CardContent>
-                                        <CardFooter className="flex-col items-stretch gap-2 sm:flex-row sm:justify-end sm:items-center bg-background/50 border-t p-4">
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                    <Button variant="secondary" size="sm" className="flex-grow sm:flex-grow-0">Change Status</Button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent>
-                                                    <DropdownMenuItem onClick={() => handleStatusChange(appointment, 'Waiting')}>
-                                                        <Clock className="mr-2 h-4 w-4"/> Waiting
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={() => handleStatusChange(appointment, 'In Session')}>
-                                                        <UserCheck className="mr-2 h-4 w-4"/> In Session
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={() => handleStatusChange(appointment, 'On Hold')}>
-                                                        <PauseCircle className="mr-2 h-4 w-4"/> On Hold
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={() => handleStatusChange(appointment, 'Completed')}>
-                                                        <CheckCircle className="mr-2 h-4 w-4"/> Completed
-                                                    </DropdownMenuItem>
-                                                     <DropdownMenuItem className="text-red-500" onClick={() => handleStatusChange(appointment, 'Cancelled')}>
-                                                        <Ban className="mr-2 h-4 w-4"/> Cancelled
-                                                    </DropdownMenuItem>
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
-                                            <Button variant="outline" size="sm" className="flex-grow sm:flex-grow-0" onClick={() => router.push(`/patients/${appointment.patientId}/charting`)}>Chart</Button>
+                                        <CardFooter className="flex-col items-stretch gap-2 bg-background/50 border-t p-2">
+                                            <div className="flex items-center justify-between gap-1">
+                                                <TooltipProvider>
+                                                    <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-yellow-500 hover:text-yellow-600" onClick={() => handleStatusChange(appointment, 'In Session')}>
+                                                                <UserCheck className="h-5 w-5"/>
+                                                            </Button>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent><p>In Session</p></TooltipContent>
+                                                    </Tooltip>
+                                                     <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-orange-500 hover:text-orange-600" onClick={() => handleStatusChange(appointment, 'On Hold')}>
+                                                                <PauseCircle className="h-5 w-5"/>
+                                                            </Button>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent><p>On Hold</p></TooltipContent>
+                                                    </Tooltip>
+                                                     <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                          <Button variant="ghost" size="icon" className="h-8 w-8 text-green-500 hover:text-green-600" onClick={() => handleStatusChange(appointment, 'Completed')}>
+                                                                <CheckCircle className="h-5 w-5"/>
+                                                            </Button>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent><p>Completed</p></TooltipContent>
+                                                    </Tooltip>
+                                                </TooltipProvider>
+                                                <Button variant="outline" size="sm" className="flex-grow" onClick={() => router.push(`/patients/${appointment.patientId}/charting`)}>Chart</Button>
+                                            </div>
                                         </CardFooter>
                                     </Card>
                                 ))}
