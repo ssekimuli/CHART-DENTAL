@@ -1,41 +1,22 @@
 
-
 import { 
-    patients as initialPatients, 
-    appointments as initialAppointments,
-    invoices as initialInvoices,
-    chartData as allChartData,
-    employees as initialEmployees,
-    payrolls as initialPayrolls,
-    branches as initialBranches,
-    inventory as initialInventory,
-    labOrders as initialLabOrders,
+    patients,
+    appointments,
+    invoices,
+    chartData,
+    employees,
+    payrolls,
+    branches,
+    inventory,
+    labOrders,
     treatments as allTreatments,
-    attendance as initialAttendance,
-    leaveRequests as initialLeaveRequests,
-    staffAdvances as initialStaffAdvances,
-    expenses as initialExpenses,
-    roles as initialRoles
+    attendance,
+    leaveRequests,
+    staffAdvances,
+    expenses,
+    roles
 } from '@/lib/data';
 import type { Patient, Appointment, Invoice, ChartData, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, BasePatient, InvoiceTreatment, OtherCharge, SystemTreatment, PaymentMethod, PaymentTransaction, AttendanceRecord, LeaveRequest, StaffAdvance, StaffAdvanceStatus, Expense, ExpenseCategory, RolePermissions, Permission } from '@/lib/types';
-
-// This is a mock API layer. In a real app, you would replace this with actual API calls to your backend.
-// We're using let instead of const so we can mutate the data in memory.
-let patients: Patient[] = [...initialPatients];
-let appointments: Appointment[] = [...initialAppointments];
-let invoices: Invoice[] = [...initialInvoices];
-let employees: Employee[] = [...initialEmployees];
-let payrolls: Payroll[] = [...initialPayrolls];
-let branches: Branch[] = [...initialBranches];
-let inventory: InventoryItem[] = [...initialInventory];
-let labOrders: LaboratoryOrder[] = [...initialLabOrders];
-let chartData: ChartData[] = [...allChartData];
-let treatments: SystemTreatment[] = [...allTreatments];
-let attendance: AttendanceRecord[] = [...initialAttendance];
-let leaveRequests: LeaveRequest[] = [...initialLeaveRequests];
-let staffAdvances: StaffAdvance[] = [...initialStaffAdvances];
-let expenses: Expense[] = [...initialExpenses];
-let roles: RolePermissions[] = [...initialRoles];
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -105,7 +86,7 @@ export const getChartData = async (): Promise<ChartData[]> => {
 
 export const getTreatments = async (): Promise<SystemTreatment[]> => {
     await delay(50);
-    return JSON.parse(JSON.stringify(treatments));
+    return JSON.parse(JSON.stringify(allTreatments));
 }
 
 export const getAttendance = async (): Promise<AttendanceRecord[]> => {
@@ -150,27 +131,27 @@ export const createPatient = async (data: BasePatient & { branchId: string }): P
         softTissueRecords: [],
         orthodonticRecords: [],
     };
-    patients = [...patients, newPatient];
+    patients.push(newPatient);
     return newPatient;
 }
 
 export const updatePatient = async (id: string, data: Partial<Patient>): Promise<Patient | undefined> => {
     await delay(200);
-    let updatedPatient: Patient | undefined;
-    patients = patients.map(p => {
-        if (p.id === id) {
-            updatedPatient = { ...p, ...data };
-            return updatedPatient;
-        }
-        return p;
-    });
-    return updatedPatient;
+    const patientIndex = patients.findIndex(p => p.id === id);
+    if (patientIndex > -1) {
+        patients[patientIndex] = { ...patients[patientIndex], ...data };
+        return patients[patientIndex];
+    }
+    return undefined;
 }
 
 export const deletePatient = async (id: string): Promise<{ success: boolean }> => {
     await delay(200);
-    patients = patients.filter(p => p.id !== id);
-    return { success: true };
+    const initialLength = patients.length;
+    const newPatients = patients.filter(p => p.id !== id);
+    patients.length = 0;
+    Array.prototype.push.apply(patients, newPatients);
+    return { success: patients.length < initialLength };
 }
 
 
@@ -181,27 +162,27 @@ export const createAppointment = async (data: Omit<Appointment, 'id'>): Promise<
         ...data,
         id: `a${appointments.length + 1}`,
     };
-    appointments = [...appointments, newAppointment];
+    appointments.push(newAppointment);
     return newAppointment;
 }
 
 export const updateAppointment = async (id: string, data: Partial<Appointment>): Promise<Appointment | undefined> => {
     await delay(200);
-    let updatedAppointment: Appointment | undefined;
-    appointments = appointments.map(a => {
-        if (a.id === id) {
-            updatedAppointment = { ...a, ...data };
-            return updatedAppointment;
-        }
-        return a;
-    });
-    return updatedAppointment;
+    const appointmentIndex = appointments.findIndex(a => a.id === id);
+    if (appointmentIndex > -1) {
+        appointments[appointmentIndex] = { ...appointments[appointmentIndex], ...data };
+        return appointments[appointmentIndex];
+    }
+    return undefined;
 }
 
 export const deleteAppointment = async (id: string): Promise<{ success: boolean }> => {
     await delay(200);
-    appointments = appointments.filter(a => a.id !== id);
-    return { success: true };
+    const initialLength = appointments.length;
+    const newAppointments = appointments.filter(a => a.id !== id);
+    appointments.length = 0;
+    Array.prototype.push.apply(appointments, newAppointments);
+    return { success: appointments.length < initialLength };
 }
 
 // Invoices
@@ -222,67 +203,68 @@ export const createInvoice = async (data: Omit<Invoice, 'id' | 'amount' | 'paidA
         paidAmount: 0,
         transactions: [],
     };
-    invoices = [newInvoice, ...invoices];
+    invoices.unshift(newInvoice);
 
     return newInvoice;
 }
 
 export const updateInvoice = async (id: string, data: Partial<Omit<Invoice, 'amount' | 'id'>>): Promise<Invoice | undefined> => {
     await delay(200);
-    let updatedInvoice: Invoice | undefined;
+    const invoiceIndex = invoices.findIndex(i => i.id === id);
 
-    invoices = invoices.map(i => {
-        if (i.id === id) {
-            const treatments = data.treatments || i.treatments;
-            const treatmentsTotal = treatments.reduce((sum, t) => sum + t.cost, 0);
-            
-            const otherCharges = data.otherCharges ?? i.otherCharges ?? [];
-            const otherChargesTotal = otherCharges.reduce((sum, charge) => sum + charge.amount, 0);
-            const amount = treatmentsTotal + otherChargesTotal;
+    if (invoiceIndex > -1) {
+        const originalInvoice = invoices[invoiceIndex];
+        const treatments = data.treatments || originalInvoice.treatments;
+        const treatmentsTotal = treatments.reduce((sum, t) => sum + t.cost, 0);
+        
+        const otherCharges = data.otherCharges ?? originalInvoice.otherCharges ?? [];
+        const otherChargesTotal = otherCharges.reduce((sum, charge) => sum + charge.amount, 0);
+        const amount = treatmentsTotal + otherChargesTotal;
 
-            updatedInvoice = { ...i, ...data, amount, treatments, otherCharges };
-            return updatedInvoice;
-        }
-        return i;
-    });
-    return updatedInvoice;
+        const updatedInvoice = { ...originalInvoice, ...data, amount, treatments, otherCharges };
+        invoices[invoiceIndex] = updatedInvoice;
+        return updatedInvoice;
+    }
+    return undefined;
 }
 
 export const processPayment = async (invoiceId: string, paymentAmount: number, method: string): Promise<Invoice | undefined> => {
     await delay(300);
-    let updatedInvoice: Invoice | undefined;
-    invoices = invoices.map(i => {
-        if (i.id === invoiceId) {
-            const newPaidAmount = i.paidAmount + paymentAmount;
-            const newStatus = newPaidAmount >= i.amount ? 'Paid' : 'Pending';
-            
-            const newTransaction: PaymentTransaction = {
-                id: `txn_${(i.transactions?.length || 0) + 1}_${i.id}`,
-                date: new Date().toISOString().split('T')[0],
-                amount: paymentAmount,
-                method: method as PaymentMethod
-            };
+    const invoiceIndex = invoices.findIndex(i => i.id === invoiceId);
+    if (invoiceIndex > -1) {
+        const originalInvoice = invoices[invoiceIndex];
+        const newPaidAmount = originalInvoice.paidAmount + paymentAmount;
+        const newStatus = newPaidAmount >= originalInvoice.amount ? 'Paid' : 'Pending';
+        
+        const newTransaction: PaymentTransaction = {
+            id: `txn_${(originalInvoice.transactions?.length || 0) + 1}_${originalInvoice.id}`,
+            date: new Date().toISOString().split('T')[0],
+            amount: paymentAmount,
+            method: method as PaymentMethod
+        };
 
-            const updatedTransactions = [...(i.transactions || []), newTransaction];
+        const updatedTransactions = [...(originalInvoice.transactions || []), newTransaction];
 
-            updatedInvoice = { 
-                ...i, 
-                paidAmount: newPaidAmount,
-                status: newStatus,
-                paymentMethod: method as any,
-                transactions: updatedTransactions
-             };
-            return updatedInvoice;
-        }
-        return i;
-    });
-    return updatedInvoice;
+        const updatedInvoice = { 
+            ...originalInvoice, 
+            paidAmount: newPaidAmount,
+            status: newStatus,
+            paymentMethod: method as any,
+            transactions: updatedTransactions
+        };
+        invoices[invoiceIndex] = updatedInvoice;
+        return updatedInvoice;
+    }
+    return undefined;
 }
 
 export const deleteInvoice = async (id: string): Promise<{ success: boolean }> => {
     await delay(200);
-    invoices = invoices.filter(i => i.id !== id);
-    return { success: true };
+    const initialLength = invoices.length;
+    const newInvoices = invoices.filter(i => i.id !== id);
+    invoices.length = 0;
+    Array.prototype.push.apply(invoices, newInvoices);
+    return { success: invoices.length < initialLength };
 }
 
 
@@ -293,27 +275,27 @@ export const createEmployee = async (data: Omit<Employee, 'id'>): Promise<Employ
         ...data,
         id: `emp${employees.length + 1}`,
     };
-    employees = [...employees, newEmployee];
+    employees.push(newEmployee);
     return newEmployee;
 }
 
 export const updateEmployee = async (id: string, data: Partial<Employee>): Promise<Employee | undefined> => {
     await delay(200);
-    let updatedEmployee: Employee | undefined;
-    employees = employees.map(e => {
-        if (e.id === id) {
-            updatedEmployee = { ...e, ...data };
-            return updatedEmployee;
-        }
-        return e;
-    });
-    return updatedEmployee;
+    const employeeIndex = employees.findIndex(e => e.id === id);
+    if (employeeIndex > -1) {
+        employees[employeeIndex] = { ...employees[employeeIndex], ...data };
+        return employees[employeeIndex];
+    }
+    return undefined;
 }
 
 export const deleteEmployee = async (id: string): Promise<{ success: boolean }> => {
     await delay(200);
-    employees = employees.filter(e => e.id !== id);
-    return { success: true };
+    const initialLength = employees.length;
+    const newEmployees = employees.filter(e => e.id !== id);
+    employees.length = 0;
+    Array.prototype.push.apply(employees, newEmployees);
+    return { success: employees.length < initialLength };
 }
 
 
@@ -324,7 +306,7 @@ export const createBranch = async (data: Omit<Branch, 'id'>): Promise<Branch> =>
         ...data,
         id: `b${branches.length + 1}`
     };
-    branches = [...branches, newBranch];
+    branches.push(newBranch);
     return newBranch;
 }
 
@@ -336,7 +318,7 @@ export const createInventoryItem = async (data: Omit<InventoryItem, 'id' | 'stat
         id: `item${inventory.length + 1}`,
         status: data.stock > data.reorderLevel ? 'In Stock' : data.stock > 0 ? 'Low Stock' : 'Out of Stock'
     };
-    inventory = [...inventory, newItem];
+    inventory.push(newItem);
     return newItem;
 }
 
@@ -347,7 +329,7 @@ export const createLabOrder = async (data: Omit<LaboratoryOrder, 'id'>): Promise
         ...data,
         id: `lab${labOrders.length + 1}`,
     };
-    labOrders = [...labOrders, newOrder];
+    labOrders.push(newOrder);
     return newOrder;
 }
 
@@ -358,7 +340,7 @@ export const createPayroll = async (data: Omit<Payroll, 'id'>): Promise<Payroll>
         ...data,
         id: `pay${payrolls.length + 1}`,
     };
-    payrolls = [newPayroll, ...payrolls];
+    payrolls.unshift(newPayroll);
     return newPayroll;
 }
 
@@ -369,24 +351,23 @@ export const markAttendance = async(data: Omit<AttendanceRecord, 'id' | 'employe
     const employee = employees.find(e => e.id === data.employeeId);
     if (!employee) throw new Error("Employee not found");
 
-    const newRecord: AttendanceRecord = {
-        ...data,
-        id: `att${attendance.length + 1}`,
-        employeeName: employee.name,
-    };
-    
-    // Check if a record for this employee and date already exists
     const existingIndex = attendance.findIndex(
-      (att) => att.employeeId === data.employeeId && att.date === data.date
+        att => att.employeeId === data.employeeId && att.date === data.date
     );
 
     if (existingIndex > -1) {
-        attendance[existingIndex] = newRecord;
+        const updatedRecord = { ...attendance[existingIndex], ...data, employeeName: employee.name };
+        attendance[existingIndex] = updatedRecord;
+        return updatedRecord;
     } else {
+        const newRecord: AttendanceRecord = {
+            ...data,
+            id: `att${attendance.length + 1}`,
+            employeeName: employee.name,
+        };
         attendance.push(newRecord);
+        return newRecord;
     }
-    
-    return newRecord;
 }
 
 // Leave
@@ -407,15 +388,12 @@ export const createLeaveRequest = async (data: Omit<LeaveRequest, 'id' | 'employ
 
 export const updateLeaveRequestStatus = async (id: string, status: LeaveRequest['status']): Promise<LeaveRequest | undefined> => {
     await delay(200);
-    let updatedRequest: LeaveRequest | undefined;
-    leaveRequests = leaveRequests.map(req => {
-        if (req.id === id) {
-            updatedRequest = { ...req, status };
-            return updatedRequest;
-        }
-        return req;
-    });
-    return updatedRequest;
+    const requestIndex = leaveRequests.findIndex(req => req.id === id);
+    if (requestIndex > -1) {
+        leaveRequests[requestIndex] = { ...leaveRequests[requestIndex], status };
+        return leaveRequests[requestIndex];
+    }
+    return undefined;
 }
 
 // Staff Advances
@@ -436,15 +414,12 @@ export const createStaffAdvance = async (data: Omit<StaffAdvance, 'id' | 'employ
 
 export const updateStaffAdvanceStatus = async (id: string, status: StaffAdvanceStatus): Promise<StaffAdvance | undefined> => {
     await delay(200);
-    let updatedAdvance: StaffAdvance | undefined;
-    staffAdvances = staffAdvances.map(adv => {
-        if (adv.id === id) {
-            updatedAdvance = { ...adv, status };
-            return updatedAdvance;
-        }
-        return adv;
-    });
-    return updatedAdvance;
+    const advanceIndex = staffAdvances.findIndex(adv => adv.id === id);
+    if (advanceIndex > -1) {
+        staffAdvances[advanceIndex] = { ...staffAdvances[advanceIndex], status };
+        return staffAdvances[advanceIndex];
+    }
+    return undefined;
 }
 
 // Expenses
@@ -454,7 +429,7 @@ export const createExpense = async (data: Omit<Expense, 'id'>): Promise<Expense>
         ...data,
         id: `exp${expenses.length + 1}`,
     };
-    expenses = [newExpense, ...expenses];
+    expenses.unshift(newExpense);
     return newExpense;
 }
 
@@ -462,13 +437,10 @@ export const createExpense = async (data: Omit<Expense, 'id'>): Promise<Expense>
 // Roles
 export const updateRole = async (roleId: string, permissions: Permission[]): Promise<RolePermissions | undefined> => {
     await delay(200);
-    let updatedRole: RolePermissions | undefined;
-    roles = roles.map(r => {
-        if (r.id === roleId) {
-            updatedRole = { ...r, permissions };
-            return updatedRole;
-        }
-        return r;
-    });
-    return updatedRole;
+    const roleIndex = roles.findIndex(r => r.id === roleId);
+    if (roleIndex > -1) {
+        roles[roleIndex] = { ...roles[roleIndex], permissions };
+        return roles[roleIndex];
+    }
+    return undefined;
 }

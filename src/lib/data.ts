@@ -174,8 +174,6 @@ export const patients: Patient[] = [
   }
 ];
 
-export const recentPatients = patients.slice(0, 5);
-
 const today = new Date().toISOString().split('T')[0];
 export const appointments: Appointment[] = [
   { id: "a1", patientName: "John Doe", patientId: "1", doctorName: "Dr. Lisa Cuddy", doctorId: 'emp1', treatment: "Check-up", status: "Scheduled", date: "2024-07-20", time: "10:00 AM", branchId: "b1", tokenNumber: 'JDLC1' },
