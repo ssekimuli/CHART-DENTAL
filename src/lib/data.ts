@@ -1,6 +1,6 @@
 
 
-import type { Patient, Appointment, Invoice, ChartData, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, SystemTreatment, PaymentMethod, PaymentTransaction, AttendanceRecord, LeaveRequest, StaffAdvance } from "@/lib/types";
+import type { Patient, Appointment, Invoice, ChartData, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, SystemTreatment, PaymentMethod, PaymentTransaction, AttendanceRecord, LeaveRequest, StaffAdvance, Expense } from "@/lib/types";
 
 export const branches: Branch[] = [
   { id: "b1", name: "Downtown Clinic", address: "123 Main St, Cityville" },
@@ -322,3 +322,11 @@ export const staffAdvances: StaffAdvance[] = [
     { id: 'adv2', employeeId: 'emp5', employeeName: 'Dr. Eric Foreman', amount: 1000, date: '2024-07-10', reason: 'Travel expenses', status: 'Pending', branchId: 'b2'},
     { id: 'adv3', employeeId: 'emp2', employeeName: 'James Wilson', amount: 200, date: '2024-06-20', reason: 'Personal', status: 'Rejected', branchId: 'b1'},
 ]
+
+export const expenses: Expense[] = [
+    { id: 'exp1', branchId: 'b1', date: '2024-06-01', category: 'Rent', description: 'June Rent - Downtown Clinic', amount: 5000 },
+    { id: 'exp2', branchId: 'b1', date: '2024-06-05', category: 'Utilities', description: 'Electricity Bill', amount: 450 },
+    { id: 'exp3', branchId: 'b1', date: '2024-06-10', category: 'Supplies', description: 'Order from Dental Supplies Co.', amount: 1250 },
+    { id: 'exp4', branchId: 'b2', date: '2024-06-01', category: 'Rent', description: 'June Rent - Uptown Dental', amount: 6500 },
+    { id: 'exp5', branchId: 'b2', date: '2024-06-06', category: 'Utilities', description: 'Water & Gas Bill', amount: 300 },
+];

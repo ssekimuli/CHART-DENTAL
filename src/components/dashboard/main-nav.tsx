@@ -32,6 +32,7 @@ import {
   NotebookPen,
   Clock,
   DollarSign,
+  Landmark,
 } from "lucide-react";
 import type { EmployeeRole } from "@/lib/types";
 import { currentUser } from "@/lib/user";
@@ -45,6 +46,7 @@ const allLinks = [
   { href: "/charting", label: "Charting", icon: FileText, roles: ['Super Admin', 'Dentist', 'Hygienist'] as EmployeeRole[] },
   { href: "/appointments", label: "Appointments", icon: Calendar, roles: ['Super Admin', 'Dentist', 'Hygienist', 'Receptionist', 'Assistant'] as EmployeeRole[] },
   { href: "/billing", label: "Billing", icon: CreditCard, roles: ['Super Admin', 'Account', 'Receptionist'] as EmployeeRole[] },
+  { href: "/accounting", label: "Accounting", icon: Landmark, roles: ['Super Admin', 'Account'] as EmployeeRole[] },
   { href: "/inventory", label: "Inventory", icon: Package, roles: ['Super Admin', 'Receptionist', 'Assistant'] as EmployeeRole[] },
   { href: "/laboratory", label: "Laboratory", icon: FlaskConical, roles: ['Super Admin', 'Dentist', 'Assistant'] as EmployeeRole[] },
   { 

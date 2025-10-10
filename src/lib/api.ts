@@ -13,9 +13,10 @@ import {
     treatments as allTreatments,
     attendance as initialAttendance,
     leaveRequests as initialLeaveRequests,
-    staffAdvances as initialStaffAdvances
+    staffAdvances as initialStaffAdvances,
+    expenses as initialExpenses
 } from '@/lib/data';
-import type { Patient, Appointment, Invoice, ChartData, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, BasePatient, InvoiceTreatment, OtherCharge, SystemTreatment, PaymentMethod, PaymentTransaction, AttendanceRecord, LeaveRequest, StaffAdvance, StaffAdvanceStatus } from '@/lib/types';
+import type { Patient, Appointment, Invoice, ChartData, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, BasePatient, InvoiceTreatment, OtherCharge, SystemTreatment, PaymentMethod, PaymentTransaction, AttendanceRecord, LeaveRequest, StaffAdvance, StaffAdvanceStatus, Expense, ExpenseCategory } from '@/lib/types';
 
 // This is a mock API layer. In a real app, you would replace this with actual API calls to your backend.
 // We're using let instead of const so we can mutate the data in memory.
@@ -32,6 +33,7 @@ let treatments: SystemTreatment[] = [...allTreatments];
 let attendance: AttendanceRecord[] = [...initialAttendance];
 let leaveRequests: LeaveRequest[] = [...initialLeaveRequests];
 let staffAdvances: StaffAdvance[] = [...initialStaffAdvances];
+let expenses: Expense[] = [...initialExpenses];
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -117,6 +119,11 @@ export const getLeaveRequests = async (): Promise<LeaveRequest[]> => {
 export const getStaffAdvances = async (): Promise<StaffAdvance[]> => {
     await delay(150);
     return JSON.parse(JSON.stringify(staffAdvances));
+}
+
+export const getExpenses = async (): Promise<Expense[]> => {
+    await delay(150);
+    return JSON.parse(JSON.stringify(expenses));
 }
 
 // --- WRITE OPERATIONS ---
@@ -431,4 +438,15 @@ export const updateStaffAdvanceStatus = async (id: string, status: StaffAdvanceS
         return adv;
     });
     return updatedAdvance;
+}
+
+// Expenses
+export const createExpense = async (data: Omit<Expense, 'id'>): Promise<Expense> => {
+    await delay(200);
+    const newExpense: Expense = {
+        ...data,
+        id: `exp${expenses.length + 1}`,
+    };
+    expenses = [newExpense, ...expenses];
+    return newExpense;
 }

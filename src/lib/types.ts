@@ -1,5 +1,15 @@
 
 
+export type ExpenseCategory = 'Supplies' | 'Rent' | 'Utilities' | 'Salaries' | 'Marketing' | 'Maintenance' | 'Other';
+
+export type Expense = {
+    id: string;
+    branchId: string;
+    date: string;
+    category: ExpenseCategory;
+    description: string;
+    amount: number;
+};
 
 export type Patient = {
   id: string;
