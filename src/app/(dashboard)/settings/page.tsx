@@ -17,10 +17,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 export default function SettingsPage() {
   return (
     <Tabs defaultValue="profile">
-      <TabsList className="grid w-full grid-cols-3">
+      <TabsList className="grid w-full grid-cols-4">
         <TabsTrigger value="profile">Profile</TabsTrigger>
         <TabsTrigger value="practice">Practice</TabsTrigger>
         <TabsTrigger value="notifications">Notifications</TabsTrigger>
+        <TabsTrigger value="roles">Roles &amp; Permissions</TabsTrigger>
       </TabsList>
       
       <TabsContent value="profile">
@@ -109,6 +110,24 @@ export default function SettingsPage() {
            <CardFooter>
             <Button>Save Preferences</Button>
           </CardFooter>
+        </Card>
+      </TabsContent>
+      <TabsContent value="roles">
+        <Card>
+          <CardHeader>
+            <CardTitle>Roles & Permissions</CardTitle>
+            <CardDescription>
+              Define roles and manage permissions for different users.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="text-center py-12">
+                <h3 className="text-lg font-semibold">Under Construction</h3>
+                <p className="text-muted-foreground mt-2">
+                    This section will allow you to manage user roles and permissions.
+                </p>
+            </div>
+          </CardContent>
         </Card>
       </TabsContent>
     </Tabs>
