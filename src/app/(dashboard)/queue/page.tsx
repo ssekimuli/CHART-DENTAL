@@ -219,7 +219,9 @@ export default function QueuePage() {
                                                                 <Clock className="h-5 w-5"/>
                                                             </Button>
                                                         </TooltipTrigger>
-                                                        <TooltipContent><p>Waiting</p></TooltipContent>
+                                                        <TooltipContent>
+                                                            <p>Send to Waiting</p>
+                                                        </TooltipContent>
                                                     </Tooltip>
                                                     <Tooltip>
                                                         <TooltipTrigger asChild>
@@ -227,7 +229,9 @@ export default function QueuePage() {
                                                                 <UserCheck className="h-5 w-5"/>
                                                             </Button>
                                                         </TooltipTrigger>
-                                                        <TooltipContent><p>In Session</p></TooltipContent>
+                                                        <TooltipContent>
+                                                            <p>Begin Session</p>
+                                                        </TooltipContent>
                                                     </Tooltip>
                                                      <Tooltip>
                                                         <TooltipTrigger asChild>
@@ -235,7 +239,9 @@ export default function QueuePage() {
                                                                 <PauseCircle className="h-5 w-5"/>
                                                             </Button>
                                                         </TooltipTrigger>
-                                                        <TooltipContent><p>On Hold</p></TooltipContent>
+                                                        <TooltipContent>
+                                                            <p>Put on Hold</p>
+                                                        </TooltipContent>
                                                     </Tooltip>
                                                      <Tooltip>
                                                         <TooltipTrigger asChild>
@@ -243,7 +249,19 @@ export default function QueuePage() {
                                                                 <CheckCircle className="h-5 w-5"/>
                                                             </Button>
                                                         </TooltipTrigger>
-                                                        <TooltipContent><p>Completed</p></TooltipContent>
+                                                        <TooltipContent>
+                                                          <p>Mark as Completed</p>
+                                                        </TooltipContent>
+                                                    </Tooltip>
+                                                     <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                          <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-500 hover:text-gray-600" onClick={() => handleStatusChange(appointment, 'Scheduled')}>
+                                                                <Ban className="h-5 w-5"/>
+                                                            </Button>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent>
+                                                          <p>Return to Scheduled</p>
+                                                        </TooltipContent>
                                                     </Tooltip>
                                                 </TooltipProvider>
                                                 <Button variant="outline" size="sm" className="flex-grow" onClick={() => router.push(`/patients/${appointment.patientId}/charting`)}>Chart</Button>
@@ -264,3 +282,5 @@ export default function QueuePage() {
     </div>
   );
 }
+
+    
