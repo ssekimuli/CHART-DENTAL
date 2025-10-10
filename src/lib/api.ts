@@ -12,7 +12,7 @@ import {
     labOrders as initialLabOrders,
     treatments as allTreatments
 } from '@/lib/data';
-import type { Patient, Appointment, Invoice, ChartData, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, BasePatient, Treatment, OtherCharge } from '@/lib/types';
+import type { Patient, Appointment, Invoice, ChartData, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, BasePatient, InvoiceTreatment, OtherCharge, SystemTreatment } from '@/lib/types';
 
 // This is a mock API layer. In a real app, you would replace this with actual API calls to your backend.
 // We're using let instead of const so we can mutate the data in memory.
@@ -25,7 +25,7 @@ let branches: Branch[] = [...initialBranches];
 let inventory: InventoryItem[] = [...initialInventory];
 let labOrders: LaboratoryOrder[] = [...initialLabOrders];
 let chartData: ChartData[] = [...allChartData];
-let treatments: string[] = [...allTreatments];
+let treatments: SystemTreatment[] = [...allTreatments];
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -92,7 +92,7 @@ export const getChartData = async (): Promise<ChartData[]> => {
     return JSON.parse(JSON.stringify(chartData));
 }
 
-export const getTreatments = async (): Promise<string[]> => {
+export const getTreatments = async (): Promise<SystemTreatment[]> => {
     await delay(50);
     return JSON.parse(JSON.stringify(treatments));
 }
@@ -169,100 +169,40 @@ export const deleteAppointment = async (id: string): Promise<{ success: boolean 
 }
 
 // Invoices
-export const createInvoice = async (data: Omit<Invoice, 'id' | 'amount'> & { treatmentIds: string[], patientName: string, branchId: string }): Promise<Invoice> => {
+export const createInvoice = async (data: Omit<Invoice, 'id' | 'amount' | 'treatmentIds'> & { patientName: string, branchId: string }): Promise<Invoice> => {
     await delay(200);
     const patient = patients.find(p => p.id === data.patientId);
     if (!patient) throw new Error("Patient not found");
 
-    const treatmentsTotal = patient.treatmentPlans
-        .filter(t => data.treatmentIds.includes(t.id))
-        .reduce((sum, t) => sum + t.cost, 0);
-    
+    const treatmentsTotal = data.treatments.reduce((sum, t) => sum + t.cost, 0);
     const otherChargesTotal = (data.otherCharges || []).reduce((sum, charge) => sum + charge.amount, 0);
-
     const amount = treatmentsTotal + otherChargesTotal;
 
-    const newInvoiceId = `inv${invoices.length + 1}`;
-    
     const newInvoice: Invoice = {
         ...data,
-        id: newInvoiceId,
+        id: `inv${invoices.length + 1}`,
+        treatmentIds: [], // Deprecated, but kept for data structure
         amount,
     };
     invoices = [newInvoice, ...invoices];
 
-    // Mark treatments as billed
-    patients = patients.map(p => {
-        if (p.id === data.patientId) {
-            return {
-                ...p,
-                treatmentPlans: p.treatmentPlans.map(t => 
-                    data.treatmentIds.includes(t.id) ? { ...t, invoiceId: newInvoiceId } : t
-                )
-            };
-        }
-        return p;
-    });
-
     return newInvoice;
 }
 
-export const updateInvoice = async (id: string, data: Partial<Omit<Invoice, 'amount' | 'id'>> & { treatmentIds?: string[] }): Promise<Invoice | undefined> => {
+export const updateInvoice = async (id: string, data: Partial<Omit<Invoice, 'amount' | 'id'>>): Promise<Invoice | undefined> => {
     await delay(200);
     let updatedInvoice: Invoice | undefined;
 
-    const originalInvoice = invoices.find(i => i.id === id);
-    if (!originalInvoice) return undefined;
-
-    // Reset invoiceId for treatments that were on the original invoice but are not on the updated one
-    const patientIdForUpdate = data.patientId || originalInvoice.patientId;
-    const patient = patients.find(p => p.id === patientIdForUpdate);
-    if (!patient) return undefined;
-    
-    const treatmentsToRemoveInvoiceId = originalInvoice.treatmentIds.filter(tid => !data.treatmentIds?.includes(tid));
-
-    patients = patients.map(p => {
-        if (p.id === patient.id) {
-            return {
-                ...p,
-                treatmentPlans: p.treatmentPlans.map(t => {
-                    if (treatmentsToRemoveInvoiceId.includes(t.id)) {
-                        const { invoiceId, ...rest } = t;
-                        return rest;
-                    }
-                    return t;
-                })
-            }
-        }
-        return p;
-    });
-
-
     invoices = invoices.map(i => {
         if (i.id === id) {
-            const treatmentIds = data.treatmentIds || i.treatmentIds;
-            const treatmentsTotal = patient.treatmentPlans
-                .filter(t => treatmentIds.includes(t.id))
-                .reduce((sum, t) => sum + t.cost, 0);
+            const treatments = data.treatments || i.treatments;
+            const treatmentsTotal = treatments.reduce((sum, t) => sum + t.cost, 0);
             
             const otherCharges = data.otherCharges ?? i.otherCharges ?? [];
             const otherChargesTotal = otherCharges.reduce((sum, charge) => sum + charge.amount, 0);
             const amount = treatmentsTotal + otherChargesTotal;
 
-            updatedInvoice = { ...i, ...data, amount, treatmentIds, otherCharges };
-            
-            // Mark new treatments as billed
-            patients = patients.map(p => {
-                if (p.id === patient.id) {
-                    return {
-                        ...p,
-                        treatmentPlans: p.treatmentPlans.map(t => 
-                            treatmentIds.includes(t.id) ? { ...t, invoiceId: id } : t
-                        )
-                    };
-                }
-                return p;
-            });
+            updatedInvoice = { ...i, ...data, amount, treatments, otherCharges };
             return updatedInvoice;
         }
         return i;
@@ -272,26 +212,6 @@ export const updateInvoice = async (id: string, data: Partial<Omit<Invoice, 'amo
 
 export const deleteInvoice = async (id: string): Promise<{ success: boolean }> => {
     await delay(200);
-    const invoiceToDelete = invoices.find(i => i.id === id);
-    if (invoiceToDelete) {
-        // Unlink treatments from this invoice
-        patients = patients.map(p => {
-            if (p.id === invoiceToDelete.patientId) {
-                return {
-                    ...p,
-                    treatmentPlans: p.treatmentPlans.map(t => {
-                        if (t.invoiceId === id) {
-                            const { invoiceId, ...rest } = t;
-                            return rest;
-                        }
-                        return t;
-                    })
-                };
-            }
-            return p;
-        });
-    }
-
     invoices = invoices.filter(i => i.id !== id);
     return { success: true };
 }

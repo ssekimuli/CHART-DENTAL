@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -33,7 +34,7 @@ import {
     SelectTrigger,
     SelectValue,
   } from "@/components/ui/select";
-import type { Invoice, Patient, Treatment, OtherCharge } from "@/lib/types";
+import type { Invoice, Patient, InvoiceTreatment, OtherCharge, SystemTreatment } from "@/lib/types";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { CalendarIcon, X, Check, Trash2, PlusCircle } from "lucide-react";
@@ -41,6 +42,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Combobox } from "@/components/ui/combobox";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Badge } from "@/components/ui/badge";
+import { getTreatments } from "@/lib/api";
 
 
 const formSchema = z.object({
@@ -61,12 +63,21 @@ const formSchema = z.object({
 type InvoiceFormProps = {
     invoice?: Invoice;
     patients: Patient[];
-    onSave: (data: Omit<Invoice, 'id' | 'patientName' | 'branchId' | 'amount'>, treatments: Treatment[]) => void;
+    onSave: (data: Omit<Invoice, 'id' | 'patientName' | 'branchId' | 'amount' | 'treatmentIds'>, treatments: InvoiceTreatment[]) => void;
     onOpenChange: (open: boolean) => void;
 };
 
 export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: InvoiceFormProps) {
-  const [selectedTreatments, setSelectedTreatments] = useState<Treatment[]>([]);
+  const [selectedTreatments, setSelectedTreatments] = useState<InvoiceTreatment[]>([]);
+  const [systemTreatments, setSystemTreatments] = useState<SystemTreatment[]>([]);
+  
+  useEffect(() => {
+    const fetchTreatments = async () => {
+        const data = await getTreatments();
+        setSystemTreatments(data);
+    }
+    fetchTreatments();
+  }, [])
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -86,49 +97,34 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
 
   const patientId = form.watch('patientId');
   const otherCharges = form.watch('otherCharges') || [];
-
-  const availableTreatments = useMemo(() => {
-    if (!patientId) return [];
-    const patient = patients.find(p => p.id === patientId);
-    if (!patient) return [];
-    // Treatments that are completed and either don't have an invoiceId OR belong to the current invoice being edited
-    return patient.treatmentPlans.filter(t => t.status === 'Completed' && (!t.invoiceId || (invoice && invoice.treatmentIds.includes(t.id))));
-  }, [patientId, patients, invoice]);
-
+  
   useEffect(() => {
-    if (invoice && patientId) {
-        const patient = patients.find(p => p.id === patientId);
-        if (patient) {
-            const invoiceTreatments = patient.treatmentPlans.filter(t => invoice.treatmentIds.includes(t.id));
-            setSelectedTreatments(invoiceTreatments);
-        }
-    } else {
-        // When patientId changes, reset selected treatments
-        setSelectedTreatments([]);
+    if (invoice) {
+        setSelectedTreatments(invoice.treatments);
     }
-  }, [invoice, patientId, patients]);
+  }, [invoice]);
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     onSave({
         ...values,
         otherCharges: values.otherCharges || [],
-        treatmentIds: selectedTreatments.map(t => t.id),
+        treatments: selectedTreatments,
         issueDate: format(values.issueDate, "yyyy-MM-dd"),
         dueDate: format(values.dueDate, "yyyy-MM-dd"),
     }, selectedTreatments);
   }
 
-  const handleTreatmentToggle = (treatment: Treatment) => {
+  const handleTreatmentToggle = (treatment: InvoiceTreatment) => {
     setSelectedTreatments(prev => 
-        prev.some(t => t.id === treatment.id)
-            ? prev.filter(t => t.id !== treatment.id)
+        prev.some(t => t.procedure === treatment.procedure)
+            ? prev.filter(t => t.procedure !== treatment.procedure)
             : [...prev, treatment]
     );
   }
   
   // This function is for the CommandItem onSelect
-  const handleTreatmentSelect = (treatmentId: string) => {
-    const treatment = availableTreatments.find(t => t.id === treatmentId);
+  const handleTreatmentSelect = (procedure: string) => {
+    const treatment = systemTreatments.find(t => t.procedure === procedure);
     if (treatment) {
         handleTreatmentToggle(treatment);
     }
@@ -152,7 +148,7 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
             <DialogHeader>
                 <DialogTitle>{invoice ? 'Edit Invoice' : 'Create Invoice'}</DialogTitle>
                 <DialogDescriptionComponent>
-                   {invoice ? 'Update the details for the invoice.' : 'Select a patient to see completed treatments available for billing.'}
+                   {invoice ? 'Update the details for the invoice.' : 'Select a patient and add treatments to the invoice.'}
                 </DialogDescriptionComponent>
             </DialogHeader>
             <div className="flex-grow overflow-y-auto pr-6 -mr-6">
@@ -170,8 +166,6 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
                                         value={field.value}
                                         onChange={(value) => {
                                             field.onChange(value);
-                                            // Reset treatments when patient changes
-                                            setSelectedTreatments([]);
                                         }}
                                         placeholder="Select a patient"
                                         searchPlaceholder="Search patients..."
@@ -183,50 +177,49 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
                             )}
                         />
                         
-                        {patientId && (
-                            <FormItem>
-                                <FormLabel>Treatments to Include</FormLabel>
-                                <FormControl>
-                                    <div className="rounded-md border h-48 overflow-y-auto">
-                                        <Command>
-                                            <CommandInput placeholder="Search treatments..." />
-                                            <CommandList>
-                                                <CommandEmpty>No available treatments found for this patient.</CommandEmpty>
-                                                <CommandGroup>
-                                                    {availableTreatments.map(treatment => (
-                                                        <CommandItem
-                                                            key={treatment.id}
-                                                            value={`${treatment.id} ${treatment.procedure} ${treatment.tooth || ''} ${treatment.date}`}
-                                                            onSelect={() => handleTreatmentSelect(treatment.id)}
-                                                            className="flex justify-between items-center cursor-pointer"
-                                                        >
-                                                        <div>
-                                                                <span>{treatment.procedure} {treatment.tooth ? `(#${treatment.tooth})` : ''}</span>
-                                                                <span className="text-xs text-muted-foreground ml-2">{treatment.date}</span>
-                                                        </div>
-                                                        <div className="flex items-center gap-2">
-                                                                <span className="font-mono">${treatment.cost.toFixed(2)}</span>
-                                                                {selectedTreatments.some(t => t.id === treatment.id) && <Check className="h-4 w-4 text-primary" />}
-                                                        </div>
-                                                        </CommandItem>
-                                                    ))}
-                                                </CommandGroup>
-                                            </CommandList>
-                                        </Command>
-                                    </div>
-                                </FormControl>
-                                <FormDescription>
-                                    Select from the list of completed, unbilled treatments for this patient.
-                                </FormDescription>
-                            </FormItem>
-                        )}
+                        
+                        <FormItem>
+                            <FormLabel>Treatments</FormLabel>
+                            <FormControl>
+                                <div className="rounded-md border h-48 overflow-y-auto">
+                                    <Command>
+                                        <CommandInput placeholder="Search treatments..." />
+                                        <CommandList>
+                                            <CommandEmpty>No treatments found.</CommandEmpty>
+                                            <CommandGroup>
+                                                {systemTreatments.map(treatment => (
+                                                    <CommandItem
+                                                        key={treatment.procedure}
+                                                        value={treatment.procedure}
+                                                        onSelect={() => handleTreatmentSelect(treatment.procedure)}
+                                                        className="flex justify-between items-center cursor-pointer"
+                                                    >
+                                                    <div>
+                                                            <span>{treatment.procedure}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                            <span className="font-mono">${treatment.cost.toFixed(2)}</span>
+                                                            {selectedTreatments.some(t => t.procedure === treatment.procedure) && <Check className="h-4 w-4 text-primary" />}
+                                                    </div>
+                                                    </CommandItem>
+                                                ))}
+                                            </CommandGroup>
+                                        </CommandList>
+                                    </Command>
+                                </div>
+                            </FormControl>
+                            <FormDescription>
+                               Select treatments to add to the invoice.
+                            </FormDescription>
+                        </FormItem>
+                        
 
                         {selectedTreatments.length > 0 && (
                             <div>
                                 <p className="text-sm font-medium mb-2">Selected Treatments for Invoice</p>
                                 <div className="flex flex-wrap gap-2">
                                     {selectedTreatments.map(treatment => (
-                                        <Badge key={treatment.id} variant="secondary" className="flex items-center gap-1">
+                                        <Badge key={treatment.procedure} variant="secondary" className="flex items-center gap-1">
                                             {treatment.procedure}
                                             <button type="button" onClick={() => handleTreatmentToggle(treatment)} className="rounded-full hover:bg-muted-foreground/20 p-0.5">
                                                 <X className="h-3 w-3" />

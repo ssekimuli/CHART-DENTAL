@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -31,7 +32,7 @@ import {
     SelectTrigger,
     SelectValue,
   } from "@/components/ui/select";
-import type { Treatment, DentalCondition } from "@/lib/types";
+import type { Treatment, DentalCondition, SystemTreatment } from "@/lib/types";
 import { Combobox } from "@/components/ui/combobox";
 import { getTreatments } from "@/lib/api";
 
@@ -54,7 +55,7 @@ type TreatmentPlanFormProps = {
 };
 
 export function TreatmentPlanForm({ treatment, onSave, onOpenChange, toothId, currentCondition }: TreatmentPlanFormProps) {
-  const [treatments, setTreatments] = useState<string[]>([]);
+  const [systemTreatments, setSystemTreatments] = useState<SystemTreatment[]>([]);
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -70,10 +71,20 @@ export function TreatmentPlanForm({ treatment, onSave, onOpenChange, toothId, cu
   useEffect(() => {
     const fetchTreatments = async () => {
         const data = await getTreatments();
-        setTreatments(data);
+        setSystemTreatments(data);
     }
     fetchTreatments();
   }, [])
+  
+  const selectedProcedure = form.watch("procedure");
+  useEffect(() => {
+    if (selectedProcedure) {
+        const matchingTreatment = systemTreatments.find(t => t.procedure === selectedProcedure);
+        if (matchingTreatment && !form.getValues('cost')) {
+            form.setValue('cost', matchingTreatment.cost);
+        }
+    }
+  }, [selectedProcedure, systemTreatments, form])
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     onSave(values, values.condition);
@@ -100,7 +111,7 @@ export function TreatmentPlanForm({ treatment, onSave, onOpenChange, toothId, cu
                           <FormLabel>Procedure</FormLabel>
                           <FormControl>
                             <Combobox
-                                options={treatments.map(t => ({ value: t, label: t }))}
+                                options={systemTreatments.map(t => ({ value: t.procedure, label: t.procedure }))}
                                 value={field.value}
                                 onChange={(value) => {
                                   field.onChange(value);

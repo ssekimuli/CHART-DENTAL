@@ -43,6 +43,14 @@ export type Treatment = {
   invoiceId?: string;
 };
 
+// This represents a treatment item on an invoice. It may or may not correspond
+// to a pre-existing treatment plan item.
+export type InvoiceTreatment = {
+  procedure: string;
+  cost: number;
+};
+
+
 export type AppointmentStatus = "Scheduled" | "Completed" | "Cancelled" | "Waiting" | "In Session" | "On Hold";
 
 export type Appointment = {
@@ -73,7 +81,8 @@ export type Invoice = {
   issueDate: string;
   dueDate: string;
   branchId: string;
-  treatmentIds: string[];
+  treatmentIds: string[]; // This will now be deprecated in logic, but kept for data compatibility
+  treatments: InvoiceTreatment[]; // New field for storing invoiced treatments
   otherCharges?: OtherCharge[];
 };
 
@@ -197,3 +206,8 @@ export type OrthodonticRecord = {
   bracketChanges?: string[];
   notes: string;
 };
+
+export type SystemTreatment = {
+    procedure: string;
+    cost: number;
+}

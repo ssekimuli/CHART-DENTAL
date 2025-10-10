@@ -1,31 +1,31 @@
 
 
-import type { Patient, Appointment, Invoice, ChartData, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder } from "@/lib/types";
+import type { Patient, Appointment, Invoice, ChartData, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, SystemTreatment } from "@/lib/types";
 
 export const branches: Branch[] = [
   { id: "b1", name: "Downtown Clinic", address: "123 Main St, Cityville" },
   { id: "b2", name: "Uptown Dental", address: "456 Oak Ave, Townburg" },
 ];
 
-export const treatments = [
-    "Regular Checkup & Cleaning",
-    "Composite Filling",
-    "Amalgam Filling",
-    "Root Canal Therapy",
-    "Tooth Extraction",
-    "Dental Crown",
-    "Dental Bridge",
-    "Dental Implant",
-    "Single Tooth Implant",
-    "Implant-Supported Bridge",
-    "All-on-4 Implants",
-    "Teeth Whitening",
-    "Veneers",
-    "Periodontal Scaling and Root Planing",
-    "Dentures (Full)",
-    "Dentures (Partial)",
-    "Consultation",
-    "Emergency Exam",
+export const treatments: SystemTreatment[] = [
+    { procedure: "Regular Checkup & Cleaning", cost: 75 },
+    { procedure: "Composite Filling", cost: 250 },
+    { procedure: "Amalgam Filling", cost: 200 },
+    { procedure: "Root Canal Therapy", cost: 1500 },
+    { procedure: "Tooth Extraction", cost: 300 },
+    { procedure: "Dental Crown", cost: 1200 },
+    { procedure: "Dental Bridge", cost: 3500 },
+    { procedure: "Dental Implant", cost: 4000 },
+    { procedure: "Single Tooth Implant", cost: 4000 },
+    { procedure: "Implant-Supported Bridge", cost: 8000 },
+    { procedure: "All-on-4 Implants", cost: 25000 },
+    { procedure: "Teeth Whitening", cost: 450 },
+    { procedure: "Veneers", cost: 1800 },
+    { procedure: "Periodontal Scaling and Root Planing", cost: 800 },
+    { procedure: "Dentures (Full)", cost: 2500 },
+    { procedure: "Dentures (Partial)", cost: 1500 },
+    { procedure: "Consultation", cost: 100 },
+    { procedure: "Emergency Exam", cost: 150 },
 ];
 
 export const patients: Patient[] = [
@@ -187,10 +187,10 @@ export const appointments: Appointment[] = [
 ];
 
 export const invoices: Invoice[] = [
-  { id: "inv1", patientName: "John Doe", patientId: "1", amount: 250, status: "Pending", issueDate: "2024-05-10", dueDate: "2024-06-10", branchId: "b1", treatmentIds: ['t1'], otherCharges: [] },
-  { id: "inv2", patientName: "Jane Smith", patientId: "2", amount: 150, status: "Paid", issueDate: "2024-04-22", dueDate: "2024-05-22", branchId: "b2", treatmentIds: ['t4'], otherCharges: [] },
-  { id: "inv3", patientName: "Mike Williams", patientId: "4", amount: 300, status: "Paid", issueDate: "2024-07-15", dueDate: "2024-08-15", branchId: "b2", treatmentIds: ['t5'], otherCharges: [] },
-  { id: "inv4", patientName: "John Doe", patientId: "1", amount: 95, status: "Overdue", issueDate: "2024-03-01", dueDate: "2024-04-01", branchId: "b1", treatmentIds: ['t3'], otherCharges: [{ description: 'Late Fee', amount: 20 }] },
+  { id: "inv1", patientName: "John Doe", patientId: "1", amount: 250, status: "Pending", issueDate: "2024-05-10", dueDate: "2024-06-10", branchId: "b1", treatmentIds: ['t1'], treatments: [{ procedure: 'Filling for #16', cost: 250}], otherCharges: [] },
+  { id: "inv2", patientName: "Jane Smith", patientId: "2", amount: 150, status: "Paid", issueDate: "2024-04-22", dueDate: "2024-05-22", branchId: "b2", treatmentIds: ['t4'], treatments: [{ procedure: 'Cleaning', cost: 150}], otherCharges: [] },
+  { id: "inv3", patientName: "Mike Williams", patientId: "4", amount: 300, status: "Paid", issueDate: "2024-07-15", dueDate: "2024-08-15", branchId: "b2", treatmentIds: ['t5'], treatments: [{ procedure: 'Filling', cost: 300}], otherCharges: [] },
+  { id: "inv4", patientName: "John Doe", patientId: "1", amount: 95, status: "Overdue", issueDate: "2024-03-01", dueDate: "2024-04-01", branchId: "b1", treatmentIds: ['t3'], treatments: [{ procedure: 'Regular Checkup', cost: 75}], otherCharges: [{ description: 'Late Fee', amount: 20 }] },
 ];
 
 export const chartData: ChartData[] = [

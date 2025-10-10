@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -33,7 +34,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import type { Appointment, Employee, Patient, AppointmentStatus } from "@/lib/types";
+import type { Appointment, Employee, Patient, AppointmentStatus, SystemTreatment } from "@/lib/types";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { CalendarIcon, RefreshCw } from "lucide-react";
@@ -93,7 +94,7 @@ const generateToken = (patientName: string, doctorName: string) => {
 }
 
 export function AppointmentForm({ appointment, patients, doctors, appointments, onSave, onOpenChange }: AppointmentFormProps) {
-  const [treatments, setTreatments] = useState<string[]>([]);
+  const [treatments, setTreatments] = useState<SystemTreatment[]>([]);
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -230,7 +231,7 @@ export function AppointmentForm({ appointment, patients, doctors, appointments, 
                             <FormLabel>Treatment</FormLabel>
                             <FormControl>
                                 <Combobox
-                                    options={treatments.map(t => ({ value: t, label: t }))}
+                                    options={treatments.map(t => ({ value: t.procedure, label: t.procedure }))}
                                     value={field.value}
                                     onChange={(value) => {
                                         field.onChange(value);
@@ -381,5 +382,3 @@ export function AppointmentForm({ appointment, patients, doctors, appointments, 
     </Dialog>
   );
 }
-
-    

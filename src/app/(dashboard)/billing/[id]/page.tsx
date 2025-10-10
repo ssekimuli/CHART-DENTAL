@@ -35,9 +35,9 @@ export default function InvoiceDetailPage() {
   }, [id]);
 
   const treatments = useMemo(() => {
-    if (!patient || !invoice) return [];
-    return patient.treatmentPlans.filter(t => invoice.treatmentIds.includes(t.id));
-  }, [patient, invoice]);
+    if (!invoice) return [];
+    return invoice.treatments;
+  }, [invoice]);
 
   const subtotal = useMemo(() => {
     return treatments.reduce((sum, t) => sum + t.cost, 0);
@@ -114,23 +114,19 @@ export default function InvoiceDetailPage() {
                 <TableHeader>
                     <TableRow>
                         <TableHead>Procedure</TableHead>
-                        <TableHead>Tooth</TableHead>
-                        <TableHead>Date</TableHead>
                         <TableHead className="text-right">Cost</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {treatments.map(treatment => (
-                        <TableRow key={treatment.id}>
+                    {treatments.map((treatment, index) => (
+                        <TableRow key={index}>
                             <TableCell>{treatment.procedure}</TableCell>
-                            <TableCell>{treatment.tooth || 'N/A'}</TableCell>
-                            <TableCell>{treatment.date}</TableCell>
                             <TableCell className="text-right">${treatment.cost.toFixed(2)}</TableCell>
                         </TableRow>
                     ))}
                     {treatments.length === 0 && (
                         <TableRow>
-                            <TableCell colSpan={4} className="text-center text-muted-foreground">No treatments on this invoice.</TableCell>
+                            <TableCell colSpan={2} className="text-center text-muted-foreground">No treatments on this invoice.</TableCell>
                         </TableRow>
                     )}
                 </TableBody>

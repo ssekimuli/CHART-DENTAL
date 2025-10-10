@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
@@ -21,7 +22,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { FileDown, PlusCircle, MoreHorizontal, Pencil, Trash, Eye } from "lucide-react";
-import type { Invoice, Patient, Treatment } from "@/lib/types";
+import type { Invoice, Patient, InvoiceTreatment } from "@/lib/types";
 import { InvoiceForm } from "./components/invoice-form";
 import { useBranch } from "@/context/branch-context";
 import { currentUser } from "@/lib/user";
@@ -103,7 +104,7 @@ export default function BillingPage() {
     setIsFormOpen(false);
   }
 
-  const handleSaveInvoice = async (data: Omit<Invoice, 'id' | 'patientName' | 'branchId' | 'amount'>, treatments: Treatment[]) => {
+  const handleSaveInvoice = async (data: Omit<Invoice, 'id' | 'patientName' | 'branchId' | 'amount' | 'treatmentIds'>, treatments: InvoiceTreatment[]) => {
     const patient = filteredPatients.find(p => p.id === data.patientId);
     if (!patient) return;
 
@@ -120,11 +121,6 @@ export default function BillingPage() {
             setAllInvoices(prev => [newInvoice, ...prev]);
         }
     }
-
-    // This is a bit of a hack to refresh patient data after invoice creation/update
-    // In a real app, this might be handled by re-fetching or a more sophisticated state management
-    const patientsData = await getPatients();
-    setAllPatients(patientsData);
     
     handleCloseForm();
   };
@@ -268,5 +264,3 @@ export default function BillingPage() {
     </>
   );
 }
-
-    
