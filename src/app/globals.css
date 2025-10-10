@@ -83,6 +83,15 @@
     @apply bg-background text-foreground;
   }
   .appointment-count-badge {
-    @apply absolute -top-1 -right-2 h-4 w-4 text-xs flex items-center justify-center rounded-full bg-primary text-primary-foreground font-bold;
+    @apply absolute -top-2 -right-3 h-5 w-5 text-xs flex items-center justify-center rounded-full text-white font-bold shadow-md;
+  }
+  .appointment-count-low {
+    @apply bg-blue-500;
+  }
+  .appointment-count-medium {
+    @apply bg-yellow-500;
+  }
+  .appointment-count-high {
+    @apply bg-red-500;
   }
 }

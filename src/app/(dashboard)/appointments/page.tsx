@@ -47,6 +47,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 export default function AppointmentsPage() {
   const router = useRouter();
@@ -176,6 +177,12 @@ export default function AppointmentsPage() {
     }
   };
 
+  const getBadgeClassForCount = (count: number) => {
+    if (count > 6) return 'appointment-count-high';
+    if (count > 3) return 'appointment-count-medium';
+    return 'appointment-count-low';
+  }
+
 
   return (
     <>
@@ -290,7 +297,7 @@ export default function AppointmentsPage() {
                       <div className="relative">
                         {props.date.getDate()}
                         {count > 0 && (
-                          <div className="appointment-count-badge">
+                          <div className={cn("appointment-count-badge", getBadgeClassForCount(count))}>
                             {count}
                           </div>
                         )}
