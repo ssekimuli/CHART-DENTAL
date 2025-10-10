@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
@@ -22,7 +21,7 @@ import {
   } from "@/components/ui/table";
 import { Calendar } from "@/components/ui/calendar";
 import { PlusCircle } from "lucide-react";
-import type { AttendanceRecord, Employee } from "@/lib/types";
+import type { AttendanceRecord, Employee, AttendanceStatus } from "@/lib/types";
 import { useBranch } from "@/context/branch-context";
 import { currentUser } from "@/lib/user";
 import { getAttendance, getEmployees, markAttendance } from "@/lib/api";
@@ -61,14 +60,12 @@ export default function AttendancePage() {
         if (!selectedDate) return [];
         const formattedDate = format(selectedDate, "yyyy-MM-dd");
         
-        // Create a map of attendance records for the selected date
         const dateRecords = new Map(
             allAttendance
                 .filter(a => a.date === formattedDate && a.branchId === selectedBranch)
                 .map(a => [a.employeeId, a])
         );
 
-        // Map through all employees of the branch and create a record for each
         return filteredEmployees.map(emp => {
             const record = dateRecords.get(emp.id);
             return {
@@ -76,7 +73,7 @@ export default function AttendancePage() {
                 employeeId: emp.id,
                 employeeName: emp.name,
                 date: formattedDate,
-                status: record?.status ?? 'Absent', // Default to Absent
+                status: record?.status ?? 'Absent',
                 checkIn: record?.checkIn,
                 checkOut: record?.checkOut,
                 branchId: selectedBranch,
@@ -101,6 +98,38 @@ export default function AttendancePage() {
         }
         setIsFormOpen(false);
     };
+
+    const handleQuickMark = async (employeeId: string, status: AttendanceStatus) => {
+        if (!selectedDate) return;
+
+        const employee = filteredEmployees.find(e => e.id === employeeId);
+        if (!employee) return;
+
+        const attendanceData: Omit<AttendanceRecord, 'id' | 'employeeName'> = {
+            employeeId,
+            date: format(selectedDate, "yyyy-MM-dd"),
+            status,
+            branchId: employee.branchId,
+        };
+
+        if (status === 'Present') {
+            attendanceData.checkIn = "09:00 AM";
+        }
+        
+        const newRecord = await markAttendance(attendanceData);
+        if (newRecord) {
+            setAllAttendance(prev => {
+                const existingIndex = prev.findIndex(att => att.employeeId === newRecord.employeeId && att.date === newRecord.date);
+                if (existingIndex > -1) {
+                    const updated = [...prev];
+                    updated[existingIndex] = newRecord;
+                    return updated;
+                }
+                return [...prev, newRecord];
+            });
+        }
+    }
+
 
     const getStatusVariant = (status: AttendanceRecord['status']) => {
         switch (status) {
@@ -154,6 +183,7 @@ export default function AttendancePage() {
                                 <TableHead>Status</TableHead>
                                 <TableHead>Check-in</TableHead>
                                 <TableHead>Check-out</TableHead>
+                                <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -165,11 +195,29 @@ export default function AttendancePage() {
                                     </TableCell>
                                     <TableCell>{record.checkIn || 'N/A'}</TableCell>
                                     <TableCell>{record.checkOut || 'N/A'}</TableCell>
+                                    <TableCell className="text-right space-x-2">
+                                        <Button 
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => handleQuickMark(record.employeeId, 'Present')}
+                                            disabled={record.status === 'Present'}
+                                        >
+                                            Present
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => handleQuickMark(record.employeeId, 'Absent')}
+                                            disabled={record.status === 'Absent'}
+                                        >
+                                            Absent
+                                        </Button>
+                                    </TableCell>
                                 </TableRow>
                             ))}
                             {attendanceForDate.length === 0 && (
                                 <TableRow>
-                                    <TableCell colSpan={4} className="h-24 text-center">
+                                    <TableCell colSpan={5} className="h-24 text-center">
                                         No employees in this branch.
                                     </TableCell>
                                 </TableRow>
