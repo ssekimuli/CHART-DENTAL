@@ -73,10 +73,13 @@ const generateTimeSlots = () => {
     let currentTime = new Date(startTime);
 
     while (currentTime <= endTime) {
-        slots.push(format(currentTime, "hh:mm a"));
+        slots.push(format(currentTime, "hh:mm a").replace(" ", ""));
         currentTime.setMinutes(currentTime.getMinutes() + 30);
     }
-    return slots;
+    return slots.map(slot => {
+        const [time, period] = slot.match(/(\d+:\d+)(\w+)/)!.slice(1);
+        return `${time} ${period}`;
+    })
 };
 
 const allTimeSlots = generateTimeSlots();
@@ -132,13 +135,14 @@ export function AppointmentForm({ appointment, patients, doctors, appointments, 
 
   return (
     <Dialog open={true} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md max-h-[90vh] flex flex-col">
             <DialogHeader>
                 <DialogTitle>{appointment ? 'Edit Appointment' : 'Create Appointment'}</DialogTitle>
                 <DialogDescription>
                     Fill out the details for the appointment.
                 </DialogDescription>
             </DialogHeader>
+            <div className="flex-grow overflow-y-auto pr-6">
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                     <FormField
@@ -314,12 +318,13 @@ export function AppointmentForm({ appointment, patients, doctors, appointments, 
                     </div>
 
 
-                     <DialogFooter>
+                     <DialogFooter className="sticky bottom-0 bg-background pt-4">
                         <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
                         <Button type="submit">Save Appointment</Button>
                     </DialogFooter>
                 </form>
             </Form>
+            </div>
         </DialogContent>
     </Dialog>
   );
