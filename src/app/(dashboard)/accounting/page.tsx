@@ -21,6 +21,7 @@ import {
   YAxis,
 } from "recharts";
 import { ChartTooltip, ChartTooltipContent, ChartContainer } from "@/components/ui/chart";
+import { format, parse } from "date-fns";
 
 import { useBranch } from "@/context/branch-context";
 import { currentUser } from "@/lib/user";
@@ -82,21 +83,24 @@ export default function AccountingPage() {
         const financialsByMonth: Record<string, { income: number, expense: number }> = {};
     
         paidInvoices.forEach(invoice => {
-          const month = new Date(invoice.issueDate).toLocaleString('default', { month: 'short' });
-          if (!financialsByMonth[month]) financialsByMonth[month] = { income: 0, expense: 0 };
-          financialsByMonth[month].income += invoice.amount;
+          const monthKey = format(new Date(invoice.issueDate), "yyyy-MM");
+          if (!financialsByMonth[monthKey]) financialsByMonth[monthKey] = { income: 0, expense: 0 };
+          financialsByMonth[monthKey].income += invoice.amount;
         });
     
         [...branchPayrolls, ...branchExpenses].forEach(expense => {
-          const month = new Date(expense.date).toLocaleString('default', { month: 'short' });
-          if (!financialsByMonth[month]) financialsByMonth[month] = { income: 0, expense: 0 };
-          financialsByMonth[month].expense += (expense as Payroll).grossPay || (expense as Expense).amount;
+          const monthKey = format(new Date(expense.date), "yyyy-MM");
+          if (!financialsByMonth[monthKey]) financialsByMonth[monthKey] = { income: 0, expense: 0 };
+          financialsByMonth[monthKey].expense += (expense as Payroll).grossPay || (expense as Expense).amount;
         });
     
-        const monthlyFinancials = Object.keys(financialsByMonth).map(month => ({
-          month,
-          ...financialsByMonth[month],
-        })).slice(-6); // Last 6 months
+        const monthlyFinancials = Object.keys(financialsByMonth)
+            .sort()
+            .slice(-6)
+            .map(monthKey => ({
+              month: format(parse(monthKey, 'yyyy-MM', new Date()), 'MMM'),
+              ...financialsByMonth[monthKey],
+            }));
     
         return { paidInvoices, totalIncome, totalExpenses, netProfit, monthlyFinancials };
       }, [selectedBranch, allInvoices, allPayrolls, allExpenses]);
