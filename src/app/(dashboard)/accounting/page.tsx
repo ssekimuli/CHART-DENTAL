@@ -88,10 +88,16 @@ export default function AccountingPage() {
           financialsByMonth[monthKey].income += invoice.amount;
         });
     
-        [...branchPayrolls, ...branchExpenses].forEach(expense => {
-          const monthKey = format(new Date(expense.date), "yyyy-MM");
-          if (!financialsByMonth[monthKey]) financialsByMonth[monthKey] = { income: 0, expense: 0 };
-          financialsByMonth[monthKey].expense += (expense as Payroll).grossPay || (expense as Expense).amount;
+        branchPayrolls.forEach(payroll => {
+            const monthKey = format(new Date(payroll.payDate), "yyyy-MM");
+            if (!financialsByMonth[monthKey]) financialsByMonth[monthKey] = { income: 0, expense: 0 };
+            financialsByMonth[monthKey].expense += payroll.grossPay;
+        });
+
+        branchExpenses.forEach(expense => {
+            const monthKey = format(new Date(expense.date), "yyyy-MM");
+            if (!financialsByMonth[monthKey]) financialsByMonth[monthKey] = { income: 0, expense: 0 };
+            financialsByMonth[monthKey].expense += expense.amount;
         });
     
         const monthlyFinancials = Object.keys(financialsByMonth)
