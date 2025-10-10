@@ -75,7 +75,8 @@ export const getEmployees = async (): Promise<Employee[]> => {
 
 export const getEmployeeById = async (id: string): Promise<Employee | undefined> => {
     await delay(100);
-    return JSON.parse(JSON.stringify(employees.find(e => e.id === id)));
+    // Find by ID or email for profile page lookup
+    return JSON.parse(JSON.stringify(employees.find(e => e.id === id || e.email === id)));
 }
 
 export const getPayrolls = async (): Promise<Payroll[]> => {

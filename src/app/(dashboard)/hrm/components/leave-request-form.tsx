@@ -56,6 +56,10 @@ type LeaveRequestFormProps = {
 export function LeaveRequestForm({ employees, onSave, onOpenChange }: LeaveRequestFormProps) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
+    defaultValues: {
+        // If there's only one employee in the list (e.g., from profile page), pre-select them.
+        employeeId: employees.length === 1 ? employees[0].id : undefined
+    }
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
