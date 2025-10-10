@@ -187,10 +187,10 @@ export const appointments: Appointment[] = [
 ];
 
 export const invoices: Invoice[] = [
-  { id: "inv1", patientName: "John Doe", patientId: "1", amount: 250, status: "Pending", issueDate: "2024-05-10", dueDate: "2024-06-10", branchId: "b1", treatmentIds: ['t1'], treatments: [{ procedure: 'Filling for #16', cost: 250}], otherCharges: [], paymentMethod: 'Insurance' },
-  { id: "inv2", patientName: "Jane Smith", patientId: "2", amount: 150, status: "Paid", issueDate: "2024-04-22", dueDate: "2024-05-22", branchId: "b2", treatmentIds: ['t4'], treatments: [{ procedure: 'Cleaning', cost: 150}], otherCharges: [], paymentMethod: 'Credit Card' },
-  { id: "inv3", patientName: "Mike Williams", patientId: "4", amount: 300, status: "Paid", issueDate: "2024-07-15", dueDate: "2024-08-15", branchId: "b2", treatmentIds: ['t5'], treatments: [{ procedure: 'Filling', cost: 300}], otherCharges: [], paymentMethod: 'Cash' },
-  { id: "inv4", patientName: "John Doe", patientId: "1", amount: 95, status: "Overdue", issueDate: "2024-03-01", dueDate: "2024-04-01", branchId: "b1", treatmentIds: ['t3'], treatments: [{ procedure: 'Regular Checkup', cost: 75}], otherCharges: [{ description: 'Late Fee', amount: 20 }] },
+  { id: "inv1", patientName: "John Doe", patientId: "1", amount: 250, paidAmount: 100, status: "Pending", issueDate: "2024-05-10", dueDate: "2024-06-10", branchId: "b1", treatmentIds: ['t1'], treatments: [{ procedure: 'Filling for #16', cost: 250}], otherCharges: [], paymentMethod: 'Insurance' },
+  { id: "inv2", patientName: "Jane Smith", patientId: "2", amount: 150, paidAmount: 150, status: "Paid", issueDate: "2024-04-22", dueDate: "2024-05-22", branchId: "b2", treatmentIds: ['t4'], treatments: [{ procedure: 'Cleaning', cost: 150}], otherCharges: [], paymentMethod: 'Credit Card' },
+  { id: "inv3", patientName: "Mike Williams", patientId: "4", amount: 300, paidAmount: 300, status: "Paid", issueDate: "2024-07-15", dueDate: "2024-08-15", branchId: "b2", treatmentIds: ['t5'], treatments: [{ procedure: 'Filling', cost: 300}], otherCharges: [], paymentMethod: 'Cash' },
+  { id: "inv4", patientName: "John Doe", patientId: "1", amount: 95, paidAmount: 0, status: "Overdue", issueDate: "2024-03-01", dueDate: "2024-04-01", branchId: "b1", treatmentIds: ['t3'], treatments: [{ procedure: 'Regular Checkup', cost: 75}], otherCharges: [{ description: 'Late Fee', amount: 20 }] },
 ];
 
 export const chartData: ChartData[] = [

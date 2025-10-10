@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FileDown, PlusCircle, MoreHorizontal, Pencil, Trash, Eye } from "lucide-react";
+import { FileDown, PlusCircle, MoreHorizontal, Pencil, Trash, Eye, HandCoins } from "lucide-react";
 import type { Invoice, Patient, InvoiceTreatment } from "@/lib/types";
 import { InvoiceForm } from "./components/invoice-form";
 import { useBranch } from "@/context/branch-context";
@@ -44,8 +44,9 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
   } from "@/components/ui/alert-dialog";
-import { createInvoice, deleteInvoice, getInvoices, getPatients, updateInvoice, updatePatient } from "@/lib/api";
+import { createInvoice, deleteInvoice, getInvoices, getPatients, processPayment, updateInvoice, updatePatient } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PaymentForm } from "./components/payment-form";
 
 export default function BillingPage() {
   const router = useRouter();
@@ -55,6 +56,7 @@ export default function BillingPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isPaymentFormOpen, setIsPaymentFormOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | undefined>(undefined);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
 
@@ -104,7 +106,17 @@ export default function BillingPage() {
     setIsFormOpen(false);
   }
 
-  const handleSaveInvoice = async (data: Omit<Invoice, 'id' | 'patientName' | 'branchId' | 'amount' | 'treatmentIds'>, treatments: InvoiceTreatment[]) => {
+  const handleOpenPaymentForm = (invoice: Invoice) => {
+    setSelectedInvoice(invoice);
+    setIsPaymentFormOpen(true);
+  }
+
+  const handleClosePaymentForm = () => {
+    setSelectedInvoice(undefined);
+    setIsPaymentFormOpen(false);
+  }
+
+  const handleSaveInvoice = async (data: Omit<Invoice, 'id' | 'paidAmount' | 'patientName' | 'branchId' | 'amount' | 'treatmentIds'>, treatments: InvoiceTreatment[]) => {
     const patient = filteredPatients.find(p => p.id === data.patientId);
     if (!patient) return;
 
@@ -124,6 +136,14 @@ export default function BillingPage() {
     
     handleCloseForm();
   };
+
+  const handleProcessPayment = async (invoiceId: string, amount: number, method: string) => {
+    const updated = await processPayment(invoiceId, amount, method);
+    if (updated) {
+        setAllInvoices(prev => prev.map(i => i.id === updated.id ? updated : i));
+    }
+    handleClosePaymentForm();
+  }
 
   const handleDeleteInvoice = async () => {
     if (selectedInvoice) {
@@ -179,8 +199,9 @@ export default function BillingPage() {
                 <TableHead>Patient</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Issue Date</TableHead>
-                <TableHead>Due Date</TableHead>
                 <TableHead>Amount</TableHead>
+                <TableHead>Paid Amount</TableHead>
+                <TableHead>Balance</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -195,8 +216,9 @@ export default function BillingPage() {
                     </Badge>
                   </TableCell>
                   <TableCell>{invoice.issueDate}</TableCell>
-                  <TableCell>{invoice.dueDate}</TableCell>
                   <TableCell>${invoice.amount.toFixed(2)}</TableCell>
+                  <TableCell>${invoice.paidAmount.toFixed(2)}</TableCell>
+                  <TableCell>${(invoice.amount - invoice.paidAmount).toFixed(2)}</TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -215,6 +237,10 @@ export default function BillingPage() {
                                 <Pencil className="mr-2 h-4 w-4" />
                                 Edit
                             </DropdownMenuItem>
+                             <DropdownMenuItem onClick={() => handleOpenPaymentForm(invoice)} disabled={invoice.status === 'Paid'}>
+                                <HandCoins className="mr-2 h-4 w-4" />
+                                Pay
+                            </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem className="text-red-600" onClick={() => openDeleteDialog(invoice)}>
                                 <Trash className="mr-2 h-4 w-4" />
@@ -227,7 +253,7 @@ export default function BillingPage() {
               ))}
               {invoices.length === 0 && !isLoading && (
                  <TableRow>
-                    <TableCell colSpan={7} className="h-24 text-center">
+                    <TableCell colSpan={8} className="h-24 text-center">
                         No invoices found for this branch.
                     </TableCell>
                  </TableRow>
@@ -243,6 +269,13 @@ export default function BillingPage() {
             patients={filteredPatients}
             onSave={handleSaveInvoice}
             onOpenChange={handleCloseForm}
+        />
+      )}
+      {isPaymentFormOpen && selectedInvoice && (
+        <PaymentForm
+            invoice={selectedInvoice}
+            onSave={handleProcessPayment}
+            onOpenChange={handleClosePaymentForm}
         />
       )}
        <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>

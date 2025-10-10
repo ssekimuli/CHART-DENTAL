@@ -169,7 +169,7 @@ export const deleteAppointment = async (id: string): Promise<{ success: boolean 
 }
 
 // Invoices
-export const createInvoice = async (data: Omit<Invoice, 'id' | 'amount' | 'treatmentIds'> & { patientName: string, branchId: string }): Promise<Invoice> => {
+export const createInvoice = async (data: Omit<Invoice, 'id' | 'amount' | 'paidAmount' | 'treatmentIds'> & { patientName: string, branchId: string }): Promise<Invoice> => {
     await delay(200);
     const patient = patients.find(p => p.id === data.patientId);
     if (!patient) throw new Error("Patient not found");
@@ -183,6 +183,7 @@ export const createInvoice = async (data: Omit<Invoice, 'id' | 'amount' | 'treat
         id: `inv${invoices.length + 1}`,
         treatmentIds: [], // Deprecated, but kept for data structure
         amount,
+        paidAmount: 0,
     };
     invoices = [newInvoice, ...invoices];
 
@@ -203,6 +204,27 @@ export const updateInvoice = async (id: string, data: Partial<Omit<Invoice, 'amo
             const amount = treatmentsTotal + otherChargesTotal;
 
             updatedInvoice = { ...i, ...data, amount, treatments, otherCharges };
+            return updatedInvoice;
+        }
+        return i;
+    });
+    return updatedInvoice;
+}
+
+export const processPayment = async (invoiceId: string, paymentAmount: number, paymentMethod: string): Promise<Invoice | undefined> => {
+    await delay(300);
+    let updatedInvoice: Invoice | undefined;
+    invoices = invoices.map(i => {
+        if (i.id === invoiceId) {
+            const newPaidAmount = i.paidAmount + paymentAmount;
+            const newStatus = newPaidAmount >= i.amount ? 'Paid' : 'Pending';
+
+            updatedInvoice = { 
+                ...i, 
+                paidAmount: newPaidAmount,
+                status: newStatus,
+                paymentMethod: paymentMethod as any,
+             };
             return updatedInvoice;
         }
         return i;
