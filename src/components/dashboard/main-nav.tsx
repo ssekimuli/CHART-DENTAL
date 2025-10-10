@@ -31,6 +31,7 @@ import {
   CalendarClock,
   NotebookPen,
   Clock,
+  DollarSign,
 } from "lucide-react";
 import type { EmployeeRole } from "@/lib/types";
 import { currentUser } from "@/lib/user";
@@ -55,6 +56,7 @@ const allLinks = [
         { href: "/hrm/staff", label: "Staff", icon: User, roles: ['Super Admin', 'HR'] as EmployeeRole[] },
         { href: "/hrm/staff-position", label: "Staff Position", icon: UserCog, roles: ['Super Admin', 'HR'] as EmployeeRole[] },
         { href: "/hrm/payroll", label: "Payroll", icon: HandCoins, roles: ['Super Admin', 'HR', 'Account'] as EmployeeRole[] },
+        { href: "/hrm/staff-salaries", label: "Staff Salaries", icon: DollarSign, roles: ['Super Admin', 'HR', 'Account'] as EmployeeRole[] },
         { href: "/hrm/leave", label: "Leave", icon: CalendarClock, roles: ['Super Admin', 'HR'] as EmployeeRole[] },
         { href: "/hrm/staff-advances", label: "Staff Advances", icon: NotebookPen, roles: ['Super Admin', 'HR', 'Account'] as EmployeeRole[] },
         { href: "/hrm/attendance", label: "Attendance", icon: Clock, roles: ['Super Admin', 'HR'] as EmployeeRole[] },
