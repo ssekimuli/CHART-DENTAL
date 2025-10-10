@@ -73,13 +73,10 @@ const generateTimeSlots = () => {
     let currentTime = new Date(startTime);
 
     while (currentTime <= endTime) {
-        slots.push(format(currentTime, "hh:mm a").replace(" ", ""));
+        slots.push(format(currentTime, "hh:mm a"));
         currentTime.setMinutes(currentTime.getMinutes() + 30);
     }
-    return slots.map(slot => {
-        const [time, period] = slot.match(/(\d+:\d+)(\w+)/)!.slice(1);
-        return `${time} ${period}`;
-    })
+    return slots;
 };
 
 const allTimeSlots = generateTimeSlots();
@@ -135,7 +132,7 @@ export function AppointmentForm({ appointment, patients, doctors, appointments, 
 
   return (
     <Dialog open={true} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-md max-h-[90vh] flex flex-col">
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col">
             <DialogHeader>
                 <DialogTitle>{appointment ? 'Edit Appointment' : 'Create Appointment'}</DialogTitle>
                 <DialogDescription>
