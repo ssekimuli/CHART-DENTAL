@@ -65,22 +65,19 @@ type AppointmentFormProps = {
 // Generate time slots from 9 AM to 5 PM in 30-minute intervals
 const generateTimeSlots = () => {
     const slots = [];
-    for (let i = 9; i < 17; i++) {
-        slots.push(`${i}:00 AM`.replace('12:', '12:').replace('13:', '1:').replace('14:', '2:').replace('15:', '3:').replace('16:', '4:').replace('17:', '5:') + (i < 12 ? ' AM' : ' PM'));
-        slots.push(`${i}:30 AM`.replace('12:', '12:').replace('13:', '1:').replace('14:', '2:').replace('15:', '3:').replace('16:', '4:').replace('17:', '5:') + (i < 12 ? ' AM' : ' PM'));
+    const startTime = new Date();
+    startTime.setHours(9, 0, 0, 0);
+    const endTime = new Date();
+    endTime.setHours(16, 30, 0, 0);
+
+    let currentTime = new Date(startTime);
+
+    while (currentTime <= endTime) {
+        slots.push(format(currentTime, "hh:mm a"));
+        currentTime.setMinutes(currentTime.getMinutes() + 30);
     }
-     slots[6] = '12:00 PM';
-     slots[7] = '12:30 PM';
-     slots[8] = '1:00 PM';
-     slots[9] = '1:30 PM';
-     slots[10] = '2:00 PM';
-     slots[11] = '2:30 PM';
-     slots[12] = '3:00 PM';
-     slots[13] = '3:30 PM';
-     slots[14] = '4:00 PM';
-     slots[15] = '4:30 PM';
     return slots;
-}
+};
 
 const allTimeSlots = generateTimeSlots();
 
