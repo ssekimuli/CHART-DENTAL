@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { format, parseISO } from "date-fns";
+import { useEffect } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -44,6 +45,7 @@ const formSchema = z.object({
   role: z.enum(['Super Admin', 'Account', 'HR', 'Dentist', 'Hygienist', 'Receptionist', 'Assistant']),
   status: z.enum(['Active', 'On Leave']),
   salary: z.coerce.number().positive("Salary must be a positive number."),
+  monthlySalary: z.coerce.number().optional(),
   hireDate: z.date({
     required_error: "A hire date is required.",
   }),
@@ -65,10 +67,30 @@ export function EmployeeForm({ employee, onSave, onOpenChange }: EmployeeFormPro
         role: employee?.role,
         status: employee?.status ?? 'Active',
         salary: employee?.salary,
+        monthlySalary: employee ? employee.salary / 12 : undefined,
         hireDate: employee ? parseISO(employee.hireDate) : undefined,
         avatar: employee?.avatar ?? "",
     },
   });
+
+  const annualSalary = form.watch("salary");
+  const monthlySalary = form.watch("monthlySalary");
+
+  useEffect(() => {
+    const newMonthly = parseFloat((annualSalary / 12).toFixed(2));
+    if (annualSalary && (!monthlySalary || newMonthly !== monthlySalary)) {
+      form.setValue("monthlySalary", newMonthly);
+    }
+  }, [annualSalary, monthlySalary, form]);
+
+  const handleMonthlyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const monthly = parseFloat(e.target.value);
+    form.setValue("monthlySalary", monthly);
+    if (!isNaN(monthly)) {
+        form.setValue("salary", parseFloat((monthly * 12).toFixed(2)));
+    }
+  }
+
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     onSave({
@@ -82,7 +104,7 @@ export function EmployeeForm({ employee, onSave, onOpenChange }: EmployeeFormPro
 
   return (
     <Dialog open={true} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-2xl">
             <DialogHeader>
                 <DialogTitle>{employee ? "Edit Employee" : "Add Employee"}</DialogTitle>
                 <DialogDescription>
@@ -178,6 +200,21 @@ export function EmployeeForm({ employee, onSave, onOpenChange }: EmployeeFormPro
                                 </FormItem>
                             )}
                         />
+                        <FormField
+                            control={form.control}
+                            name="monthlySalary"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Monthly Salary</FormLabel>
+                                <FormControl>
+                                    <Input type="number" placeholder="e.g., 6250" {...field} onChange={handleMonthlyChange} />
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    </div>
+                     <div className="grid grid-cols-2 gap-4">
                         <FormField
                             control={form.control}
                             name="hireDate"
