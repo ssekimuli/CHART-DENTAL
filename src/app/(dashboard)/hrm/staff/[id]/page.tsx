@@ -2,15 +2,16 @@
 "use client";
 
 import { notFound, useParams } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import type { Employee } from '@/lib/types';
+import type { Employee, Payroll, AttendanceRecord, Appointment } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft, Loader2, DollarSign, UserCheck, CalendarDays, UserPlus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { getEmployeeById } from '@/lib/api';
+import { getEmployeeById, getPayrolls, getAttendance, getAppointments } from '@/lib/api';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 export default function EmployeeDetailPage() {
   const router = useRouter();
@@ -18,18 +19,54 @@ export default function EmployeeDetailPage() {
   const { id } = params;
 
   const [employee, setEmployee] = useState<Employee | undefined>(undefined);
+  const [payrolls, setPayrolls] = useState<Payroll[]>([]);
+  const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (typeof id !== 'string') return;
     const fetchData = async () => {
         setIsLoading(true);
-        const data = await getEmployeeById(id);
-        setEmployee(data);
+        const [employeeData, payrollData, attendanceData, appointmentData] = await Promise.all([
+            getEmployeeById(id),
+            getPayrolls(),
+            getAttendance(),
+            getAppointments()
+        ]);
+        setEmployee(employeeData);
+        setPayrolls(payrollData);
+        setAttendance(attendanceData);
+        setAppointments(appointmentData);
         setIsLoading(false);
     }
     fetchData();
   }, [id]);
+
+  const stats = useMemo(() => {
+    if (!employee) return null;
+
+    const employeePayrolls = payrolls.filter(p => p.employeeId === employee.id);
+    const totalPaid = employeePayrolls.reduce((sum, p) => sum + p.netPay, 0);
+
+    const employeeAttendance = attendance.filter(a => a.employeeId === employee.id);
+    const presentDays = employeeAttendance.filter(a => a.status === 'Present').length;
+    const absentDays = employeeAttendance.filter(a => a.status === 'Absent').length;
+    const onLeaveDays = employeeAttendance.filter(a => a.status === 'On Leave').length;
+
+    const employeeAppointments = appointments.filter(a => a.doctorId === employee.id);
+    const uniquePatients = new Set(employeeAppointments.map(a => a.patientId)).size;
+
+    return {
+        totalPaid,
+        presentDays,
+        absentDays,
+        onLeaveDays,
+        totalAppointments: employeeAppointments.length,
+        uniquePatients,
+        recentAppointments: employeeAppointments.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0,5),
+    }
+  }, [employee, payrolls, attendance, appointments]);
   
   if (isLoading) {
       return (
@@ -54,14 +91,14 @@ export default function EmployeeDetailPage() {
                       </div>
                   </CardHeader>
                   <CardContent>
-                      <div className="h-20 w-full bg-gray-200 rounded animate-pulse"></div>
+                      <div className="h-40 w-full bg-gray-200 rounded animate-pulse"></div>
                   </CardContent>
               </Card>
           </div>
       )
   }
 
-  if (!employee) {
+  if (!employee || !stats) {
     notFound();
   }
 
@@ -77,42 +114,121 @@ export default function EmployeeDetailPage() {
         </h1>
       </div>
         <Card>
-        <CardHeader className="flex flex-row items-center gap-4">
-            <Avatar className="h-24 w-24 border">
-                <AvatarImage src={employee.avatar} />
-                <AvatarFallback>{employee.name.charAt(0)}</AvatarFallback>
-            </Avatar>
-            <div className="flex-1">
-                <CardTitle className="text-3xl">{employee.name}</CardTitle>
-                <CardDescription className="text-base text-muted-foreground">{employee.email}</CardDescription>
-                <div className="mt-2 flex items-center gap-2">
-                    <Badge variant="outline">{employee.role}</Badge>
-                    <Badge
-                        variant={employee.status === "Active" ? "secondary" : "outline"}
-                        className={employee.status === 'Active' ? 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800' : ''}
-                        >
-                        {employee.status}
-                    </Badge>
+            <CardHeader className="flex flex-row items-center gap-4">
+                <Avatar className="h-24 w-24 border">
+                    <AvatarImage src={employee.avatar} />
+                    <AvatarFallback>{employee.name.charAt(0)}</AvatarFallback>
+                </Avatar>
+                <div className="flex-1">
+                    <CardTitle className="text-3xl">{employee.name}</CardTitle>
+                    <CardDescription className="text-base text-muted-foreground">{employee.email}</CardDescription>
+                    <div className="mt-2 flex items-center gap-2">
+                        <Badge variant="outline">{employee.role}</Badge>
+                        <Badge
+                            variant={employee.status === "Active" ? "secondary" : "outline"}
+                            className={employee.status === 'Active' ? 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800' : ''}
+                            >
+                            {employee.status}
+                        </Badge>
+                    </div>
                 </div>
-            </div>
-        </CardHeader>
-        <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                <div className="grid gap-1">
-                    <span className="text-muted-foreground">Hire Date</span>
-                    <span className="font-medium">{employee.hireDate}</span>
+            </CardHeader>
+            <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div className="grid gap-1">
+                        <span className="text-muted-foreground">Hire Date</span>
+                        <span className="font-medium">{employee.hireDate}</span>
+                    </div>
+                    <div className="grid gap-1">
+                        <span className="text-muted-foreground">Salary</span>
+                        <span className="font-medium">${employee.salary.toLocaleString()}</span>
+                    </div>
+                    <div className="grid gap-1">
+                        <span className="text-muted-foreground">Branch ID</span>
+                        <span className="font-medium">{employee.branchId}</span>
+                    </div>
                 </div>
-                <div className="grid gap-1">
-                    <span className="text-muted-foreground">Salary</span>
-                    <span className="font-medium">${employee.salary.toLocaleString()}</span>
-                </div>
-                 <div className="grid gap-1">
-                    <span className="text-muted-foreground">Branch ID</span>
-                    <span className="font-medium">{employee.branchId}</span>
-                </div>
-            </div>
-        </CardContent>
+            </CardContent>
+        </Card>
+
+         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                    <CardTitle className="text-sm font-medium">Total Paid</CardTitle>
+                    <DollarSign className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold">${stats.totalPaid.toLocaleString()}</div>
+                    <p className="text-xs text-muted-foreground">Total net salary paid to date</p>
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                    <CardTitle className="text-sm font-medium">Attendance</CardTitle>
+                    <UserCheck className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold">{stats.presentDays} <span className="text-base font-normal"> Days</span></div>
+                    <p className="text-xs text-muted-foreground">{stats.absentDays} Absent, {stats.onLeaveDays} On Leave</p>
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                    <CardTitle className="text-sm font-medium">Appointments</CardTitle>
+                    <CalendarDays className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold">{stats.totalAppointments}</div>
+                     <p className="text-xs text-muted-foreground">Total appointments assigned</p>
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                    <CardTitle className="text-sm font-medium">Patients Treated</CardTitle>
+                    <UserPlus className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold">{stats.uniquePatients}</div>
+                    <p className="text-xs text-muted-foreground">Unique patients seen</p>
+                </CardContent>
+            </Card>
+        </div>
+
+        <Card>
+            <CardHeader>
+                <CardTitle>Recent Appointments</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Date</TableHead>
+                            <TableHead>Patient</TableHead>
+                            <TableHead>Treatment</TableHead>
+                            <TableHead>Status</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {stats.recentAppointments.length === 0 ? (
+                            <TableRow>
+                                <TableCell colSpan={4} className="h-24 text-center">
+                                    No recent appointments found for this employee.
+                                </TableCell>
+                            </TableRow>
+                        ) : stats.recentAppointments.map(app => (
+                            <TableRow key={app.id}>
+                                <TableCell>{app.date}</TableCell>
+                                <TableCell>{app.patientName}</TableCell>
+                                <TableCell>{app.treatment}</TableCell>
+                                <TableCell><Badge variant="outline">{app.status}</Badge></TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </CardContent>
         </Card>
     </div>
   );
 }
+
+    
