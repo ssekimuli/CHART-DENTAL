@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -22,7 +23,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
+  DialogDescription as DialogDescriptionComponent,
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
@@ -150,9 +151,9 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
         <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col">
             <DialogHeader>
                 <DialogTitle>{invoice ? 'Edit Invoice' : 'Create Invoice'}</DialogTitle>
-                <DialogDescription>
+                <DialogDescriptionComponent>
                    {invoice ? 'Update the details for the invoice.' : 'Select a patient to see completed treatments available for billing.'}
-                </DialogDescription>
+                </DialogDescriptionComponent>
             </DialogHeader>
             <div className="flex-grow overflow-y-auto pr-6 -mr-6">
                 <Form {...form}>
@@ -185,34 +186,38 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
                         {patientId && (
                             <FormItem>
                                 <FormLabel>Treatments to Include</FormLabel>
-                                <p className="text-xs text-muted-foreground">Select from the list of completed, unbilled treatments for this patient.</p>
-                                <div className="rounded-md border h-48 overflow-y-auto">
-                                    <Command>
-                                        <CommandInput placeholder="Search treatments..." />
-                                        <CommandList>
-                                            <CommandEmpty>No available treatments found for this patient.</CommandEmpty>
-                                            <CommandGroup>
-                                                {availableTreatments.map(treatment => (
-                                                    <CommandItem
-                                                        key={treatment.id}
-                                                        value={`${treatment.id} ${treatment.procedure} ${treatment.tooth || ''} ${treatment.date}`}
-                                                        onSelect={() => handleTreatmentSelect(treatment.id)}
-                                                        className="flex justify-between items-center cursor-pointer"
-                                                    >
-                                                    <div>
-                                                            <span>{treatment.procedure} {treatment.tooth ? `(#${treatment.tooth})` : ''}</span>
-                                                            <span className="text-xs text-muted-foreground ml-2">{treatment.date}</span>
-                                                    </div>
-                                                    <div className="flex items-center gap-2">
-                                                            <span className="font-mono">${treatment.cost.toFixed(2)}</span>
-                                                            {selectedTreatments.some(t => t.id === treatment.id) && <Check className="h-4 w-4 text-primary" />}
-                                                    </div>
-                                                    </CommandItem>
-                                                ))}
-                                            </CommandGroup>
-                                        </CommandList>
-                                    </Command>
-                                </div>
+                                <FormControl>
+                                    <div className="rounded-md border h-48 overflow-y-auto">
+                                        <Command>
+                                            <CommandInput placeholder="Search treatments..." />
+                                            <CommandList>
+                                                <CommandEmpty>No available treatments found for this patient.</CommandEmpty>
+                                                <CommandGroup>
+                                                    {availableTreatments.map(treatment => (
+                                                        <CommandItem
+                                                            key={treatment.id}
+                                                            value={`${treatment.id} ${treatment.procedure} ${treatment.tooth || ''} ${treatment.date}`}
+                                                            onSelect={() => handleTreatmentSelect(treatment.id)}
+                                                            className="flex justify-between items-center cursor-pointer"
+                                                        >
+                                                        <div>
+                                                                <span>{treatment.procedure} {treatment.tooth ? `(#${treatment.tooth})` : ''}</span>
+                                                                <span className="text-xs text-muted-foreground ml-2">{treatment.date}</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                                <span className="font-mono">${treatment.cost.toFixed(2)}</span>
+                                                                {selectedTreatments.some(t => t.id === treatment.id) && <Check className="h-4 w-4 text-primary" />}
+                                                        </div>
+                                                        </CommandItem>
+                                                    ))}
+                                                </CommandGroup>
+                                            </CommandList>
+                                        </Command>
+                                    </div>
+                                </FormControl>
+                                <FormDescription>
+                                    Select from the list of completed, unbilled treatments for this patient.
+                                </FormDescription>
                             </FormItem>
                         )}
 
@@ -403,3 +408,5 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
     </Dialog>
   );
 }
+
+    
