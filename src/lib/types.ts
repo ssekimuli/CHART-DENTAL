@@ -74,6 +74,13 @@ export type OtherCharge = {
 
 export type PaymentMethod = 'Cash' | 'Credit Card' | 'Insurance' | 'Bank Transfer';
 
+export type PaymentTransaction = {
+  id: string;
+  date: string;
+  amount: number;
+  method: PaymentMethod;
+};
+
 export type Invoice = {
   id: string;
   patientName: string;
@@ -88,6 +95,7 @@ export type Invoice = {
   treatments: InvoiceTreatment[]; // New field for storing invoiced treatments
   otherCharges?: OtherCharge[];
   paymentMethod?: PaymentMethod;
+  transactions?: PaymentTransaction[];
 };
 
 export type ChartData = {

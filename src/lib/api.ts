@@ -12,7 +12,7 @@ import {
     labOrders as initialLabOrders,
     treatments as allTreatments
 } from '@/lib/data';
-import type { Patient, Appointment, Invoice, ChartData, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, BasePatient, InvoiceTreatment, OtherCharge, SystemTreatment } from '@/lib/types';
+import type { Patient, Appointment, Invoice, ChartData, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, BasePatient, InvoiceTreatment, OtherCharge, SystemTreatment, PaymentMethod, PaymentTransaction } from '@/lib/types';
 
 // This is a mock API layer. In a real app, you would replace this with actual API calls to your backend.
 // We're using let instead of const so we can mutate the data in memory.
@@ -184,6 +184,7 @@ export const createInvoice = async (data: Omit<Invoice, 'id' | 'amount' | 'paidA
         treatmentIds: [], // Deprecated, but kept for data structure
         amount,
         paidAmount: 0,
+        transactions: [],
     };
     invoices = [newInvoice, ...invoices];
 
@@ -211,19 +212,29 @@ export const updateInvoice = async (id: string, data: Partial<Omit<Invoice, 'amo
     return updatedInvoice;
 }
 
-export const processPayment = async (invoiceId: string, paymentAmount: number, paymentMethod: string): Promise<Invoice | undefined> => {
+export const processPayment = async (invoiceId: string, paymentAmount: number, method: string): Promise<Invoice | undefined> => {
     await delay(300);
     let updatedInvoice: Invoice | undefined;
     invoices = invoices.map(i => {
         if (i.id === invoiceId) {
             const newPaidAmount = i.paidAmount + paymentAmount;
             const newStatus = newPaidAmount >= i.amount ? 'Paid' : 'Pending';
+            
+            const newTransaction: PaymentTransaction = {
+                id: `txn_${(i.transactions?.length || 0) + 1}_${i.id}`,
+                date: new Date().toISOString().split('T')[0],
+                amount: paymentAmount,
+                method: method as PaymentMethod
+            };
+
+            const updatedTransactions = [...(i.transactions || []), newTransaction];
 
             updatedInvoice = { 
                 ...i, 
                 paidAmount: newPaidAmount,
                 status: newStatus,
-                paymentMethod: paymentMethod as any,
+                paymentMethod: method as any,
+                transactions: updatedTransactions
              };
             return updatedInvoice;
         }

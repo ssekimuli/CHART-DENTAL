@@ -7,7 +7,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import type { Invoice, Patient, PaymentMethod } from '@/lib/types';
+import type { Invoice, Patient, PaymentMethod, PaymentTransaction } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Printer, Download, Loader2 } from 'lucide-react';
 import { getInvoiceById, getPatientById } from '@/lib/api';
@@ -94,7 +94,7 @@ export default function InvoiceDetailPage() {
             <Button><Download className="mr-2 h-4 w-4" /> Download PDF</Button>
         </div>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-8">
         <div className="grid grid-cols-2 gap-4">
             <div>
                 <h4 className="font-semibold">Billed To</h4>
@@ -134,6 +134,30 @@ export default function InvoiceDetailPage() {
                 </TableBody>
             </Table>
         </div>
+
+        {(invoice.transactions && invoice.transactions.length > 0) && (
+          <div>
+            <h4 className="font-semibold mb-2">Transactions</h4>
+            <Table>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Method</TableHead>
+                        <TableHead className="text-right">Amount</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {invoice.transactions.map((transaction) => (
+                        <TableRow key={transaction.id}>
+                            <TableCell>{transaction.date}</TableCell>
+                            <TableCell>{transaction.method}</TableCell>
+                            <TableCell className="text-right">${transaction.amount.toFixed(2)}</TableCell>
+                        </TableRow>
+                    ))}
+                </TableBody>
+            </Table>
+          </div>
+        )}
       </CardContent>
       <CardFooter className="justify-end bg-muted/50 p-6">
         <div className="w-full max-w-sm grid gap-2 text-right">
@@ -156,6 +180,14 @@ export default function InvoiceDetailPage() {
             <div className="flex justify-between font-semibold text-lg border-t pt-2 mt-2">
                 <span>Total:</span>
                 <span>${invoice.amount.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between text-muted-foreground">
+                <span>Paid:</span>
+                <span>-${invoice.paidAmount.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between font-semibold text-lg border-t pt-2 mt-2">
+                <span>Balance Due:</span>
+                <span>${(invoice.amount - invoice.paidAmount).toFixed(2)}</span>
             </div>
         </div>
       </CardFooter>
