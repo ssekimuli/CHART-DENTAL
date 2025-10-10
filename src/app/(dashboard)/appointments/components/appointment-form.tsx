@@ -39,6 +39,7 @@ import { cn } from "@/lib/utils";
 import { CalendarIcon, RefreshCw } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Combobox } from "@/components/ui/combobox";
+import { treatments } from "@/lib/treatments";
 
 
 const formSchema = z.object({
@@ -214,7 +215,14 @@ export function AppointmentForm({ appointment, patients, doctors, appointments, 
                             <FormItem>
                             <FormLabel>Treatment</FormLabel>
                             <FormControl>
-                                <Input placeholder="e.g., Routine Check-up" {...field} />
+                                <Combobox
+                                    options={treatments.map(t => ({ value: t, label: t }))}
+                                    value={field.value}
+                                    onChange={field.onChange}
+                                    placeholder="Select a treatment"
+                                    searchPlaceholder="Search treatments..."
+                                    emptyMessage="No treatment found."
+                                />
                             </FormControl>
                             <FormMessage />
                             </FormItem>
@@ -357,3 +365,5 @@ export function AppointmentForm({ appointment, patients, doctors, appointments, 
     </Dialog>
   );
 }
+
+    
