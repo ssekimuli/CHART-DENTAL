@@ -16,7 +16,7 @@ import {
     expenses,
     roles
 } from '@/lib/data';
-import type { Patient, Appointment, Invoice, ChartData, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, BasePatient, InvoiceTreatment, OtherCharge, SystemTreatment, PaymentMethod, PaymentTransaction, AttendanceRecord, LeaveRequest, StaffAdvance, StaffAdvanceStatus, Expense, ExpenseCategory, RolePermissions, Permission, DentalRecord } from '@/lib/types';
+import type { Patient, Appointment, Invoice, ChartData, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, BasePatient, InvoiceTreatment, OtherCharge, SystemTreatment, PaymentMethod, PaymentTransaction, AttendanceRecord, LeaveRequest, StaffAdvance, StaffAdvanceStatus, Expense, ExpenseCategory, RolePermissions, Permission, DentalRecord, PeriodontalRecord } from '@/lib/types';
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -167,6 +167,16 @@ export const saveDentalRecord = async (patientId: string, record: DentalRecord):
             newRecords.push(record);
         }
         patients[patientIndex] = { ...patient, dentalRecords: newRecords };
+        return patients[patientIndex];
+    }
+    return undefined;
+}
+
+export const savePeriodontalRecord = async (patientId: string, records: PeriodontalRecord): Promise<Patient | undefined> => {
+    await delay(150);
+    const patientIndex = patients.findIndex(p => p.id === patientId);
+    if (patientIndex > -1) {
+        patients[patientIndex].periodontalRecords = records;
         return patients[patientIndex];
     }
     return undefined;

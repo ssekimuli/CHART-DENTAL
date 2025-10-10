@@ -21,7 +21,7 @@ import { OcclusalChart } from "./components/occlusal-chart";
 import { SoftTissueChart } from "./components/soft-tissue-chart";
 import { TreatmentPlanForm } from "../components/treatment-plan-form";
 import { OrthodonticChart } from "./components/orthodontic-chart";
-import { getPatientById, updatePatient, saveDentalRecord } from "@/lib/api";
+import { getPatientById, updatePatient, saveDentalRecord, savePeriodontalRecord } from "@/lib/api";
 
 export default function PatientChartingPage({
   params,
@@ -118,16 +118,12 @@ export default function PatientChartingPage({
     }
   }
   
-  const handleSavePeriodontalRecord = (records: PeriodontalRecord) => {
-     setPatient(prevPatient => {
-        if (!prevPatient) return prevPatient;
-        const updatedPatient = {
-            ...prevPatient,
-            periodontalRecords: records,
-        };
-        handleUpdatePatient(updatedPatient);
-        return updatedPatient;
-    });
+  const handleSavePeriodontalRecord = async (records: PeriodontalRecord) => {
+     if (!patient) return;
+     const updatedPatient = await savePeriodontalRecord(patient.id, records);
+     if (updatedPatient) {
+         setPatient(updatedPatient);
+     }
   }
 
   const handleSaveOcclusalRecord = (record: OcclusalRecord) => {
