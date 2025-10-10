@@ -196,21 +196,17 @@ export default function QueuePage() {
                                </div>
                                <div className="flex flex-col gap-4">
                                 {appointmentsByStatus(column.statuses).map(appointment => (
-                                     <Card key={appointment.id} className="flex flex-col isolate z-10">
-                                        <CardHeader className="flex-row items-start gap-3 space-y-0 p-4">
-                                            <Avatar className="h-10 w-10 border">
-                                                
-                                                <AvatarFallback>{appointment.patientName.charAt(0)}</AvatarFallback>
-                                            </Avatar>
-                                            <div className="flex-1">
-                                                <CardTitle className="text-base">{appointment.patientName}</CardTitle>
-                                                <p className="text-xs text-muted-foreground">{appointment.treatment}</p>
+                                     <Card key={appointment.id} className="flex flex-col isolate z-10 overflow-hidden">
+                                        <CardHeader className="flex-col items-center gap-2 space-y-0 p-4 bg-background/50 border-b">
+                                            <div className="flex items-center justify-center h-16 w-16 rounded-full bg-primary/10 border-2 border-primary/20 text-primary font-bold text-3xl">
+                                                {isSpeaking && currentlySpeaking === appointment.id ? <Loader2 className="h-8 w-8 animate-spin"/> : appointment.tokenNumber}
                                             </div>
-                                            <div className="flex items-center justify-center h-10 w-10 rounded-full bg-primary/10 border border-primary/20 text-primary font-bold text-lg">
-                                                {isSpeaking && currentlySpeaking === appointment.id ? <Loader2 className="h-5 w-5 animate-spin"/> : appointment.tokenNumber}
+                                            <div className="text-center">
+                                                <CardTitle className="text-lg">{appointment.patientName}</CardTitle>
+                                                <p className="text-sm text-muted-foreground">{appointment.treatment}</p>
                                             </div>
                                         </CardHeader>
-                                        <CardContent className="flex-grow space-y-1 text-sm px-4 pb-4">
+                                        <CardContent className="flex-grow space-y-1 text-sm px-4 pt-4 pb-4">
                                             <p><strong>Time:</strong> {appointment.time}</p>
                                             <p><strong>Doctor:</strong> {appointment.doctorName}</p>
                                         </CardContent>
