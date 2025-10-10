@@ -59,7 +59,24 @@ export let patients: Patient[] = [
       { url: "https://picsum.photos/seed/xray4/800/600", description: "Post-treatment - Tooth #16", date: "2024-05-10" },
     ],
     history: "Patient has a history of grinding teeth (bruxism). Regular check-ups every 6 months. No known allergies. Previous treatments include multiple fillings and one extraction.",
-    periodontalRecords: [],
+    periodontalRecords: [
+      { 
+        toothId: 16,
+        pockets: { distobuccal: 3, buccal: 2, mesiobuccal: 3, distolingual: 3, lingual: 2, mesiolingual: 2 },
+        recession: 1,
+        mobility: '0',
+        furcation: undefined,
+        conditions: { bleeding: true, plaque: true }
+      },
+      { 
+        toothId: 36,
+        pockets: { distobuccal: 4, buccal: 3, mesiobuccal: 4, distolingual: 4, lingual: 3, mesiolingual: 3 },
+        recession: 2,
+        mobility: '1',
+        furcation: 'I',
+        conditions: { bleeding: true, calculus: true, plaque: true }
+      }
+    ],
     occlusalRecords: {
       overbite: 2,
       overjet: 2,
@@ -370,5 +387,6 @@ export let roles: RolePermissions[] = [
     { id: 'Receptionist', name: 'Receptionist', permissions: ['dashboard:read', 'queue:read', 'patients:read', 'patients:create', 'patients:update', 'appointments:read', 'appointments:create', 'appointments:update', 'appointments:delete', 'billing:read', 'billing:create', 'billing:update', 'inventory:read', 'profile:read', 'profile:update'] },
     { id: 'Assistant', name: 'Dental Assistant', permissions: ['dashboard:read', 'queue:read', 'patients:read', 'charting:read', 'appointments:read', 'inventory:read', 'inventory:create', 'inventory:update', 'laboratory:read', 'profile:read', 'profile:update'] }
 ];
+
 
 
