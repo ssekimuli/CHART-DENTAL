@@ -21,7 +21,7 @@ import { OcclusalChart } from "./components/occlusal-chart";
 import { SoftTissueChart } from "./components/soft-tissue-chart";
 import { TreatmentPlanForm } from "../components/treatment-plan-form";
 import { OrthodonticChart } from "./components/orthodontic-chart";
-import { getPatientById, updatePatient } from "@/lib/api";
+import { getPatientById, updatePatient, saveDentalRecord } from "@/lib/api";
 
 export default function PatientChartingPage({
   params,
@@ -110,25 +110,12 @@ export default function PatientChartingPage({
     setSelectedToothForTreatment(undefined);
   }
 
-  const handleSaveDentalRecord = (record: DentalRecord) => {
-    setPatient(prevPatient => {
-        if (!prevPatient) return prevPatient;
-        const newRecords = [...prevPatient.dentalRecords];
-        const existingRecordIndex = newRecords.findIndex(r => r.toothId === record.toothId);
-        if (existingRecordIndex > -1) {
-            newRecords[existingRecordIndex] = record;
-        } else {
-            newRecords.push(record);
-        }
-        const updatedPatient = {
-            ...prevPatient,
-            dentalRecords: newRecords,
-        };
-
-        handleUpdatePatient(updatedPatient);
-        
-        return updatedPatient;
-    });
+  const handleSaveDentalRecord = async (record: DentalRecord) => {
+    if (!patient) return;
+    const updatedPatient = await saveDentalRecord(patient.id, record);
+    if (updatedPatient) {
+        setPatient(updatedPatient);
+    }
   }
   
   const handleSavePeriodontalRecord = (records: PeriodontalRecord) => {

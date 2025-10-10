@@ -16,7 +16,7 @@ import {
     expenses,
     roles
 } from '@/lib/data';
-import type { Patient, Appointment, Invoice, ChartData, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, BasePatient, InvoiceTreatment, OtherCharge, SystemTreatment, PaymentMethod, PaymentTransaction, AttendanceRecord, LeaveRequest, StaffAdvance, StaffAdvanceStatus, Expense, ExpenseCategory, RolePermissions, Permission } from '@/lib/types';
+import type { Patient, Appointment, Invoice, ChartData, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, BasePatient, InvoiceTreatment, OtherCharge, SystemTreatment, PaymentMethod, PaymentTransaction, AttendanceRecord, LeaveRequest, StaffAdvance, StaffAdvanceStatus, Expense, ExpenseCategory, RolePermissions, Permission, DentalRecord } from '@/lib/types';
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -152,6 +152,24 @@ export const deletePatient = async (id: string): Promise<{ success: boolean }> =
     patients.length = 0;
     Array.prototype.push.apply(patients, newPatients);
     return { success: patients.length < initialLength };
+}
+
+export const saveDentalRecord = async (patientId: string, record: DentalRecord): Promise<Patient | undefined> => {
+    await delay(150);
+    const patientIndex = patients.findIndex(p => p.id === patientId);
+    if (patientIndex > -1) {
+        const patient = patients[patientIndex];
+        const recordIndex = patient.dentalRecords.findIndex(r => r.toothId === record.toothId);
+        const newRecords = [...patient.dentalRecords];
+        if (recordIndex > -1) {
+            newRecords[recordIndex] = record;
+        } else {
+            newRecords.push(record);
+        }
+        patients[patientIndex] = { ...patient, dentalRecords: newRecords };
+        return patients[patientIndex];
+    }
+    return undefined;
 }
 
 
