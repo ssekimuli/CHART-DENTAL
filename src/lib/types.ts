@@ -1,4 +1,5 @@
 
+
 export type Patient = {
   id: string;
   name: string;
@@ -58,6 +59,11 @@ export type Appointment = {
   tokenNumber: string;
 };
 
+export type OtherCharge = {
+  description: string;
+  amount: number;
+};
+
 export type Invoice = {
   id: string;
   patientName: string;
@@ -68,7 +74,7 @@ export type Invoice = {
   dueDate: string;
   branchId: string;
   treatmentIds: string[];
-  otherCharges?: number;
+  otherCharges?: OtherCharge[];
 };
 
 export type ChartData = {

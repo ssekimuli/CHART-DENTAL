@@ -43,6 +43,11 @@ export default function InvoiceDetailPage() {
     return treatments.reduce((sum, t) => sum + t.cost, 0);
   }, [treatments]);
 
+  const otherChargesTotal = useMemo(() => {
+    if (!invoice || !invoice.otherCharges) return 0;
+    return invoice.otherCharges.reduce((sum, charge) => sum + charge.amount, 0);
+  }, [invoice]);
+
 
   if (isLoading) {
     return (
@@ -138,11 +143,17 @@ export default function InvoiceDetailPage() {
                 <span>Subtotal:</span>
                 <span>${subtotal.toFixed(2)}</span>
             </div>
-            {invoice.otherCharges && invoice.otherCharges > 0 && (
-                 <div className="flex justify-between">
-                    <span>Other Charges:</span>
-                    <span>${invoice.otherCharges.toFixed(2)}</span>
-                </div>
+            {invoice.otherCharges && invoice.otherCharges.length > 0 && (
+                 <>
+                    <div className="border-t border-dashed my-1"></div>
+                     {invoice.otherCharges.map((charge, index) => (
+                         <div key={index} className="flex justify-between text-muted-foreground">
+                             <span>{charge.description}:</span>
+                             <span>${charge.amount.toFixed(2)}</span>
+                         </div>
+                     ))}
+                     <div className="border-t border-dashed my-1"></div>
+                 </>
             )}
             <div className="flex justify-between font-semibold text-lg border-t pt-2 mt-2">
                 <span>Total:</span>

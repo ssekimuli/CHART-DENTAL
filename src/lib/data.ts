@@ -164,10 +164,10 @@ export const appointments: Appointment[] = [
 ];
 
 export const invoices: Invoice[] = [
-  { id: "inv1", patientName: "John Doe", patientId: "1", amount: 250, status: "Pending", issueDate: "2024-05-10", dueDate: "2024-06-10", branchId: "b1", treatmentIds: ['t1'] },
-  { id: "inv2", patientName: "Jane Smith", patientId: "2", amount: 150, status: "Paid", issueDate: "2024-04-22", dueDate: "2024-05-22", branchId: "b2", treatmentIds: ['t4'] },
-  { id: "inv3", patientName: "Mike Williams", patientId: "4", amount: 300, status: "Paid", issueDate: "2024-07-15", dueDate: "2024-08-15", branchId: "b2", treatmentIds: ['t5'] },
-  { id: "inv4", patientName: "John Doe", patientId: "1", amount: 75, status: "Overdue", issueDate: "2024-03-01", dueDate: "2024-04-01", branchId: "b1", treatmentIds: ['t3'] },
+  { id: "inv1", patientName: "John Doe", patientId: "1", amount: 250, status: "Pending", issueDate: "2024-05-10", dueDate: "2024-06-10", branchId: "b1", treatmentIds: ['t1'], otherCharges: [] },
+  { id: "inv2", patientName: "Jane Smith", patientId: "2", amount: 150, status: "Paid", issueDate: "2024-04-22", dueDate: "2024-05-22", branchId: "b2", treatmentIds: ['t4'], otherCharges: [] },
+  { id: "inv3", patientName: "Mike Williams", patientId: "4", amount: 300, status: "Paid", issueDate: "2024-07-15", dueDate: "2024-08-15", branchId: "b2", treatmentIds: ['t5'], otherCharges: [] },
+  { id: "inv4", patientName: "John Doe", patientId: "1", amount: 95, status: "Overdue", issueDate: "2024-03-01", dueDate: "2024-04-01", branchId: "b1", treatmentIds: ['t3'], otherCharges: [{ description: 'Late Fee', amount: 20 }] },
 ];
 
 export const chartData: ChartData[] = [

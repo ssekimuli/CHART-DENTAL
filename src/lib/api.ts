@@ -1,4 +1,5 @@
 
+
 import { 
     patients as initialPatients, 
     appointments as initialAppointments,
@@ -10,7 +11,7 @@ import {
     inventory as initialInventory,
     labOrders as initialLabOrders
 } from '@/lib/data';
-import type { Patient, Appointment, Invoice, ChartData, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, BasePatient, Treatment } from '@/lib/types';
+import type { Patient, Appointment, Invoice, ChartData, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, BasePatient, Treatment, OtherCharge } from '@/lib/types';
 
 // This is a mock API layer. In a real app, you would replace this with actual API calls to your backend.
 // We're using let instead of const so we can mutate the data in memory.
@@ -169,8 +170,10 @@ export const createInvoice = async (data: Omit<Invoice, 'id' | 'amount'> & { tre
     const treatmentsTotal = patient.treatmentPlans
         .filter(t => data.treatmentIds.includes(t.id))
         .reduce((sum, t) => sum + t.cost, 0);
+    
+    const otherChargesTotal = (data.otherCharges || []).reduce((sum, charge) => sum + charge.amount, 0);
 
-    const amount = treatmentsTotal + (data.otherCharges || 0);
+    const amount = treatmentsTotal + otherChargesTotal;
 
     const newInvoiceId = `inv${invoices.length + 1}`;
     
@@ -235,8 +238,9 @@ export const updateInvoice = async (id: string, data: Partial<Omit<Invoice, 'amo
                 .filter(t => treatmentIds.includes(t.id))
                 .reduce((sum, t) => sum + t.cost, 0);
             
-            const otherCharges = data.otherCharges ?? i.otherCharges ?? 0;
-            const amount = treatmentsTotal + otherCharges;
+            const otherCharges = data.otherCharges ?? i.otherCharges ?? [];
+            const otherChargesTotal = otherCharges.reduce((sum, charge) => sum + charge.amount, 0);
+            const amount = treatmentsTotal + otherChargesTotal;
 
             updatedInvoice = { ...i, ...data, amount, treatmentIds, otherCharges };
             
