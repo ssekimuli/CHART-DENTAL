@@ -28,6 +28,7 @@ import { getAttendance, getEmployees, markAttendance } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { AttendanceForm } from "../components/attendance-form";
+import { Checkbox } from "@/components/ui/checkbox";
 
 
 export default function AttendancePage() {
@@ -37,6 +38,7 @@ export default function AttendancePage() {
     const [isLoading, setIsLoading] = useState(true);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+    const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>([]);
     
     useEffect(() => {
         const fetchData = async () => {
@@ -82,6 +84,9 @@ export default function AttendancePage() {
 
     }, [selectedDate, allAttendance, filteredEmployees, selectedBranch]);
 
+    useEffect(() => {
+        setSelectedEmployeeIds([]);
+    }, [selectedDate, selectedBranch]);
 
     const handleSaveAttendance = async (data: Omit<AttendanceRecord, 'id' | 'employeeName'>) => {
         const newRecord = await markAttendance(data);
@@ -99,35 +104,43 @@ export default function AttendancePage() {
         setIsFormOpen(false);
     };
 
-    const handleQuickMark = async (employeeId: string, status: AttendanceStatus) => {
+    const handleMarkStatus = async (employeeIds: string[], status: AttendanceStatus) => {
         if (!selectedDate) return;
+        const formattedDate = format(selectedDate, "yyyy-MM-dd");
 
-        const employee = filteredEmployees.find(e => e.id === employeeId);
-        if (!employee) return;
+        const recordsToUpdate = employeeIds.map(empId => {
+            const employee = filteredEmployees.find(e => e.id === empId);
+            if (!employee) return null;
+            const record: Omit<AttendanceRecord, 'id' | 'employeeName'> = {
+                employeeId: empId,
+                date: formattedDate,
+                status,
+                branchId: employee.branchId,
+            }
+            if (status === 'Present') {
+                record.checkIn = "09:00 AM";
+            }
+            return record;
+        }).filter(Boolean) as Omit<AttendanceRecord, 'id' | 'employeeName'>[];
 
-        const attendanceData: Omit<AttendanceRecord, 'id' | 'employeeName'> = {
-            employeeId,
-            date: format(selectedDate, "yyyy-MM-dd"),
-            status,
-            branchId: employee.branchId,
-        };
-
-        if (status === 'Present') {
-            attendanceData.checkIn = "09:00 AM";
-        }
+        const updatedRecords = await Promise.all(recordsToUpdate.map(markAttendance));
         
-        const newRecord = await markAttendance(attendanceData);
-        if (newRecord) {
-            setAllAttendance(prev => {
-                const existingIndex = prev.findIndex(att => att.employeeId === newRecord.employeeId && att.date === newRecord.date);
-                if (existingIndex > -1) {
-                    const updated = [...prev];
-                    updated[existingIndex] = newRecord;
-                    return updated;
+        setAllAttendance(prev => {
+            const newAttendance = [...prev];
+            updatedRecords.forEach(newRecord => {
+                if (newRecord) {
+                    const existingIndex = newAttendance.findIndex(att => att.employeeId === newRecord.employeeId && att.date === newRecord.date);
+                    if (existingIndex > -1) {
+                        newAttendance[existingIndex] = newRecord;
+                    } else {
+                        newAttendance.push(newRecord);
+                    }
                 }
-                return [...prev, newRecord];
-            });
-        }
+            })
+            return newAttendance;
+        });
+
+        setSelectedEmployeeIds([]);
     }
 
 
@@ -136,6 +149,22 @@ export default function AttendancePage() {
             case "Present": return "secondary";
             case "Absent": return "destructive";
             case "On Leave": return "outline";
+        }
+    }
+
+    const handleSelectAll = (checked: boolean) => {
+        if (checked) {
+            setSelectedEmployeeIds(attendanceForDate.map(a => a.employeeId));
+        } else {
+            setSelectedEmployeeIds([]);
+        }
+    }
+
+    const handleSelectSingle = (employeeId: string, checked: boolean) => {
+        if (checked) {
+            setSelectedEmployeeIds(prev => [...prev, employeeId]);
+        } else {
+            setSelectedEmployeeIds(prev => prev.filter(id => id !== employeeId));
         }
     }
 
@@ -156,7 +185,7 @@ export default function AttendancePage() {
             </div>
             <div className="lg:col-span-2">
                 <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
+                <CardHeader className="flex flex-row items-start justify-between">
                     <div>
                     <CardTitle>Attendance</CardTitle>
                     <CardDescription>
@@ -176,43 +205,57 @@ export default function AttendancePage() {
                             <Skeleton className="h-12 w-full" />
                         </div>
                     ) : (
+                    <>
+                    <div className="mb-4 flex items-center gap-2">
+                        <Button
+                            size="sm"
+                            onClick={() => handleMarkStatus(selectedEmployeeIds, 'Present')}
+                            disabled={selectedEmployeeIds.length === 0}
+                        >
+                            Mark Selected as Present
+                        </Button>
+                        <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => handleMarkStatus(selectedEmployeeIds, 'Absent')}
+                             disabled={selectedEmployeeIds.length === 0}
+                        >
+                            Mark Selected as Absent
+                        </Button>
+                        <span className="text-sm text-muted-foreground ml-auto">{selectedEmployeeIds.length} selected</span>
+                    </div>
                     <Table>
                         <TableHeader>
                             <TableRow>
+                                <TableHead className="w-[50px]">
+                                     <Checkbox
+                                        checked={selectedEmployeeIds.length === attendanceForDate.length && attendanceForDate.length > 0}
+                                        onCheckedChange={handleSelectAll}
+                                        aria-label="Select all"
+                                    />
+                                </TableHead>
                                 <TableHead>Employee</TableHead>
                                 <TableHead>Status</TableHead>
                                 <TableHead>Check-in</TableHead>
                                 <TableHead>Check-out</TableHead>
-                                <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {attendanceForDate.map((record) => (
                                 <TableRow key={record.employeeId}>
+                                     <TableCell>
+                                        <Checkbox
+                                            checked={selectedEmployeeIds.includes(record.employeeId)}
+                                            onCheckedChange={(checked) => handleSelectSingle(record.employeeId, !!checked)}
+                                            aria-label={`Select ${record.employeeName}`}
+                                        />
+                                    </TableCell>
                                     <TableCell className="font-medium">{record.employeeName}</TableCell>
                                     <TableCell>
                                         <Badge variant={getStatusVariant(record.status)}>{record.status}</Badge>
                                     </TableCell>
                                     <TableCell>{record.checkIn || 'N/A'}</TableCell>
                                     <TableCell>{record.checkOut || 'N/A'}</TableCell>
-                                    <TableCell className="text-right space-x-2">
-                                        <Button 
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => handleQuickMark(record.employeeId, 'Present')}
-                                            disabled={record.status === 'Present'}
-                                        >
-                                            Present
-                                        </Button>
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => handleQuickMark(record.employeeId, 'Absent')}
-                                            disabled={record.status === 'Absent'}
-                                        >
-                                            Absent
-                                        </Button>
-                                    </TableCell>
                                 </TableRow>
                             ))}
                             {attendanceForDate.length === 0 && (
@@ -224,6 +267,7 @@ export default function AttendancePage() {
                             )}
                         </TableBody>
                     </Table>
+                    </>
                     )}
                 </CardContent>
                 </Card>
