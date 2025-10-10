@@ -29,6 +29,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { AttendanceForm } from "../components/attendance-form";
 import { Checkbox } from "@/components/ui/checkbox";
+import { MassAttendanceForm } from "../components/mass-attendance-form";
 
 
 export default function AttendancePage() {
@@ -37,6 +38,7 @@ export default function AttendancePage() {
     const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isFormOpen, setIsFormOpen] = useState(false);
+    const [isMassFormOpen, setIsMassFormOpen] = useState(false);
     const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
     const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>([]);
     
@@ -114,7 +116,7 @@ export default function AttendancePage() {
         setIsFormOpen(false);
     };
 
-    const handleMarkStatus = async (employeeIds: string[], status: AttendanceStatus) => {
+    const handleMarkStatus = async (employeeIds: string[], status: AttendanceStatus, checkIn?: string, checkOut?: string) => {
         if (!selectedDate) return;
         const formattedDate = format(selectedDate, "yyyy-MM-dd");
 
@@ -126,8 +128,10 @@ export default function AttendancePage() {
                 date: formattedDate,
                 status,
                 branchId: employee.branchId,
+                checkIn,
+                checkOut,
             }
-            if (status === 'Present') {
+            if (status === 'Present' && !checkIn) {
                 record.checkIn = "09:00 AM";
             }
             return record;
@@ -151,6 +155,7 @@ export default function AttendancePage() {
         });
 
         setSelectedEmployeeIds([]);
+        setIsMassFormOpen(false);
     }
 
 
@@ -219,7 +224,7 @@ export default function AttendancePage() {
                     <div className="mb-4 flex items-center gap-2">
                         <Button
                             size="sm"
-                            onClick={() => handleMarkStatus(selectedEmployeeIds, 'Present')}
+                            onClick={() => setIsMassFormOpen(true)}
                             disabled={selectedEmployeeIds.length === 0}
                         >
                             Mark Selected as Present
@@ -289,6 +294,13 @@ export default function AttendancePage() {
                 onSave={handleSaveAttendance}
                 onOpenChange={setIsFormOpen}
                 selectedDate={selectedDate}
+            />
+        )}
+        {isMassFormOpen && (
+            <MassAttendanceForm
+                onSave={(checkIn, checkOut) => handleMarkStatus(selectedEmployeeIds, 'Present', checkIn, checkOut)}
+                onOpenChange={setIsMassFormOpen}
+                employeeCount={selectedEmployeeIds.length}
             />
         )}
     </>
