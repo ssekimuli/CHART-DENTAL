@@ -31,6 +31,8 @@ import {
     SelectValue,
   } from "@/components/ui/select";
 import type { Treatment, DentalCondition } from "@/lib/types";
+import { Combobox } from "@/components/ui/combobox";
+import { treatments } from "@/lib/treatments";
 
 const formSchema = z.object({
   procedure: z.string().min(2, {
@@ -44,12 +46,13 @@ const formSchema = z.object({
 
 type TreatmentPlanFormProps = {
     treatment?: Treatment;
-    onSave: (data: Omit<Treatment, 'id' | 'date'>) => void;
+    onSave: (data: Omit<Treatment, 'id' | 'date'>, condition?: DentalCondition) => void;
     onOpenChange: (open: boolean) => void;
     toothId?: number;
+    currentCondition?: DentalCondition;
 };
 
-export function TreatmentPlanForm({ treatment, onSave, onOpenChange, toothId }: TreatmentPlanFormProps) {
+export function TreatmentPlanForm({ treatment, onSave, onOpenChange, toothId, currentCondition }: TreatmentPlanFormProps) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -57,12 +60,12 @@ export function TreatmentPlanForm({ treatment, onSave, onOpenChange, toothId }: 
       status: treatment?.status ?? 'Proposed',
       tooth: treatment?.tooth ?? toothId,
       cost: treatment?.cost,
+      condition: currentCondition,
     },
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    const { condition, ...treatmentData } = values; // Condition is handled in charting now
-    onSave(treatmentData);
+    onSave(values, values.condition);
   }
 
   const isEditing = !!treatment;
@@ -73,24 +76,58 @@ export function TreatmentPlanForm({ treatment, onSave, onOpenChange, toothId }: 
             <DialogHeader>
                 <DialogTitle>{isEditing ? 'Edit Treatment' : `Add New Treatment`}</DialogTitle>
                 <DialogDescription>
-                    {isEditing ? 'Update the details of this treatment.' : 'Fill out the details for the new treatment plan item.'}
+                    {isEditing ? 'Update the details of this treatment.' : `Fill out the details for the new treatment plan item.${toothId ? ` For tooth #${toothId}.` : ''}`}
                 </DialogDescription>
             </DialogHeader>
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                     <FormField
-                    control={form.control}
-                    name="procedure"
-                    render={({ field }) => (
+                      control={form.control}
+                      name="procedure"
+                      render={({ field }) => (
                         <FormItem>
-                        <FormLabel>Procedure</FormLabel>
-                        <FormControl>
-                            <Input placeholder="e.g., Composite Filling" {...field} />
-                        </FormControl>
-                        <FormMessage />
+                          <FormLabel>Procedure</FormLabel>
+                          <FormControl>
+                            <Combobox
+                                options={treatments.map(t => ({ value: t, label: t }))}
+                                value={field.value}
+                                onChange={field.onChange}
+                                placeholder="Select a procedure"
+                                searchPlaceholder="Search procedures..."
+                                emptyMessage="No procedure found."
+                            />
+                          </FormControl>
+                          <FormMessage />
                         </FormItem>
-                    )}
+                      )}
                     />
+                    {!isEditing && toothId && (
+                       <FormField
+                        control={form.control}
+                        name="condition"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Log Condition (optional)</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select condition to log" />
+                                </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    <SelectItem value="Caries">Caries</SelectItem>
+                                    <SelectItem value="Filling">Filling</SelectItem>
+                                    <SelectItem value="Crown">Crown</SelectItem>
+                                    <SelectItem value="Fracture">Fracture</SelectItem>
+                                    <SelectItem value="Missing">Missing</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <p className="text-xs text-muted-foreground">This will also update the odontogram chart for this tooth.</p>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                      />
+                    )}
                      <FormField
                         control={form.control}
                         name="tooth"
@@ -152,5 +189,3 @@ export function TreatmentPlanForm({ treatment, onSave, onOpenChange, toothId }: 
     </Dialog>
   );
 }
-
-    
