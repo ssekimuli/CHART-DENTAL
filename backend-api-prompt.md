@@ -37,7 +37,7 @@ Define the database schemas for the following entities.
    - `name` (string, required)
    - `avatar` (string, url)
    - `email` (string, unique, required)
-   - `password_hash` (string, required)
+   - `password_hash` (string, required, do not store plain text passwords)
    - `role` (enum: 'Super Admin', 'Account', 'HR', 'Dentist', 'Hygienist', 'Receptionist', 'Assistant')
    - `status` (enum: 'Active', 'On Leave')
    - `salary` (number, required)
@@ -492,27 +492,27 @@ Define the database schemas for the following entities.
 ### Authentication
 - **`POST /api/auth/login`**: Authenticate user.
   - **Body**: `{ "email": "...", "password": "..." }`
-  - **Response**: `{ "token": "...", "user": { ... } }` or `401`
+  - **Response**: `200` with `{ "token": "...", "user": { ... } }` or `401`
 - **`POST /api/auth/forgot-password`**: Initiate password reset.
   - **Body**: `{ "identifier": "email@example.com" }` or `{ "identifier": "+1234567890" }`
   - **Action**: Generates and sends an OTP. Returns `200 OK`.
 - **`POST /api/auth/verify-otp`**: Verify OTP for password reset.
   - **Body**: `{ "identifier": "...", "otp": "..." }`
-  - **Response**: `{ "reset_token": "..." }` or `400`
+  - **Response**: `200` with `{ "reset_token": "..." }` or `400`
 - **`POST /api/auth/reset-password`**: Set a new password.
   - **Body**: `{ "reset_token": "...", "new_password": "..." }`
   - **Response**: `200 OK` or `400`
 - **`GET /api/auth/profile`**: Get the authenticated user's profile data, including employee details, stats, and payroll history.
-  - **Response**: Returns a `ProfileData` object.
+  - **Response**: `200` with a `ProfileData` object.
 
 ### General
 - **`GET /api/branches`**: List all branches. (Allowed for all authenticated users).
 - **`POST /api/branches`**: Create a new branch.
   - **Authorization**: Super Admin only.
-  - **Body**: `{ "name": "...", "address": "..." }`
+  - **Body**: `Omit<Branch, "id">`
   - **Response**: `201` with the new `Branch` object.
 - **`GET /api/treatments`**: List all system-defined treatments and their standard costs.
-  - **Response**: `200` with an array of `SystemTreatment` objects.
+  - **Response**: `200` with an array of `SystemTreatment` objects (`{ "procedure": "...", "cost": ... }`).
 
 ### Patients
 - **`GET /api/patients`**: List all patients. Supports filtering by `branch_id`.
@@ -520,14 +520,14 @@ Define the database schemas for the following entities.
   - **Response**: `200` with an array of `Patient` objects.
 - **`POST /api/patients`**: Create a new patient.
   - **Authorization**: Receptionist, Dentist, Super Admin.
-  - **Body**: `{ "name": "...", "email": "...", "date_of_birth": "...", "history": "..." }`
+  - **Body**: `Omit<Patient, "id" | ... (server-generated fields)>`
   - **Response**: `201` with the new `Patient` object.
 - **`GET /api/patients/{id}`**: Get a single patient by ID.
   - **Authorization**: Receptionist, Assistant, Hygienist, Dentist, Super Admin.
   - **Response**: `200` with a `Patient` object.
 - **`PUT /api/patients/{id}`**: Update a patient's details.
   - **Authorization**: Receptionist, Dentist, Super Admin.
-  - **Body**: Partial `Patient` object.
+  - **Body**: `Partial<Patient>` object.
   - **Response**: `200` with the updated `Patient` object.
 - **`DELETE /api/patients/{id}`**: Delete a patient.
   - **Authorization**: Super Admin only.
@@ -550,33 +550,33 @@ Define the database schemas for the following entities.
   - **Response**: `200` with the updated `Patient` object.
 - **`POST /api/patients/{id}/treatment-plans`**: Add a new treatment to a patient's plan.
   - **Authorization**: Dentist, Super Admin.
-  - **Body**: `{ "procedure": "...", "tooth": "...", "status": "...", "cost": "..." }`
+  - **Body**: `Omit<TreatmentPlan, "id" | "patient_id">`
   - **Response**: `201` with the updated `Patient` object.
 - **`PUT /api/patients/{id}/treatment-plans/{treatment_id}`**: Update a treatment plan item.
   - **Authorization**: Dentist, Super Admin.
-  - **Body**: Partial `TreatmentPlan` object.
+  - **Body**: `Partial<TreatmentPlan>` object.
   - **Response**: `200` with the updated `Patient` object.
 - **`DELETE /api/patients/{id}/treatment-plans/{treatment_id}`**: Delete a treatment plan item.
   - **Authorization**: Dentist, Super Admin.
   - **Response**: `200` with the updated `Patient` object.
 - **`POST /api/patients/{id}/orthodontic-records`**: Add an orthodontic record.
   - **Authorization**: Dentist, Super Admin.
-  - **Body**: An `OrthodonticRecord` object (without `id`).
+  - **Body**: `Omit<OrthodonticRecord, "id">`
   - **Response**: `201` with the updated `Patient` object.
 - **`PUT /api/patients/{id}/orthodontic-records/{record_id}`**: Update an orthodontic record.
   - **Authorization**: Dentist, Super Admin.
-  - **Body**: A partial `OrthodonticRecord` object.
+  - **Body**: `Partial<OrthodonticRecord>` object.
   - **Response**: `200` with the updated `Patient` object.
 - **`DELETE /api/patients/{id}/orthodontic-records/{record_id}`**: Delete an orthodontic record.
   - **Authorization**: Dentist, Super Admin.
   - **Response**: `200` with the updated `Patient` object.
 - **`POST /api/patients/{id}/soft-tissue-records`**: Add a soft tissue record.
   - **Authorization**: Hygienist, Dentist, Super Admin.
-  - **Body**: A `SoftTissueRecord` object (without `id`).
+  - **Body**: `Omit<SoftTissueRecord, "id">`
   - **Response**: `201` with the updated `Patient` object.
 - **`PUT /api/patients/{id}/soft-tissue-records/{record_id}`**: Update a soft tissue record.
   - **Authorization**: Hygienist, Dentist, Super Admin.
-  - **Body**: A partial `SoftTissueRecord` object.
+  - **Body**: `Partial<SoftTissueRecord>` object.
   - **Response**: `200` with the updated `Patient` object.
 - **`DELETE /api/patients/{id}/soft-tissue-records/{record_id}`**: Delete a soft tissue record.
   - **Authorization**: Hygienist, Dentist, Super Admin.
@@ -588,11 +588,11 @@ Define the database schemas for the following entities.
   - **Response**: `200` with an array of `Appointment` objects.
 - **`POST /api/appointments`**: Create a new appointment.
   - **Authorization**: Receptionist, Dentist, Super Admin.
-  - **Body**: `{ "patient_id": "...", "doctor_id": "...", "treatment": "...", "date": "...", "time": "...", "token_number": "..." }`
+  - **Body**: `Omit<Appointment, "id">`
   - **Response**: `201` with the new `Appointment` object.
 - **`PUT /api/appointments/{id}`**: Update an appointment (e.g., change status).
   - **Authorization**: Receptionist, Assistant, Hygienist, Dentist, Super Admin.
-  - **Body**: Partial `Appointment` object.
+  - **Body**: `Partial<Appointment>` object.
   - **Response**: `200` with the updated `Appointment` object.
 - **`DELETE /api/appointments/{id}`**: Delete an appointment.
   - **Authorization**: Receptionist, Dentist, Super Admin.
@@ -615,7 +615,7 @@ Define the database schemas for the following entities.
   - **Response**: `200` with an `Invoice` object.
 - **`PUT /api/invoices/{id}`**: Update an invoice.
   - **Authorization**: Account, Super Admin.
-  - **Body**: Partial `Invoice` object.
+  - **Body**: `Partial<Invoice>` object.
   - **Response**: `200` with the updated `Invoice` object.
 - **`DELETE /api/invoices/{id}`**: Delete an invoice.
   - **Authorization**: Super Admin only.
@@ -650,7 +650,7 @@ Define the database schemas for the following entities.
   - **Response**: `200` with an `Employee` object.
 - **`PUT /api/employees/{id}`**: Update an employee.
   - **Authorization**: HR, Super Admin.
-  - **Body**: Partial `Employee` object.
+  - **Body**: `Partial<Employee>` object.
   - **Response**: `200` with the updated `Employee` object.
 - **`DELETE /api/employees/{id}`**: Delete an employee.
   - **Authorization**: Super Admin only.
