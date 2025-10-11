@@ -8,6 +8,7 @@ import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -21,7 +22,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FileDown, PlusCircle, MoreHorizontal, Pencil, Trash, Eye, HandCoins } from "lucide-react";
+import { FileDown, PlusCircle, MoreHorizontal, Pencil, Trash, Eye, HandCoins, Calendar as CalendarIcon } from "lucide-react";
 import type { Invoice, Patient, InvoiceTreatment } from "@/lib/types";
 import { InvoiceForm } from "./components/invoice-form";
 import { useBranch } from "@/context/branch-context";
@@ -47,6 +48,15 @@ import {
 import { createInvoice, deleteInvoice, getInvoices, getPatients, processPayment, updateInvoice, updatePatient } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PaymentForm } from "./components/payment-form";
+import { DateRange } from "react-day-picker";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
+import { Calendar } from "@/components/ui/calendar";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Pagination, PaginationContent, PaginationItem, PaginationPrevious, PaginationNext, PaginationLink } from "@/components/ui/pagination";
+
 
 export default function BillingPage() {
   const router = useRouter();
@@ -59,6 +69,13 @@ export default function BillingPage() {
   const [isPaymentFormOpen, setIsPaymentFormOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | undefined>(undefined);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
+  
+  // Pagination and filtering state
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [pageInput, setPageInput] = useState("1");
+
 
   useEffect(() => {
     const fetchData = async () => {
@@ -89,12 +106,52 @@ export default function BillingPage() {
     return allPatients.filter(p => p.branchId === currentUser.branchId);
   }, [selectedBranch, allPatients]);
 
-  const invoices = useMemo(() => {
-    if (currentUser.role === 'Super Admin') {
-      return allInvoices.filter(i => i.branchId === selectedBranch);
+  const filteredInvoices = useMemo(() => {
+    let branchInvoices = allInvoices;
+    if (currentUser.role !== 'Super Admin') {
+      branchInvoices = branchInvoices.filter(i => i.branchId === currentUser.branchId);
+    } else {
+        branchInvoices = branchInvoices.filter(i => i.branchId === selectedBranch);
     }
-    return allInvoices.filter(i => i.branchId === currentUser.branchId);
-  }, [selectedBranch, allInvoices]);
+
+    if (dateRange?.from && dateRange?.to) {
+        return branchInvoices.filter(invoice => {
+            const issueDate = new Date(invoice.issueDate);
+            return issueDate >= dateRange.from! && issueDate <= dateRange.to!;
+        });
+    }
+    return branchInvoices;
+  }, [selectedBranch, allInvoices, dateRange]);
+  
+  const totalPages = Math.ceil(filteredInvoices.length / itemsPerPage);
+  
+  const paginatedInvoices = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredInvoices.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredInvoices, currentPage, itemsPerPage]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+    setPageInput("1");
+  }, [itemsPerPage, dateRange, selectedBranch]);
+
+  useEffect(() => {
+    setPageInput(String(currentPage));
+  }, [currentPage]);
+
+  const handlePageInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPageInput(e.target.value);
+  }
+
+  const handleGoToPage = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+        const pageNumber = parseInt(pageInput, 10);
+        if (pageNumber >= 1 && pageNumber <= totalPages) {
+            setCurrentPage(pageNumber);
+        }
+    }
+  }
+
 
   const handleOpenForm = (invoice?: Invoice) => {
     setSelectedInvoice(invoice);
@@ -166,18 +223,53 @@ export default function BillingPage() {
   return (
     <>
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <CardTitle>Billing</CardTitle>
             <CardDescription>
               Manage invoices and patient billing.
             </CardDescription>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline">
-              <FileDown className="mr-2 h-4 w-4" />
-              Export
-            </Button>
+          <div className="flex flex-col-reverse gap-2 sm:flex-row">
+            <div className="flex items-center gap-2">
+                <Popover>
+                    <PopoverTrigger asChild>
+                    <Button
+                        id="date"
+                        variant={"outline"}
+                        className={cn(
+                        "w-[300px] justify-start text-left font-normal",
+                        !dateRange && "text-muted-foreground"
+                        )}
+                    >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {dateRange?.from ? (
+                        dateRange.to ? (
+                            <>
+                            {format(dateRange.from, "LLL dd, y")} -{" "}
+                            {format(dateRange.to, "LLL dd, y")}
+                            </>
+                        ) : (
+                            format(dateRange.from, "LLL dd, y")
+                        )
+                        ) : (
+                        <span>Pick a date range</span>
+                        )}
+                    </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="end">
+                    <Calendar
+                        initialFocus
+                        mode="range"
+                        defaultMonth={dateRange?.from}
+                        selected={dateRange}
+                        onSelect={setDateRange}
+                        numberOfMonths={2}
+                    />
+                    </PopoverContent>
+                </Popover>
+                 <Button variant="outline" onClick={() => setDateRange(undefined)} disabled={!dateRange}>Clear</Button>
+            </div>
             <Button onClick={() => handleOpenForm()}>
               <PlusCircle className="mr-2 h-4 w-4" />
               Create Invoice
@@ -206,7 +298,7 @@ export default function BillingPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {invoices.map((invoice) => (
+              {paginatedInvoices.map((invoice) => (
                 <TableRow key={invoice.id}>
                   <TableCell className="font-medium">{invoice.id}</TableCell>
                   <TableCell>{invoice.patientName}</TableCell>
@@ -251,10 +343,10 @@ export default function BillingPage() {
                   </TableCell>
                 </TableRow>
               ))}
-              {invoices.length === 0 && !isLoading && (
+              {paginatedInvoices.length === 0 && !isLoading && (
                  <TableRow>
                     <TableCell colSpan={8} className="h-24 text-center">
-                        No invoices found for this branch.
+                        No invoices found for this period.
                     </TableCell>
                  </TableRow>
               )}
@@ -262,6 +354,44 @@ export default function BillingPage() {
           </Table>
           )}
         </CardContent>
+         <CardFooter className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <span>Rows per page</span>
+                <Select value={String(itemsPerPage)} onValueChange={(value) => setItemsPerPage(Number(value))}>
+                    <SelectTrigger className="w-20">
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {[10, 20, 50, 100].map(val => (
+                            <SelectItem key={val} value={String(val)}>{val}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
+            <Pagination>
+                <PaginationContent>
+                    <PaginationItem>
+                        <PaginationPrevious href="#" onClick={(e) => {e.preventDefault(); setCurrentPage(p => Math.max(1, p-1))}} className={cn({ 'pointer-events-none opacity-50': currentPage === 1})}/>
+                    </PaginationItem>
+                     <PaginationItem className="flex items-center gap-2 text-sm">
+                        <span>Page</span>
+                         <Input 
+                            type="number" 
+                            className="h-8 w-14" 
+                            value={pageInput}
+                            onChange={handlePageInputChange}
+                            onKeyDown={handleGoToPage}
+                            min="1"
+                            max={totalPages}
+                        />
+                        <span>of {totalPages}</span>
+                    </PaginationItem>
+                    <PaginationItem>
+                        <PaginationNext href="#" onClick={(e) => {e.preventDefault(); setCurrentPage(p => Math.min(totalPages, p+1))}} className={cn({ 'pointer-events-none opacity-50': currentPage === totalPages})}/>
+                    </PaginationItem>
+                </PaginationContent>
+            </Pagination>
+         </CardFooter>
       </Card>
       {isFormOpen && (
         <InvoiceForm 
