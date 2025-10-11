@@ -10,7 +10,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -64,47 +63,6 @@ type PeriodontalChartProps = {
   onSave: (records: PeriodontalRecord) => void;
 };
 
-const DentalChartSvg = ({ selectedTooth, onToothClick }: { selectedTooth?: number, onToothClick: (toothId: number) => void }) => {
-    const toothPath = "M -10 -15 C -15 -15, -15 -5, -10 0 L 10 0 C 15 -5, 15 -15, 10 -15 Z";
-  
-    return (
-      <svg viewBox="0 0 800 400" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto">
-        <style>{`
-          .tooth-label { font-family: sans-serif; font-size: 14px; fill: hsl(var(--muted-foreground)); text-anchor: middle; user-select: none; }
-          .tooth-outline { stroke: hsl(var(--muted-foreground)); stroke-width: 1.5; fill: hsl(var(--card)); cursor: pointer; }
-          .tooth-outline:hover { fill: hsl(var(--accent) / 0.2); }
-          .tooth-outline.selected { stroke: hsl(var(--primary)); stroke-width: 2.5; fill: hsl(var(--accent) / 0.3); }
-          .quadrant-line { stroke: hsl(var(--border)); stroke-width: 2; stroke-dasharray: 5,5; }
-        `}</style>
-        
-        {/* Upper Arch */}
-        <path d="M 150 150 C 250 50, 550 50, 650 150" fill="none" stroke="hsl(var(--border))" strokeWidth="2" id="upper-arch" />
-        {quadrants.upperRight.concat(quadrants.upperLeft).map((tooth, i) => {
-          const isMolar = [4,5,6,7,8].includes(tooth % 10);
-          return (
-            <g key={tooth} transform={`translate(${150 + i * (500 / 15)} 130) scale(${isMolar ? 1.2 : 1})`} onClick={() => onToothClick(tooth)}>
-              <path className={cn("tooth-outline", selectedTooth === tooth && 'selected')} d={toothPath} />
-              <text className="tooth-label" y="-20">{tooth}</text>
-            </g>
-          )
-        })}
-        
-         {/* Lower Arch */}
-         <path d="M 150 250 C 250 350, 550 350, 650 250" fill="none" stroke="hsl(var(--border))" strokeWidth="2" id="lower-arch" />
-        {quadrants.lowerLeft.concat(quadrants.lowerRight.slice().reverse()).map((tooth, i) => {
-           const isMolar = [4,5,6,7,8].includes(tooth % 10);
-          return (
-             <g key={tooth} transform={`translate(${150 + i * (500/15)} 250) scale(${isMolar ? 1.2 : 1}) rotate(180)`} onClick={() => onToothClick(tooth)}>
-              <path className={cn("tooth-outline", selectedTooth === tooth && 'selected')} d={toothPath} />
-              <text className="tooth-label" y="22" transform="rotate(180)">{tooth}</text>
-            </g>
-          )
-        })}
-  
-        <line className="quadrant-line" x1="400" y1="0" x2="400" y2="400" />
-      </svg>
-    );
-  };
 
 export function PeriodontalChart({
   initialRecords,
@@ -114,27 +72,6 @@ export function PeriodontalChart({
     useState<PeriodontalRecord>(initialRecords);
   const [selectedTooth, setSelectedTooth] = useState<number | undefined>();
   
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const toothColumnRefs = useRef<React.RefObject<HTMLDivElement>[]>(
-    allTeeth.map(() => createRef())
-  );
-
-  const getToothColumnRef = (toothId: number) => {
-    const toothIndex = allTeeth.findIndex(t => t === toothId);
-    if (toothIndex !== -1) {
-        return toothColumnRefs.current[toothIndex];
-    }
-    return null;
-  }
-
-  const handleToothClick = (toothId: number) => {
-    setSelectedTooth(toothId);
-    const ref = getToothColumnRef(toothId);
-    if (ref?.current) {
-        ref.current.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-    }
-  }
-
 
   const getRecord = (toothId: number): PeriodontalMeasurement => {
     const record = records.find((r) => r.toothId === toothId);
@@ -211,155 +148,156 @@ export function PeriodontalChart({
     });
   };
 
-  const renderToothColumn = (toothId: number, ref: React.RefObject<HTMLDivElement>) => {
+  const ToothColumn = ({ toothId }: { toothId: number }) => {
     const record = getRecord(toothId);
     const isUpper = toothId < 30;
 
     const buccalPocketInputs = (
-      <div className="flex flex-col gap-px">
-        {pocketPositions.slice(0, 3).map((pos) => (
-          <Input
-            key={pos}
-            type="number"
-            min="0"
-            max="20"
-            className="h-6 w-9 rounded-none border-x-0 border-t-0 bg-background/30 p-1 text-center text-xs"
-            placeholder={pos.slice(0,1).toUpperCase()}
-            value={record.pockets[pos] ?? ""}
-            onChange={(e) => handlePocketChange(toothId, pos, e.target.value)}
-          />
+      <>
+        {pocketPositions.slice(0, 3).map((pos, i) => (
+           <foreignObject key={pos} x="0" y={80 + i * 28} width="36" height="24">
+            <Input
+              type="number"
+              min="0"
+              max="20"
+              className="h-full w-full rounded-none border-x-0 border-t-0 bg-transparent p-1 text-center text-xs"
+              value={record.pockets[pos] ?? ""}
+              onChange={(e) => handlePocketChange(toothId, pos, e.target.value)}
+              onFocus={() => setSelectedTooth(toothId)}
+            />
+          </foreignObject>
         ))}
-      </div>
+      </>
     );
+
     const lingualPocketInputs = (
-       <div className="flex flex-col gap-px">
-        {pocketPositions.slice(3, 6).map((pos) => (
-          <Input
-            key={pos}
-            type="number"
-            min="0"
-            max="20"
-            className="h-6 w-9 rounded-none border-x-0 border-t-0 bg-background/30 p-1 text-center text-xs"
-            placeholder={pos.slice(0,1).toUpperCase()}
-            value={record.pockets[pos] ?? ""}
-            onChange={(e) => handlePocketChange(toothId, pos, e.target.value)}
-          />
+      <>
+        {pocketPositions.slice(3, 6).map((pos, i) => (
+          <foreignObject key={pos} x="0" y={220 + i * 28} width="36" height="24">
+            <Input
+              type="number"
+              min="0"
+              max="20"
+              className="h-full w-full rounded-none border-x-0 border-t-0 bg-transparent p-1 text-center text-xs"
+              value={record.pockets[pos] ?? ""}
+              onChange={(e) => handlePocketChange(toothId, pos, e.target.value)}
+              onFocus={() => setSelectedTooth(toothId)}
+            />
+          </foreignObject>
         ))}
-      </div>
+      </>
     )
 
     const conditionToggles = (
-      <div className="flex justify-center gap-0.5 my-1">
-        {conditionKeys.map((con) => (
-          <button
-            key={con}
-            onClick={() => handleConditionToggle(toothId, con)}
-            className={cn(
-              "h-3 w-3 rounded-full border text-xs",
-              record.conditions[con]
-                ? {
-                    "bleeding": "bg-red-500 border-red-700",
-                    "suppuration": "bg-yellow-400 border-yellow-600",
-                    "plaque": "bg-blue-400 border-blue-600",
-                    "calculus": "bg-green-500 border-green-700",
-                  }[con]
-                : "bg-gray-200 dark:bg-gray-700"
-            )}
-            title={con.charAt(0).toUpperCase() + con.slice(1)}
-          />
-        ))}
-      </div>
+       <g transform="translate(18, 172)" className="cursor-pointer" onClick={() => setSelectedTooth(toothId)}>
+          {conditionKeys.map((con, i) => (
+            <circle
+              key={con}
+              cx={i * 5 - 7.5}
+              cy="0"
+              r="2"
+              className={cn(
+                "stroke-none",
+                record.conditions[con]
+                  ? {
+                      "bleeding": "fill-red-500",
+                      "suppuration": "fill-yellow-400",
+                      "plaque": "fill-blue-400",
+                      "calculus": "fill-green-500",
+                    }[con]
+                  : "fill-muted"
+              )}
+              onClick={(e) => { e.stopPropagation(); handleConditionToggle(toothId, con); }}
+            >
+              <title>{con.charAt(0).toUpperCase() + con.slice(1)}</title>
+            </circle>
+          ))}
+       </g>
     );
 
     const otherInputs = (
-      <div className="space-y-1 my-1">
-        <Input
-          type="number"
-          min="0"
-          max="20"
-          className="h-6 w-full p-1 text-center text-xs"
-          placeholder="Recession"
-          value={record.recession ?? ''}
-          onChange={e => handleRecessionChange(toothId, e.target.value)}
-        />
-        <Select
-          value={record.mobility}
-          onValueChange={(val) => handleSelectChange(toothId, "mobility", val)}
-        >
-          <SelectTrigger className="h-6 w-full text-xs">
-            <SelectValue placeholder="Mobility" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="0">0</SelectItem>
-            <SelectItem value="1">1</SelectItem>
-            <SelectItem value="2">2</SelectItem>
-            <SelectItem value="3">3</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select
-          value={record.furcation}
-          onValueChange={(val) => handleSelectChange(toothId, "furcation", val)}
-        >
-          <SelectTrigger className="h-6 w-full text-xs">
-            <SelectValue placeholder="Furcation" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="I">I</SelectItem>
-            <SelectItem value="II">II</SelectItem>
-            <SelectItem value="III">III</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-    );
-
-    const chartBody = isUpper ? (
-        <>
-        {buccalPocketInputs}
-        {conditionToggles}
-        {otherInputs}
-        {lingualPocketInputs}
+      <>
+        <foreignObject x="0" y={188} width="36" height="24">
+            <Input
+              type="number"
+              min="0"
+              max="20"
+              className="h-full w-full bg-transparent p-1 text-center text-xs"
+              placeholder="REC"
+              value={record.recession ?? ''}
+              onChange={e => handleRecessionChange(toothId, e.target.value)}
+              onFocus={() => setSelectedTooth(toothId)}
+            />
+        </foreignObject>
+         <foreignObject x="0" y={312} width="36" height="24">
+            <Select
+              value={record.mobility}
+              onValueChange={(val) => handleSelectChange(toothId, "mobility", val)}
+              onOpenChange={(open) => open && setSelectedTooth(toothId)}
+            >
+              <SelectTrigger className="h-full w-full text-xs px-1">
+                <SelectValue placeholder="MOB" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="0">0</SelectItem>
+                <SelectItem value="1">1</SelectItem>
+                <SelectItem value="2">2</SelectItem>
+                <SelectItem value="3">3</SelectItem>
+              </SelectContent>
+            </Select>
+        </foreignObject>
+         <foreignObject x="0" y={340} width="36" height="24">
+            <Select
+              value={record.furcation}
+              onValueChange={(val) => handleSelectChange(toothId, "furcation", val)}
+              onOpenChange={(open) => open && setSelectedTooth(toothId)}
+            >
+              <SelectTrigger className="h-full w-full text-xs px-1">
+                <SelectValue placeholder="FUR" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="I">I</SelectItem>
+                <SelectItem value="II">II</SelectItem>
+                <SelectItem value="III">III</SelectItem>
+              </SelectContent>
+            </Select>
+        </foreignObject>
       </>
-    ) : (
-        <>
-        {lingualPocketInputs}
-        {otherInputs}
-        {conditionToggles}
-        {buccalPocketInputs}
-        </>
+    );
+
+    return (
+       <g transform={`translate(4, 4)`}>
+          <rect x="-4" y="-4" width="44" height="400" className={cn("fill-transparent transition-colors", selectedTooth === toothId && "fill-blue-500/10")} />
+          <text x="18" y="24" className="text-sm font-medium fill-muted-foreground text-anchor-middle">{toothId}</text>
+          
+          <rect x="0" y="32" width="36" height="36" className="fill-card" stroke="hsl(var(--border))" />
+          <text x="18" y="56" className="font-mono text-xl fill-foreground text-anchor-middle">{toothId % 10}</text>
+
+          {buccalPocketInputs}
+          {conditionToggles}
+          {otherInputs}
+          {lingualPocketInputs}
+
+          <line x1="0" y1="32" x2="36" y2="32" stroke="hsl(var(--border))" />
+          <line x1="0" y1="68" x2="36" y2="68" stroke="hsl(var(--border))" />
+          <line x1="0" y1="80" x2="36" y2="80" stroke="hsl(var(--border))" />
+          <line x1="0" y1="108" x2="36" y2="108" stroke="hsl(var(--border))" />
+          <line x1="0" y1="136" x2="36" y2="136" stroke="hsl(var(--border))" />
+          <line x1="0" y1="164" x2="36" y2="164" stroke="hsl(var(--border))" />
+          <line x1="0" y1="184" x2="36" y2="184" stroke="hsl(var(--border))" />
+          <line x1="0" y1="216" x2="36" y2="216" stroke="hsl(var(--border))" />
+          <line x1="0" y1="220" x2="36" y2="220" stroke="hsl(var(--border))" />
+          <line x1="0" y1="248" x2="36" y2="248" stroke="hsl(var(--border))" />
+          <line x1="0" y1="276" x2="36" y2="276" stroke="hsl(var(--border))" />
+          <line x1="0" y1="304" x2="36" y2="304" stroke="hsl(var(--border))" />
+          <line x1="0" y1="336" x2="36" y2="336" stroke="hsl(var(--border))" />
+          <line x1="0" y1="364" x2="36" y2="364" stroke="hsl(var(--border))" />
+       </g>
     )
+  }
 
-    return (
-      <div
-        key={toothId}
-        ref={ref}
-        className={cn(
-            "flex flex-col items-center bg-card p-1 transition-colors duration-300",
-            selectedTooth === toothId && 'bg-blue-500/10'
-        )}
-      >
-        <div className="text-xs font-medium text-muted-foreground mb-1">
-          {toothId}
-        </div>
-        {chartBody}
-      </div>
-    );
-  };
+  const chartWidth = 32 * 40 + 80;
 
-  const renderQuadrant = (
-    quadrant: number[],
-    isReversed: boolean = false
-  ) => {
-    const teeth = isReversed ? [...quadrant].reverse() : quadrant;
-    return (
-      <div className="flex">
-        {teeth.map((toothId) => {
-             const ref = getToothColumnRef(toothId);
-             if (!ref) return null;
-             return renderToothColumn(toothId, ref);
-        })}
-      </div>
-    );
-  };
 
   return (
     <Card>
@@ -370,11 +308,8 @@ export function PeriodontalChart({
           are in mm.
         </CardDescription>
       </CardHeader>
-      <CardContent>
-         <div className="mb-4 rounded-lg border p-4">
-             <DentalChartSvg selectedTooth={selectedTooth} onToothClick={handleToothClick}/>
-         </div>
-         <div className="mb-4 flex flex-wrap justify-center gap-x-4 gap-y-2 rounded-md border p-2">
+      <CardContent className="overflow-x-auto">
+        <div className="mb-4 flex flex-wrap justify-center gap-x-4 gap-y-2 rounded-md border p-2">
             <div className="flex items-center gap-2">
                 <div className="h-3 w-3 rounded-full border bg-red-500 border-red-700"></div>
                 <span className="text-xs">Bleeding</span>
@@ -392,24 +327,24 @@ export function PeriodontalChart({
                 <span className="text-xs">Calculus</span>
             </div>
         </div>
-        <div ref={scrollContainerRef} className="flex flex-col items-center overflow-x-auto rounded-lg border bg-muted/30 p-1">
-          <div className="mb-1 text-sm font-bold text-muted-foreground">UPPER</div>
-          <div className="flex w-full justify-between">
-            {renderQuadrant(quadrants.upperRight, true)}
-            {renderQuadrant(quadrants.upperLeft)}
-          </div>
-           <div className="my-1 h-px w-full bg-border" />
-           <div className="flex w-full justify-between text-xs tracking-widest text-muted-foreground/70 px-2">
-                <span>LINGUAL</span>
-                <span>LINGUAL</span>
-           </div>
-          <div className="my-1 h-px w-full bg-border" />
-          <div className="flex w-full justify-between">
-            {renderQuadrant(quadrants.lowerRight, true)}
-            {renderQuadrant(quadrants.lowerLeft)}
-          </div>
-           <div className="mt-1 text-sm font-bold text-muted-foreground">LOWER</div>
-        </div>
+        <svg viewBox={`0 0 ${chartWidth} 400`} className="min-w-[1280px]">
+            <g transform="translate(40, 0)">
+                <text x="0" y="96" className="text-xs fill-muted-foreground" transform="rotate(-90 0 96)">Buccal</text>
+                <text x="0" y="240" className="text-xs fill-muted-foreground" transform="rotate(-90 0 240)">Lingual</text>
+            </g>
+             {[...quadrants.upperRight.reverse(), ...quadrants.upperLeft].map((toothId, i) => (
+                <g key={toothId} transform={`translate(${40 + i * 40}, 0)`}>
+                    <ToothColumn toothId={toothId}/>
+                </g>
+            ))}
+            <line x1={40 + 8 * 40} y1="0" x2={40 + 8 * 40} y2="400" className="stroke-muted-foreground stroke-2" />
+             {[...quadrants.lowerRight.reverse(), ...quadrants.lowerLeft].map((toothId, i) => (
+                <g key={toothId} transform={`translate(${40 + 16 * 40 + i * 40}, 0)`}>
+                    <ToothColumn toothId={toothId}/>
+                </g>
+            ))}
+             <line x1={40 + 24 * 40} y1="0" x2={40 + 24 * 40} y2="400" className="stroke-muted-foreground stroke-2" />
+        </svg>
       </CardContent>
       <CardFooter>
         <Button onClick={() => onSave(records)}>Save Chart</Button>
@@ -417,5 +352,3 @@ export function PeriodontalChart({
     </Card>
   );
 }
-
-    
