@@ -15,7 +15,7 @@ import { Building } from "lucide-react";
 export function BranchSwitcher() {
   const { selectedBranch, setSelectedBranch, availableBranches } = useBranch();
   const currentUser = getCurrentUser();
-  const branchName = availableBranches.find(b => b.id === selectedBranch)?.name || "Select Branch";
+  const branchName = availableBranches.find(b => b.id === selectedBranch)?.name || "Select Flossx";
 
   if (!currentUser || currentUser.role !== 'Super Admin') {
     return <h1 className="text-lg font-semibold md:text-xl">{branchName}</h1>;
@@ -26,7 +26,7 @@ export function BranchSwitcher() {
       <Building className="h-5 w-5 text-muted-foreground" />
       <Select value={selectedBranch} onValueChange={setSelectedBranch}>
         <SelectTrigger className="w-auto border-none bg-transparent shadow-none focus:ring-0">
-          <SelectValue placeholder="Select Branch" />
+          <SelectValue placeholder="Select Flossx" />
         </SelectTrigger>
         <SelectContent>
           {availableBranches.map((branch) => (

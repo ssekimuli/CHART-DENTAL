@@ -2,6 +2,7 @@
 
 
 
+
 export type ExpenseCategory = 'Supplies' | 'Rent' | 'Utilities' | 'Salaries' | 'Marketing' | 'Maintenance' | 'Other';
 
 export type Expense = {

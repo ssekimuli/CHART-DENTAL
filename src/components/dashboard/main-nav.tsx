@@ -63,7 +63,7 @@ const allLinks = [
         { href: "/hrm/attendance", label: "Attendance", icon: Clock, roles: ['Super Admin', 'HR'] as EmployeeRole[] },
     ]
   },
-  { href: "/branches", label: "Branches", icon: Building, roles: ['Super Admin'] as EmployeeRole[] },
+  { href: "/flossx", label: "Flossx", icon: Building, roles: ['Super Admin'] as EmployeeRole[] },
   { href: "/reports", label: "Reports", icon: BarChart3, roles: ['Super Admin', 'Account', 'HR'] as EmployeeRole[] },
   { href: "/settings", label: "Settings", icon: Settings, roles: ['Super Admin', 'Account', 'HR', 'Dentist', 'Hygienist', 'Receptionist', 'Assistant'] as EmployeeRole[] },
 ];
