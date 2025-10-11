@@ -18,7 +18,7 @@ import { BranchSwitcher } from "@/components/dashboard/branch-switcher";
 import { PatientSearch } from "@/components/dashboard/patient-search";
 
 export const metadata: Metadata = {
-  title: "DentalChart Pro",
+  title: "Dentio",
   description: "Advanced Dental Charting and Practice Management",
 };
 
@@ -36,7 +36,7 @@ export default function DashboardLayout({
                   <Link href="/dashboard" className="flex items-center gap-2 group-data-[collapsible=icon]:justify-center">
                     <ToothIcon className="size-8 text-primary" />
                     <h1 className="text-xl font-bold text-primary-foreground group-data-[collapsible=icon]:hidden">
-                      DentalChart Pro
+                      Dentio
                     </h1>
                   </Link>
                 </SidebarHeader>

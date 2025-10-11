@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import { Toaster } from "@/components/ui/toaster";
 
 export const metadata: Metadata = {
-  title: "DentalChart Pro",
+  title: "Dentio",
   description: "Advanced Dental Charting and Practice Management",
 };
 

@@ -51,9 +51,7 @@ function VerifyOTPComponent() {
                 <ToothIcon className="w-64 h-64 text-white drop-shadow-[0_10px_10px_rgba(0,0,0,0.3)]" />
             </div>
           <h1 className="text-5xl font-bold tracking-tight">
-            <span className="text-gray-300">DentalChart</span>
-            <br/>
-            <span className="text-blue-400">PRO</span>
+            <span className="text-blue-400">Dentio</span>
           </h1>
           <p className="max-w-sm text-gray-300">
             The modern, AI-powered solution for dental practice management. Streamline your workflow and focus on what matters most—your patients.
