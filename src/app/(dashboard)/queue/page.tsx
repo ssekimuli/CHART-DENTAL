@@ -76,7 +76,7 @@ export default function QueuePage() {
             setAllEmployees(employeesData);
             
             if (currentUser.role === 'Dentist') {
-                const currentUserEmployee = employeesData.find(e => e.email === 'lisa.cuddy@example.com');
+                const currentUserEmployee = employeesData.find(e => e.email === currentUser.email);
                 if (currentUserEmployee) {
                     setDoctorFilter(currentUserEmployee.id);
                 }
@@ -193,7 +193,7 @@ export default function QueuePage() {
                                         <CardHeader className="flex-col items-center gap-2 space-y-0 p-4 bg-background/50 border-b">
                                              <div className="flex items-center justify-center h-12 w-12 rounded-full bg-primary/10 border-2 border-primary/20 text-primary font-bold text-2xl">
                                                 {isSpeaking && currentlySpeaking === appointment.id ? <Loader2 className="h-6 w-6 animate-spin"/> : appointment.tokenNumber}
-                                            </div>
+                                             </div>
                                             <div className="text-center">
                                                 <CardTitle className="text-lg">{appointment.patientName}</CardTitle>
                                                 <p className="text-sm text-muted-foreground">{appointment.treatment}</p>
@@ -275,7 +275,3 @@ export default function QueuePage() {
     </div>
   );
 }
-
-    
-
-    
