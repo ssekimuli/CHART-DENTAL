@@ -15,49 +15,37 @@ import { PayrollTable } from "../components/payroll-table";
 import type { Employee, Payroll } from "@/lib/types";
 import { PayrollForm } from "../components/payroll-form";
 import { useBranch } from "@/context/branch-context";
-import { currentUser } from "@/lib/user";
 import { createPayroll, getEmployees, getPayrolls } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function PayrollPage() {
   const { selectedBranch } = useBranch();
-  const [allPayrolls, setAllPayrolls] = useState<Payroll[]>([]);
-  const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
+  const [payrolls, setPayrolls] = useState<Payroll[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
 
   useEffect(() => {
       const fetchData = async () => {
           setIsLoading(true);
-          const [payrolls, employees] = await Promise.all([getPayrolls(), getEmployees()]);
-          setAllPayrolls(payrolls);
-          setAllEmployees(employees);
+          const [payrollsData, employeesData] = await Promise.all([
+            getPayrolls(selectedBranch), 
+            getEmployees(selectedBranch)
+        ]);
+          setPayrolls(payrollsData);
+          setEmployees(employeesData);
           setIsLoading(false);
       }
       fetchData();
-  }, []);
-
-  const filteredEmployees = useMemo(() => {
-    if (currentUser.role === 'Super Admin') {
-      return allEmployees.filter(e => e.branchId === selectedBranch);
-    }
-    return allEmployees.filter(e => e.branchId === currentUser.branchId);
-  }, [selectedBranch, allEmployees]);
-
-  const payrolls = useMemo(() => {
-     if (currentUser.role === 'Super Admin') {
-      return allPayrolls.filter(p => p.branchId === selectedBranch);
-    }
-    return allPayrolls.filter(p => p.branchId === currentUser.branchId);
-  }, [selectedBranch, allPayrolls]);
+  }, [selectedBranch]);
 
   const handleSavePayroll = async (data: Omit<Payroll, 'id' | 'employeeName' | 'branchId'>) => {
-    const employee = filteredEmployees.find(e => e.id === data.employeeId);
+    const employee = employees.find(e => e.id === data.employeeId);
     if (!employee) return;
 
     const newPayroll = await createPayroll({ ...data, employeeName: employee.name, branchId: selectedBranch });
     if(newPayroll) {
-        setAllPayrolls(prev => [newPayroll, ...prev]);
+        setPayrolls(prev => [newPayroll, ...prev]);
     }
     setIsFormOpen(false);
   }
@@ -97,7 +85,7 @@ export default function PayrollPage() {
         </Card>
         {isFormOpen && (
             <PayrollForm
-                employees={filteredEmployees}
+                employees={employees}
                 onSave={handleSavePayroll}
                 onOpenChange={setIsFormOpen}
             />

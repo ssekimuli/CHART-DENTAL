@@ -23,7 +23,6 @@ import { Calendar } from "@/components/ui/calendar";
 import { PlusCircle } from "lucide-react";
 import type { AttendanceRecord, Employee, AttendanceStatus } from "@/lib/types";
 import { useBranch } from "@/context/branch-context";
-import { currentUser } from "@/lib/user";
 import { getAttendance, getEmployees, markAttendance } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -35,7 +34,7 @@ import { MassAttendanceForm } from "../components/mass-attendance-form";
 export default function AttendancePage() {
     const { selectedBranch } = useBranch();
     const [allAttendance, setAllAttendance] = useState<AttendanceRecord[]>([]);
-    const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
+    const [employees, setEmployees] = useState<Employee[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [isMassFormOpen, setIsMassFormOpen] = useState(false);
@@ -45,30 +44,28 @@ export default function AttendancePage() {
     useEffect(() => {
         const fetchInitialData = async () => {
             setIsLoading(true);
-            const employeesData = await getEmployees();
-            setAllEmployees(employeesData);
+            const [attendanceData, employeesData] = await Promise.all([
+                getAttendance(selectedBranch),
+                getEmployees(selectedBranch),
+            ]);
+            setAllAttendance(attendanceData);
+            setEmployees(employeesData);
             setIsLoading(false);
         };
         fetchInitialData();
-    }, []);
+    }, [selectedBranch]);
 
     useEffect(() => {
-        if (!selectedDate) return;
-        const fetchAttendanceData = async () => {
-            setIsLoading(true);
-            const attendanceData = await getAttendance();
-            setAllAttendance(attendanceData);
-            setIsLoading(false);
+        if (!selectedDate || !selectedBranch) return;
+        const fetchAttendanceForDate = async () => {
+             setIsLoading(true);
+             const attendanceData = await getAttendance(selectedBranch);
+             setAllAttendance(attendanceData);
+             setIsLoading(false);
         }
-        fetchAttendanceData();
-    }, [selectedDate, selectedBranch]);
+        fetchAttendanceForDate();
+    }, [selectedDate]);
 
-    const filteredEmployees = useMemo(() => {
-        if (currentUser.role === 'Super Admin') {
-          return allEmployees.filter(e => e.branchId === selectedBranch);
-        }
-        return allEmployees.filter(e => e.branchId === currentUser.branchId);
-      }, [selectedBranch, allEmployees]);
 
       const attendanceForDate = useMemo(() => {
         if (!selectedDate) return [];
@@ -76,11 +73,11 @@ export default function AttendancePage() {
         
         const dateRecords = new Map(
             allAttendance
-                .filter(a => a.date === formattedDate && a.branchId === selectedBranch)
+                .filter(a => a.date === formattedDate)
                 .map(a => [a.employeeId, a])
         );
 
-        return filteredEmployees.map(emp => {
+        return employees.map(emp => {
             const record = dateRecords.get(emp.id);
             return {
                 id: record?.id ?? `placeholder-${emp.id}`,
@@ -94,7 +91,7 @@ export default function AttendancePage() {
             };
         });
 
-    }, [selectedDate, allAttendance, filteredEmployees, selectedBranch]);
+    }, [selectedDate, allAttendance, employees, selectedBranch]);
 
     useEffect(() => {
         setSelectedEmployeeIds([]);
@@ -121,7 +118,7 @@ export default function AttendancePage() {
         const formattedDate = format(selectedDate, "yyyy-MM-dd");
 
         const recordsToUpdate = employeeIds.map(empId => {
-            const employee = filteredEmployees.find(e => e.id === empId);
+            const employee = employees.find(e => e.id === empId);
             if (!employee) return null;
             const record: Omit<AttendanceRecord, 'id' | 'employeeName'> = {
                 employeeId: empId,
@@ -290,7 +287,7 @@ export default function AttendancePage() {
         </div>
         {isFormOpen && (
             <AttendanceForm
-                employees={filteredEmployees}
+                employees={employees}
                 onSave={handleSaveAttendance}
                 onOpenChange={setIsFormOpen}
                 selectedDate={selectedDate}

@@ -16,7 +16,6 @@ import { EmployeesTable } from "../components/employees-table";
 import type { Employee } from "@/lib/types";
 import { EmployeeForm } from "../components/employee-form";
 import { useBranch } from "@/context/branch-context";
-import { currentUser } from "@/lib/user";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -33,7 +32,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 export default function StaffPage() {
     const router = useRouter();
     const { selectedBranch } = useBranch();
-    const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
+    const [employees, setEmployees] = useState<Employee[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     const [isFormOpen, setIsFormOpen] = useState(false);
@@ -43,19 +42,12 @@ export default function StaffPage() {
     useEffect(() => {
         const fetchData = async () => {
             setIsLoading(true);
-            const data = await getEmployees();
-            setAllEmployees(data);
+            const data = await getEmployees(selectedBranch);
+            setEmployees(data);
             setIsLoading(false);
         };
         fetchData();
-    }, []);
-
-    const employees = useMemo(() => {
-        if (currentUser.role === 'Super Admin') {
-          return allEmployees.filter(e => e.branchId === selectedBranch);
-        }
-        return allEmployees.filter(e => e.branchId === currentUser.branchId);
-      }, [selectedBranch, allEmployees]);
+    }, [selectedBranch]);
 
     const handleOpenForm = (employee?: Employee) => {
         setSelectedEmployee(employee);
@@ -71,12 +63,12 @@ export default function StaffPage() {
         if (selectedEmployee) {
             const updated = await updateEmployee(selectedEmployee.id, data);
             if(updated) {
-                setAllEmployees(prev => prev.map(e => e.id === updated.id ? updated : e));
+                setEmployees(prev => prev.map(e => e.id === updated.id ? updated : e));
             }
         } else {
             const newEmployee = await createEmployee({ ...data, branchId: selectedBranch });
             if(newEmployee) {
-                setAllEmployees(prev => [...prev, newEmployee]);
+                setEmployees(prev => [...prev, newEmployee]);
             }
         }
         handleCloseForm();
@@ -90,7 +82,7 @@ export default function StaffPage() {
     const handleDeleteEmployee = async () => {
         if (selectedEmployee) {
             await deleteEmployee(selectedEmployee.id);
-            setAllEmployees(prev => prev.filter(e => e.id !== selectedEmployee.id));
+            setEmployees(prev => prev.filter(e => e.id !== selectedEmployee.id));
         }
         setIsDeleteAlertOpen(false);
         setSelectedEmployee(undefined);

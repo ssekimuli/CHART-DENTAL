@@ -11,7 +11,6 @@ import {
 } from "@/components/ui/card";
 import type { Employee } from "@/lib/types";
 import { useBranch } from "@/context/branch-context";
-import { currentUser } from "@/lib/user";
 import { getEmployees, updateEmployee } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SalaryTable } from "../components/salary-table";
@@ -19,7 +18,7 @@ import { SalaryForm } from "../components/salary-form";
 
 export default function StaffSalariesPage() {
     const { selectedBranch } = useBranch();
-    const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
+    const [employees, setEmployees] = useState<Employee[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     const [isFormOpen, setIsFormOpen] = useState(false);
@@ -28,19 +27,12 @@ export default function StaffSalariesPage() {
     useEffect(() => {
         const fetchData = async () => {
             setIsLoading(true);
-            const data = await getEmployees();
-            setAllEmployees(data);
+            const data = await getEmployees(selectedBranch);
+            setEmployees(data);
             setIsLoading(false);
         };
         fetchData();
-    }, []);
-
-    const employees = useMemo(() => {
-        if (currentUser.role === 'Super Admin') {
-          return allEmployees.filter(e => e.branchId === selectedBranch);
-        }
-        return allEmployees.filter(e => e.branchId === currentUser.branchId);
-      }, [selectedBranch, allEmployees]);
+    }, [selectedBranch]);
 
     const handleOpenForm = (employee: Employee) => {
         setSelectedEmployee(employee);
@@ -55,7 +47,7 @@ export default function StaffSalariesPage() {
     const handleSaveSalary = async (employeeId: string, newSalary: number) => {
         const updated = await updateEmployee(employeeId, { salary: newSalary });
         if(updated) {
-            setAllEmployees(prev => prev.map(e => e.id === updated.id ? updated : e));
+            setEmployees(prev => prev.map(e => e.id === updated.id ? updated : e));
         }
         handleCloseForm();
     };
@@ -95,4 +87,3 @@ export default function StaffSalariesPage() {
     </>
   );
 }
-

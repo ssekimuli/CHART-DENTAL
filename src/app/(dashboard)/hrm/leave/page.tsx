@@ -13,7 +13,6 @@ import {
 import { PlusCircle } from "lucide-react";
 import type { Employee, LeaveRequest } from "@/lib/types";
 import { useBranch } from "@/context/branch-context";
-import { currentUser } from "@/lib/user";
 import { getEmployees, getLeaveRequests, createLeaveRequest, updateLeaveRequestStatus } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
 import { LeaveRequestForm } from "../components/leave-request-form";
@@ -21,41 +20,29 @@ import { LeaveTable } from "../components/leave-table";
 
 export default function LeavePage() {
     const { selectedBranch } = useBranch();
-    const [allLeaveRequests, setAllLeaveRequests] = useState<LeaveRequest[]>([]);
-    const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
+    const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
+    const [employees, setEmployees] = useState<Employee[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isFormOpen, setIsFormOpen] = useState(false);
 
     useEffect(() => {
         const fetchData = async () => {
             setIsLoading(true);
-            const [requests, employees] = await Promise.all([getLeaveRequests(), getEmployees()]);
-            setAllLeaveRequests(requests);
-            setAllEmployees(employees);
+            const [requests, employeesData] = await Promise.all([
+                getLeaveRequests(selectedBranch), 
+                getEmployees(selectedBranch)
+            ]);
+            setLeaveRequests(requests);
+            setEmployees(employeesData);
             setIsLoading(false);
         }
         fetchData();
-    }, []);
-
-    const filteredEmployees = useMemo(() => {
-      if (currentUser.role === 'Super Admin') {
-        return allEmployees.filter(e => e.branchId === selectedBranch);
-      }
-      return allEmployees.filter(e => e.branchId === currentUser.branchId);
-    }, [selectedBranch, allEmployees]);
-
-    const leaveRequests = useMemo(() => {
-        if (currentUser.role === 'Super Admin') {
-         return allLeaveRequests.filter(p => p.branchId === selectedBranch);
-       }
-       return allLeaveRequests.filter(p => p.branchId === currentUser.branchId);
-     }, [selectedBranch, allLeaveRequests]);
-
+    }, [selectedBranch]);
 
     const handleSaveRequest = async (data: Omit<LeaveRequest, 'id' | 'employeeName' | 'status'>) => {
         const newRequest = await createLeaveRequest(data);
         if (newRequest) {
-            setAllLeaveRequests(prev => [...prev, newRequest]);
+            setLeaveRequests(prev => [...prev, newRequest]);
         }
         setIsFormOpen(false);
     };
@@ -63,7 +50,7 @@ export default function LeavePage() {
     const handleStatusChange = async (id: string, status: LeaveRequest['status']) => {
         const updated = await updateLeaveRequestStatus(id, status);
         if (updated) {
-            setAllLeaveRequests(prev => prev.map(req => req.id === id ? updated : req));
+            setLeaveRequests(prev => prev.map(req => req.id === id ? updated : req));
         }
     };
 
@@ -95,7 +82,7 @@ export default function LeavePage() {
       </Card>
       {isFormOpen && (
         <LeaveRequestForm
-            employees={filteredEmployees}
+            employees={employees}
             onSave={handleSaveRequest}
             onOpenChange={setIsFormOpen}
         />

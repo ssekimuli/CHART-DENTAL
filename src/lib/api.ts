@@ -4,15 +4,15 @@ import {
     appointments,
     invoices as allInvoices,
     chartData,
-    employees,
+    employees as allEmployees,
     payrolls as allPayrolls,
     branches,
     inventory,
     labOrders as allLabOrders,
     treatments as allTreatments,
-    attendance,
-    leaveRequests,
-    staffAdvances,
+    attendance as allAttendance,
+    leaveRequests as allLeaveRequests,
+    staffAdvances as allStaffAdvances,
     expenses as allExpenses,
     roles
 } from '@/lib/data';
@@ -92,15 +92,18 @@ export const getInvoiceById = async (id: string): Promise<Invoice | undefined> =
     return JSON.parse(JSON.stringify(allInvoices.find(i => i.id === id)));
 }
 
-export const getEmployees = async (): Promise<Employee[]> => {
+export const getEmployees = async (branchId?: string): Promise<Employee[]> => {
     await delay(100);
-    return JSON.parse(JSON.stringify(employees));
+    if (branchId) {
+        return JSON.parse(JSON.stringify(allEmployees.filter(e => e.branchId === branchId)));
+    }
+    return JSON.parse(JSON.stringify(allEmployees));
 }
 
 export const getEmployeeById = async (id: string): Promise<Employee | undefined> => {
     await delay(100);
     // Find by ID or email for profile page lookup
-    return JSON.parse(JSON.stringify(employees.find(e => e.id === id || e.email === id)));
+    return JSON.parse(JSON.stringify(allEmployees.find(e => e.id === id || e.email === id)));
 }
 
 export const getPayrolls = async (branchId?: string): Promise<Payroll[]> => {
@@ -139,19 +142,28 @@ export const getTreatments = async (): Promise<SystemTreatment[]> => {
     return JSON.parse(JSON.stringify(allTreatments));
 }
 
-export const getAttendance = async (): Promise<AttendanceRecord[]> => {
+export const getAttendance = async (branchId?: string): Promise<AttendanceRecord[]> => {
     await delay(150);
-    return JSON.parse(JSON.stringify(attendance));
+    if (branchId) {
+        return JSON.parse(JSON.stringify(allAttendance.filter(a => a.branchId === branchId)));
+    }
+    return JSON.parse(JSON.stringify(allAttendance));
 }
 
-export const getLeaveRequests = async (): Promise<LeaveRequest[]> => {
+export const getLeaveRequests = async (branchId?: string): Promise<LeaveRequest[]> => {
     await delay(150);
-    return JSON.parse(JSON.stringify(leaveRequests));
+    if (branchId) {
+        return JSON.parse(JSON.stringify(allLeaveRequests.filter(l => l.branchId === branchId)));
+    }
+    return JSON.parse(JSON.stringify(allLeaveRequests));
 }
 
-export const getStaffAdvances = async (): Promise<StaffAdvance[]> => {
+export const getStaffAdvances = async (branchId?: string): Promise<StaffAdvance[]> => {
     await delay(150);
-    return JSON.parse(JSON.stringify(staffAdvances));
+    if (branchId) {
+        return JSON.parse(JSON.stringify(allStaffAdvances.filter(s => s.branchId === branchId)));
+    }
+    return JSON.parse(JSON.stringify(allStaffAdvances));
 }
 
 export const getExpenses = async (branchId?: string): Promise<Expense[]> => {
@@ -571,29 +583,29 @@ export const createEmployee = async (data: Omit<Employee, 'id'>): Promise<Employ
     await delay(200);
     const newEmployee: Employee = {
         ...data,
-        id: `emp${employees.length + 1}`,
+        id: `emp${allEmployees.length + 1}`,
     };
-    employees.push(newEmployee);
+    allEmployees.push(newEmployee);
     return newEmployee;
 }
 
 export const updateEmployee = async (id: string, data: Partial<Employee>): Promise<Employee | undefined> => {
     await delay(200);
-    const employeeIndex = employees.findIndex(e => e.id === id);
+    const employeeIndex = allEmployees.findIndex(e => e.id === id);
     if (employeeIndex > -1) {
-        employees[employeeIndex] = { ...employees[employeeIndex], ...data };
-        return employees[employeeIndex];
+        allEmployees[employeeIndex] = { ...allEmployees[employeeIndex], ...data };
+        return allEmployees[employeeIndex];
     }
     return undefined;
 }
 
 export const deleteEmployee = async (id: string): Promise<{ success: boolean }> => {
     await delay(200);
-    const initialLength = employees.length;
-    const newEmployees = employees.filter(e => e.id !== id);
-    employees.length = 0;
-    Array.prototype.push.apply(employees, newEmployees);
-    return { success: employees.length < initialLength };
+    const initialLength = allEmployees.length;
+    const newEmployees = allEmployees.filter(e => e.id !== id);
+    allEmployees.length = 0;
+    Array.prototype.push.apply(allEmployees, newEmployees);
+    return { success: allEmployees.length < initialLength };
 }
 
 
@@ -646,24 +658,24 @@ export const createPayroll = async (data: Omit<Payroll, 'id'>): Promise<Payroll>
 // Attendance
 export const markAttendance = async(data: Omit<AttendanceRecord, 'id' | 'employeeName'>): Promise<AttendanceRecord> => {
     await delay(200);
-    const employee = employees.find(e => e.id === data.employeeId);
+    const employee = allEmployees.find(e => e.id === data.employeeId);
     if (!employee) throw new Error("Employee not found");
 
-    const existingIndex = attendance.findIndex(
+    const existingIndex = allAttendance.findIndex(
         att => att.employeeId === data.employeeId && att.date === data.date
     );
 
     if (existingIndex > -1) {
-        const updatedRecord = { ...attendance[existingIndex], ...data, employeeName: employee.name };
-        attendance[existingIndex] = updatedRecord;
+        const updatedRecord = { ...allAttendance[existingIndex], ...data, employeeName: employee.name };
+        allAttendance[existingIndex] = updatedRecord;
         return updatedRecord;
     } else {
         const newRecord: AttendanceRecord = {
             ...data,
-            id: `att${attendance.length + 1}`,
+            id: `att${allAttendance.length + 1}`,
             employeeName: employee.name,
         };
-        attendance.push(newRecord);
+        allAttendance.push(newRecord);
         return newRecord;
     }
 }
@@ -671,25 +683,25 @@ export const markAttendance = async(data: Omit<AttendanceRecord, 'id' | 'employe
 // Leave
 export const createLeaveRequest = async (data: Omit<LeaveRequest, 'id' | 'employeeName' | 'status'>): Promise<LeaveRequest> => {
     await delay(200);
-    const employee = employees.find(e => e.id === data.employeeId);
+    const employee = allEmployees.find(e => e.id === data.employeeId);
     if (!employee) throw new Error("Employee not found");
 
     const newRequest: LeaveRequest = {
         ...data,
-        id: `leave${leaveRequests.length + 1}`,
+        id: `leave${allLeaveRequests.length + 1}`,
         employeeName: employee.name,
         status: 'Pending',
     };
-    leaveRequests.push(newRequest);
+    allLeaveRequests.push(newRequest);
     return newRequest;
 }
 
 export const updateLeaveRequestStatus = async (id: string, status: LeaveRequest['status']): Promise<LeaveRequest | undefined> => {
     await delay(200);
-    const requestIndex = leaveRequests.findIndex(req => req.id === id);
+    const requestIndex = allLeaveRequests.findIndex(req => req.id === id);
     if (requestIndex > -1) {
-        leaveRequests[requestIndex] = { ...leaveRequests[requestIndex], status };
-        return leaveRequests[requestIndex];
+        allLeaveRequests[requestIndex] = { ...allLeaveRequests[requestIndex], status };
+        return allLeaveRequests[requestIndex];
     }
     return undefined;
 }
@@ -697,25 +709,25 @@ export const updateLeaveRequestStatus = async (id: string, status: LeaveRequest[
 // Staff Advances
 export const createStaffAdvance = async (data: Omit<StaffAdvance, 'id' | 'employeeName' | 'status'>): Promise<StaffAdvance> => {
     await delay(200);
-    const employee = employees.find(e => e.id === data.employeeId);
+    const employee = allEmployees.find(e => e.id === data.employeeId);
     if (!employee) throw new Error("Employee not found");
 
     const newAdvance: StaffAdvance = {
         ...data,
-        id: `adv${staffAdvances.length + 1}`,
+        id: `adv${allStaffAdvances.length + 1}`,
         employeeName: employee.name,
         status: 'Pending',
     };
-    staffAdvances.push(newAdvance);
+    allStaffAdvances.push(newAdvance);
     return newAdvance;
 }
 
 export const updateStaffAdvanceStatus = async (id: string, status: StaffAdvanceStatus): Promise<StaffAdvance | undefined> => {
     await delay(200);
-    const advanceIndex = staffAdvances.findIndex(adv => adv.id === id);
+    const advanceIndex = allStaffAdvances.findIndex(adv => adv.id === id);
     if (advanceIndex > -1) {
-        staffAdvances[advanceIndex] = { ...staffAdvances[advanceIndex], status };
-        return staffAdvances[advanceIndex];
+        allStaffAdvances[advanceIndex] = { ...allStaffAdvances[advanceIndex], status };
+        return allStaffAdvances[advanceIndex];
     }
     return undefined;
 }
