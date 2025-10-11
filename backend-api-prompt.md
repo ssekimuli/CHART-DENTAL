@@ -434,72 +434,157 @@ Define the database schemas for the following entities.
 ### General
 - **`GET /api/branches`**: List all branches.
 - **`POST /api/branches`**: Create a new branch (Super Admin only).
+  - **Body**: `{ "name": "...", "address": "..." }`
+  - **Response**: `201` with the new `Branch` object.
 - **`GET /api/treatments`**: List all system-defined treatments and their standard costs.
+  - **Response**: `200` with an array of `SystemTreatment` objects.
 
 ### Patients
 - **`GET /api/patients`**: List all patients. Supports filtering by `branch_id`.
+  - **Response**: `200` with an array of `Patient` objects.
 - **`POST /api/patients`**: Create a new patient.
+  - **Body**: `{ "name": "...", "email": "...", "date_of_birth": "...", "history": "..." }`
+  - **Response**: `201` with the new `Patient` object.
 - **`GET /api/patients/{id}`**: Get a single patient by ID.
+  - **Response**: `200` with a `Patient` object.
 - **`PUT /api/patients/{id}`**: Update a patient's details.
+  - **Body**: Partial `Patient` object.
+  - **Response**: `200` with the updated `Patient` object.
 - **`DELETE /api/patients/{id}`**: Delete a patient.
+  - **Response**: `204 No Content`.
 - **`POST /api/patients/{id}/images`**: Upload an image for a patient.
+  - **Body**: `multipart/form-data` with `image` file and `description`.
+  - **Response**: `201` with the new `PatientImage` object.
 - **`PUT /api/patients/{id}/dental-records`**: Update/Create a dental record for a specific tooth.
+  - **Body**: A `DentalRecord` object.
+  - **Response**: `200` with the updated `Patient` object.
 - **`PUT /api/patients/{id}/periodontal-records`**: Save the entire periodontal chart for a patient.
+  - **Body**: An array of `PeriodontalMeasurement` objects.
+  - **Response**: `200` with the updated `Patient` object.
 - **`PUT /api/patients/{id}/occlusal-records`**: Save the occlusal chart for a patient.
+  - **Body**: An `OcclusalRecord` object.
+  - **Response**: `200` with the updated `Patient` object.
 - **`POST /api/patients/{id}/treatment-plans`**: Add a new treatment to a patient's plan.
+  - **Body**: `{ "procedure": "...", "tooth": "...", "status": "...", "cost": "..." }`
+  - **Response**: `201` with the updated `Patient` object.
 - **`PUT /api/patients/{id}/treatment-plans/{treatment_id}`**: Update a treatment plan item.
+  - **Body**: Partial `TreatmentPlan` object.
+  - **Response**: `200` with the updated `Patient` object.
 - **`DELETE /api/patients/{id}/treatment-plans/{treatment_id}`**: Delete a treatment plan item.
+  - **Response**: `200` with the updated `Patient` object.
 - **`POST /api/patients/{id}/orthodontic-records`**: Add an orthodontic record.
+  - **Body**: An `OrthodonticRecord` object (without `id`).
+  - **Response**: `201` with the updated `Patient` object.
 - **`PUT /api/patients/{id}/orthodontic-records/{record_id}`**: Update an orthodontic record.
+  - **Body**: A partial `OrthodonticRecord` object.
+  - **Response**: `200` with the updated `Patient` object.
 - **`DELETE /api/patients/{id}/orthodontic-records/{record_id}`**: Delete an orthodontic record.
+  - **Response**: `200` with the updated `Patient` object.
 - **`POST /api/patients/{id}/soft-tissue-records`**: Add a soft tissue record.
+  - **Body**: A `SoftTissueRecord` object (without `id`).
+  - **Response**: `201` with the updated `Patient` object.
 - **`PUT /api/patients/{id}/soft-tissue-records/{record_id}`**: Update a soft tissue record.
+  - **Body**: A partial `SoftTissueRecord` object.
+  - **Response**: `200` with the updated `Patient` object.
 - **`DELETE /api/patients/{id}/soft-tissue-records/{record_id}`**: Delete a soft tissue record.
+  - **Response**: `200` with the updated `Patient` object.
 
 ### Appointments
 - **`GET /api/appointments`**: List all appointments. Supports filtering by `branch_id`, `doctor_id`, `date_range`, and a list of `statuses`.
+  - **Response**: `200` with an array of `Appointment` objects.
 - **`POST /api/appointments`**: Create a new appointment.
+  - **Body**: `{ "patient_id": "...", "doctor_id": "...", "treatment": "...", "date": "...", "time": "...", "token_number": "..." }`
+  - **Response**: `201` with the new `Appointment` object.
 - **`PUT /api/appointments/{id}`**: Update an appointment (e.g., change status).
+  - **Body**: Partial `Appointment` object.
+  - **Response**: `200` with the updated `Appointment` object.
 - **`DELETE /api/appointments/{id}`**: Delete an appointment.
+  - **Response**: `204 No Content`.
 - **`POST /api/queue/{appointment_id}/announce`**: Triggers a text-to-speech announcement for the patient's token number.
+  - **Response**: `200 OK` with `{ "audio_url": "..." }`
 
 ### Billing & Invoices
 - **`GET /api/invoices`**: List invoices. Supports filtering by `branch_id`, `search_query`, `date_range`.
+  - **Response**: `200` with an array of `Invoice` objects.
 - **`POST /api/invoices`**: Create a new invoice.
+  - **Body**: `Omit<Invoice, "id" | "amount" | "paid_amount">`
+  - **Response**: `201` with the new `Invoice` object.
 - **`GET /api/invoices/{id}`**: Get a single invoice.
+  - **Response**: `200` with an `Invoice` object.
 - **`PUT /api/invoices/{id}`**: Update an invoice.
+  - **Body**: Partial `Invoice` object.
+  - **Response**: `200` with the updated `Invoice` object.
 - **`DELETE /api/invoices/{id}`**: Delete an invoice.
+  - **Response**: `204 No Content`.
 - **`POST /api/invoices/{id}/payments`**: Process a payment for an invoice.
+  - **Body**: `{ "amount": ..., "method": "..." }`
+  - **Response**: `201` with the new `PaymentTransaction` object.
 
 ### Accounting
 - **`GET /api/expenses`**: List all expenses. Supports filtering by `branch_id`.
+  - **Response**: `200` with an array of `Expense` objects.
 - **`POST /api/expenses`**: Log a new expense.
+  - **Body**: `Omit<Expense, "id">`
+  - **Response**: `201` with the new `Expense` object.
 - **`GET /api/reports/financial-summary`**: Get financial summary data (total income, expenses, profit, monthly breakdown). Supports `branch_id` filter.
+  - **Response**: `200` with a `FinancialSummary` object.
 
 ### HRM (Human Resource Management)
 - **`GET /api/employees`**: List all employees. Supports filtering by `branch_id`.
+  - **Response**: `200` with an array of `Employee` objects.
 - **`POST /api/employees`**: Create a new employee.
+  - **Body**: `Omit<Employee, "id">`
+  - **Response**: `201` with the new `Employee` object.
 - **`GET /api/employees/{id}`**: Get a single employee's details.
+  - **Response**: `200` with an `Employee` object.
 - **`PUT /api/employees/{id}`**: Update an employee.
+  - **Body**: Partial `Employee` object.
+  - **Response**: `200` with the updated `Employee` object.
 - **`DELETE /api/employees/{id}`**: Delete an employee.
+  - **Response**: `204 No Content`.
 - **`GET /api/payrolls`**: List payrolls. Supports `branchId` filter.
+  - **Response**: `200` with an array of `Payroll` objects.
 - **`POST /api/payrolls`**: Create a new payroll record.
+  - **Body**: `Omit<Payroll, "id">`
+  - **Response**: `201` with the new `Payroll` object.
 - **`GET /api/attendance`**: Get attendance records. Supports `branch_id` and `date` filters.
+  - **Response**: `200` with an array of `AttendanceRecord` objects.
 - **`POST /api/attendance`**: Mark attendance for one or more employees.
+  - **Body**: An array of `Omit<AttendanceRecord, "id">` objects.
+  - **Response**: `201` with an array of created/updated `AttendanceRecord` objects.
 - **`GET /api/leave-requests`**: List leave requests. Supports `branch_id` filter.
+  - **Response**: `200` with an array of `LeaveRequest` objects.
 - **`POST /api/leave-requests`**: Create a new leave request.
+  - **Body**: `Omit<LeaveRequest, "id">`
+  - **Response**: `201` with the new `LeaveRequest` object.
 - **`PATCH /api/leave-requests/{id}/status`**: Update the status of a leave request.
+  - **Body**: `{ "status": "Approved" | "Rejected" }`
+  - **Response**: `200` with the updated `LeaveRequest` object.
 - **`GET /api/staff-advances`**: List staff advances. Supports `branch_id` filter.
+  - **Response**: `200` with an array of `StaffAdvance` objects.
 - **`POST /api/staff-advances`**: Create a new staff advance request.
+  - **Body**: `Omit<StaffAdvance, "id">`
+  - **Response**: `201` with the new `StaffAdvance` object.
 - **`PATCH /api/staff-advances/{id}/status`**: Update the status of a staff advance.
+  - **Body**: `{ "status": "Approved" | "Paid" | "Rejected" }`
+  - **Response**: `200` with the updated `StaffAdvance` object.
 
 ### Inventory & Laboratory
 - **`GET /api/inventory`**: List inventory items. Supports `branch_id` filter.
+  - **Response**: `200` with an array of `InventoryItem` objects.
 - **`POST /api/inventory`**: Create a new inventory item.
+  - **Body**: `Omit<InventoryItem, "id">`
+  - **Response**: `201` with the new `InventoryItem` object.
 - **`GET /api/lab-orders`**: List lab orders. Supports `branch_id` filter.
+  - **Response**: `200` with an array of `LaboratoryOrder` objects.
 - **`POST /api/lab-orders`**: Create a new lab order.
+  - **Body**: `Omit<LaboratoryOrder, "id">`
+  - **Response**: `201` with the new `LaboratoryOrder` object.
 
 ### Settings
 - **`GET /api/settings/roles`**: List all roles and their permissions.
+  - **Response**: `200` with an array of `RolePermission` objects.
 - **`PUT /api/settings/roles/{role_id}`**: Update permissions for a specific role (Super Admin only).
+  - **Body**: `{ "permissions": [...] }`
+  - **Response**: `200` with the updated `RolePermission` object.
 - **Note**: General practice settings and user profile settings will be handled via the `/api/branches` and `/api/auth/profile` endpoints respectively.
