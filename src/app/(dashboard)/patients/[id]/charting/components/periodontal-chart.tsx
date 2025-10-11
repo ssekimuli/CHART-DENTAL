@@ -56,49 +56,45 @@ type PeriodontalChartProps = {
   onSave: (records: PeriodontalRecord) => void;
 };
 
-const DentalChartSvg = () => (
-    <svg viewBox="0 0 800 400" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto">
-      <style>{`
-        .tooth-label { font-family: sans-serif; font-size: 14px; fill: hsl(var(--muted-foreground)); text-anchor: middle; }
-        .tooth-outline { stroke: hsl(var(--muted-foreground)); stroke-width: 1.5; fill: hsl(var(--card)); }
-        .quadrant-line { stroke: hsl(var(--border)); stroke-width: 2; stroke-dasharray: 5,5; }
-      `}</style>
-      
-      {/* Upper Right */}
-      {quadrants.upperRight.map((tooth, i) => (
-        <g key={tooth} transform={`translate(${400 - (i * 45) - 25}, 100)`}>
-          <path className="tooth-outline" d="M -15,-20 L 15,-20 L 15,10 L -15,10 Z" />
-          <text className="tooth-label" y="-25">{tooth}</text>
-        </g>
-      ))}
-       {/* Upper Left */}
-      {quadrants.upperLeft.map((tooth, i) => (
-        <g key={tooth} transform={`translate(${400 + (i * 45) + 25}, 100)`}>
-          <path className="tooth-outline" d="M -15,-20 L 15,-20 L 15,10 L -15,10 Z" />
-          <text className="tooth-label" y="-25">{tooth}</text>
-        </g>
-      ))}
-      
-       {/* Lower Right */}
-      {quadrants.lowerRight.slice().reverse().map((tooth, i) => (
-        <g key={tooth} transform={`translate(${400 - (i * 45) - 25}, 250)`}>
-          <path className="tooth-outline" d="M -15,-10 L 15,-10 L 15,20 L -15,20 Z" />
-          <text className="tooth-label" y="35">{tooth}</text>
-        </g>
-      ))}
-      
-      {/* Lower Left */}
-       {quadrants.lowerLeft.map((tooth, i) => (
-        <g key={tooth} transform={`translate(${400 + (i * 45) + 25}, 250)`}>
-          <path className="tooth-outline" d="M -15,-10 L 15,-10 L 15,20 L -15,20 Z" />
-          <text className="tooth-label" y="35">{tooth}</text>
-        </g>
-      ))}
-
-      <line className="quadrant-line" x1="400" y1="0" x2="400" y2="400" />
-      <line className="quadrant-line" x1="0" y1="175" x2="800" y2="175" />
-    </svg>
-  );
+const DentalChartSvg = () => {
+    const toothPath = "M -10 -15 C -15 -15, -15 -5, -10 0 L 10 0 C 15 -5, 15 -15, 10 -15 Z";
+  
+    return (
+      <svg viewBox="0 0 800 400" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto">
+        <style>{`
+          .tooth-label { font-family: sans-serif; font-size: 14px; fill: hsl(var(--muted-foreground)); text-anchor: middle; }
+          .tooth-outline { stroke: hsl(var(--muted-foreground)); stroke-width: 1.5; fill: hsl(var(--card)); }
+          .quadrant-line { stroke: hsl(var(--border)); stroke-width: 2; stroke-dasharray: 5,5; }
+        `}</style>
+        
+        {/* Upper Arch */}
+        <path d="M 150 150 C 250 50, 550 50, 650 150" fill="none" stroke="hsl(var(--border))" strokeWidth="2" id="upper-arch" />
+        {quadrants.upperRight.concat(quadrants.upperLeft).map((tooth, i) => {
+          const isMolar = [4,5,6,7,8].includes(tooth % 10);
+          return (
+            <g key={tooth} transform={`translate(${150 + i * (500 / 15)} 130) scale(${isMolar ? 1.2 : 1})`}>
+              <path className="tooth-outline" d={toothPath} />
+              <text className="tooth-label" y="-20">{tooth}</text>
+            </g>
+          )
+        })}
+        
+         {/* Lower Arch */}
+         <path d="M 150 250 C 250 350, 550 350, 650 250" fill="none" stroke="hsl(var(--border))" strokeWidth="2" id="lower-arch" />
+        {quadrants.lowerLeft.concat(quadrants.lowerRight.slice().reverse()).map((tooth, i) => {
+           const isMolar = [4,5,6,7,8].includes(tooth % 10);
+          return (
+             <g key={tooth} transform={`translate(${150 + i * (500/15)} 250) scale(${isMolar ? 1.2 : 1}) rotate(180)`}>
+              <path className="tooth-outline" d={toothPath} />
+              <text className="tooth-label" y="25" transform="rotate(180)">{tooth}</text>
+            </g>
+          )
+        })}
+  
+        <line className="quadrant-line" x1="400" y1="0" x2="400" y2="400" />
+      </svg>
+    );
+  };
 
 export function PeriodontalChart({
   initialRecords,
