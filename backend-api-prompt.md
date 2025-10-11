@@ -240,7 +240,7 @@ Define the database schemas for the following entities.
 - **`GET /api/employees/{id}`**: Get a single employee's details.
 - **`PUT /api/employees/{id}`**: Update an employee.
 - **`DELETE /api/employees/{id}`**: Delete an employee.
-- **`GET /api/payrolls`**: List payrolls. Supports `branch_id` filter.
+- **`GET /api/payrolls`**: List payrolls. Supports `branchId` filter.
 - **`POST /api/payrolls`**: Create a new payroll record.
 - **`GET /api/attendance`**: Get attendance records. Supports `branch_id` and `date` filters.
 - **`POST /api/attendance`**: Mark attendance for one or more employees.
