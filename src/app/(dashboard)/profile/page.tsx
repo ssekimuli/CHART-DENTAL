@@ -31,6 +31,8 @@ export default function ProfilePage() {
     const [profileData, setProfileData] = useState<ProfileData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isLeaveFormOpen, setIsLeaveFormOpen] = useState(false);
+    const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+
 
     useEffect(() => {
         const currentUser = getCurrentUser();
@@ -52,14 +54,35 @@ export default function ProfilePage() {
     
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!user) return;
-        const { id, value } = e.target;
-        setUser({ ...user, [id]: value });
+        
+        if (e.target.type === 'file') {
+            const file = e.target.files?.[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    setAvatarPreview(reader.result as string);
+                };
+                reader.readAsDataURL(file);
+            }
+        } else {
+            const { id, value } = e.target;
+            setUser({ ...user, [id]: value });
+        }
     }
 
     const handleSaveChanges = () => {
         if (user) {
-            setCurrentUser(user);
-            // In a real app, we'd also call an API to update the backend
+            const updatedUser = { ...user };
+            if (avatarPreview) {
+                // In a real app, upload the file and get a new URL
+                // For this prototype, we'll just use the local preview or a new placeholder
+                 updatedUser.avatar = `https://picsum.photos/seed/newAvatar${Date.now()}/200/200`;
+            }
+
+            setCurrentUser(updatedUser);
+            setUser(updatedUser);
+            setAvatarPreview(null);
+            
             toast({
                 title: "Profile Updated",
                 description: "Your changes have been saved successfully.",
@@ -94,7 +117,7 @@ export default function ProfilePage() {
             <Card>
                 <CardHeader className="flex flex-row items-center gap-6">
                      <Avatar className="h-24 w-24 border">
-                        <AvatarImage src={user.avatar} alt={user.name} data-ai-hint="person face" />
+                        <AvatarImage src={avatarPreview || user.avatar} alt={user.name} data-ai-hint="person face" />
                         <AvatarFallback>{user.name?.charAt(0)}</AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
@@ -152,7 +175,7 @@ export default function ProfilePage() {
                                 </CardHeader>
                                 <CardContent>
                                     <div className="text-2xl font-bold">{stats.totalAppointments}</div>
-                                    <p className="text-xs text-muted-foreground">Total appointments assigned</p>
+                                     <p className="text-xs text-muted-foreground">Total appointments assigned</p>
                                 </CardContent>
                             </Card>
                             <Card>
@@ -246,7 +269,7 @@ export default function ProfilePage() {
                                 </div>
                                 <div className="grid w-full max-w-sm items-center gap-1.5">
                                     <Label htmlFor="avatar-file">Profile Picture</Label>
-                                    <Input id="avatar-file" type="file" />
+                                    <Input id="avatar-file" type="file" accept="image/*" onChange={handleInputChange}/>
                                 </div>
                             </CardContent>
                             <CardFooter>
