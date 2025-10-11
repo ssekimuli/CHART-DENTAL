@@ -6,7 +6,7 @@ import {
     invoices as allInvoices,
     chartData,
     employees,
-    payrolls,
+    payrolls as allPayrolls,
     branches,
     inventory,
     labOrders,
@@ -14,7 +14,7 @@ import {
     attendance,
     leaveRequests,
     staffAdvances,
-    expenses,
+    expenses as allExpenses,
     roles
 } from '@/lib/data';
 import type { Patient, Appointment, Invoice, ChartData, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, BasePatient, InvoiceTreatment, OtherCharge, SystemTreatment, PaymentMethod, PaymentTransaction, AttendanceRecord, LeaveRequest, StaffAdvance, StaffAdvanceStatus, Expense, ExpenseCategory, RolePermissions, Permission, DentalRecord, PeriodontalRecord, OcclusalRecord, SoftTissueRecord, OrthodonticRecord, Treatment, DentalCondition, PatientImage } from '@/lib/types';
@@ -100,9 +100,13 @@ export const getEmployeeById = async (id: string): Promise<Employee | undefined>
     return JSON.parse(JSON.stringify(employees.find(e => e.id === id || e.email === id)));
 }
 
-export const getPayrolls = async (): Promise<Payroll[]> => {
+export const getPayrolls = async (branchId?: string): Promise<Payroll[]> => {
     await delay(250);
-    return JSON.parse(JSON.stringify(payrolls));
+    let localPayrolls = allPayrolls;
+    if (branchId) {
+        localPayrolls = localPayrolls.filter(p => p.branchId === branchId);
+    }
+    return JSON.parse(JSON.stringify(localPayrolls));
 }
 
 export const getInventory = async (): Promise<InventoryItem[]> => {
@@ -140,9 +144,13 @@ export const getStaffAdvances = async (): Promise<StaffAdvance[]> => {
     return JSON.parse(JSON.stringify(staffAdvances));
 }
 
-export const getExpenses = async (): Promise<Expense[]> => {
+export const getExpenses = async (branchId?: string): Promise<Expense[]> => {
     await delay(150);
-    return JSON.parse(JSON.stringify(expenses));
+    let localExpenses = allExpenses;
+    if (branchId) {
+        localExpenses = localExpenses.filter(e => e.branchId === branchId);
+    }
+    return JSON.parse(JSON.stringify(localExpenses));
 }
 
 export const getRoles = async (): Promise<RolePermissions[]> => {
@@ -410,7 +418,7 @@ export const deleteAppointment = async (id: string): Promise<{ success: boolean 
 }
 
 // Invoices
-export const createInvoice = async (data: Omit<Invoice, 'id' | 'amount' | 'paidAmount'> & { patientName: string, branchId: string }): Promise<Invoice> => {
+export const createInvoice = async (data: Omit<Invoice, 'id' | 'amount' | 'paidAmount' | 'patientName'> & { branchId: string, treatments: InvoiceTreatment[] }): Promise<Invoice> => {
     await delay(200);
     const patient = patients.find(p => p.id === data.patientId);
     if (!patient) throw new Error("Patient not found");
@@ -422,6 +430,7 @@ export const createInvoice = async (data: Omit<Invoice, 'id' | 'amount' | 'paidA
     const newInvoice: Invoice = {
         ...data,
         id: `inv${allInvoices.length + 1}`,
+        patientName: patient.name,
         amount,
         paidAmount: 0,
         transactions: [],
@@ -568,9 +577,9 @@ export const createPayroll = async (data: Omit<Payroll, 'id'>): Promise<Payroll>
     await delay(200);
     const newPayroll: Payroll = {
         ...data,
-        id: `pay${payrolls.length + 1}`,
+        id: `pay${allPayrolls.length + 1}`,
     };
-    payrolls.unshift(newPayroll);
+    allPayrolls.unshift(newPayroll);
     return newPayroll;
 }
 
@@ -657,9 +666,9 @@ export const createExpense = async (data: Omit<Expense, 'id'>): Promise<Expense>
     await delay(200);
     const newExpense: Expense = {
         ...data,
-        id: `exp${expenses.length + 1}`,
+        id: `exp${allExpenses.length + 1}`,
     };
-    expenses.unshift(newExpense);
+    allExpenses.unshift(newExpense);
     return newExpense;
 }
 
@@ -674,3 +683,4 @@ export const updateRole = async (roleId: string, permissions: Permission[]): Pro
     }
     return undefined;
 }
+

@@ -24,7 +24,6 @@ import { ChartTooltip, ChartTooltipContent, ChartContainer } from "@/components/
 import { format, parse } from "date-fns";
 
 import { useBranch } from "@/context/branch-context";
-import { currentUser } from "@/lib/user";
 import { getInvoices, getPayrolls, getExpenses, createExpense } from "@/lib/api";
 import type { Invoice, Payroll, Expense } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -38,9 +37,9 @@ const chartConfig = {
 
 export default function AccountingPage() {
     const { selectedBranch } = useBranch();
-    const [allInvoices, setAllInvoices] = useState<Invoice[]>([]);
-    const [allPayrolls, setAllPayrolls] = useState<Payroll[]>([]);
-    const [allExpenses, setAllExpenses] = useState<Expense[]>([]);
+    const [invoices, setInvoices] = useState<Invoice[]>([]);
+    const [payrolls, setPayrolls] = useState<Payroll[]>([]);
+    const [expenses, setExpenses] = useState<Expense[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isFormOpen, setIsFormOpen] = useState(false);
 
@@ -48,17 +47,17 @@ export default function AccountingPage() {
         const fetchData = async () => {
           setIsLoading(true);
           const [invoicesData, payrollsData, expensesData] = await Promise.all([
-            getInvoices(),
-            getPayrolls(),
-            getExpenses(),
+            getInvoices({ branchId: selectedBranch }),
+            getPayrolls(selectedBranch),
+            getExpenses(selectedBranch),
           ]);
-          setAllInvoices(invoicesData);
-          setAllPayrolls(payrollsData);
-          setAllExpenses(expensesData);
+          setInvoices(invoicesData);
+          setPayrolls(payrollsData);
+          setExpenses(expensesData);
           setIsLoading(false);
         };
         fetchData();
-      }, []);
+      }, [selectedBranch]);
 
     const {
         paidInvoices,
@@ -67,15 +66,11 @@ export default function AccountingPage() {
         netProfit,
         monthlyFinancials,
       } = useMemo(() => {
-        const branchInvoices = allInvoices.filter(i => i.branchId === selectedBranch);
-        const branchPayrolls = allPayrolls.filter(p => p.branchId === selectedBranch);
-        const branchExpenses = allExpenses.filter(e => e.branchId === selectedBranch);
-    
-        const paidInvoices = branchInvoices.filter(i => i.status === 'Paid');
+        const paidInvoices = invoices.filter(i => i.status === 'Paid');
         const totalIncome = paidInvoices.reduce((sum, i) => sum + i.amount, 0);
     
-        const payrollExpenses = branchPayrolls.reduce((sum, p) => sum + p.grossPay, 0);
-        const otherExpenses = branchExpenses.reduce((sum, e) => sum + e.amount, 0);
+        const payrollExpenses = payrolls.reduce((sum, p) => sum + p.grossPay, 0);
+        const otherExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
         const totalExpenses = payrollExpenses + otherExpenses;
     
         const netProfit = totalIncome - totalExpenses;
@@ -88,13 +83,13 @@ export default function AccountingPage() {
           financialsByMonth[monthKey].income += invoice.amount;
         });
     
-        branchPayrolls.forEach(payroll => {
+        payrolls.forEach(payroll => {
             const monthKey = format(new Date(payroll.payDate), "yyyy-MM");
             if (!financialsByMonth[monthKey]) financialsByMonth[monthKey] = { income: 0, expense: 0 };
             financialsByMonth[monthKey].expense += payroll.grossPay;
         });
 
-        branchExpenses.forEach(expense => {
+        expenses.forEach(expense => {
             const monthKey = format(new Date(expense.date), "yyyy-MM");
             if (!financialsByMonth[monthKey]) financialsByMonth[monthKey] = { income: 0, expense: 0 };
             financialsByMonth[monthKey].expense += expense.amount;
@@ -109,13 +104,13 @@ export default function AccountingPage() {
             }));
     
         return { paidInvoices, totalIncome, totalExpenses, netProfit, monthlyFinancials };
-      }, [selectedBranch, allInvoices, allPayrolls, allExpenses]);
+      }, [invoices, payrolls, expenses]);
 
 
       const handleSaveExpense = async (data: Omit<Expense, 'id'>) => {
         const newExpense = await createExpense(data);
         if (newExpense) {
-            setAllExpenses(prev => [newExpense, ...prev]);
+            setExpenses(prev => [newExpense, ...prev]);
         }
         setIsFormOpen(false);
       }
@@ -244,14 +239,14 @@ export default function AccountingPage() {
                         <TableBody>
                              {isLoading ? (
                                 <TableRow><TableCell colSpan={4}><Skeleton className="h-24 w-full"/></TableCell></TableRow>
-                            ) : [...allExpenses, ...allPayrolls.map(p => ({
+                            ) : [...expenses, ...payrolls.map(p => ({
                                 id: p.id,
                                 branchId: p.branchId,
                                 date: p.payDate,
                                 category: 'Salaries' as const,
                                 description: `Payroll for ${p.employeeName} (${p.payPeriod})`,
                                 amount: p.grossPay
-                            }))].filter(e => e.branchId === selectedBranch)
+                            }))]
                             .sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime())
                             .map(expense => (
                                 <TableRow key={expense.id}>
@@ -261,7 +256,7 @@ export default function AccountingPage() {
                                     <TableCell className="text-right">${expense.amount.toFixed(2)}</TableCell>
                                 </TableRow>
                             ))}
-                            {allExpenses.length === 0 && allPayrolls.length === 0 && !isLoading && (
+                            {expenses.length === 0 && payrolls.length === 0 && !isLoading && (
                                 <TableRow><TableCell colSpan={4} className="text-center h-24">No expense records found.</TableCell></TableRow>
                             )}
                         </TableBody>
