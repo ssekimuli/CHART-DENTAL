@@ -53,35 +53,35 @@ type GetInvoicesFilters = {
 
 export const getInvoices = async (filters?: GetInvoicesFilters): Promise<Invoice[]> => {
     await delay(200);
-    let invoices = allInvoices;
+    let localInvoices = allInvoices;
 
     if (filters?.branchId) {
-        invoices = invoices.filter(i => i.branchId === filters.branchId);
+        localInvoices = localInvoices.filter(i => i.branchId === filters.branchId);
     }
     
     if (filters?.searchQuery) {
         const query = filters.searchQuery.toLowerCase();
-        invoices = invoices.filter(invoice => 
+        localInvoices = localInvoices.filter(invoice => 
             invoice.patientName.toLowerCase().includes(query) ||
             invoice.id.toLowerCase().includes(query)
         );
     }
 
     if (filters?.dateRange?.from) {
-        invoices = invoices.filter(invoice => {
+        localInvoices = localInvoices.filter(invoice => {
             const issueDate = new Date(invoice.issueDate);
             return issueDate >= filters.dateRange!.from!;
         });
     }
      if (filters?.dateRange?.to) {
-        invoices = invoices.filter(invoice => {
+        localInvoices = localInvoices.filter(invoice => {
             const issueDate = new Date(invoice.issueDate);
             return issueDate <= filters.dateRange!.to!;
         });
     }
 
 
-    return JSON.parse(JSON.stringify(invoices));
+    return JSON.parse(JSON.stringify(localInvoices));
 }
 
 export const getInvoiceById = async (id: string): Promise<Invoice | undefined> => {
@@ -410,7 +410,7 @@ export const deleteAppointment = async (id: string): Promise<{ success: boolean 
 }
 
 // Invoices
-export const createInvoice = async (data: Omit<Invoice, 'id' | 'amount' | 'paidAmount' | 'treatmentIds'> & { patientName: string, branchId: string }): Promise<Invoice> => {
+export const createInvoice = async (data: Omit<Invoice, 'id' | 'amount' | 'paidAmount'> & { patientName: string, branchId: string }): Promise<Invoice> => {
     await delay(200);
     const patient = patients.find(p => p.id === data.patientId);
     if (!patient) throw new Error("Patient not found");
@@ -422,12 +422,18 @@ export const createInvoice = async (data: Omit<Invoice, 'id' | 'amount' | 'paidA
     const newInvoice: Invoice = {
         ...data,
         id: `inv${allInvoices.length + 1}`,
-        treatmentIds: [], // Deprecated, but kept for data structure
         amount,
         paidAmount: 0,
         transactions: [],
     };
     allInvoices.unshift(newInvoice);
+
+    // Mark treatments in patient's plan as billed
+    patient.treatmentPlans.forEach(tp => {
+        if (data.treatments.some(it => it.procedure === tp.procedure && !tp.invoiceId)) {
+            tp.invoiceId = newInvoice.id;
+        }
+    });
 
     return newInvoice;
 }

@@ -34,7 +34,7 @@ import {
     SelectTrigger,
     SelectValue,
   } from "@/components/ui/select";
-import type { Invoice, Patient, InvoiceTreatment, OtherCharge, SystemTreatment, PaymentMethod } from "@/lib/types";
+import type { Invoice, Patient, InvoiceTreatment, OtherCharge, SystemTreatment, PaymentMethod, Treatment } from "@/lib/types";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { CalendarIcon, X, Check, Trash2, PlusCircle } from "lucide-react";
@@ -42,7 +42,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Combobox } from "@/components/ui/combobox";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { getTreatments } from "@/lib/api";
+import { getTreatments, getPatientById } from "@/lib/api";
 
 
 const formSchema = z.object({
@@ -64,18 +64,18 @@ const formSchema = z.object({
 type InvoiceFormProps = {
     invoice?: Invoice;
     patients: Patient[];
-    onSave: (data: Omit<Invoice, 'id' | 'patientName' | 'branchId' | 'amount' | 'treatmentIds'>, treatments: InvoiceTreatment[]) => void;
+    onSave: (data: Omit<Invoice, 'id' | 'patientName' | 'branchId' | 'amount' | 'paidAmount' >, treatments: InvoiceTreatment[]) => void;
     onOpenChange: (open: boolean) => void;
 };
 
 export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: InvoiceFormProps) {
   const [selectedTreatments, setSelectedTreatments] = useState<InvoiceTreatment[]>([]);
-  const [systemTreatments, setSystemTreatments] = useState<SystemTreatment[]>([]);
+  const [availableTreatments, setAvailableTreatments] = useState<SystemTreatment[]>([]);
   
   useEffect(() => {
     const fetchTreatments = async () => {
         const data = await getTreatments();
-        setSystemTreatments(data);
+        setAvailableTreatments(data);
     }
     fetchTreatments();
   }, [])
@@ -103,8 +103,22 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
   useEffect(() => {
     if (invoice) {
         setSelectedTreatments(invoice.treatments);
+    } else if (patientId) {
+        // When creating a new invoice for a patient, auto-select their unbilled treatments.
+        const fetchPatientTreatments = async () => {
+            const patientData = await getPatientById(patientId);
+            if (patientData) {
+                const unbilled = patientData.treatmentPlans
+                    .filter(t => t.status === 'Completed' && !t.invoiceId)
+                    .map(t => ({ procedure: t.procedure, cost: t.cost, tooth: t.tooth }));
+                setSelectedTreatments(unbilled);
+            }
+        };
+        fetchPatientTreatments();
+    } else {
+        setSelectedTreatments([]);
     }
-  }, [invoice]);
+  }, [invoice, patientId]);
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     onSave({
@@ -126,7 +140,7 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
   
   // This function is for the CommandItem onSelect
   const handleTreatmentSelect = (procedure: string) => {
-    const treatment = systemTreatments.find(t => t.procedure === procedure);
+    const treatment = availableTreatments.find(t => t.procedure === procedure);
     if (treatment) {
         handleTreatmentToggle(treatment);
     }
@@ -187,11 +201,11 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
                             <FormControl>
                                 <div className="rounded-md border h-48 overflow-y-auto">
                                     <Command>
-                                        <CommandInput placeholder="Search treatments..." />
+                                        <CommandInput placeholder="Search treatments to add..." />
                                         <CommandList>
                                             <CommandEmpty>No treatments found.</CommandEmpty>
                                             <CommandGroup>
-                                                {systemTreatments.map(treatment => (
+                                                {availableTreatments.map(treatment => (
                                                     <CommandItem
                                                         key={treatment.procedure}
                                                         value={treatment.procedure}
@@ -213,7 +227,7 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
                                 </div>
                             </FormControl>
                             <FormDescription>
-                               Select treatments to add to the invoice.
+                               Search and select treatments to add to the invoice. Completed, unbilled treatments for the selected patient are added automatically.
                             </FormDescription>
                         </FormItem>
                         
@@ -231,9 +245,9 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                    {selectedTreatments.map(treatment => (
-                                        <TableRow key={treatment.procedure}>
-                                            <TableCell>{treatment.procedure}</TableCell>
+                                    {selectedTreatments.map((treatment, index) => (
+                                        <TableRow key={`${treatment.procedure}-${index}`}>
+                                            <TableCell>{treatment.procedure} {treatment.tooth ? `(#${treatment.tooth})` : ''}</TableCell>
                                             <TableCell className="text-right">${treatment.cost.toFixed(2)}</TableCell>
                                             <TableCell>
                                                 <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleTreatmentToggle(treatment)}>
@@ -444,4 +458,5 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
     </Dialog>
   );
 }
+
 

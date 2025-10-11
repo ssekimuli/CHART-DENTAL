@@ -165,7 +165,7 @@ export default function BillingPage() {
     setIsPaymentFormOpen(false);
   }
 
-  const handleSaveInvoice = async (data: Omit<Invoice, 'id' | 'paidAmount' | 'patientName' | 'branchId' | 'amount' | 'treatmentIds'>, treatments: InvoiceTreatment[]) => {
+  const handleSaveInvoice = async (data: Omit<Invoice, 'id' | 'paidAmount' | 'patientName' | 'branchId' | 'amount'>, treatments: InvoiceTreatment[]) => {
     const patient = filteredPatients.find(p => p.id === data.patientId);
     if (!patient) return;
 

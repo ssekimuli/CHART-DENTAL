@@ -59,6 +59,7 @@ export type Treatment = {
 export type InvoiceTreatment = {
   procedure: string;
   cost: number;
+  tooth?: number;
 };
 
 
@@ -102,8 +103,7 @@ export type Invoice = {
   issueDate: string;
   dueDate: string;
   branchId: string;
-  treatmentIds: string[]; // This will now be deprecated in logic, but kept for data compatibility
-  treatments: InvoiceTreatment[]; // New field for storing invoiced treatments
+  treatments: InvoiceTreatment[];
   otherCharges?: OtherCharge[];
   paymentMethod?: PaymentMethod;
   transactions?: PaymentTransaction[];
