@@ -223,7 +223,7 @@ export function PeriodontalChart({
             type="number"
             min="0"
             max="20"
-            className="h-6 w-10 rounded-none border-x-0 border-t-0 bg-background/30 p-1 text-center text-xs"
+            className="h-6 w-9 rounded-none border-x-0 border-t-0 bg-background/30 p-1 text-center text-xs"
             placeholder={pos.slice(0,1).toUpperCase()}
             value={record.pockets[pos] ?? ""}
             onChange={(e) => handlePocketChange(toothId, pos, e.target.value)}
@@ -239,7 +239,7 @@ export function PeriodontalChart({
             type="number"
             min="0"
             max="20"
-            className="h-6 w-10 rounded-none border-x-0 border-t-0 bg-background/30 p-1 text-center text-xs"
+            className="h-6 w-9 rounded-none border-x-0 border-t-0 bg-background/30 p-1 text-center text-xs"
             placeholder={pos.slice(0,1).toUpperCase()}
             value={record.pockets[pos] ?? ""}
             onChange={(e) => handlePocketChange(toothId, pos, e.target.value)}
@@ -392,25 +392,21 @@ export function PeriodontalChart({
                 <span className="text-xs">Calculus</span>
             </div>
         </div>
-        <div ref={scrollContainerRef} className="flex flex-col items-center overflow-x-auto rounded-lg border bg-muted/30 p-2">
+        <div ref={scrollContainerRef} className="flex flex-col items-center overflow-x-auto rounded-lg border bg-muted/30 p-1">
           <div className="mb-1 text-sm font-bold text-muted-foreground">UPPER</div>
           <div className="flex w-full justify-between">
-            <div className="flex items-center"><div className="w-8 -rotate-90 text-center text-xs tracking-widest text-muted-foreground/70">BUCCAL</div></div>
             {renderQuadrant(quadrants.upperRight, true)}
             {renderQuadrant(quadrants.upperLeft)}
-            <div className="flex items-center"><div className="w-8 -rotate-90 text-center text-xs tracking-widest text-muted-foreground/70">BUCCAL</div></div>
           </div>
            <div className="my-1 h-px w-full bg-border" />
-           <div className="flex w-full justify-between text-xs tracking-widest text-muted-foreground/70">
-                <div>LINGUAL</div>
-                <div>LINGUAL</div>
+           <div className="flex w-full justify-between text-xs tracking-widest text-muted-foreground/70 px-2">
+                <span>LINGUAL</span>
+                <span>LINGUAL</span>
            </div>
           <div className="my-1 h-px w-full bg-border" />
           <div className="flex w-full justify-between">
-             <div className="flex items-center"><div className="w-8 -rotate-90 text-center text-xs tracking-widest text-muted-foreground/70">BUCCAL</div></div>
             {renderQuadrant(quadrants.lowerRight, true)}
             {renderQuadrant(quadrants.lowerLeft)}
-             <div className="flex items-center"><div className="w-8 -rotate-90 text-center text-xs tracking-widest text-muted-foreground/70">BUCCAL</div></div>
           </div>
            <div className="mt-1 text-sm font-bold text-muted-foreground">LOWER</div>
         </div>
@@ -421,3 +417,5 @@ export function PeriodontalChart({
     </Card>
   );
 }
+
+    
