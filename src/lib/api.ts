@@ -17,7 +17,7 @@ import {
     expenses,
     roles
 } from '@/lib/data';
-import type { Patient, Appointment, Invoice, ChartData, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, BasePatient, InvoiceTreatment, OtherCharge, SystemTreatment, PaymentMethod, PaymentTransaction, AttendanceRecord, LeaveRequest, StaffAdvance, StaffAdvanceStatus, Expense, ExpenseCategory, RolePermissions, Permission, DentalRecord, PeriodontalRecord, OcclusalRecord, SoftTissueRecord, OrthodonticRecord, Treatment, DentalCondition } from '@/lib/types';
+import type { Patient, Appointment, Invoice, ChartData, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, BasePatient, InvoiceTreatment, OtherCharge, SystemTreatment, PaymentMethod, PaymentTransaction, AttendanceRecord, LeaveRequest, StaffAdvance, StaffAdvanceStatus, Expense, ExpenseCategory, RolePermissions, Permission, DentalRecord, PeriodontalRecord, OcclusalRecord, SoftTissueRecord, OrthodonticRecord, Treatment, DentalCondition, PatientImage } from '@/lib/types';
 import type { DateRange } from 'react-day-picker';
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -188,6 +188,21 @@ export const deletePatient = async (id: string): Promise<{ success: boolean }> =
     patients.length = 0;
     Array.prototype.push.apply(patients, newPatients);
     return { success: patients.length < initialLength };
+}
+
+export const addImageToPatient = async (patientId: string, image: Omit<PatientImage, 'date'>): Promise<Patient | undefined> => {
+    await delay(200);
+    const patientIndex = patients.findIndex(p => p.id === patientId);
+    if (patientIndex > -1) {
+        const patient = patients[patientIndex];
+        const newImage: PatientImage = {
+            ...image,
+            date: new Date().toISOString().split('T')[0],
+        }
+        patient.imaging.push(newImage);
+        return patient;
+    }
+    return undefined;
 }
 
 export const saveDentalRecord = async (patientId: string, record: DentalRecord): Promise<Patient | undefined> => {

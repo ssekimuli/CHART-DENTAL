@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { notFound, useRouter } from "next/navigation";
@@ -46,7 +47,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { deletePatient, getPatientById, updatePatient, addTreatment, updateTreatment, deleteTreatment } from "@/lib/api";
+import { deletePatient, getPatientById, updatePatient, addTreatment, updateTreatment, deleteTreatment, addImageToPatient } from "@/lib/api";
 import { ImageUploadForm } from "./components/image-upload-form";
 
 export default function PatientDetailPage({
@@ -138,20 +139,12 @@ export default function PatientDetailPage({
     }
   }
 
-  const handleAddImage = (newImage: Omit<PatientImage, 'date'>) => {
-    setPatient(prevPatient => {
-      if (!prevPatient) return prevPatient;
-      const fullNewImage: PatientImage = {
-        ...newImage,
-        date: new Date().toISOString().split('T')[0],
-      }
-      const updatedPatient = {
-        ...prevPatient,
-        imaging: [...prevPatient.imaging, fullNewImage],
-      };
-      updatePatient(updatedPatient.id, updatedPatient);
-      return updatedPatient;
-    });
+  const handleAddImage = async (newImage: Omit<PatientImage, 'date'>) => {
+    if (!patient) return;
+    const updatedPatient = await addImageToPatient(patient.id, newImage);
+     if (updatedPatient) {
+        setPatient(updatedPatient);
+    }
     setIsImageFormOpen(false);
   };
   
