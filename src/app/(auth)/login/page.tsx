@@ -8,8 +8,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { ToothIcon } from "@/components/icons/tooth-icon";
-import { getEmployees } from "@/lib/api";
-import type { Employee } from "@/lib/types";
+import { login } from "@/lib/api";
 import { setCurrentUser } from "@/lib/user";
 
 export default function LoginPage() {
@@ -17,11 +16,6 @@ export default function LoginPage() {
   const { toast } = useToast();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [employees, setEmployees] = useState<Employee[]>([]);
-
-  useState(() => {
-    getEmployees().then(setEmployees);
-  });
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -33,13 +27,13 @@ export default function LoginPage() {
       return;
     }
     
-    const employee = employees.find(emp => emp.email === email);
+    const loggedInUser = await login(email, password);
 
-    if (employee && password === "password") { // Using "password" for all users for this prototype
-       setCurrentUser({ role: employee.role, branchId: employee.branchId, email: employee.email, name: employee.name, avatar: employee.avatar });
+    if (loggedInUser) {
+       setCurrentUser(loggedInUser);
        toast({
         title: "Login Successful",
-        description: `Welcome back, ${employee.name}!`,
+        description: `Welcome back, ${loggedInUser.name}!`,
       });
       router.push("/dashboard");
     } else {
@@ -52,14 +46,14 @@ export default function LoginPage() {
   };
 
   const handleGoogleSignIn = async () => {
-    // Dummy Google sign-in
-    // For demo, we'll log in as the first employee
-    const employee = employees[0];
-    if (employee) {
-        setCurrentUser({ role: employee.role, branchId: employee.branchId, email: employee.email, name: employee.name, avatar: employee.avatar });
+    // In a real app, this would trigger the Google Sign-In flow.
+    // For this prototype, we'll log in as the default super admin.
+    const loggedInUser = await login("lisa.cuddy@example.com", "password");
+     if (loggedInUser) {
+        setCurrentUser(loggedInUser);
         toast({
             title: "Login Successful",
-            description: `Welcome back, ${employee.name}!`,
+            description: `Welcome back, ${loggedInUser.name}!`,
         });
         router.push("/dashboard");
     }

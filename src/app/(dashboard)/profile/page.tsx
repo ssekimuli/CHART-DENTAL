@@ -15,10 +15,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getCurrentUser, setCurrentUser } from "@/lib/user";
-import type { CurrentUser, Employee, Payroll, AttendanceRecord, Appointment, LeaveRequest } from "@/lib/types";
+import type { CurrentUser, Employee, Payroll, Appointment, LeaveRequest, ProfileData } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { getAppointments, getAttendance, getEmployeeById, getPayrolls, createLeaveRequest } from "@/lib/api";
+import { createLeaveRequest, getProfileData } from "@/lib/api";
 import { DollarSign, UserCheck, CalendarDays, UserPlus, Loader2 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -28,10 +28,7 @@ import { PayrollTable } from "../payroll/components/payroll-table";
 export default function ProfilePage() {
     const { toast } = useToast();
     const [user, setUser] = useState<CurrentUser | null>(null);
-    const [employee, setEmployee] = useState<Employee | undefined>(undefined);
-    const [payrolls, setPayrolls] = useState<Payroll[]>([]);
-    const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
-    const [appointments, setAppointments] = useState<Appointment[]>([]);
+    const [profileData, setProfileData] = useState<ProfileData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isLeaveFormOpen, setIsLeaveFormOpen] = useState(false);
 
@@ -46,55 +43,13 @@ export default function ProfilePage() {
 
         const fetchData = async () => {
             setIsLoading(true);
-            const [payrollData, attendanceData, appointmentData] = await Promise.all([
-                getPayrolls(),
-                getAttendance(),
-                getAppointments()
-            ]);
-            
-            // We need to find the employee record that corresponds to the logged-in user
-            // In a real app this would be a direct API call like `getEmployee('me')`
-            const employeeData = await getEmployeeById(currentUser.email); // Assuming email is a unique identifier
-            setEmployee(employeeData);
-
-            setPayrolls(payrollData);
-            setAttendance(attendanceData);
-            setAppointments(appointmentData);
+            const data = await getProfileData(currentUser.email);
+            setProfileData(data);
             setIsLoading(false);
         }
         fetchData();
     }, []);
-
-    const userPayrolls = useMemo(() => {
-        if (!employee) return [];
-        return payrolls.filter(p => p.employeeId === employee.id);
-    }, [employee, payrolls]);
-
-    const stats = useMemo(() => {
-        if (!employee) return null;
-
-        const employeePayrolls = payrolls.filter(p => p.employeeId === employee.id);
-        const totalPaid = employeePayrolls.reduce((sum, p) => sum + p.netPay, 0);
-
-        const employeeAttendance = attendance.filter(a => a.employeeId === employee.id);
-        const presentDays = employeeAttendance.filter(a => a.status === 'Present').length;
-        const absentDays = employeeAttendance.filter(a => a.status === 'Absent').length;
-        const onLeaveDays = employeeAttendance.filter(a => a.status === 'On Leave').length;
-
-        const employeeAppointments = appointments.filter(a => a.doctorId === employee.id);
-        const uniquePatients = new Set(employeeAppointments.map(a => a.patientId)).size;
-
-        return {
-            totalPaid,
-            presentDays,
-            absentDays,
-            onLeaveDays,
-            totalAppointments: employeeAppointments.length,
-            uniquePatients,
-            recentAppointments: employeeAppointments.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0,5),
-        }
-    }, [employee, payrolls, attendance, appointments]);
-
+    
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!user) return;
         const { id, value } = e.target;
@@ -104,6 +59,7 @@ export default function ProfilePage() {
     const handleSaveChanges = () => {
         if (user) {
             setCurrentUser(user);
+            // In a real app, we'd also call an API to update the backend
             toast({
                 title: "Profile Updated",
                 description: "Your changes have been saved successfully.",
@@ -126,9 +82,11 @@ export default function ProfilePage() {
         return <div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin" /></div>;
     }
 
-    if (!user || !employee) {
+    if (!user || !profileData || !profileData.employee) {
         return <div>Could not load user profile.</div>;
     }
+    
+    const { employee, stats, payrolls } = profileData;
 
     return (
     <>
@@ -171,7 +129,7 @@ export default function ProfilePage() {
                                     <DollarSign className="h-4 w-4 text-muted-foreground" />
                                 </CardHeader>
                                 <CardContent>
-                                    <div className="text-2xl font-bold">${stats?.totalPaid.toLocaleString()}</div>
+                                    <div className="text-2xl font-bold">${stats.totalPaid.toLocaleString()}</div>
                                     <p className="text-xs text-muted-foreground">Total net salary paid to date</p>
                                 </CardContent>
                             </Card>
@@ -181,8 +139,8 @@ export default function ProfilePage() {
                                     <UserCheck className="h-4 w-4 text-muted-foreground" />
                                 </CardHeader>
                                 <CardContent>
-                                    <div className="text-2xl font-bold">{stats?.presentDays} <span className="text-base font-normal"> Days</span></div>
-                                    <p className="text-xs text-muted-foreground">{stats?.absentDays} Absent, {stats?.onLeaveDays} On Leave</p>
+                                    <div className="text-2xl font-bold">{stats.presentDays} <span className="text-base font-normal"> Days</span></div>
+                                    <p className="text-xs text-muted-foreground">{stats.absentDays} Absent, {stats.onLeaveDays} On Leave</p>
                                 </CardContent>
                             </Card>
                             { (user.role === 'Dentist' || user.role === 'Hygienist') &&
@@ -193,7 +151,7 @@ export default function ProfilePage() {
                                     <CalendarDays className="h-4 w-4 text-muted-foreground" />
                                 </CardHeader>
                                 <CardContent>
-                                    <div className="text-2xl font-bold">{stats?.totalAppointments}</div>
+                                    <div className="text-2xl font-bold">{stats.totalAppointments}</div>
                                     <p className="text-xs text-muted-foreground">Total appointments assigned</p>
                                 </CardContent>
                             </Card>
@@ -203,7 +161,7 @@ export default function ProfilePage() {
                                     <UserPlus className="h-4 w-4 text-muted-foreground" />
                                 </CardHeader>
                                 <CardContent>
-                                    <div className="text-2xl font-bold">{stats?.uniquePatients}</div>
+                                    <div className="text-2xl font-bold">{stats.uniquePatients}</div>
                                     <p className="text-xs text-muted-foreground">Unique patients seen</p>
                                 </CardContent>
                             </Card>
@@ -225,13 +183,13 @@ export default function ProfilePage() {
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {stats?.recentAppointments.length === 0 ? (
+                                        {stats.recentAppointments.length === 0 ? (
                                             <TableRow>
                                                 <TableCell colSpan={4} className="h-24 text-center">
-                                                    No recent appointments found for this employee.
+                                                    No recent appointments found.
                                                 </TableCell>
                                             </TableRow>
-                                        ) : stats?.recentAppointments.map(app => (
+                                        ) : stats.recentAppointments.map(app => (
                                             <TableRow key={app.id}>
                                                 <TableCell>{app.date}</TableCell>
                                                 <TableCell>{app.patientName}</TableCell>
@@ -252,7 +210,7 @@ export default function ProfilePage() {
                             <CardDescription>Your past salary payments.</CardDescription>
                         </CardHeader>
                         <CardContent>
-                           <PayrollTable data={userPayrolls} />
+                           <PayrollTable data={payrolls} />
                         </CardContent>
                     </Card>
                 </TabsContent>
@@ -284,7 +242,7 @@ export default function ProfilePage() {
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="email">Email</Label>
-                                    <Input id="email" type="email" value={user.email} onChange={handleInputChange} />
+                                    <Input id="email" type="email" value={user.email} disabled />
                                 </div>
                                 <div className="grid w-full max-w-sm items-center gap-1.5">
                                     <Label htmlFor="avatar-file">Profile Picture</Label>
@@ -334,5 +292,3 @@ export default function ProfilePage() {
     </>
     );
 }
-
-    

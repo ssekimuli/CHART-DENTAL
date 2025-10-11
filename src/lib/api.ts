@@ -1,7 +1,8 @@
 
+
 import { 
     patients as allPatients,
-    appointments,
+    appointments as allAppointments,
     invoices as allInvoices,
     chartData,
     employees as allEmployees,
@@ -16,7 +17,7 @@ import {
     expenses as allExpenses,
     roles
 } from '@/lib/data';
-import type { Patient, Appointment, Invoice, ChartData, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, BasePatient, InvoiceTreatment, OtherCharge, SystemTreatment, PaymentMethod, PaymentTransaction, AttendanceRecord, LeaveRequest, StaffAdvance, StaffAdvanceStatus, Expense, ExpenseCategory, RolePermissions, Permission, DentalRecord, PeriodontalRecord, OcclusalRecord, SoftTissueRecord, OrthodonticRecord, Treatment, DentalCondition, PatientImage, FinancialSummary } from '@/lib/types';
+import type { Patient, Appointment, Invoice, ChartData, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, BasePatient, InvoiceTreatment, OtherCharge, SystemTreatment, PaymentMethod, PaymentTransaction, AttendanceRecord, LeaveRequest, StaffAdvance, StaffAdvanceStatus, Expense, ExpenseCategory, RolePermissions, Permission, DentalRecord, PeriodontalRecord, OcclusalRecord, SoftTissueRecord, OrthodonticRecord, Treatment, DentalCondition, PatientImage, FinancialSummary, CurrentUser, ProfileData } from '@/lib/types';
 import type { DateRange } from 'react-day-picker';
 import { format, parse } from "date-fns";
 
@@ -25,6 +26,56 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 // --- READ OPERATIONS ---
 
+export const login = async (email: string, password?: string): Promise<CurrentUser | null> => {
+    await delay(200);
+    const employee = allEmployees.find(emp => emp.email === email);
+    // For this prototype, we accept any login if password is "password"
+    if (employee && password === "password") {
+        return {
+            role: employee.role,
+            branchId: employee.branchId,
+            email: employee.email,
+            name: employee.name,
+            avatar: employee.avatar,
+        };
+    }
+    return null;
+}
+
+export const getProfileData = async (userEmail: string): Promise<ProfileData | null> => {
+    await delay(300);
+    const employee = allEmployees.find(e => e.email === userEmail);
+    if (!employee) return null;
+
+    const employeePayrolls = allPayrolls.filter(p => p.employeeId === employee.id);
+    const totalPaid = employeePayrolls.reduce((sum, p) => sum + p.netPay, 0);
+
+    const employeeAttendance = allAttendance.filter(a => a.employeeId === employee.id);
+    const presentDays = employeeAttendance.filter(a => a.status === 'Present').length;
+    const absentDays = employeeAttendance.filter(a => a.status === 'Absent').length;
+    const onLeaveDays = employeeAttendance.filter(a => a.status === 'On Leave').length;
+
+    const employeeAppointments = allAppointments.filter(a => a.doctorId === employee.id);
+    const uniquePatients = new Set(employeeAppointments.map(a => a.patientId)).size;
+
+    const stats = {
+        totalPaid,
+        presentDays,
+        absentDays,
+        onLeaveDays,
+        totalAppointments: employeeAppointments.length,
+        uniquePatients,
+        recentAppointments: employeeAppointments.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0,5),
+    };
+
+    return {
+        employee: JSON.parse(JSON.stringify(employee)),
+        stats,
+        payrolls: JSON.parse(JSON.stringify(employeePayrolls)),
+    };
+}
+
+
 export const getBranches = async (): Promise<Branch[]> => {
     await delay(50);
     return JSON.parse(JSON.stringify(branches));
@@ -32,10 +83,11 @@ export const getBranches = async (): Promise<Branch[]> => {
 
 export const getPatients = async (branchId?: string): Promise<Patient[]> => {
     await delay(100);
+    let localPatients = allPatients;
     if (branchId) {
-        return JSON.parse(JSON.stringify(allPatients.filter(p => p.branchId === branchId)));
+        localPatients = localPatients.filter(p => p.branchId === branchId);
     }
-    return JSON.parse(JSON.stringify(allPatients));
+    return JSON.parse(JSON.stringify(localPatients));
 }
 
 export const getPatientById = async (id: string): Promise<Patient | undefined> => {
@@ -45,7 +97,7 @@ export const getPatientById = async (id: string): Promise<Patient | undefined> =
 
 export const getAppointments = async (): Promise<Appointment[]> => {
     await delay(150);
-    return JSON.parse(JSON.stringify(appointments));
+    return JSON.parse(JSON.stringify(allAppointments));
 }
 
 type GetInvoicesFilters = {
@@ -94,10 +146,11 @@ export const getInvoiceById = async (id: string): Promise<Invoice | undefined> =
 
 export const getEmployees = async (branchId?: string): Promise<Employee[]> => {
     await delay(100);
+    let localEmployees = allEmployees;
     if (branchId) {
-        return JSON.parse(JSON.stringify(allEmployees.filter(e => e.branchId === branchId)));
+        localEmployees = localEmployees.filter(e => e.branchId === branchId);
     }
-    return JSON.parse(JSON.stringify(allEmployees));
+    return JSON.parse(JSON.stringify(localEmployees));
 }
 
 export const getEmployeeById = async (id: string): Promise<Employee | undefined> => {
@@ -126,10 +179,11 @@ export const getInventory = async (branchId?: string): Promise<InventoryItem[]> 
 
 export const getLabOrders = async (branchId?: string): Promise<LaboratoryOrder[]> => {
     await delay(150);
+    let localLabOrders = allLabOrders;
     if (branchId) {
-        return JSON.parse(JSON.stringify(allLabOrders.filter(l => l.branchId === branchId)));
+        localLabOrders = localLabOrders.filter(l => l.branchId === branchId);
     }
-    return JSON.parse(JSON.stringify(allLabOrders));
+    return JSON.parse(JSON.stringify(localLabOrders));
 }
 
 export const getChartData = async (): Promise<ChartData[]> => {
@@ -144,26 +198,29 @@ export const getTreatments = async (): Promise<SystemTreatment[]> => {
 
 export const getAttendance = async (branchId?: string): Promise<AttendanceRecord[]> => {
     await delay(150);
+    let localAttendance = allAttendance;
     if (branchId) {
-        return JSON.parse(JSON.stringify(allAttendance.filter(a => a.branchId === branchId)));
+        localAttendance = localAttendance.filter(a => a.branchId === branchId);
     }
-    return JSON.parse(JSON.stringify(allAttendance));
+    return JSON.parse(JSON.stringify(localAttendance));
 }
 
 export const getLeaveRequests = async (branchId?: string): Promise<LeaveRequest[]> => {
     await delay(150);
+    let localLeaveRequests = allLeaveRequests;
     if (branchId) {
-        return JSON.parse(JSON.stringify(allLeaveRequests.filter(l => l.branchId === branchId)));
+        localLeaveRequests = localLeaveRequests.filter(l => l.branchId === branchId);
     }
-    return JSON.parse(JSON.stringify(allLeaveRequests));
+    return JSON.parse(JSON.stringify(localLeaveRequests));
 }
 
 export const getStaffAdvances = async (branchId?: string): Promise<StaffAdvance[]> => {
     await delay(150);
+    let localAdvances = allStaffAdvances;
     if (branchId) {
-        return JSON.parse(JSON.stringify(allStaffAdvances.filter(s => s.branchId === branchId)));
+        localAdvances = localAdvances.filter(s => s.branchId === branchId);
     }
-    return JSON.parse(JSON.stringify(allStaffAdvances));
+    return JSON.parse(JSON.stringify(localAdvances));
 }
 
 export const getExpenses = async (branchId?: string): Promise<Expense[]> => {
@@ -463,29 +520,29 @@ export const createAppointment = async (data: Omit<Appointment, 'id'>): Promise<
     await delay(200);
     const newAppointment: Appointment = {
         ...data,
-        id: `a${appointments.length + 1}`,
+        id: `a${allAppointments.length + 1}`,
     };
-    appointments.push(newAppointment);
+    allAppointments.push(newAppointment);
     return newAppointment;
 }
 
 export const updateAppointment = async (id: string, data: Partial<Appointment>): Promise<Appointment | undefined> => {
     await delay(200);
-    const appointmentIndex = appointments.findIndex(a => a.id === id);
+    const appointmentIndex = allAppointments.findIndex(a => a.id === id);
     if (appointmentIndex > -1) {
-        appointments[appointmentIndex] = { ...appointments[appointmentIndex], ...data };
-        return appointments[appointmentIndex];
+        allAppointments[appointmentIndex] = { ...allAppointments[appointmentIndex], ...data };
+        return allAppointments[appointmentIndex];
     }
     return undefined;
 }
 
 export const deleteAppointment = async (id: string): Promise<{ success: boolean }> => {
     await delay(200);
-    const initialLength = appointments.length;
-    const newAppointments = appointments.filter(a => a.id !== id);
-    appointments.length = 0;
-    Array.prototype.push.apply(appointments, newAppointments);
-    return { success: appointments.length < initialLength };
+    const initialLength = allAppointments.length;
+    const newAppointments = allAppointments.filter(a => a.id !== id);
+    allAppointments.length = 0;
+    Array.prototype.push.apply(allAppointments, newAppointments);
+    return { success: allAppointments.length < initialLength };
 }
 
 // Invoices

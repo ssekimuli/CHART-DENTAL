@@ -1,6 +1,7 @@
 
 
 
+
 export type ExpenseCategory = 'Supplies' | 'Rent' | 'Utilities' | 'Salaries' | 'Marketing' | 'Maintenance' | 'Other';
 
 export type Expense = {
@@ -314,3 +315,19 @@ export type FinancialSummary = {
     netProfit: number;
     monthlyFinancials: { month: string; income: number; expense: number }[];
 };
+
+export type ProfileDataStats = {
+    totalPaid: number;
+    presentDays: number;
+    absentDays: number;
+    onLeaveDays: number;
+    totalAppointments: number;
+    uniquePatients: number;
+    recentAppointments: Appointment[];
+}
+
+export type ProfileData = {
+    employee: Employee;
+    stats: ProfileDataStats;
+    payrolls: Payroll[];
+}
