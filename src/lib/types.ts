@@ -1,5 +1,6 @@
 
 
+
 export type ExpenseCategory = 'Supplies' | 'Rent' | 'Utilities' | 'Salaries' | 'Marketing' | 'Maintenance' | 'Other';
 
 export type Expense = {
@@ -305,4 +306,11 @@ export type RolePermissions = {
     id: EmployeeRole;
     name: string;
     permissions: Permission[];
+};
+
+export type FinancialSummary = {
+    totalIncome: number;
+    totalExpenses: number;
+    netProfit: number;
+    monthlyFinancials: { month: string; income: number; expense: number }[];
 };

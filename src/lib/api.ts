@@ -1,5 +1,6 @@
 
 
+
 import { 
     patients,
     appointments,
@@ -17,8 +18,9 @@ import {
     expenses as allExpenses,
     roles
 } from '@/lib/data';
-import type { Patient, Appointment, Invoice, ChartData, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, BasePatient, InvoiceTreatment, OtherCharge, SystemTreatment, PaymentMethod, PaymentTransaction, AttendanceRecord, LeaveRequest, StaffAdvance, StaffAdvanceStatus, Expense, ExpenseCategory, RolePermissions, Permission, DentalRecord, PeriodontalRecord, OcclusalRecord, SoftTissueRecord, OrthodonticRecord, Treatment, DentalCondition, PatientImage } from '@/lib/types';
+import type { Patient, Appointment, Invoice, ChartData, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, BasePatient, InvoiceTreatment, OtherCharge, SystemTreatment, PaymentMethod, PaymentTransaction, AttendanceRecord, LeaveRequest, StaffAdvance, StaffAdvanceStatus, Expense, ExpenseCategory, RolePermissions, Permission, DentalRecord, PeriodontalRecord, OcclusalRecord, SoftTissueRecord, OrthodonticRecord, Treatment, DentalCondition, PatientImage, FinancialSummary } from '@/lib/types';
 import type { DateRange } from 'react-day-picker';
+import { format, parse } from "date-fns";
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -157,6 +159,55 @@ export const getRoles = async (): Promise<RolePermissions[]> => {
     await delay(100);
     return JSON.parse(JSON.stringify(roles));
 }
+
+export const getFinancialSummary = async (branchId: string): Promise<FinancialSummary> => {
+    await delay(300);
+
+    const branchInvoices = allInvoices.filter(i => i.branchId === branchId);
+    const branchPayrolls = allPayrolls.filter(p => p.branchId === branchId);
+    const branchExpenses = allExpenses.filter(e => e.branchId === branchId);
+    
+    const paidInvoices = branchInvoices.filter(i => i.status === 'Paid');
+    const totalIncome = paidInvoices.reduce((sum, i) => sum + i.amount, 0);
+
+    const payrollExpenses = branchPayrolls.reduce((sum, p) => sum + p.grossPay, 0);
+    const otherExpenses = branchExpenses.reduce((sum, e) => sum + e.amount, 0);
+    const totalExpenses = payrollExpenses + otherExpenses;
+
+    const netProfit = totalIncome - totalExpenses;
+
+    const financialsByMonth: Record<string, { income: number, expense: number }> = {};
+
+    paidInvoices.forEach(invoice => {
+        const monthKey = format(new Date(invoice.issueDate), "yyyy-MM");
+        if (!financialsByMonth[monthKey]) financialsByMonth[monthKey] = { income: 0, expense: 0 };
+        financialsByMonth[monthKey].income += invoice.amount;
+    });
+
+    branchPayrolls.forEach(payroll => {
+        const monthKey = format(new Date(payroll.payDate), "yyyy-MM");
+        if (!financialsByMonth[monthKey]) financialsByMonth[monthKey] = { income: 0, expense: 0 };
+        financialsByMonth[monthKey].expense += payroll.grossPay;
+    });
+
+    branchExpenses.forEach(expense => {
+        const monthKey = format(new Date(expense.date), "yyyy-MM");
+        if (!financialsByMonth[monthKey]) financialsByMonth[monthKey] = { income: 0, expense: 0 };
+        financialsByMonth[monthKey].expense += expense.amount;
+    });
+
+    const monthlyFinancials = Object.keys(financialsByMonth)
+        .sort()
+        .slice(-6)
+        .map(monthKey => ({
+            month: format(parse(monthKey, 'yyyy-MM', new Date()), 'MMM'),
+            income: financialsByMonth[monthKey].income,
+            expense: financialsByMonth[monthKey].expense,
+        }));
+
+    return { totalIncome, totalExpenses, netProfit, monthlyFinancials };
+}
+
 
 // --- WRITE OPERATIONS ---
 

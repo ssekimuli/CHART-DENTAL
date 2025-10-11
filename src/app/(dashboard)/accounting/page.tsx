@@ -21,11 +21,10 @@ import {
   YAxis,
 } from "recharts";
 import { ChartTooltip, ChartTooltipContent, ChartContainer } from "@/components/ui/chart";
-import { format, parse } from "date-fns";
 
 import { useBranch } from "@/context/branch-context";
-import { getInvoices, getPayrolls, getExpenses, createExpense } from "@/lib/api";
-import type { Invoice, Payroll, Expense } from "@/lib/types";
+import { getInvoices, getPayrolls, getExpenses, createExpense, getFinancialSummary } from "@/lib/api";
+import type { Invoice, Payroll, Expense, FinancialSummary } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ExpenseForm } from "./components/expense-form";
@@ -40,77 +39,40 @@ export default function AccountingPage() {
     const [invoices, setInvoices] = useState<Invoice[]>([]);
     const [payrolls, setPayrolls] = useState<Payroll[]>([]);
     const [expenses, setExpenses] = useState<Expense[]>([]);
+    const [financialSummary, setFinancialSummary] = useState<FinancialSummary | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isFormOpen, setIsFormOpen] = useState(false);
 
     useEffect(() => {
         const fetchData = async () => {
           setIsLoading(true);
-          const [invoicesData, payrollsData, expensesData] = await Promise.all([
+          const [invoicesData, payrollsData, expensesData, summaryData] = await Promise.all([
             getInvoices({ branchId: selectedBranch }),
             getPayrolls(selectedBranch),
             getExpenses(selectedBranch),
+            getFinancialSummary(selectedBranch),
           ]);
           setInvoices(invoicesData);
           setPayrolls(payrollsData);
           setExpenses(expensesData);
+          setFinancialSummary(summaryData);
           setIsLoading(false);
         };
         fetchData();
       }, [selectedBranch]);
 
-    const {
-        paidInvoices,
-        totalIncome,
-        totalExpenses,
-        netProfit,
-        monthlyFinancials,
-      } = useMemo(() => {
-        const paidInvoices = invoices.filter(i => i.status === 'Paid');
-        const totalIncome = paidInvoices.reduce((sum, i) => sum + i.amount, 0);
-    
-        const payrollExpenses = payrolls.reduce((sum, p) => sum + p.grossPay, 0);
-        const otherExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
-        const totalExpenses = payrollExpenses + otherExpenses;
-    
-        const netProfit = totalIncome - totalExpenses;
-    
-        const financialsByMonth: Record<string, { income: number, expense: number }> = {};
-    
-        paidInvoices.forEach(invoice => {
-          const monthKey = format(new Date(invoice.issueDate), "yyyy-MM");
-          if (!financialsByMonth[monthKey]) financialsByMonth[monthKey] = { income: 0, expense: 0 };
-          financialsByMonth[monthKey].income += invoice.amount;
-        });
-    
-        payrolls.forEach(payroll => {
-            const monthKey = format(new Date(payroll.payDate), "yyyy-MM");
-            if (!financialsByMonth[monthKey]) financialsByMonth[monthKey] = { income: 0, expense: 0 };
-            financialsByMonth[monthKey].expense += payroll.grossPay;
-        });
-
-        expenses.forEach(expense => {
-            const monthKey = format(new Date(expense.date), "yyyy-MM");
-            if (!financialsByMonth[monthKey]) financialsByMonth[monthKey] = { income: 0, expense: 0 };
-            financialsByMonth[monthKey].expense += expense.amount;
-        });
-    
-        const monthlyFinancials = Object.keys(financialsByMonth)
-            .sort()
-            .slice(-6)
-            .map(monthKey => ({
-              month: format(parse(monthKey, 'yyyy-MM', new Date()), 'MMM'),
-              ...financialsByMonth[monthKey],
-            }));
-    
-        return { paidInvoices, totalIncome, totalExpenses, netProfit, monthlyFinancials };
-      }, [invoices, payrolls, expenses]);
+    const paidInvoices = useMemo(() => {
+        return invoices.filter(i => i.status === 'Paid');
+    }, [invoices]);
 
 
       const handleSaveExpense = async (data: Omit<Expense, 'id'>) => {
         const newExpense = await createExpense(data);
         if (newExpense) {
             setExpenses(prev => [newExpense, ...prev]);
+             // Re-fetch summary data after adding an expense
+            const summaryData = await getFinancialSummary(selectedBranch);
+            setFinancialSummary(summaryData);
         }
         setIsFormOpen(false);
       }
@@ -133,7 +95,7 @@ export default function AccountingPage() {
                         <TrendingUp className="h-4 w-4 text-green-500" />
                         </CardHeader>
                         <CardContent>
-                        {isLoading ? <Skeleton className="h-8 w-3/4" /> : <div className="text-2xl font-bold">${totalIncome.toLocaleString()}</div>}
+                        {isLoading || !financialSummary ? <Skeleton className="h-8 w-3/4" /> : <div className="text-2xl font-bold">${financialSummary.totalIncome.toLocaleString()}</div>}
                         <p className="text-xs text-muted-foreground">From paid invoices</p>
                         </CardContent>
                     </Card>
@@ -143,7 +105,7 @@ export default function AccountingPage() {
                         <TrendingDown className="h-4 w-4 text-red-500" />
                         </CardHeader>
                         <CardContent>
-                        {isLoading ? <Skeleton className="h-8 w-3/4" /> : <div className="text-2xl font-bold">${totalExpenses.toLocaleString()}</div>}
+                        {isLoading || !financialSummary ? <Skeleton className="h-8 w-3/4" /> : <div className="text-2xl font-bold">${financialSummary.totalExpenses.toLocaleString()}</div>}
                         <p className="text-xs text-muted-foreground">Includes payroll and other costs</p>
                         </CardContent>
                     </Card>
@@ -152,7 +114,7 @@ export default function AccountingPage() {
                         <CardTitle className="text-sm font-medium">Net Profit</CardTitle>
                         </CardHeader>
                         <CardContent>
-                        {isLoading ? <Skeleton className="h-8 w-3/4" /> : <div className={`text-2xl font-bold ${netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>${netProfit.toLocaleString()}</div>}
+                        {isLoading || !financialSummary ? <Skeleton className="h-8 w-3/4" /> : <div className={`text-2xl font-bold ${financialSummary.netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>${financialSummary.netProfit.toLocaleString()}</div>}
                         <p className="text-xs text-muted-foreground">Total income minus total expenses</p>
                         </CardContent>
                     </Card>
@@ -163,9 +125,9 @@ export default function AccountingPage() {
                         <CardDescription>Income vs. Expenses for the last 6 months.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                    {isLoading ? <Skeleton className="h-[350px] w-full" /> : (
+                    {isLoading || !financialSummary ? <Skeleton className="h-[350px] w-full" /> : (
                         <ChartContainer config={chartConfig} className="h-[350px] w-full">
-                            <BarChart data={monthlyFinancials}>
+                            <BarChart data={financialSummary.monthlyFinancials}>
                                 <CartesianGrid vertical={false} />
                                 <XAxis dataKey="month" tickLine={false} tickMargin={10} axisLine={false} />
                                 <YAxis />
