@@ -96,7 +96,7 @@ const DentalChartSvg = ({ selectedTooth, onToothClick }: { selectedTooth?: numbe
           return (
              <g key={tooth} transform={`translate(${150 + i * (500/15)} 250) scale(${isMolar ? 1.2 : 1}) rotate(180)`} onClick={() => onToothClick(tooth)}>
               <path className={cn("tooth-outline", selectedTooth === tooth && 'selected')} d={toothPath} />
-              <text className="tooth-label" y="25" transform="rotate(180)">{tooth}</text>
+              <text className="tooth-label" y="22" transform="rotate(180)">{tooth}</text>
             </g>
           )
         })}
@@ -249,7 +249,7 @@ export function PeriodontalChart({
     )
 
     const conditionToggles = (
-      <div className="flex justify-center gap-0.5">
+      <div className="flex justify-center gap-0.5 my-1">
         {conditionKeys.map((con) => (
           <button
             key={con}
@@ -272,7 +272,7 @@ export function PeriodontalChart({
     );
 
     const otherInputs = (
-      <div className="space-y-1">
+      <div className="space-y-1 my-1">
         <Input
           type="number"
           min="0"
@@ -315,19 +315,15 @@ export function PeriodontalChart({
     const chartBody = isUpper ? (
         <>
         {buccalPocketInputs}
-        <div className="my-1 h-px w-full bg-border" />
         {conditionToggles}
         {otherInputs}
-        <div className="my-1 h-px w-full bg-border" />
         {lingualPocketInputs}
       </>
     ) : (
         <>
         {lingualPocketInputs}
-        <div className="my-1 h-px w-full bg-border" />
         {otherInputs}
         {conditionToggles}
-        <div className="my-1 h-px w-full bg-border" />
         {buccalPocketInputs}
         </>
     )
@@ -341,7 +337,7 @@ export function PeriodontalChart({
             selectedTooth === toothId && 'bg-blue-500/10'
         )}
       >
-        <div className="text-xs font-medium text-muted-foreground">
+        <div className="text-xs font-medium text-muted-foreground mb-1">
           {toothId}
         </div>
         {chartBody}
@@ -404,12 +400,12 @@ export function PeriodontalChart({
             {renderQuadrant(quadrants.upperLeft)}
             <div className="flex items-center"><div className="w-8 -rotate-90 text-center text-xs tracking-widest text-muted-foreground/70">BUCCAL</div></div>
           </div>
-           <div className="my-2 h-px w-full bg-border" />
+           <div className="my-1 h-px w-full bg-border" />
            <div className="flex w-full justify-between text-xs tracking-widest text-muted-foreground/70">
                 <div>LINGUAL</div>
                 <div>LINGUAL</div>
            </div>
-          <div className="my-2 h-px w-full bg-border" />
+          <div className="my-1 h-px w-full bg-border" />
           <div className="flex w-full justify-between">
              <div className="flex items-center"><div className="w-8 -rotate-90 text-center text-xs tracking-widest text-muted-foreground/70">BUCCAL</div></div>
             {renderQuadrant(quadrants.lowerRight, true)}
