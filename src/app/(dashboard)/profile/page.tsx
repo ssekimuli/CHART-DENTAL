@@ -19,14 +19,16 @@ import type { CurrentUser, Employee, Payroll, Appointment, LeaveRequest, Profile
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { createLeaveRequest, getProfileData } from "@/lib/api";
-import { DollarSign, UserCheck, CalendarDays, UserPlus, Loader2 } from "lucide-react";
+import { DollarSign, UserCheck, CalendarDays, UserPlus, Loader2, FileText } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { LeaveRequestForm } from "../hrm/components/leave-request-form";
 import { PayrollTable } from "../payroll/components/payroll-table";
+import { useRouter } from "next/navigation";
 
 export default function ProfilePage() {
     const { toast } = useToast();
+    const router = useRouter();
     const [user, setUser] = useState<CurrentUser | null>(null);
     const [profileData, setProfileData] = useState<ProfileData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -203,12 +205,13 @@ export default function ProfilePage() {
                                             <TableHead>Patient</TableHead>
                                             <TableHead>Treatment</TableHead>
                                             <TableHead>Status</TableHead>
+                                            <TableHead className="text-right">Actions</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
                                         {stats.recentAppointments.length === 0 ? (
                                             <TableRow>
-                                                <TableCell colSpan={4} className="h-24 text-center">
+                                                <TableCell colSpan={5} className="h-24 text-center">
                                                     No recent appointments found.
                                                 </TableCell>
                                             </TableRow>
@@ -218,6 +221,12 @@ export default function ProfilePage() {
                                                 <TableCell>{app.patientName}</TableCell>
                                                 <TableCell>{app.treatment}</TableCell>
                                                 <TableCell><Badge variant="outline">{app.status}</Badge></TableCell>
+                                                <TableCell className="text-right">
+                                                    <Button variant="outline" size="sm" onClick={() => router.push(`/patients/${app.patientId}/charting`)}>
+                                                        <FileText className="mr-2 h-4 w-4" />
+                                                        Go to Chart
+                                                    </Button>
+                                                </TableCell>
                                             </TableRow>
                                         ))}
                                     </TableBody>
@@ -315,3 +324,5 @@ export default function ProfilePage() {
     </>
     );
 }
+
+    
