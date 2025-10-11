@@ -23,6 +23,15 @@ Define the database schemas for the following entities.
    - `name` (string, required)
    - `address` (string, required)
 
+#### Sample
+```json
+{
+  "id": "b1",
+  "name": "Downtown Clinic",
+  "address": "123 Main St, Cityville"
+}
+```
+
 **2. Employee**
    - `id` (string, primary key)
    - `name` (string, required)
@@ -34,6 +43,21 @@ Define the database schemas for the following entities.
    - `salary` (number, required)
    - `hire_date` (date, required)
    - `branch_id` (string, foreign key to Branch)
+
+#### Sample
+```json
+{
+  "id": "emp1",
+  "name": "Dr. Lisa Cuddy",
+  "avatar": "https://example.com/avatars/lisa.jpg",
+  "email": "lisa.cuddy@example.com",
+  "role": "Super Admin",
+  "status": "Active",
+  "salary": 150000,
+  "hire_date": "2020-01-15",
+  "branch_id": "b1"
+}
+```
 
 **3. Patient**
    - `id` (string, primary key)
@@ -52,6 +76,32 @@ Define the database schemas for the following entities.
      - `soft_tissue_records` (JSON array of `SoftTissueRecord` objects)
      - `orthodontic_records` (JSON array of `OrthodonticRecord` objects)
 
+#### Sample
+```json
+{
+  "id": "p1",
+  "name": "John Doe",
+  "avatar": "https://example.com/avatars/johndoe.jpg",
+  "email": "john.doe@example.com",
+  "date_of_birth": "1985-05-20",
+  "last_visit": "2024-05-10",
+  "status": "Active",
+  "history": "Patient has a history of grinding teeth (bruxism). No known allergies.",
+  "branch_id": "b1",
+  "dental_records": [
+    { "tooth_id": 16, "condition": "Caries", "notes": "Distal caries, requires attention." }
+  ],
+  "periodontal_records": [
+    { "tooth_id": 16, "pockets": { "distobuccal": 3, "buccal": 2, "mesiobuccal": 3 }, "recession": 1, "conditions": { "bleeding": true } }
+  ],
+  "occlusal_records": {
+    "overbite": 2, "overjet": 2, "crossbite": "None", "openbite": "None", "malocclusion": "Class I"
+  },
+  "soft_tissue_records": [],
+  "orthodontic_records": []
+}
+```
+
 **4. TreatmentPlan**
    - `id` (string, primary key)
    - `patient_id` (string, foreign key to Patient)
@@ -62,12 +112,37 @@ Define the database schemas for the following entities.
    - `date` (date, required)
    - `invoice_id` (string, nullable, foreign key to Invoice)
 
+#### Sample
+```json
+{
+  "id": "tp1",
+  "patient_id": "p1",
+  "procedure": "Crown for #48",
+  "tooth": 48,
+  "status": "Proposed",
+  "cost": 1200,
+  "date": "2024-06-01",
+  "invoice_id": null
+}
+```
+
 **5. PatientImage**
    - `id` (string, primary key)
    - `patient_id` (string, foreign key to Patient)
    - `url` (string, url, required)
    - `description` (string)
    - `date` (date, required)
+
+#### Sample
+```json
+{
+  "id": "img1",
+  "patient_id": "p1",
+  "url": "https://example.com/images/xray1.jpg",
+  "description": "Initial panoramic X-ray",
+  "date": "2023-01-15"
+}
+```
 
 **6. Appointment**
    - `id` (string, primary key)
@@ -79,6 +154,21 @@ Define the database schemas for the following entities.
    - `time` (string, required)
    - `branch_id` (string, foreign key to Branch)
    - `token_number` (string, required)
+
+#### Sample
+```json
+{
+  "id": "a1",
+  "patient_id": "p1",
+  "doctor_id": "emp1",
+  "treatment": "Check-up",
+  "status": "Scheduled",
+  "date": "2024-07-20",
+  "time": "10:00 AM",
+  "branch_id": "b1",
+  "token_number": "JDLC1"
+}
+```
 
 **7. Invoice**
    - `id` (string, primary key)
@@ -92,12 +182,43 @@ Define the database schemas for the following entities.
    - `treatments` (JSON array of `InvoiceTreatment` objects)
    - `other_charges` (JSON array of `OtherCharge` objects, nullable)
 
+#### Sample
+```json
+{
+  "id": "inv1",
+  "patient_id": "p1",
+  "amount": 270,
+  "paid_amount": 100,
+  "status": "Pending",
+  "issue_date": "2024-05-10",
+  "due_date": "2024-06-10",
+  "branch_id": "b1",
+  "treatments": [
+    { "procedure": "Filling for #16", "cost": 250, "tooth": 16 }
+  ],
+  "other_charges": [
+    { "description": "Late Fee", "amount": 20 }
+  ]
+}
+```
+
 **8. PaymentTransaction**
     - `id` (string, primary key)
     - `invoice_id` (string, foreign key to Invoice)
     - `date` (date, required)
     - `amount` (number, required)
     - `method` (enum: 'Cash', 'Credit Card', 'Insurance', 'Bank Transfer')
+
+#### Sample
+```json
+{
+  "id": "txn1",
+  "invoice_id": "inv1",
+  "date": "2024-05-12",
+  "amount": 100,
+  "method": "Insurance"
+}
+```
 
 **9. Payroll**
    - `id` (string, primary key)
@@ -110,6 +231,21 @@ Define the database schemas for the following entities.
    - `status` (enum: 'Paid', 'Pending')
    - `branch_id` (string, foreign key to Branch)
 
+#### Sample
+```json
+{
+  "id": "pay1",
+  "employee_id": "emp1",
+  "pay_period": "2024-06-01 to 2024-06-15",
+  "gross_pay": 6250,
+  "deductions": 1200,
+  "net_pay": 5050,
+  "pay_date": "2024-06-15",
+  "status": "Paid",
+  "branch_id": "b1"
+}
+```
+
 **10. AttendanceRecord**
     - `id` (string, primary key)
     - `employee_id` (string, foreign key to Employee)
@@ -118,6 +254,19 @@ Define the database schemas for the following entities.
     - `check_in` (time, nullable)
     - `check_out` (time, nullable)
     - `branch_id` (string, foreign key to Branch)
+
+#### Sample
+```json
+{
+  "id": "att1",
+  "employee_id": "emp1",
+  "date": "2024-07-18",
+  "status": "Present",
+  "check_in": "08:55:00",
+  "check_out": "17:05:00",
+  "branch_id": "b1"
+}
+```
 
 **11. LeaveRequest**
     - `id` (string, primary key)
@@ -129,6 +278,20 @@ Define the database schemas for the following entities.
     - `status` (enum: 'Pending', 'Approved', 'Rejected')
     - `branch_id` (string, foreign key to Branch)
 
+#### Sample
+```json
+{
+  "id": "leave1",
+  "employee_id": "emp2",
+  "leave_type": "Annual",
+  "start_date": "2024-08-01",
+  "end_date": "2024-08-05",
+  "reason": "Family vacation",
+  "status": "Approved",
+  "branch_id": "b1"
+}
+```
+
 **12. StaffAdvance**
     - `id` (string, primary key)
     - `employee_id` (string, foreign key to Employee)
@@ -138,6 +301,19 @@ Define the database schemas for the following entities.
     - `status` (enum: 'Pending', 'Approved', 'Paid', 'Rejected')
     - `branch_id` (string, foreign key to Branch)
 
+#### Sample
+```json
+{
+  "id": "adv1",
+  "employee_id": "emp3",
+  "amount": 500,
+  "date": "2024-07-01",
+  "reason": "Emergency medical expense",
+  "status": "Approved",
+  "branch_id": "b2"
+}
+```
+
 **13. InventoryItem**
     - `id` (string, primary key)
     - `name` (string, required)
@@ -146,6 +322,19 @@ Define the database schemas for the following entities.
     - `reorder_level` (integer, required)
     - `price` (number, required)
     - `branch_id` (string, foreign key to Branch)
+
+#### Sample
+```json
+{
+  "id": "item1",
+  "name": "Gloves (Box of 100)",
+  "supplier": "Dental Supplies Co.",
+  "stock": 50,
+  "reorder_level": 20,
+  "price": 15.00,
+  "branch_id": "b1"
+}
+```
 
 **14. LaboratoryOrder**
     - `id` (string, primary key)
@@ -158,6 +347,21 @@ Define the database schemas for the following entities.
     - `due_date` (date, required)
     - `branch_id` (string, foreign key to Branch)
 
+#### Sample
+```json
+{
+  "id": "lab1",
+  "patient_id": "p1",
+  "lab": "Precision Dental Labs",
+  "item": "Zirconia Crown",
+  "tooth": 48,
+  "status": "Sent",
+  "sent_date": "2024-06-02",
+  "due_date": "2024-06-16",
+  "branch_id": "b1"
+}
+```
+
 **15. Expense**
     - `id` (string, primary key)
     - `branch_id` (string, foreign key to Branch)
@@ -166,9 +370,46 @@ Define the database schemas for the following entities.
     - `description` (string, required)
     - `amount` (number, required)
 
+#### Sample
+```json
+{
+  "id": "exp1",
+  "branch_id": "b1",
+  "date": "2024-06-01",
+  "category": "Rent",
+  "description": "June Rent - Downtown Clinic",
+  "amount": 5000
+}
+```
+
 **16. RolePermission**
     - `role` (string, primary key, from Employee role enum)
     - `permissions` (array of strings)
+
+#### Sample
+```json
+{
+  "role": "Dentist",
+  "permissions": [
+    "dashboard:read",
+    "queue:read",
+    "patients:read",
+    "patients:create",
+    "patients:update",
+    "charting:read",
+    "charting:update",
+    "appointments:read",
+    "appointments:create",
+    "appointments:update",
+    "billing:read",
+    "laboratory:read",
+    "laboratory:create",
+    "laboratory:update",
+    "profile:read",
+    "profile:update"
+  ]
+}
+```
 
 ---
 
