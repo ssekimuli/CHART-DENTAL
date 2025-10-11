@@ -1,6 +1,7 @@
 
 
 
+
 import { 
     patients,
     appointments,
@@ -111,9 +112,13 @@ export const getPayrolls = async (branchId?: string): Promise<Payroll[]> => {
     return JSON.parse(JSON.stringify(localPayrolls));
 }
 
-export const getInventory = async (): Promise<InventoryItem[]> => {
+export const getInventory = async (branchId?: string): Promise<InventoryItem[]> => {
     await delay(100);
-    return JSON.parse(JSON.stringify(inventory));
+    let localInventory = inventory;
+    if (branchId) {
+        localInventory = localInventory.filter(i => i.branchId === branchId);
+    }
+    return JSON.parse(JSON.stringify(localInventory));
 }
 
 export const getLabOrders = async (): Promise<LaboratoryOrder[]> => {
@@ -300,7 +305,7 @@ export const saveOcclusalRecord = async (patientId: string, record: OcclusalReco
         return patients[patientIndex];
     }
     return undefined;
-}
+};
 
 export const addTreatment = async (patientId: string, treatmentData: Omit<Treatment, 'id' | 'date'>, condition?: DentalCondition): Promise<Patient | undefined> => {
     await delay(200);
@@ -734,4 +739,3 @@ export const updateRole = async (roleId: string, permissions: Permission[]): Pro
     }
     return undefined;
 }
-

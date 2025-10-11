@@ -15,37 +15,29 @@ import { InventoryTable } from "./components/inventory-table";
 import type { InventoryItem } from "@/lib/types";
 import { ItemForm } from "./components/item-form";
 import { useBranch } from "@/context/branch-context";
-import { currentUser } from "@/lib/user";
 import { createInventoryItem, getInventory } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function InventoryPage() {
     const { selectedBranch } = useBranch();
-    const [allInventory, setAllInventory] = useState<InventoryItem[]>([]);
+    const [inventory, setInventory] = useState<InventoryItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isFormOpen, setIsFormOpen] = useState(false);
     
     useEffect(() => {
         const fetchData = async () => {
             setIsLoading(true);
-            const data = await getInventory();
-            setAllInventory(data);
+            const data = await getInventory(selectedBranch);
+            setInventory(data);
             setIsLoading(false);
         };
         fetchData();
-    }, []);
-
-    const inventory = useMemo(() => {
-        if (currentUser.role === 'Super Admin') {
-          return allInventory.filter(i => i.branchId === selectedBranch);
-        }
-        return allInventory.filter(i => i.branchId === currentUser.branchId);
-      }, [selectedBranch, allInventory]);
+    }, [selectedBranch]);
 
     const handleSaveItem = async (data: Omit<InventoryItem, 'id' | 'branchId' | 'status'>) => {
         const newItem = await createInventoryItem({ ...data, branchId: selectedBranch });
         if (newItem) {
-            setAllInventory(prev => [...prev, newItem]);
+            setInventory(prev => [newItem, ...prev]);
         }
         setIsFormOpen(false);
     }
