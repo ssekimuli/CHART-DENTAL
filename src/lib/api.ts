@@ -1,4 +1,5 @@
 
+
 import { 
     patients,
     appointments,
@@ -16,7 +17,7 @@ import {
     expenses,
     roles
 } from '@/lib/data';
-import type { Patient, Appointment, Invoice, ChartData, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, BasePatient, InvoiceTreatment, OtherCharge, SystemTreatment, PaymentMethod, PaymentTransaction, AttendanceRecord, LeaveRequest, StaffAdvance, StaffAdvanceStatus, Expense, ExpenseCategory, RolePermissions, Permission, DentalRecord, PeriodontalRecord } from '@/lib/types';
+import type { Patient, Appointment, Invoice, ChartData, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, BasePatient, InvoiceTreatment, OtherCharge, SystemTreatment, PaymentMethod, PaymentTransaction, AttendanceRecord, LeaveRequest, StaffAdvance, StaffAdvanceStatus, Expense, ExpenseCategory, RolePermissions, Permission, DentalRecord, PeriodontalRecord, OcclusalRecord, SoftTissueRecord, OrthodonticRecord, Treatment, DentalCondition } from '@/lib/types';
 import type { DateRange } from 'react-day-picker';
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -213,6 +214,151 @@ export const savePeriodontalRecord = async (patientId: string, records: Periodon
     if (patientIndex > -1) {
         patients[patientIndex].periodontalRecords = records;
         return patients[patientIndex];
+    }
+    return undefined;
+}
+
+export const saveOcclusalRecord = async (patientId: string, record: OcclusalRecord): Promise<Patient | undefined> => {
+    await delay(150);
+    const patientIndex = patients.findIndex(p => p.id === patientId);
+    if (patientIndex > -1) {
+        patients[patientIndex].occlusalRecords = record;
+        return patients[patientIndex];
+    }
+    return undefined;
+}
+
+export const addTreatment = async (patientId: string, treatmentData: Omit<Treatment, 'id' | 'date'>, condition?: DentalCondition): Promise<Patient | undefined> => {
+    await delay(200);
+    const patientIndex = patients.findIndex(p => p.id === patientId);
+    if (patientIndex > -1) {
+        const patient = patients[patientIndex];
+        const newPlan: Treatment = {
+            ...treatmentData,
+            id: `t${Date.now()}`,
+            date: new Date().toISOString().split('T')[0],
+        };
+
+        if (condition && treatmentData.tooth) {
+            const newRecord: DentalRecord = { toothId: treatmentData.tooth, condition: condition, notes: `Condition related to treatment: ${treatmentData.procedure}` };
+            const recordIndex = patient.dentalRecords.findIndex(r => r.toothId === treatmentData.tooth);
+            if (recordIndex > -1) {
+                patient.dentalRecords[recordIndex] = newRecord;
+            } else {
+                patient.dentalRecords.push(newRecord);
+            }
+        }
+        patient.treatmentPlans.push(newPlan);
+        return patient;
+    }
+    return undefined;
+}
+
+export const updateTreatment = async (patientId: string, treatment: Treatment): Promise<Patient | undefined> => {
+    await delay(200);
+    const patientIndex = patients.findIndex(p => p.id === patientId);
+    if (patientIndex > -1) {
+        const patient = patients[patientIndex];
+        const treatmentIndex = patient.treatmentPlans.findIndex(t => t.id === treatment.id);
+        if (treatmentIndex > -1) {
+            patient.treatmentPlans[treatmentIndex] = treatment;
+        }
+        return patient;
+    }
+    return undefined;
+}
+
+export const deleteTreatment = async (patientId: string, treatmentId: string): Promise<Patient | undefined> => {
+    await delay(200);
+    const patientIndex = patients.findIndex(p => p.id === patientId);
+    if (patientIndex > -1) {
+        const patient = patients[patientIndex];
+        patient.treatmentPlans = patient.treatmentPlans.filter(t => t.id !== treatmentId);
+        return patient;
+    }
+    return undefined;
+}
+
+export const saveOrthodonticRecord = async (patientId: string, recordData: Omit<OrthodonticRecord, 'id'>): Promise<Patient | undefined> => {
+    await delay(200);
+    const patientIndex = patients.findIndex(p => p.id === patientId);
+    if (patientIndex > -1) {
+        const patient = patients[patientIndex];
+        const newRecord: OrthodonticRecord = {
+            ...recordData,
+            id: `ortho${Date.now()}`,
+        };
+        patient.orthodonticRecords.push(newRecord);
+        patient.orthodonticRecords.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        return patient;
+    }
+    return undefined;
+}
+
+export const updateOrthodonticRecord = async (patientId: string, record: OrthodonticRecord): Promise<Patient | undefined> => {
+    await delay(200);
+    const patientIndex = patients.findIndex(p => p.id === patientId);
+    if (patientIndex > -1) {
+        const patient = patients[patientIndex];
+        const recordIndex = patient.orthodonticRecords.findIndex(r => r.id === record.id);
+        if (recordIndex > -1) {
+            patient.orthodonticRecords[recordIndex] = record;
+            patient.orthodonticRecords.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        }
+        return patient;
+    }
+    return undefined;
+}
+
+export const deleteOrthodonticRecord = async (patientId: string, recordId: string): Promise<Patient | undefined> => {
+    await delay(200);
+    const patientIndex = patients.findIndex(p => p.id === patientId);
+    if (patientIndex > -1) {
+        const patient = patients[patientIndex];
+        patient.orthodonticRecords = patient.orthodonticRecords.filter(r => r.id !== recordId);
+        return patient;
+    }
+    return undefined;
+}
+
+export const saveSoftTissueRecord = async (patientId: string, recordData: Omit<SoftTissueRecord, 'id'>): Promise<Patient | undefined> => {
+    await delay(200);
+    const patientIndex = patients.findIndex(p => p.id === patientId);
+    if (patientIndex > -1) {
+        const patient = patients[patientIndex];
+        const newRecord: SoftTissueRecord = {
+            ...recordData,
+            id: `soft${Date.now()}`,
+        };
+        patient.softTissueRecords.push(newRecord);
+        patient.softTissueRecords.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        return patient;
+    }
+    return undefined;
+}
+
+export const updateSoftTissueRecord = async (patientId: string, record: SoftTissueRecord): Promise<Patient | undefined> => {
+    await delay(200);
+    const patientIndex = patients.findIndex(p => p.id === patientId);
+    if (patientIndex > -1) {
+        const patient = patients[patientIndex];
+        const recordIndex = patient.softTissueRecords.findIndex(r => r.id === record.id);
+        if (recordIndex > -1) {
+            patient.softTissueRecords[recordIndex] = record;
+            patient.softTissueRecords.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        }
+        return patient;
+    }
+    return undefined;
+}
+
+export const deleteSoftTissueRecord = async (patientId: string, recordId: string): Promise<Patient | undefined> => {
+    await delay(200);
+    const patientIndex = patients.findIndex(p => p.id === patientId);
+    if (patientIndex > -1) {
+        const patient = patients[patientIndex];
+        patient.softTissueRecords = patient.softTissueRecords.filter(r => r.id !== recordId);
+        return patient;
     }
     return undefined;
 }

@@ -21,7 +21,7 @@ import { OcclusalChart } from "./components/occlusal-chart";
 import { SoftTissueChart } from "./components/soft-tissue-chart";
 import { TreatmentPlanForm } from "../components/treatment-plan-form";
 import { OrthodonticChart } from "./components/orthodontic-chart";
-import { getPatientById, updatePatient, saveDentalRecord, savePeriodontalRecord } from "@/lib/api";
+import { getPatientById, addTreatment, saveDentalRecord, savePeriodontalRecord, saveOcclusalRecord, saveOrthodonticRecord, updateOrthodonticRecord, deleteOrthodonticRecord, saveSoftTissueRecord, updateSoftTissueRecord, deleteSoftTissueRecord } from "@/lib/api";
 
 export default function PatientChartingPage({
   params,
@@ -71,41 +71,11 @@ export default function PatientChartingPage({
     notFound();
   }
 
-  const handleUpdatePatient = async (updatedPatient: Patient) => {
-    setPatient(updatedPatient); // Optimistic update
-    await updatePatient(updatedPatient.id, updatedPatient);
-  }
-
-  const handleAddTreatment = (newTreatment: Omit<Treatment, 'id' | 'date'>, condition?: DentalCondition) => {
-    setPatient(prevPatient => {
-      if (!prevPatient) return prevPatient;
-      const newPlan: Treatment = {
-        ...newTreatment,
-        id: `t${prevPatient.treatmentPlans.length + 1}`,
-        date: new Date().toISOString().split('T')[0],
-      };
-      
-      let updatedDentalRecords = prevPatient.dentalRecords;
-      // If a condition is logged with the treatment, update the dental record
-      if (condition && newTreatment.tooth) {
-        const newRecord: DentalRecord = { toothId: newTreatment.tooth, condition: condition, notes: `Condition related to treatment: ${newTreatment.procedure}` };
-        const existingRecordIndex = updatedDentalRecords.findIndex(r => r.toothId === newTreatment.tooth);
-        if (existingRecordIndex > -1) {
-          updatedDentalRecords[existingRecordIndex] = newRecord;
-        } else {
-          updatedDentalRecords.push(newRecord);
-        }
-      }
-
-      const updatedPatient = {
-        ...prevPatient,
-        dentalRecords: updatedDentalRecords,
-        treatmentPlans: [...prevPatient.treatmentPlans, newPlan],
-      };
-
-      handleUpdatePatient(updatedPatient);
-      return updatedPatient;
-    });
+  const handleAddTreatment = async (newTreatment: Omit<Treatment, 'id' | 'date'>, condition?: DentalCondition) => {
+    const updatedPatient = await addTreatment(patient.id, newTreatment, condition);
+    if (updatedPatient) {
+      setPatient(updatedPatient);
+    }
     setIsTreatmentFormOpen(false);
     setSelectedToothForTreatment(undefined);
   }
@@ -126,96 +96,60 @@ export default function PatientChartingPage({
      }
   }
 
-  const handleSaveOcclusalRecord = (record: OcclusalRecord) => {
-    setPatient(prevPatient => {
-      if (!prevPatient) return prevPatient;
-      const updatedPatient = {
-        ...prevPatient,
-        occlusalRecords: record,
-      };
-      handleUpdatePatient(updatedPatient);
-      return updatedPatient;
-    });
+  const handleSaveOcclusalRecord = async (record: OcclusalRecord) => {
+    if (!patient) return;
+    const updatedPatient = await saveOcclusalRecord(patient.id, record);
+    if (updatedPatient) {
+        setPatient(updatedPatient);
+    }
   };
 
-  const handleSaveOrthoRecord = (record: Omit<OrthodonticRecord, 'id'>) => {
-     setPatient(prevPatient => {
-      if (!prevPatient) return prevPatient;
-      const newRecord: OrthodonticRecord = {
-        ...record,
-        id: `ortho${prevPatient.orthodonticRecords.length + 1}`,
-      };
-      const updatedPatient = {
-        ...prevPatient,
-        orthodonticRecords: [...prevPatient.orthodonticRecords, newRecord].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
-      };
-      handleUpdatePatient(updatedPatient);
-      return updatedPatient;
-    });
+  const handleSaveOrthoRecord = async (record: Omit<OrthodonticRecord, 'id'>) => {
+    if (!patient) return;
+    const updatedPatient = await saveOrthodonticRecord(patient.id, record);
+    if (updatedPatient) {
+        setPatient(updatedPatient);
+    }
   }
 
-  const handleUpdateOrthoRecord = (record: OrthodonticRecord) => {
-    setPatient(prevPatient => {
-      if (!prevPatient) return prevPatient;
-      const updatedPatient = {
-        ...prevPatient,
-        orthodonticRecords: prevPatient.orthodonticRecords.map(r => r.id === record.id ? record : r).sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
-      };
-      handleUpdatePatient(updatedPatient);
-      return updatedPatient;
-    });
+  const handleUpdateOrthoRecord = async (record: OrthodonticRecord) => {
+    if (!patient) return;
+    const updatedPatient = await updateOrthodonticRecord(patient.id, record);
+    if (updatedPatient) {
+        setPatient(updatedPatient);
+    }
   }
   
-  const handleDeleteOrthoRecord = (recordId: string) => {
-     setPatient(prevPatient => {
-      if (!prevPatient) return prevPatient;
-      const updatedPatient = {
-        ...prevPatient,
-        orthodonticRecords: prevPatient.orthodonticRecords.filter(r => r.id !== recordId),
-      };
-      handleUpdatePatient(updatedPatient);
-      return updatedPatient;
-    });
+  const handleDeleteOrthoRecord = async (recordId: string) => {
+    if (!patient) return;
+    const updatedPatient = await deleteOrthodonticRecord(patient.id, recordId);
+    if (updatedPatient) {
+        setPatient(updatedPatient);
+    }
   }
 
-  const handleSaveSoftTissueRecord = (record: Omit<SoftTissueRecord, 'id'>) => {
-    setPatient(prevPatient => {
-     if (!prevPatient) return prevPatient;
-     const newRecord: SoftTissueRecord = {
-       ...record,
-       id: `soft${prevPatient.softTissueRecords.length + 1}`,
-     };
-     const updatedPatient = {
-       ...prevPatient,
-       softTissueRecords: [...prevPatient.softTissueRecords, newRecord].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
-     };
-     handleUpdatePatient(updatedPatient);
-     return updatedPatient;
-   });
+  const handleSaveSoftTissueRecord = async (record: Omit<SoftTissueRecord, 'id'>) => {
+    if (!patient) return;
+    const updatedPatient = await saveSoftTissueRecord(patient.id, record);
+    if (updatedPatient) {
+        setPatient(updatedPatient);
+    }
  }
 
- const handleUpdateSoftTissueRecord = (record: SoftTissueRecord) => {
-   setPatient(prevPatient => {
-     if (!prevPatient) return prevPatient;
-     const updatedPatient = {
-       ...prevPatient,
-       softTissueRecords: prevPatient.softTissueRecords.map(r => r.id === record.id ? record : r).sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
-     };
-     handleUpdatePatient(updatedPatient);
-     return updatedPatient;
-   });
+ const handleUpdateSoftTissueRecord = async (record: SoftTissueRecord) => {
+    if (!patient) return;
+    const updatedPatient = await updateSoftTissueRecord(patient.id, record);
+    if (updatedPatient) {
+        setPatient(updatedPatient);
+    }
  }
 
- const handleDeleteSoftTissueRecord = (recordId: string) => {
-    setPatient(prevPatient => {
-     if (!prevPatient) return prevPatient;
-     const updatedPatient = {
-       ...prevPatient,
-       softTissueRecords: prevPatient.softTissueRecords.filter(r => r.id !== recordId),
-     };
-     handleUpdatePatient(updatedPatient);
-     return updatedPatient;
-   });
+ const handleDeleteSoftTissueRecord = async (recordId: string) => {
+    if (!patient) return;
+    const updatedPatient = await deleteSoftTissueRecord(patient.id, recordId);
+    if (updatedPatient) {
+        setPatient(updatedPatient);
+    }
  }
 
   const handleOpenTreatmentForm = (toothId?: number) => {

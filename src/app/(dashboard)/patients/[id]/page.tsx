@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useEffect, useState } from "react";
-import type { Patient, Treatment, BasePatient, PatientImage } from "@/lib/types";
+import type { Patient, Treatment, BasePatient, PatientImage, DentalCondition } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, Trash, Pencil, FileText, Loader2, Upload, MoreHorizontal } from "lucide-react";
 import { TreatmentPlanForm } from "./components/treatment-plan-form";
@@ -46,7 +46,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { deletePatient, getPatientById, updatePatient } from "@/lib/api";
+import { deletePatient, getPatientById, updatePatient, addTreatment, updateTreatment, deleteTreatment } from "@/lib/api";
 import { ImageUploadForm } from "./components/image-upload-form";
 
 export default function PatientDetailPage({
@@ -87,7 +87,7 @@ export default function PatientDetailPage({
                 <CardHeader className="flex flex-row items-start gap-4">
                     <div className="h-20 w-20 bg-gray-200 rounded-full animate-pulse"></div>
                      <div className="flex-1 space-y-2">
-                        <div className="h-8 w-1/2 bg-gray-200 rounded animate-pulse"></div>
+                        <div className="h-8 w-1/2 bg-gray-200 rounded-animate-pulse"></div>
                         <div className="h-6 w-1/3 bg-gray-200 rounded animate-pulse"></div>
                      </div>
                 </CardHeader>
@@ -115,46 +115,27 @@ export default function PatientDetailPage({
     setIsDeleteAlertOpen(false);
   }
 
-  const handleSaveTreatment = (treatmentData: Omit<Treatment, 'id' | 'date'>) => {
-    setPatient(prevPatient => {
-      if (!prevPatient) return prevPatient;
-      let updatedPlans: Treatment[];
+  const handleSaveTreatment = async (treatmentData: Omit<Treatment, 'id' | 'date'>) => {
+    if (!patient) return;
+    let updatedPatient;
+    if (selectedTreatment) {
+        updatedPatient = await updateTreatment(patient.id, { ...selectedTreatment, ...treatmentData });
+    } else {
+        updatedPatient = await addTreatment(patient.id, treatmentData);
+    }
 
-      if (selectedTreatment) {
-        // Update existing treatment
-        updatedPlans = prevPatient.treatmentPlans.map(plan => 
-          plan.id === selectedTreatment.id ? { ...plan, ...treatmentData, date: selectedTreatment.date } : plan
-        );
-      } else {
-        // Add new treatment
-        const newPlan: Treatment = {
-          ...treatmentData,
-          id: `t${Date.now()}`, // More unique ID
-          date: new Date().toISOString().split('T')[0],
-        };
-        updatedPlans = [...prevPatient.treatmentPlans, newPlan];
-      }
-      
-      const updatedPatient = {
-        ...prevPatient,
-        treatmentPlans: updatedPlans,
-      };
-      updatePatient(updatedPatient.id, updatedPatient);
-      return updatedPatient;
-    });
+    if (updatedPatient) {
+        setPatient(updatedPatient);
+    }
     handleCloseTreatmentForm();
   }
   
-  const handleDeleteTreatment = (treatmentId: string) => {
-     setPatient(prevPatient => {
-      if (!prevPatient) return prevPatient;
-      const updatedPatient = {
-        ...prevPatient,
-        treatmentPlans: prevPatient.treatmentPlans.filter(p => p.id !== treatmentId),
-      };
-      updatePatient(updatedPatient.id, updatedPatient);
-      return updatedPatient;
-    });
+  const handleDeleteTreatment = async (treatmentId: string) => {
+     if (!patient) return;
+     const updatedPatient = await deleteTreatment(patient.id, treatmentId);
+      if (updatedPatient) {
+        setPatient(updatedPatient);
+    }
   }
 
   const handleAddImage = (newImage: Omit<PatientImage, 'date'>) => {
@@ -373,7 +354,7 @@ export default function PatientDetailPage({
       {isTreatmentFormOpen && (
         <TreatmentPlanForm
             treatment={selectedTreatment}
-            onSave={handleSaveTreatment}
+            onSave={handleSaveTreatment as any}
             onOpenChange={handleCloseTreatmentForm}
         />
       )}
@@ -409,5 +390,3 @@ export default function PatientDetailPage({
     </div>
   );
 }
-
-    
