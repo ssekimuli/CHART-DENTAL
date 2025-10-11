@@ -8,7 +8,7 @@ You are a senior backend engineer tasked with creating a comprehensive REST API 
 1.  **Stateless & RESTful**: All endpoints must be stateless. Use standard HTTP methods (`GET`, `POST`, `PUT`, `DELETE`, `PATCH`) and appropriate status codes.
 2.  **JSON API**: All requests and responses must use JSON. Use snake_case for all JSON properties.
 3.  **Authentication**: All endpoints, unless specified otherwise, must be protected and require authentication. Assume a JWT-based authentication system where the authenticated user's details (like `user_id`, `role`, `branch_id`) are available in the request context.
-4.  **Authorization**: Implement role-based access control (RBAC). A "Super Admin" can access data for any branch, while other roles are restricted to their assigned `branch_id`.
+4.  **Authorization**: Implement role-based access control (RBAC). A "Super Admin" can access data for any branch, while other roles are restricted to their assigned `branch_id`. Specific endpoint permissions are detailed below.
 5.  **Validation**: All incoming data (request bodies, query parameters) must be rigorously validated.
 6.  **Error Handling**: Use standard HTTP status codes for errors (e.g., `400` for bad requests, `401` for unauthorized, `403` for forbidden, `404` for not found, `500` for server errors) and provide a consistent JSON error response format: `{ "error": "A descriptive error message." }`.
 
@@ -76,7 +76,64 @@ Define the database schemas for the following entities.
      - `soft_tissue_records` (JSON array of `SoftTissueRecord` objects)
      - `orthodontic_records` (JSON array of `OrthodonticRecord` objects)
 
-#### Sample
+#### Nested Schemas for Patient
+
+**DentalRecord**
+```json
+{
+  "tooth_id": 16,
+  "condition": "Caries",
+  "notes": "Distal caries, requires attention."
+}
+```
+
+**PeriodontalMeasurement**
+```json
+{
+  "tooth_id": 16,
+  "pockets": { "distobuccal": 3, "buccal": 2, "mesiobuccal": 3, "distolingual": 3, "lingual": 2, "mesiolingual": 2 },
+  "recession": 1,
+  "mobility": "0",
+  "furcation": "I",
+  "conditions": { "bleeding": true, "plaque": true, "calculus": false, "suppuration": false }
+}
+```
+
+**OcclusalRecord**
+```json
+{
+  "overbite": 2,
+  "overjet": 2,
+  "crossbite": "None",
+  "openbite": "None",
+  "malocclusion": "Class I"
+}
+```
+
+**SoftTissueRecord**
+```json
+{
+  "id": "st1",
+  "date": "2024-05-10",
+  "location": "Right buccal mucosa",
+  "type": "Ulcer",
+  "description": "Small aphthous ulcer, 3mm diameter."
+}
+```
+
+**OrthodonticRecord**
+```json
+{
+  "id": "ortho1",
+  "date": "2024-03-15",
+  "appliance": "Braces",
+  "wire_size": ".018 Stainless Steel",
+  "bracket_changes": ["14", "24"],
+  "notes": "Adjustment appointment. Progressing well."
+}
+```
+
+#### Sample Patient
 ```json
 {
   "id": "p1",
@@ -181,6 +238,23 @@ Define the database schemas for the following entities.
    - `branch_id` (string, foreign key to Branch)
    - `treatments` (JSON array of `InvoiceTreatment` objects)
    - `other_charges` (JSON array of `OtherCharge` objects, nullable)
+
+#### Nested Schemas for Invoice
+**InvoiceTreatment**
+```json
+{
+    "procedure": "Filling for #16",
+    "cost": 250,
+    "tooth": 16
+}
+```
+**OtherCharge**
+```json
+{
+    "description": "Late Fee",
+    "amount": 20
+}
+```
 
 #### Sample
 ```json
@@ -428,12 +502,13 @@ Define the database schemas for the following entities.
 - **`POST /api/auth/reset-password`**: Set a new password.
   - **Body**: `{ "reset_token": "...", "new_password": "..." }`
   - **Response**: `200 OK` or `400`
-- **`GET /api/auth/profile`**: Get the authenticated user's profile data.
+- **`GET /api/auth/profile`**: Get the authenticated user's profile data, including employee details, stats, and payroll history.
   - **Response**: Returns a `ProfileData` object.
 
 ### General
-- **`GET /api/branches`**: List all branches.
-- **`POST /api/branches`**: Create a new branch (Super Admin only).
+- **`GET /api/branches`**: List all branches. (Allowed for all authenticated users).
+- **`POST /api/branches`**: Create a new branch.
+  - **Authorization**: Super Admin only.
   - **Body**: `{ "name": "...", "address": "..." }`
   - **Response**: `201` with the new `Branch` object.
 - **`GET /api/treatments`**: List all system-defined treatments and their standard costs.
@@ -441,150 +516,204 @@ Define the database schemas for the following entities.
 
 ### Patients
 - **`GET /api/patients`**: List all patients. Supports filtering by `branch_id`.
+  - **Authorization**: Receptionist, Assistant, Hygienist, Dentist, Super Admin.
   - **Response**: `200` with an array of `Patient` objects.
 - **`POST /api/patients`**: Create a new patient.
+  - **Authorization**: Receptionist, Dentist, Super Admin.
   - **Body**: `{ "name": "...", "email": "...", "date_of_birth": "...", "history": "..." }`
   - **Response**: `201` with the new `Patient` object.
 - **`GET /api/patients/{id}`**: Get a single patient by ID.
+  - **Authorization**: Receptionist, Assistant, Hygienist, Dentist, Super Admin.
   - **Response**: `200` with a `Patient` object.
 - **`PUT /api/patients/{id}`**: Update a patient's details.
+  - **Authorization**: Receptionist, Dentist, Super Admin.
   - **Body**: Partial `Patient` object.
   - **Response**: `200` with the updated `Patient` object.
 - **`DELETE /api/patients/{id}`**: Delete a patient.
+  - **Authorization**: Super Admin only.
   - **Response**: `204 No Content`.
 - **`POST /api/patients/{id}/images`**: Upload an image for a patient.
+  - **Authorization**: Assistant, Hygienist, Dentist, Super Admin.
   - **Body**: `multipart/form-data` with `image` file and `description`.
   - **Response**: `201` with the new `PatientImage` object.
 - **`PUT /api/patients/{id}/dental-records`**: Update/Create a dental record for a specific tooth.
+  - **Authorization**: Hygienist, Dentist, Super Admin.
   - **Body**: A `DentalRecord` object.
   - **Response**: `200` with the updated `Patient` object.
 - **`PUT /api/patients/{id}/periodontal-records`**: Save the entire periodontal chart for a patient.
+  - **Authorization**: Hygienist, Dentist, Super Admin.
   - **Body**: An array of `PeriodontalMeasurement` objects.
   - **Response**: `200` with the updated `Patient` object.
 - **`PUT /api/patients/{id}/occlusal-records`**: Save the occlusal chart for a patient.
+  - **Authorization**: Dentist, Super Admin.
   - **Body**: An `OcclusalRecord` object.
   - **Response**: `200` with the updated `Patient` object.
 - **`POST /api/patients/{id}/treatment-plans`**: Add a new treatment to a patient's plan.
+  - **Authorization**: Dentist, Super Admin.
   - **Body**: `{ "procedure": "...", "tooth": "...", "status": "...", "cost": "..." }`
   - **Response**: `201` with the updated `Patient` object.
 - **`PUT /api/patients/{id}/treatment-plans/{treatment_id}`**: Update a treatment plan item.
+  - **Authorization**: Dentist, Super Admin.
   - **Body**: Partial `TreatmentPlan` object.
   - **Response**: `200` with the updated `Patient` object.
 - **`DELETE /api/patients/{id}/treatment-plans/{treatment_id}`**: Delete a treatment plan item.
+  - **Authorization**: Dentist, Super Admin.
   - **Response**: `200` with the updated `Patient` object.
 - **`POST /api/patients/{id}/orthodontic-records`**: Add an orthodontic record.
+  - **Authorization**: Dentist, Super Admin.
   - **Body**: An `OrthodonticRecord` object (without `id`).
   - **Response**: `201` with the updated `Patient` object.
 - **`PUT /api/patients/{id}/orthodontic-records/{record_id}`**: Update an orthodontic record.
+  - **Authorization**: Dentist, Super Admin.
   - **Body**: A partial `OrthodonticRecord` object.
   - **Response**: `200` with the updated `Patient` object.
 - **`DELETE /api/patients/{id}/orthodontic-records/{record_id}`**: Delete an orthodontic record.
+  - **Authorization**: Dentist, Super Admin.
   - **Response**: `200` with the updated `Patient` object.
 - **`POST /api/patients/{id}/soft-tissue-records`**: Add a soft tissue record.
+  - **Authorization**: Hygienist, Dentist, Super Admin.
   - **Body**: A `SoftTissueRecord` object (without `id`).
   - **Response**: `201` with the updated `Patient` object.
 - **`PUT /api/patients/{id}/soft-tissue-records/{record_id}`**: Update a soft tissue record.
+  - **Authorization**: Hygienist, Dentist, Super Admin.
   - **Body**: A partial `SoftTissueRecord` object.
   - **Response**: `200` with the updated `Patient` object.
 - **`DELETE /api/patients/{id}/soft-tissue-records/{record_id}`**: Delete a soft tissue record.
+  - **Authorization**: Hygienist, Dentist, Super Admin.
   - **Response**: `200` with the updated `Patient` object.
 
-### Appointments
+### Appointments & Queue
 - **`GET /api/appointments`**: List all appointments. Supports filtering by `branch_id`, `doctor_id`, `date_range`, and a list of `statuses`.
+  - **Authorization**: Receptionist, Assistant, Hygienist, Dentist, Super Admin.
   - **Response**: `200` with an array of `Appointment` objects.
 - **`POST /api/appointments`**: Create a new appointment.
+  - **Authorization**: Receptionist, Dentist, Super Admin.
   - **Body**: `{ "patient_id": "...", "doctor_id": "...", "treatment": "...", "date": "...", "time": "...", "token_number": "..." }`
   - **Response**: `201` with the new `Appointment` object.
 - **`PUT /api/appointments/{id}`**: Update an appointment (e.g., change status).
+  - **Authorization**: Receptionist, Assistant, Hygienist, Dentist, Super Admin.
   - **Body**: Partial `Appointment` object.
   - **Response**: `200` with the updated `Appointment` object.
 - **`DELETE /api/appointments/{id}`**: Delete an appointment.
+  - **Authorization**: Receptionist, Dentist, Super Admin.
   - **Response**: `204 No Content`.
 - **`POST /api/queue/{appointment_id}/announce`**: Triggers a text-to-speech announcement for the patient's token number.
-  - **Response**: `200 OK` with `{ "audio_url": "..." }`
+  - **Authorization**: Receptionist, Assistant, Hygienist, Dentist, Super Admin.
+  - **Action**: This endpoint should generate an audio file (e.g., MP3 or WAV) of the token number being spoken and return a URL to it.
+  - **Response**: `200 OK` with `{ "audio_url": "..." }`.
 
 ### Billing & Invoices
 - **`GET /api/invoices`**: List invoices. Supports filtering by `branch_id`, `search_query`, `date_range`.
+  - **Authorization**: Account, Receptionist, Super Admin.
   - **Response**: `200` with an array of `Invoice` objects.
 - **`POST /api/invoices`**: Create a new invoice.
+  - **Authorization**: Account, Receptionist, Super Admin.
   - **Body**: `Omit<Invoice, "id" | "amount" | "paid_amount">`
-  - **Response**: `201` with the new `Invoice` object.
+  - **Response**: `201` with the new `Invoice` object. The server calculates `amount`.
 - **`GET /api/invoices/{id}`**: Get a single invoice.
+  - **Authorization**: Account, Receptionist, Super Admin.
   - **Response**: `200` with an `Invoice` object.
 - **`PUT /api/invoices/{id}`**: Update an invoice.
+  - **Authorization**: Account, Super Admin.
   - **Body**: Partial `Invoice` object.
   - **Response**: `200` with the updated `Invoice` object.
 - **`DELETE /api/invoices/{id}`**: Delete an invoice.
+  - **Authorization**: Super Admin only.
   - **Response**: `204 No Content`.
 - **`POST /api/invoices/{id}/payments`**: Process a payment for an invoice.
+  - **Authorization**: Account, Receptionist, Super Admin.
   - **Body**: `{ "amount": ..., "method": "..." }`
   - **Response**: `201` with the new `PaymentTransaction` object.
 
 ### Accounting
 - **`GET /api/expenses`**: List all expenses. Supports filtering by `branch_id`.
+  - **Authorization**: Account, Super Admin.
   - **Response**: `200` with an array of `Expense` objects.
 - **`POST /api/expenses`**: Log a new expense.
+  - **Authorization**: Account, Super Admin.
   - **Body**: `Omit<Expense, "id">`
   - **Response**: `201` with the new `Expense` object.
 - **`GET /api/reports/financial-summary`**: Get financial summary data (total income, expenses, profit, monthly breakdown). Supports `branch_id` filter.
+  - **Authorization**: Account, Super Admin.
   - **Response**: `200` with a `FinancialSummary` object.
 
 ### HRM (Human Resource Management)
 - **`GET /api/employees`**: List all employees. Supports filtering by `branch_id`.
+  - **Authorization**: HR, Super Admin.
   - **Response**: `200` with an array of `Employee` objects.
 - **`POST /api/employees`**: Create a new employee.
+  - **Authorization**: HR, Super Admin.
   - **Body**: `Omit<Employee, "id">`
   - **Response**: `201` with the new `Employee` object.
 - **`GET /api/employees/{id}`**: Get a single employee's details.
+  - **Authorization**: HR, Super Admin, or the employee themselves.
   - **Response**: `200` with an `Employee` object.
 - **`PUT /api/employees/{id}`**: Update an employee.
+  - **Authorization**: HR, Super Admin.
   - **Body**: Partial `Employee` object.
   - **Response**: `200` with the updated `Employee` object.
 - **`DELETE /api/employees/{id}`**: Delete an employee.
+  - **Authorization**: Super Admin only.
   - **Response**: `204 No Content`.
 - **`GET /api/payrolls`**: List payrolls. Supports `branchId` filter.
+  - **Authorization**: HR, Account, Super Admin.
   - **Response**: `200` with an array of `Payroll` objects.
 - **`POST /api/payrolls`**: Create a new payroll record.
+  - **Authorization**: HR, Account, Super Admin.
   - **Body**: `Omit<Payroll, "id">`
   - **Response**: `201` with the new `Payroll` object.
 - **`GET /api/attendance`**: Get attendance records. Supports `branch_id` and `date` filters.
+  - **Authorization**: HR, Super Admin.
   - **Response**: `200` with an array of `AttendanceRecord` objects.
 - **`POST /api/attendance`**: Mark attendance for one or more employees.
+  - **Authorization**: HR, Super Admin.
   - **Body**: An array of `Omit<AttendanceRecord, "id">` objects.
   - **Response**: `201` with an array of created/updated `AttendanceRecord` objects.
 - **`GET /api/leave-requests`**: List leave requests. Supports `branch_id` filter.
+  - **Authorization**: HR, Super Admin.
   - **Response**: `200` with an array of `LeaveRequest` objects.
 - **`POST /api/leave-requests`**: Create a new leave request.
+  - **Authorization**: All authenticated users.
   - **Body**: `Omit<LeaveRequest, "id">`
   - **Response**: `201` with the new `LeaveRequest` object.
 - **`PATCH /api/leave-requests/{id}/status`**: Update the status of a leave request.
+  - **Authorization**: HR, Super Admin.
   - **Body**: `{ "status": "Approved" | "Rejected" }`
   - **Response**: `200` with the updated `LeaveRequest` object.
 - **`GET /api/staff-advances`**: List staff advances. Supports `branch_id` filter.
+  - **Authorization**: HR, Account, Super Admin.
   - **Response**: `200` with an array of `StaffAdvance` objects.
 - **`POST /api/staff-advances`**: Create a new staff advance request.
+  - **Authorization**: All authenticated users.
   - **Body**: `Omit<StaffAdvance, "id">`
   - **Response**: `201` with the new `StaffAdvance` object.
 - **`PATCH /api/staff-advances/{id}/status`**: Update the status of a staff advance.
+  - **Authorization**: HR, Account, Super Admin.
   - **Body**: `{ "status": "Approved" | "Paid" | "Rejected" }`
   - **Response**: `200` with the updated `StaffAdvance` object.
 
 ### Inventory & Laboratory
 - **`GET /api/inventory`**: List inventory items. Supports `branch_id` filter.
+  - **Authorization**: Receptionist, Assistant, Super Admin.
   - **Response**: `200` with an array of `InventoryItem` objects.
 - **`POST /api/inventory`**: Create a new inventory item.
+  - **Authorization**: Assistant, Super Admin.
   - **Body**: `Omit<InventoryItem, "id">`
   - **Response**: `201` with the new `InventoryItem` object.
 - **`GET /api/lab-orders`**: List lab orders. Supports `branch_id` filter.
+  - **Authorization**: Assistant, Dentist, Super Admin.
   - **Response**: `200` with an array of `LaboratoryOrder` objects.
 - **`POST /api/lab-orders`**: Create a new lab order.
+  - **Authorization**: Assistant, Dentist, Super Admin.
   - **Body**: `Omit<LaboratoryOrder, "id">`
   - **Response**: `201` with the new `LaboratoryOrder` object.
 
 ### Settings
 - **`GET /api/settings/roles`**: List all roles and their permissions.
+  - **Authorization**: Super Admin only.
   - **Response**: `200` with an array of `RolePermission` objects.
-- **`PUT /api/settings/roles/{role_id}`**: Update permissions for a specific role (Super Admin only).
+- **`PUT /api/settings/roles/{role_id}`**: Update permissions for a specific role.
+  - **Authorization**: Super Admin only.
   - **Body**: `{ "permissions": [...] }`
   - **Response**: `200` with the updated `RolePermission` object.
 - **Note**: General practice settings and user profile settings will be handled via the `/api/branches` and `/api/auth/profile` endpoints respectively.
