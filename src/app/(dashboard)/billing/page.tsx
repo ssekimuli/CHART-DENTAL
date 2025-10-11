@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
@@ -81,13 +80,20 @@ export default function BillingPage() {
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
-      const [invoicesData, patientsData] = await Promise.all([getInvoices(), getPatients()]);
+      const [invoicesData, patientsData] = await Promise.all([
+          getInvoices({
+              branchId: selectedBranch,
+              searchQuery,
+              dateRange,
+          }), 
+          getPatients()
+      ]);
       setAllInvoices(invoicesData);
       setAllPatients(patientsData);
       setIsLoading(false);
     };
     fetchData();
-  }, []);
+  }, [selectedBranch, searchQuery, dateRange]);
 
   const getStatusVariant = (status: "Paid" | "Pending" | "Overdue") => {
     switch (status) {
@@ -107,29 +113,7 @@ export default function BillingPage() {
     return allPatients.filter(p => p.branchId === currentUser.branchId);
   }, [selectedBranch, allPatients]);
 
-  const filteredInvoices = useMemo(() => {
-    let branchInvoices = allInvoices;
-    if (currentUser.role !== 'Super Admin') {
-      branchInvoices = branchInvoices.filter(i => i.branchId === currentUser.branchId);
-    } else {
-        branchInvoices = branchInvoices.filter(i => i.branchId === selectedBranch);
-    }
-
-    if (searchQuery) {
-        branchInvoices = branchInvoices.filter(invoice => 
-            invoice.patientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            invoice.id.toLowerCase().includes(searchQuery.toLowerCase())
-        );
-    }
-
-    if (dateRange?.from && dateRange?.to) {
-        return branchInvoices.filter(invoice => {
-            const issueDate = new Date(invoice.issueDate);
-            return issueDate >= dateRange.from! && issueDate <= dateRange.to!;
-        });
-    }
-    return branchInvoices;
-  }, [selectedBranch, allInvoices, dateRange, searchQuery]);
+  const filteredInvoices = allInvoices;
   
   const totalPages = Math.ceil(filteredInvoices.length / itemsPerPage);
   

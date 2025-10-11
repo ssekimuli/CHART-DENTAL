@@ -2,7 +2,7 @@
 import { 
     patients,
     appointments,
-    invoices,
+    invoices as allInvoices,
     chartData,
     employees,
     payrolls,
@@ -17,6 +17,7 @@ import {
     roles
 } from '@/lib/data';
 import type { Patient, Appointment, Invoice, ChartData, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, BasePatient, InvoiceTreatment, OtherCharge, SystemTreatment, PaymentMethod, PaymentTransaction, AttendanceRecord, LeaveRequest, StaffAdvance, StaffAdvanceStatus, Expense, ExpenseCategory, RolePermissions, Permission, DentalRecord, PeriodontalRecord } from '@/lib/types';
+import type { DateRange } from 'react-day-picker';
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -43,14 +44,48 @@ export const getAppointments = async (): Promise<Appointment[]> => {
     return JSON.parse(JSON.stringify(appointments));
 }
 
-export const getInvoices = async (): Promise<Invoice[]> => {
+type GetInvoicesFilters = {
+    branchId?: string;
+    searchQuery?: string;
+    dateRange?: DateRange;
+};
+
+export const getInvoices = async (filters?: GetInvoicesFilters): Promise<Invoice[]> => {
     await delay(200);
+    let invoices = allInvoices;
+
+    if (filters?.branchId) {
+        invoices = invoices.filter(i => i.branchId === filters.branchId);
+    }
+    
+    if (filters?.searchQuery) {
+        const query = filters.searchQuery.toLowerCase();
+        invoices = invoices.filter(invoice => 
+            invoice.patientName.toLowerCase().includes(query) ||
+            invoice.id.toLowerCase().includes(query)
+        );
+    }
+
+    if (filters?.dateRange?.from) {
+        invoices = invoices.filter(invoice => {
+            const issueDate = new Date(invoice.issueDate);
+            return issueDate >= filters.dateRange!.from!;
+        });
+    }
+     if (filters?.dateRange?.to) {
+        invoices = invoices.filter(invoice => {
+            const issueDate = new Date(invoice.issueDate);
+            return issueDate <= filters.dateRange!.to!;
+        });
+    }
+
+
     return JSON.parse(JSON.stringify(invoices));
 }
 
 export const getInvoiceById = async (id: string): Promise<Invoice | undefined> => {
     await delay(100);
-    return JSON.parse(JSON.stringify(invoices.find(i => i.id === id)));
+    return JSON.parse(JSON.stringify(allInvoices.find(i => i.id === id)));
 }
 
 export const getEmployees = async (): Promise<Employee[]> => {
@@ -225,23 +260,23 @@ export const createInvoice = async (data: Omit<Invoice, 'id' | 'amount' | 'paidA
 
     const newInvoice: Invoice = {
         ...data,
-        id: `inv${invoices.length + 1}`,
+        id: `inv${allInvoices.length + 1}`,
         treatmentIds: [], // Deprecated, but kept for data structure
         amount,
         paidAmount: 0,
         transactions: [],
     };
-    invoices.unshift(newInvoice);
+    allInvoices.unshift(newInvoice);
 
     return newInvoice;
 }
 
 export const updateInvoice = async (id: string, data: Partial<Omit<Invoice, 'amount' | 'id'>>): Promise<Invoice | undefined> => {
     await delay(200);
-    const invoiceIndex = invoices.findIndex(i => i.id === id);
+    const invoiceIndex = allInvoices.findIndex(i => i.id === id);
 
     if (invoiceIndex > -1) {
-        const originalInvoice = invoices[invoiceIndex];
+        const originalInvoice = allInvoices[invoiceIndex];
         const treatments = data.treatments || originalInvoice.treatments;
         const treatmentsTotal = treatments.reduce((sum, t) => sum + t.cost, 0);
         
@@ -250,7 +285,7 @@ export const updateInvoice = async (id: string, data: Partial<Omit<Invoice, 'amo
         const amount = treatmentsTotal + otherChargesTotal;
 
         const updatedInvoice = { ...originalInvoice, ...data, amount, treatments, otherCharges };
-        invoices[invoiceIndex] = updatedInvoice;
+        allInvoices[invoiceIndex] = updatedInvoice;
         return updatedInvoice;
     }
     return undefined;
@@ -258,9 +293,9 @@ export const updateInvoice = async (id: string, data: Partial<Omit<Invoice, 'amo
 
 export const processPayment = async (invoiceId: string, paymentAmount: number, method: string): Promise<Invoice | undefined> => {
     await delay(300);
-    const invoiceIndex = invoices.findIndex(i => i.id === invoiceId);
+    const invoiceIndex = allInvoices.findIndex(i => i.id === invoiceId);
     if (invoiceIndex > -1) {
-        const originalInvoice = invoices[invoiceIndex];
+        const originalInvoice = allInvoices[invoiceIndex];
         const newPaidAmount = originalInvoice.paidAmount + paymentAmount;
         const newStatus = newPaidAmount >= originalInvoice.amount ? 'Paid' : 'Pending';
         
@@ -280,7 +315,7 @@ export const processPayment = async (invoiceId: string, paymentAmount: number, m
             paymentMethod: method as any,
             transactions: updatedTransactions
         };
-        invoices[invoiceIndex] = updatedInvoice;
+        allInvoices[invoiceIndex] = updatedInvoice;
         return updatedInvoice;
     }
     return undefined;
@@ -288,11 +323,11 @@ export const processPayment = async (invoiceId: string, paymentAmount: number, m
 
 export const deleteInvoice = async (id: string): Promise<{ success: boolean }> => {
     await delay(200);
-    const initialLength = invoices.length;
-    const newInvoices = invoices.filter(i => i.id !== id);
-    invoices.length = 0;
-    Array.prototype.push.apply(invoices, newInvoices);
-    return { success: invoices.length < initialLength };
+    const initialLength = allInvoices.length;
+    const newInvoices = allInvoices.filter(i => i.id !== id);
+    allInvoices.length = 0;
+    Array.prototype.push.apply(allInvoices, newInvoices);
+    return { success: allInvoices.length < initialLength };
 }
 
 
