@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FileDown, PlusCircle, MoreHorizontal, Pencil, Trash, Eye, HandCoins, Calendar as CalendarIcon } from "lucide-react";
+import { FileDown, PlusCircle, MoreHorizontal, Pencil, Trash, Eye, HandCoins, Calendar as CalendarIcon, Search } from "lucide-react";
 import type { Invoice, Patient, InvoiceTreatment } from "@/lib/types";
 import { InvoiceForm } from "./components/invoice-form";
 import { useBranch } from "@/context/branch-context";
@@ -72,6 +72,7 @@ export default function BillingPage() {
   
   // Pagination and filtering state
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
+  const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [pageInput, setPageInput] = useState("1");
@@ -114,6 +115,13 @@ export default function BillingPage() {
         branchInvoices = branchInvoices.filter(i => i.branchId === selectedBranch);
     }
 
+    if (searchQuery) {
+        branchInvoices = branchInvoices.filter(invoice => 
+            invoice.patientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            invoice.id.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+    }
+
     if (dateRange?.from && dateRange?.to) {
         return branchInvoices.filter(invoice => {
             const issueDate = new Date(invoice.issueDate);
@@ -121,7 +129,7 @@ export default function BillingPage() {
         });
     }
     return branchInvoices;
-  }, [selectedBranch, allInvoices, dateRange]);
+  }, [selectedBranch, allInvoices, dateRange, searchQuery]);
   
   const totalPages = Math.ceil(filteredInvoices.length / itemsPerPage);
   
@@ -133,7 +141,7 @@ export default function BillingPage() {
   useEffect(() => {
     setCurrentPage(1);
     setPageInput("1");
-  }, [itemsPerPage, dateRange, selectedBranch]);
+  }, [itemsPerPage, dateRange, selectedBranch, searchQuery]);
 
   useEffect(() => {
     setPageInput(String(currentPage));
@@ -230,45 +238,16 @@ export default function BillingPage() {
               Manage invoices and patient billing.
             </CardDescription>
           </div>
-          <div className="flex flex-col-reverse gap-2 sm:flex-row">
-            <div className="flex items-center gap-2">
-                <Popover>
-                    <PopoverTrigger asChild>
-                    <Button
-                        id="date"
-                        variant={"outline"}
-                        className={cn(
-                        "w-[300px] justify-start text-left font-normal",
-                        !dateRange && "text-muted-foreground"
-                        )}
-                    >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {dateRange?.from ? (
-                        dateRange.to ? (
-                            <>
-                            {format(dateRange.from, "LLL dd, y")} -{" "}
-                            {format(dateRange.to, "LLL dd, y")}
-                            </>
-                        ) : (
-                            format(dateRange.from, "LLL dd, y")
-                        )
-                        ) : (
-                        <span>Pick a date range</span>
-                        )}
-                    </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="end">
-                    <Calendar
-                        initialFocus
-                        mode="range"
-                        defaultMonth={dateRange?.from}
-                        selected={dateRange}
-                        onSelect={setDateRange}
-                        numberOfMonths={2}
-                    />
-                    </PopoverContent>
-                </Popover>
-                 <Button variant="outline" onClick={() => setDateRange(undefined)} disabled={!dateRange}>Clear</Button>
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center">
+            <div className="relative">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                    type="search"
+                    placeholder="Search by patient or ID..."
+                    className="pl-8 sm:w-[300px]"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                />
             </div>
             <Button onClick={() => handleOpenForm()}>
               <PlusCircle className="mr-2 h-4 w-4" />
@@ -299,7 +278,7 @@ export default function BillingPage() {
             </TableHeader>
             <TableBody>
               {paginatedInvoices.map((invoice) => (
-                <TableRow key={invoice.id}>
+                <TableRow key={invoice.id} onClick={() => handleViewInvoice(invoice.id)} className="cursor-pointer">
                   <TableCell className="font-medium">{invoice.id}</TableCell>
                   <TableCell>{invoice.patientName}</TableCell>
                   <TableCell>
@@ -311,7 +290,7 @@ export default function BillingPage() {
                   <TableCell>${invoice.amount.toFixed(2)}</TableCell>
                   <TableCell>${invoice.paidAmount.toFixed(2)}</TableCell>
                   <TableCell>${(invoice.amount - invoice.paidAmount).toFixed(2)}</TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button variant="ghost" className="h-8 w-8 p-0">
@@ -346,7 +325,7 @@ export default function BillingPage() {
               {paginatedInvoices.length === 0 && !isLoading && (
                  <TableRow>
                     <TableCell colSpan={8} className="h-24 text-center">
-                        No invoices found for this period.
+                        No invoices found.
                     </TableCell>
                  </TableRow>
               )}
@@ -356,9 +335,48 @@ export default function BillingPage() {
         </CardContent>
          <CardFooter className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Popover>
+                    <PopoverTrigger asChild>
+                    <Button
+                        id="date"
+                        variant={"outline"}
+                        className={cn(
+                        "w-[300px] justify-start text-left font-normal",
+                        !dateRange && "text-muted-foreground"
+                        )}
+                    >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {dateRange?.from ? (
+                        dateRange.to ? (
+                            <>
+                            {format(dateRange.from, "LLL dd, y")} -{" "}
+                            {format(dateRange.to, "LLL dd, y")}
+                            </>
+                        ) : (
+                            format(dateRange.from, "LLL dd, y")
+                        )
+                        ) : (
+                        <span>Pick a date range</span>
+                        )}
+                    </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                        initialFocus
+                        mode="range"
+                        defaultMonth={dateRange?.from}
+                        selected={dateRange}
+                        onSelect={setDateRange}
+                        numberOfMonths={2}
+                    />
+                    </PopoverContent>
+                </Popover>
+                 <Button variant="outline" size="sm" onClick={() => setDateRange(undefined)} disabled={!dateRange}>Clear</Button>
+            </div>
+             <div className="flex items-center gap-4 text-sm text-muted-foreground">
                 <span>Rows per page</span>
                 <Select value={String(itemsPerPage)} onValueChange={(value) => setItemsPerPage(Number(value))}>
-                    <SelectTrigger className="w-20">
+                    <SelectTrigger className="w-20 h-9">
                         <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -367,30 +385,30 @@ export default function BillingPage() {
                         ))}
                     </SelectContent>
                 </Select>
+                 <Pagination>
+                    <PaginationContent>
+                        <PaginationItem>
+                            <PaginationPrevious href="#" onClick={(e) => {e.preventDefault(); setCurrentPage(p => Math.max(1, p-1))}} className={cn('h-9', { 'pointer-events-none opacity-50': currentPage === 1})}/>
+                        </PaginationItem>
+                        <PaginationItem className="flex items-center gap-2 text-sm">
+                            <span>Page</span>
+                            <Input 
+                                type="number" 
+                                className="h-9 w-14" 
+                                value={pageInput}
+                                onChange={handlePageInputChange}
+                                onKeyDown={handleGoToPage}
+                                min="1"
+                                max={totalPages}
+                            />
+                            <span>of {totalPages}</span>
+                        </PaginationItem>
+                        <PaginationItem>
+                            <PaginationNext href="#" onClick={(e) => {e.preventDefault(); setCurrentPage(p => Math.min(totalPages, p+1))}} className={cn('h-9', { 'pointer-events-none opacity-50': currentPage === totalPages})}/>
+                        </PaginationItem>
+                    </PaginationContent>
+                </Pagination>
             </div>
-            <Pagination>
-                <PaginationContent>
-                    <PaginationItem>
-                        <PaginationPrevious href="#" onClick={(e) => {e.preventDefault(); setCurrentPage(p => Math.max(1, p-1))}} className={cn({ 'pointer-events-none opacity-50': currentPage === 1})}/>
-                    </PaginationItem>
-                     <PaginationItem className="flex items-center gap-2 text-sm">
-                        <span>Page</span>
-                         <Input 
-                            type="number" 
-                            className="h-8 w-14" 
-                            value={pageInput}
-                            onChange={handlePageInputChange}
-                            onKeyDown={handleGoToPage}
-                            min="1"
-                            max={totalPages}
-                        />
-                        <span>of {totalPages}</span>
-                    </PaginationItem>
-                    <PaginationItem>
-                        <PaginationNext href="#" onClick={(e) => {e.preventDefault(); setCurrentPage(p => Math.min(totalPages, p+1))}} className={cn({ 'pointer-events-none opacity-50': currentPage === totalPages})}/>
-                    </PaginationItem>
-                </PaginationContent>
-            </Pagination>
          </CardFooter>
       </Card>
       {isFormOpen && (
