@@ -216,10 +216,11 @@ Define the database schemas for the following entities.
 - **`DELETE /api/patients/{id}/soft-tissue-records/{record_id}`**: Delete a soft tissue record.
 
 ### Appointments
-- **`GET /api/appointments`**: List all appointments. Supports filtering by `branch_id`, `doctor_id`, `date_range`.
+- **`GET /api/appointments`**: List all appointments. Supports filtering by `branch_id`, `doctor_id`, `date_range`, and a list of `statuses`.
 - **`POST /api/appointments`**: Create a new appointment.
 - **`PUT /api/appointments/{id}`**: Update an appointment (e.g., change status).
 - **`DELETE /api/appointments/{id}`**: Delete an appointment.
+- **`POST /api/queue/{appointment_id}/announce`**: Triggers a text-to-speech announcement for the patient's token number.
 
 ### Billing & Invoices
 - **`GET /api/invoices`**: List invoices. Supports filtering by `branch_id`, `search_query`, `date_range`.
