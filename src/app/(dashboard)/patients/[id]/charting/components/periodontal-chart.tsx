@@ -27,6 +27,7 @@ import type {
   PeriodontalConditions,
 } from "@/lib/types";
 import { useState } from "react";
+import Image from "next/image";
 
 const quadrants = {
   upperRight: [18, 17, 16, 15, 14, 13, 12, 11],
@@ -54,6 +55,50 @@ type PeriodontalChartProps = {
   initialRecords: PeriodontalRecord;
   onSave: (records: PeriodontalRecord) => void;
 };
+
+const DentalChartSvg = () => (
+    <svg viewBox="0 0 800 400" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto">
+      <style>{`
+        .tooth-label { font-family: sans-serif; font-size: 14px; fill: hsl(var(--muted-foreground)); text-anchor: middle; }
+        .tooth-outline { stroke: hsl(var(--muted-foreground)); stroke-width: 1.5; fill: hsl(var(--card)); }
+        .quadrant-line { stroke: hsl(var(--border)); stroke-width: 2; stroke-dasharray: 5,5; }
+      `}</style>
+      
+      {/* Upper Right */}
+      {quadrants.upperRight.map((tooth, i) => (
+        <g key={tooth} transform={`translate(${400 - (i * 45) - 25}, 100)`}>
+          <path className="tooth-outline" d="M -15,-20 L 15,-20 L 15,10 L -15,10 Z" />
+          <text className="tooth-label" y="-25">{tooth}</text>
+        </g>
+      ))}
+       {/* Upper Left */}
+      {quadrants.upperLeft.map((tooth, i) => (
+        <g key={tooth} transform={`translate(${400 + (i * 45) + 25}, 100)`}>
+          <path className="tooth-outline" d="M -15,-20 L 15,-20 L 15,10 L -15,10 Z" />
+          <text className="tooth-label" y="-25">{tooth}</text>
+        </g>
+      ))}
+      
+       {/* Lower Right */}
+      {quadrants.lowerRight.slice().reverse().map((tooth, i) => (
+        <g key={tooth} transform={`translate(${400 - (i * 45) - 25}, 250)`}>
+          <path className="tooth-outline" d="M -15,-10 L 15,-10 L 15,20 L -15,20 Z" />
+          <text className="tooth-label" y="35">{tooth}</text>
+        </g>
+      ))}
+      
+      {/* Lower Left */}
+       {quadrants.lowerLeft.map((tooth, i) => (
+        <g key={tooth} transform={`translate(${400 + (i * 45) + 25}, 250)`}>
+          <path className="tooth-outline" d="M -15,-10 L 15,-10 L 15,20 L -15,20 Z" />
+          <text className="tooth-label" y="35">{tooth}</text>
+        </g>
+      ))}
+
+      <line className="quadrant-line" x1="400" y1="0" x2="400" y2="400" />
+      <line className="quadrant-line" x1="0" y1="175" x2="800" y2="175" />
+    </svg>
+  );
 
 export function PeriodontalChart({
   initialRecords,
@@ -293,6 +338,9 @@ export function PeriodontalChart({
         </CardDescription>
       </CardHeader>
       <CardContent>
+         <div className="mb-4 rounded-lg border p-4">
+             <DentalChartSvg />
+         </div>
          <div className="mb-4 flex flex-wrap justify-center gap-x-4 gap-y-2 rounded-md border p-2">
             <div className="flex items-center gap-2">
                 <div className="h-3 w-3 rounded-full border bg-red-500 border-red-700"></div>
