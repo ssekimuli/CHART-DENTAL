@@ -15,49 +15,39 @@ import { LabTable } from "./components/lab-table";
 import type { LaboratoryOrder, Patient } from "@/lib/types";
 import { LabOrderForm } from "./components/lab-order-form";
 import { useBranch } from "@/context/branch-context";
-import { currentUser } from "@/lib/user";
 import { createLabOrder, getLabOrders, getPatients } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
+import { currentUser } from "@/lib/user";
 
 export default function LaboratoryPage() {
     const { selectedBranch } = useBranch();
-    const [allLabOrders, setAllLabOrders] = useState<LaboratoryOrder[]>([]);
-    const [allPatients, setAllPatients] = useState<Patient[]>([]);
+    const [labOrders, setLabOrders] = useState<LaboratoryOrder[]>([]);
+    const [patients, setPatients] = useState<Patient[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isFormOpen, setIsFormOpen] = useState(false);
     
     useEffect(() => {
+        const branchToFetch = currentUser.role === 'Super Admin' ? selectedBranch : currentUser.branchId;
         const fetchData = async () => {
             setIsLoading(true);
-            const [orders, patients] = await Promise.all([getLabOrders(), getPatients()]);
-            setAllLabOrders(orders);
-            setAllPatients(patients);
+            const [orders, patientsData] = await Promise.all([
+                getLabOrders(branchToFetch), 
+                getPatients(branchToFetch)
+            ]);
+            setLabOrders(orders);
+            setPatients(patientsData);
             setIsLoading(false);
         };
         fetchData();
-    }, []);
-
-    const filteredPatients = useMemo(() => {
-        if (currentUser.role === 'Super Admin') {
-          return allPatients.filter(p => p.branchId === selectedBranch);
-        }
-        return allPatients.filter(p => p.branchId === currentUser.branchId);
-      }, [selectedBranch, allPatients]);
-
-    const labOrders = useMemo(() => {
-        if (currentUser.role === 'Super Admin') {
-            return allLabOrders.filter(l => l.branchId === selectedBranch);
-        }
-        return allLabOrders.filter(l => l.branchId === currentUser.branchId);
-    }, [selectedBranch, allLabOrders]);
+    }, [selectedBranch]);
 
     const handleSaveOrder = async (data: Omit<LaboratoryOrder, 'id' | 'branchId' | 'patientName'>) => {
-        const patient = filteredPatients.find(p => p.id === data.patientId);
+        const patient = patients.find(p => p.id === data.patientId);
         if (!patient) return;
 
         const newOrder = await createLabOrder({ ...data, branchId: selectedBranch, patientName: patient.name });
         if(newOrder) {
-            setAllLabOrders(prev => [...prev, newOrder]);
+            setLabOrders(prev => [newOrder, ...prev]);
         }
         setIsFormOpen(false);
     }
@@ -91,7 +81,7 @@ export default function LaboratoryPage() {
         </Card>
         {isFormOpen && (
             <LabOrderForm 
-                patients={filteredPatients}
+                patients={patients}
                 onSave={handleSaveOrder}
                 onOpenChange={setIsFormOpen}
             />

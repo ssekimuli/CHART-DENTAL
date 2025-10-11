@@ -1,9 +1,6 @@
 
-
-
-
 import { 
-    patients,
+    patients as allPatients,
     appointments,
     invoices as allInvoices,
     chartData,
@@ -11,7 +8,7 @@ import {
     payrolls as allPayrolls,
     branches,
     inventory,
-    labOrders,
+    labOrders as allLabOrders,
     treatments as allTreatments,
     attendance,
     leaveRequests,
@@ -33,14 +30,17 @@ export const getBranches = async (): Promise<Branch[]> => {
     return JSON.parse(JSON.stringify(branches));
 }
 
-export const getPatients = async (): Promise<Patient[]> => {
+export const getPatients = async (branchId?: string): Promise<Patient[]> => {
     await delay(100);
-    return JSON.parse(JSON.stringify(patients));
+    if (branchId) {
+        return JSON.parse(JSON.stringify(allPatients.filter(p => p.branchId === branchId)));
+    }
+    return JSON.parse(JSON.stringify(allPatients));
 }
 
 export const getPatientById = async (id: string): Promise<Patient | undefined> => {
     await delay(100);
-    return JSON.parse(JSON.stringify(patients.find(p => p.id === id)));
+    return JSON.parse(JSON.stringify(allPatients.find(p => p.id === id)));
 }
 
 export const getAppointments = async (): Promise<Appointment[]> => {
@@ -121,9 +121,12 @@ export const getInventory = async (branchId?: string): Promise<InventoryItem[]> 
     return JSON.parse(JSON.stringify(localInventory));
 }
 
-export const getLabOrders = async (): Promise<LaboratoryOrder[]> => {
+export const getLabOrders = async (branchId?: string): Promise<LaboratoryOrder[]> => {
     await delay(150);
-    return JSON.parse(JSON.stringify(labOrders));
+    if (branchId) {
+        return JSON.parse(JSON.stringify(allLabOrders.filter(l => l.branchId === branchId)));
+    }
+    return JSON.parse(JSON.stringify(allLabOrders));
 }
 
 export const getChartData = async (): Promise<ChartData[]> => {
@@ -221,7 +224,7 @@ export const createPatient = async (data: BasePatient & { branchId: string }): P
     await delay(200);
     const newPatient: Patient = {
         ...data,
-        id: `p${patients.length + 1}`,
+        id: `p${allPatients.length + 1}`,
         dentalRecords: [],
         treatmentPlans: [],
         imaging: [],
@@ -231,34 +234,34 @@ export const createPatient = async (data: BasePatient & { branchId: string }): P
         softTissueRecords: [],
         orthodonticRecords: [],
     };
-    patients.push(newPatient);
+    allPatients.push(newPatient);
     return newPatient;
 }
 
 export const updatePatient = async (id: string, data: Partial<Patient>): Promise<Patient | undefined> => {
     await delay(200);
-    const patientIndex = patients.findIndex(p => p.id === id);
+    const patientIndex = allPatients.findIndex(p => p.id === id);
     if (patientIndex > -1) {
-        patients[patientIndex] = { ...patients[patientIndex], ...data };
-        return patients[patientIndex];
+        allPatients[patientIndex] = { ...allPatients[patientIndex], ...data };
+        return allPatients[patientIndex];
     }
     return undefined;
 }
 
 export const deletePatient = async (id: string): Promise<{ success: boolean }> => {
     await delay(200);
-    const initialLength = patients.length;
-    const newPatients = patients.filter(p => p.id !== id);
-    patients.length = 0;
-    Array.prototype.push.apply(patients, newPatients);
-    return { success: patients.length < initialLength };
+    const initialLength = allPatients.length;
+    const newPatients = allPatients.filter(p => p.id !== id);
+    allPatients.length = 0;
+    Array.prototype.push.apply(allPatients, newPatients);
+    return { success: allPatients.length < initialLength };
 }
 
 export const addImageToPatient = async (patientId: string, image: Omit<PatientImage, 'date'>): Promise<Patient | undefined> => {
     await delay(200);
-    const patientIndex = patients.findIndex(p => p.id === patientId);
+    const patientIndex = allPatients.findIndex(p => p.id === patientId);
     if (patientIndex > -1) {
-        const patient = patients[patientIndex];
+        const patient = allPatients[patientIndex];
         const newImage: PatientImage = {
             ...image,
             date: new Date().toISOString().split('T')[0],
@@ -271,9 +274,9 @@ export const addImageToPatient = async (patientId: string, image: Omit<PatientIm
 
 export const saveDentalRecord = async (patientId: string, record: DentalRecord): Promise<Patient | undefined> => {
     await delay(150);
-    const patientIndex = patients.findIndex(p => p.id === patientId);
+    const patientIndex = allPatients.findIndex(p => p.id === patientId);
     if (patientIndex > -1) {
-        const patient = patients[patientIndex];
+        const patient = allPatients[patientIndex];
         const recordIndex = patient.dentalRecords.findIndex(r => r.toothId === record.toothId);
         const newRecords = [...patient.dentalRecords];
         if (recordIndex > -1) {
@@ -281,37 +284,37 @@ export const saveDentalRecord = async (patientId: string, record: DentalRecord):
         } else {
             newRecords.push(record);
         }
-        patients[patientIndex] = { ...patient, dentalRecords: newRecords };
-        return patients[patientIndex];
+        allPatients[patientIndex] = { ...patient, dentalRecords: newRecords };
+        return allPatients[patientIndex];
     }
     return undefined;
 }
 
 export const savePeriodontalRecord = async (patientId: string, records: PeriodontalRecord): Promise<Patient | undefined> => {
     await delay(150);
-    const patientIndex = patients.findIndex(p => p.id === patientId);
+    const patientIndex = allPatients.findIndex(p => p.id === patientId);
     if (patientIndex > -1) {
-        patients[patientIndex].periodontalRecords = records;
-        return patients[patientIndex];
+        allPatients[patientIndex].periodontalRecords = records;
+        return allPatients[patientIndex];
     }
     return undefined;
 }
 
 export const saveOcclusalRecord = async (patientId: string, record: OcclusalRecord): Promise<Patient | undefined> => {
     await delay(150);
-    const patientIndex = patients.findIndex(p => p.id === patientId);
+    const patientIndex = allPatients.findIndex(p => p.id === patientId);
     if (patientIndex > -1) {
-        patients[patientIndex].occlusalRecords = record;
-        return patients[patientIndex];
+        allPatients[patientIndex].occlusalRecords = record;
+        return allPatients[patientIndex];
     }
     return undefined;
 };
 
 export const addTreatment = async (patientId: string, treatmentData: Omit<Treatment, 'id' | 'date'>, condition?: DentalCondition): Promise<Patient | undefined> => {
     await delay(200);
-    const patientIndex = patients.findIndex(p => p.id === patientId);
+    const patientIndex = allPatients.findIndex(p => p.id === patientId);
     if (patientIndex > -1) {
-        const patient = patients[patientIndex];
+        const patient = allPatients[patientIndex];
         const newPlan: Treatment = {
             ...treatmentData,
             id: `t${Date.now()}`,
@@ -335,9 +338,9 @@ export const addTreatment = async (patientId: string, treatmentData: Omit<Treatm
 
 export const updateTreatment = async (patientId: string, treatment: Treatment): Promise<Patient | undefined> => {
     await delay(200);
-    const patientIndex = patients.findIndex(p => p.id === patientId);
+    const patientIndex = allPatients.findIndex(p => p.id === patientId);
     if (patientIndex > -1) {
-        const patient = patients[patientIndex];
+        const patient = allPatients[patientIndex];
         const treatmentIndex = patient.treatmentPlans.findIndex(t => t.id === treatment.id);
         if (treatmentIndex > -1) {
             patient.treatmentPlans[treatmentIndex] = treatment;
@@ -349,9 +352,9 @@ export const updateTreatment = async (patientId: string, treatment: Treatment): 
 
 export const deleteTreatment = async (patientId: string, treatmentId: string): Promise<Patient | undefined> => {
     await delay(200);
-    const patientIndex = patients.findIndex(p => p.id === patientId);
+    const patientIndex = allPatients.findIndex(p => p.id === patientId);
     if (patientIndex > -1) {
-        const patient = patients[patientIndex];
+        const patient = allPatients[patientIndex];
         patient.treatmentPlans = patient.treatmentPlans.filter(t => t.id !== treatmentId);
         return patient;
     }
@@ -360,9 +363,9 @@ export const deleteTreatment = async (patientId: string, treatmentId: string): P
 
 export const saveOrthodonticRecord = async (patientId: string, recordData: Omit<OrthodonticRecord, 'id'>): Promise<Patient | undefined> => {
     await delay(200);
-    const patientIndex = patients.findIndex(p => p.id === patientId);
+    const patientIndex = allPatients.findIndex(p => p.id === patientId);
     if (patientIndex > -1) {
-        const patient = patients[patientIndex];
+        const patient = allPatients[patientIndex];
         const newRecord: OrthodonticRecord = {
             ...recordData,
             id: `ortho${Date.now()}`,
@@ -376,9 +379,9 @@ export const saveOrthodonticRecord = async (patientId: string, recordData: Omit<
 
 export const updateOrthodonticRecord = async (patientId: string, record: OrthodonticRecord): Promise<Patient | undefined> => {
     await delay(200);
-    const patientIndex = patients.findIndex(p => p.id === patientId);
+    const patientIndex = allPatients.findIndex(p => p.id === patientId);
     if (patientIndex > -1) {
-        const patient = patients[patientIndex];
+        const patient = allPatients[patientIndex];
         const recordIndex = patient.orthodonticRecords.findIndex(r => r.id === record.id);
         if (recordIndex > -1) {
             patient.orthodonticRecords[recordIndex] = record;
@@ -391,9 +394,9 @@ export const updateOrthodonticRecord = async (patientId: string, record: Orthodo
 
 export const deleteOrthodonticRecord = async (patientId: string, recordId: string): Promise<Patient | undefined> => {
     await delay(200);
-    const patientIndex = patients.findIndex(p => p.id === patientId);
+    const patientIndex = allPatients.findIndex(p => p.id === patientId);
     if (patientIndex > -1) {
-        const patient = patients[patientIndex];
+        const patient = allPatients[patientIndex];
         patient.orthodonticRecords = patient.orthodonticRecords.filter(r => r.id !== recordId);
         return patient;
     }
@@ -402,9 +405,9 @@ export const deleteOrthodonticRecord = async (patientId: string, recordId: strin
 
 export const saveSoftTissueRecord = async (patientId: string, recordData: Omit<SoftTissueRecord, 'id'>): Promise<Patient | undefined> => {
     await delay(200);
-    const patientIndex = patients.findIndex(p => p.id === patientId);
+    const patientIndex = allPatients.findIndex(p => p.id === patientId);
     if (patientIndex > -1) {
-        const patient = patients[patientIndex];
+        const patient = allPatients[patientIndex];
         const newRecord: SoftTissueRecord = {
             ...recordData,
             id: `soft${Date.now()}`,
@@ -418,9 +421,9 @@ export const saveSoftTissueRecord = async (patientId: string, recordData: Omit<S
 
 export const updateSoftTissueRecord = async (patientId: string, record: SoftTissueRecord): Promise<Patient | undefined> => {
     await delay(200);
-    const patientIndex = patients.findIndex(p => p.id === patientId);
+    const patientIndex = allPatients.findIndex(p => p.id === patientId);
     if (patientIndex > -1) {
-        const patient = patients[patientIndex];
+        const patient = allPatients[patientIndex];
         const recordIndex = patient.softTissueRecords.findIndex(r => r.id === record.id);
         if (recordIndex > -1) {
             patient.softTissueRecords[recordIndex] = record;
@@ -433,9 +436,9 @@ export const updateSoftTissueRecord = async (patientId: string, record: SoftTiss
 
 export const deleteSoftTissueRecord = async (patientId: string, recordId: string): Promise<Patient | undefined> => {
     await delay(200);
-    const patientIndex = patients.findIndex(p => p.id === patientId);
+    const patientIndex = allPatients.findIndex(p => p.id === patientId);
     if (patientIndex > -1) {
-        const patient = patients[patientIndex];
+        const patient = allPatients[patientIndex];
         patient.softTissueRecords = patient.softTissueRecords.filter(r => r.id !== recordId);
         return patient;
     }
@@ -476,7 +479,7 @@ export const deleteAppointment = async (id: string): Promise<{ success: boolean 
 // Invoices
 export const createInvoice = async (data: Omit<Invoice, 'id' | 'amount' | 'paidAmount' | 'patientName'> & { branchId: string, treatments: InvoiceTreatment[] }): Promise<Invoice> => {
     await delay(200);
-    const patient = patients.find(p => p.id === data.patientId);
+    const patient = allPatients.find(p => p.id === data.patientId);
     if (!patient) throw new Error("Patient not found");
 
     const treatmentsTotal = data.treatments.reduce((sum, t) => sum + t.cost, 0);
@@ -622,9 +625,9 @@ export const createLabOrder = async (data: Omit<LaboratoryOrder, 'id'>): Promise
     await delay(200);
     const newOrder: LaboratoryOrder = {
         ...data,
-        id: `lab${labOrders.length + 1}`,
+        id: `lab${allLabOrders.length + 1}`,
     };
-    labOrders.push(newOrder);
+    allLabOrders.push(newOrder);
     return newOrder;
 }
 
