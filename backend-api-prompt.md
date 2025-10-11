@@ -536,15 +536,17 @@ Define the database schemas for the following entities.
   - **Authorization**: Assistant, Hygienist, Dentist, Super Admin.
   - **Body**: `multipart/form-data` with `image` file and `description`.
   - **Response**: `201` with the new `PatientImage` object.
-- **`PUT /api/patients/{id}/dental-records`**: Update/Create a dental record for a specific tooth.
+
+### Patient Charting
+- **`PUT /api/patients/{id}/dental-records`**: Update or create a dental record for a specific tooth. If a record for the tooth exists, it's updated. If not, it's created.
   - **Authorization**: Hygienist, Dentist, Super Admin.
   - **Body**: A `DentalRecord` object.
   - **Response**: `200` with the updated `Patient` object.
-- **`PUT /api/patients/{id}/periodontal-records`**: Save the entire periodontal chart for a patient.
+- **`PUT /api/patients/{id}/periodontal-records`**: Save the entire periodontal chart for a patient. This should replace the existing array of records.
   - **Authorization**: Hygienist, Dentist, Super Admin.
   - **Body**: An array of `PeriodontalMeasurement` objects.
   - **Response**: `200` with the updated `Patient` object.
-- **`PUT /api/patients/{id}/occlusal-records`**: Save the occlusal chart for a patient.
+- **`PUT /api/patients/{id}/occlusal-records`**: Save the occlusal chart for a patient. This should replace the existing object.
   - **Authorization**: Dentist, Super Admin.
   - **Body**: An `OcclusalRecord` object.
   - **Response**: `200` with the updated `Patient` object.
