@@ -5,6 +5,14 @@ import React, { useState } from "react";
 import { Tooth } from "./tooth";
 import type { DentalRecord, DentalCondition, Treatment } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { FilePen, Plus } from "lucide-react";
+
 
 const upperRightQuadrant = [18, 17, 16, 15, 14, 13, 12, 11];
 const upperLeftQuadrant = [21, 22, 23, 24, 25, 26, 27, 28];
@@ -24,9 +32,10 @@ type DentalChartProps = {
   initialRecords: DentalRecord[];
   treatmentPlans: Treatment[];
   onAddTreatment: (toothId: number) => void;
+  onLogCondition: (toothId: number) => void;
 };
 
-export function DentalChart({ initialRecords, treatmentPlans, onAddTreatment }: DentalChartProps) {
+export function DentalChart({ initialRecords, treatmentPlans, onAddTreatment, onLogCondition }: DentalChartProps) {
 
   const getRecordForTooth = (toothId: number) => {
     return initialRecords.find((r) => r.toothId === toothId);
@@ -38,22 +47,33 @@ export function DentalChart({ initialRecords, treatmentPlans, onAddTreatment }: 
     );
   }
 
-  const handleToothClick = (toothId: number) => {
-    onAddTreatment(toothId);
-  };
-
   const renderQuadrant = (quadrant: number[], reverse: boolean = false) => {
     const teeth = reverse ? [...quadrant].reverse() : quadrant;
     return (
       <div className="flex justify-center gap-1">
         {teeth.map((toothId) => (
-          <Tooth
-            key={toothId}
-            toothId={toothId}
-            condition={getRecordForTooth(toothId)?.condition ?? "Healthy"}
-            hasTreatmentPlan={getTreatmentForTooth(toothId)}
-            onClick={() => handleToothClick(toothId)}
-          />
+           <DropdownMenu key={toothId}>
+            <DropdownMenuTrigger asChild>
+                <div>
+                    <Tooth
+                        toothId={toothId}
+                        condition={getRecordForTooth(toothId)?.condition ?? "Healthy"}
+                        hasTreatmentPlan={getTreatmentForTooth(toothId)}
+                        onClick={() => {}} // onClick is handled by dropdown items now
+                    />
+                </div>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+                <DropdownMenuItem onClick={() => onLogCondition(toothId)}>
+                    <FilePen className="mr-2 h-4 w-4" />
+                    <span>Log Condition</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onAddTreatment(toothId)}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    <span>Add Treatment</span>
+                </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         ))}
       </div>
     );

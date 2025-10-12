@@ -53,7 +53,7 @@ export function Tooth({ toothId, condition, hasTreatmentPlan, onClick }: ToothPr
                 className={cn(
                   "stroke-gray-600 dark:stroke-gray-400 stroke-2",
                   conditionColors[condition],
-                   hasTreatmentPlan && "stroke-blue-500"
+                   hasTreatmentPlan && "stroke-blue-500 !stroke-[3px]"
                 )}
               />
               {condition === "Fracture" && (

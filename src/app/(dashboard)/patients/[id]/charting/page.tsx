@@ -21,6 +21,7 @@ import { OcclusalChart } from "./components/occlusal-chart";
 import { SoftTissueChart } from "./components/soft-tissue-chart";
 import { TreatmentPlanForm } from "../components/treatment-plan-form";
 import { OrthodonticChart } from "./components/orthodontic-chart";
+import { ConditionLogger } from "../components/condition-logger";
 import { getPatientById, addTreatment, saveDentalRecord, savePeriodontalRecord, saveOcclusalRecord, saveOrthodonticRecord, updateOrthodonticRecord, deleteOrthodonticRecord, saveSoftTissueRecord, updateSoftTissueRecord, deleteSoftTissueRecord } from "@/lib/api";
 
 export default function PatientChartingPage({
@@ -34,6 +35,10 @@ export default function PatientChartingPage({
 
   const [isTreatmentFormOpen, setIsTreatmentFormOpen] = useState(false);
   const [selectedToothForTreatment, setSelectedToothForTreatment] = useState<number | undefined>(undefined);
+  
+  const [isConditionLoggerOpen, setIsConditionLoggerOpen] = useState(false);
+  const [selectedToothForCondition, setSelectedToothForCondition] = useState<number | undefined>(undefined);
+
 
   useEffect(() => {
     if (typeof params.id !== 'string') return;
@@ -86,6 +91,8 @@ export default function PatientChartingPage({
     if (updatedPatient) {
         setPatient(updatedPatient);
     }
+    setIsConditionLoggerOpen(false);
+    setSelectedToothForCondition(undefined);
   }
   
   const handleSavePeriodontalRecord = async (records: PeriodontalRecord) => {
@@ -152,7 +159,7 @@ export default function PatientChartingPage({
     }
  }
 
-  const handleOpenTreatmentForm = (toothId?: number) => {
+  const handleOpenTreatmentForm = (toothId: number) => {
     setSelectedToothForTreatment(toothId);
     setIsTreatmentFormOpen(true);
   }
@@ -160,6 +167,11 @@ export default function PatientChartingPage({
   const handleCloseTreatmentForm = () => {
     setIsTreatmentFormOpen(false);
     setSelectedToothForTreatment(undefined);
+  }
+  
+  const handleOpenConditionLogger = (toothId: number) => {
+    setSelectedToothForCondition(toothId);
+    setIsConditionLoggerOpen(true);
   }
 
 
@@ -200,6 +212,7 @@ export default function PatientChartingPage({
                         initialRecords={patient.dentalRecords}
                         treatmentPlans={patient.treatmentPlans}
                         onAddTreatment={handleOpenTreatmentForm}
+                        onLogCondition={handleOpenConditionLogger}
                     />
                 </CardContent>
             </Card>
@@ -233,6 +246,14 @@ export default function PatientChartingPage({
             onOpenChange={handleCloseTreatmentForm}
             toothId={selectedToothForTreatment}
             currentCondition={patient.dentalRecords.find(r => r.toothId === selectedToothForTreatment)?.condition}
+        />
+      )}
+      {isConditionLoggerOpen && selectedToothForCondition && (
+        <ConditionLogger
+            toothId={selectedToothForCondition}
+            currentRecord={patient.dentalRecords.find(r => r.toothId === selectedToothForCondition)}
+            onSave={(toothId, condition, notes) => handleSaveDentalRecord({ toothId, condition, notes })}
+            onOpenChange={setIsConditionLoggerOpen}
         />
       )}
     </div>
