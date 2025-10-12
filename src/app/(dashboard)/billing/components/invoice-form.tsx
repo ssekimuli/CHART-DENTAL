@@ -110,7 +110,7 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
             if (patientData) {
                 const unbilled = patientData.treatmentPlans
                     .filter(t => t.status === 'Completed' && !t.invoiceId)
-                    .map(t => ({ procedure: t.procedure, cost: t.cost, tooth: t.tooth }));
+                    .map(t => ({ procedureId: t.procedureId, procedure: t.procedure, cost: t.cost, tooth: t.tooth }));
                 setSelectedTreatments(unbilled);
             }
         };
@@ -132,17 +132,17 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
 
   const handleTreatmentToggle = (treatment: InvoiceTreatment) => {
     setSelectedTreatments(prev => 
-        prev.some(t => t.procedure === treatment.procedure)
-            ? prev.filter(t => t.procedure !== treatment.procedure)
+        prev.some(t => t.procedureId === treatment.procedureId)
+            ? prev.filter(t => t.procedureId !== treatment.procedureId)
             : [...prev, treatment]
     );
   }
   
   // This function is for the CommandItem onSelect
-  const handleTreatmentSelect = (procedure: string) => {
-    const treatment = availableTreatments.find(t => t.procedure === procedure);
+  const handleTreatmentSelect = (procedureId: string) => {
+    const treatment = availableTreatments.find(t => t.id === procedureId);
     if (treatment) {
-        handleTreatmentToggle(treatment);
+        handleTreatmentToggle({ procedureId: treatment.id, procedure: treatment.procedure, cost: treatment.cost });
     }
   }
 
@@ -207,9 +207,9 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
                                             <CommandGroup>
                                                 {availableTreatments.map(treatment => (
                                                     <CommandItem
-                                                        key={treatment.procedure}
+                                                        key={treatment.id}
                                                         value={treatment.procedure}
-                                                        onSelect={() => handleTreatmentSelect(treatment.procedure)}
+                                                        onSelect={() => handleTreatmentSelect(treatment.id)}
                                                         className="flex justify-between items-center cursor-pointer"
                                                     >
                                                     <div>
@@ -217,7 +217,7 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
                                                     </div>
                                                     <div className="flex items-center gap-2">
                                                             <span className="font-mono">${treatment.cost.toFixed(2)}</span>
-                                                            {selectedTreatments.some(t => t.procedure === treatment.procedure) && <Check className="h-4 w-4 text-primary" />}
+                                                            {selectedTreatments.some(t => t.procedureId === treatment.id) && <Check className="h-4 w-4 text-primary" />}
                                                     </div>
                                                     </CommandItem>
                                                 ))}
@@ -246,7 +246,7 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
                                     </TableHeader>
                                     <TableBody>
                                     {selectedTreatments.map((treatment, index) => (
-                                        <TableRow key={`${treatment.procedure}-${index}`}>
+                                        <TableRow key={`${treatment.procedureId}-${index}`}>
                                             <TableCell>{treatment.procedure} {treatment.tooth ? `(#${treatment.tooth})` : ''}</TableCell>
                                             <TableCell className="text-right">${treatment.cost.toFixed(2)}</TableCell>
                                             <TableCell>
@@ -458,5 +458,3 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
     </Dialog>
   );
 }
-
-

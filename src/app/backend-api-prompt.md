@@ -163,6 +163,7 @@ Define the database schemas for the following entities.
 **4. TreatmentPlan**
    - `id` (string, primary key)
    - `patient_id` (string, foreign key to Patient)
+   - `procedure_id` (string, foreign key to SystemTreatment)
    - `procedure` (string, required)
    - `tooth` (integer, nullable)
    - `status` (enum: 'Proposed', 'In Progress', 'Completed', 'Cancelled')
@@ -175,6 +176,7 @@ Define the database schemas for the following entities.
 {
   "id": "tp1",
   "patient_id": "p1",
+  "procedure_id": "proc-06",
   "procedure": "Crown for #48",
   "tooth": 48,
   "status": "Proposed",
@@ -245,6 +247,7 @@ Define the database schemas for the following entities.
 **InvoiceTreatment**
 ```json
 {
+    "procedure_id": "proc-02",
     "procedure": "Filling for #16",
     "cost": 250,
     "tooth": 16
@@ -270,7 +273,7 @@ Define the database schemas for the following entities.
   "due_date": "2024-06-10",
   "branch_id": "b1",
   "treatments": [
-    { "procedure": "Filling for #16", "cost": 250, "tooth": 16 }
+    { "procedure_id": "proc-02", "procedure": "Filling for #16", "cost": 250, "tooth": 16 }
   ],
   "other_charges": [
     { "description": "Late Fee", "amount": 20 }
@@ -490,6 +493,21 @@ Define the database schemas for the following entities.
 }
 ```
 
+**17. SystemTreatment**
+    - `id` (string, primary key)
+    - `procedure` (string, required)
+    - `cost` (number, required)
+
+#### Sample
+```json
+{
+  "id": "proc-01",
+  "procedure": "Regular Checkup & Cleaning",
+  "cost": 75
+}
+```
+
+
 ---
 
 ## III. API Endpoints
@@ -517,7 +535,7 @@ Define the database schemas for the following entities.
   - **Body**: `Omit<Branch, "id">`
   - **Response**: `201` with the new `Branch` object.
 - **`GET /api/treatments`**: List all system-defined treatments and their standard costs.
-  - **Response**: `200` with an array of `SystemTreatment` objects (`{ "procedure": "...", "cost": ... }`).
+  - **Response**: `200` with an array of `SystemTreatment` objects.
 - **`GET /api/dashboard/summary`**: Get key performance indicators for the dashboard.
   - **Response**: `200` with `{ "total_revenue": ..., "active_patients": ..., "new_appointments": ..., "new_patients": ... }` and monthly financial chart data.
 
@@ -592,7 +610,7 @@ Define the database schemas for the following entities.
   - **Response**: `200` with the updated `Patient` object.
 
 ### Appointments & Queue
-**Note**: A patient's position and status in the daily queue is managed directly through their `Appointment` record. There is no separate "Queue" entity.
+**Note**: A patient's position and status in the daily queue is managed directly through their `Appointment` record. The appointment's `status` field is the source of truth for the queue. There is no separate "Queue" entity.
 - **`GET /api/appointments`**: List all appointments. Supports filtering by `branch_id`, `doctor_id`, `date_range`, and a list of `statuses`.
   - **Authorization**: Receptionist, Assistant, Hygienist, Dentist, Super Admin.
   - **Response**: `200` with an array of `Appointment` objects.

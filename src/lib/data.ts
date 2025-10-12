@@ -7,24 +7,24 @@ export const branches: Branch[] = [
 ];
 
 export const treatments: SystemTreatment[] = [
-    { procedure: "Regular Checkup & Cleaning", cost: 75 },
-    { procedure: "Composite Filling", cost: 250 },
-    { procedure: "Amalgam Filling", cost: 200 },
-    { procedure: "Root Canal Therapy", cost: 1500 },
-    { procedure: "Tooth Extraction", cost: 300 },
-    { procedure: "Dental Crown", cost: 1200 },
-    { procedure: "Dental Bridge", cost: 3500 },
-    { procedure: "Dental Implant", cost: 4000 },
-    { procedure: "Single Tooth Implant", cost: 4000 },
-    { procedure: "Implant-Supported Bridge", cost: 8000 },
-    { procedure: "All-on-4 Implants", cost: 25000 },
-    { procedure: "Teeth Whitening", cost: 450 },
-    { procedure: "Veneers", cost: 1800 },
-    { procedure: "Periodontal Scaling and Root Planing", cost: 800 },
-    { procedure: "Dentures (Full)", cost: 2500 },
-    { procedure: "Dentures (Partial)", cost: 1500 },
-    { procedure: "Consultation", cost: 100 },
-    { procedure: "Emergency Exam", cost: 150 },
+    { id: "proc-01", procedure: "Regular Checkup & Cleaning", cost: 75 },
+    { id: "proc-02", procedure: "Composite Filling", cost: 250 },
+    { id: "proc-03", procedure: "Amalgam Filling", cost: 200 },
+    { id: "proc-04", procedure: "Root Canal Therapy", cost: 1500 },
+    { id: "proc-05", procedure: "Tooth Extraction", cost: 300 },
+    { id: "proc-06", procedure: "Dental Crown", cost: 1200 },
+    { id: "proc-07", procedure: "Dental Bridge", cost: 3500 },
+    { id: "proc-08", procedure: "Dental Implant", cost: 4000 },
+    { id: "proc-09", procedure: "Single Tooth Implant", cost: 4000 },
+    { id: "proc-10", procedure: "Implant-Supported Bridge", cost: 8000 },
+    { id: "proc-11", procedure: "All-on-4 Implants", cost: 25000 },
+    { id: "proc-12", procedure: "Teeth Whitening", cost: 450 },
+    { id: "proc-13", procedure: "Veneers", cost: 1800 },
+    { id: "proc-14", procedure: "Periodontal Scaling and Root Planing", cost: 800 },
+    { id: "proc-15", procedure: "Dentures (Full)", cost: 2500 },
+    { id: "proc-16", procedure: "Dentures (Partial)", cost: 1500 },
+    { id: "proc-17", procedure: "Consultation", cost: 100 },
+    { id: "proc-18", procedure: "Emergency Exam", cost: 150 },
 ];
 
 export let patients: Patient[] = [
@@ -46,10 +46,10 @@ export let patients: Patient[] = [
       { toothId: 48, condition: "Fracture", notes: "Mesial-occlusal fracture." },
     ],
     treatmentPlans: [
-      { id: "t1", procedure: "Filling for #16", tooth: 16, status: "Completed", cost: 250, date: "2024-05-10", invoiceId: "inv1" },
-      { id: "t2", procedure: "Crown for #48", tooth: 48, status: "Proposed", cost: 1200, date: "2024-06-01" },
-      { id: "t3", procedure: "Regular Checkup", status: "Completed", cost: 75, date: "2024-03-01", invoiceId: "inv4" },
-      { id: "t6", procedure: "Teeth Whitening", status: "Completed", cost: 450, date: "2024-07-20" }
+      { id: "t1", procedureId: "proc-02", procedure: "Composite Filling", tooth: 16, status: "Completed", cost: 250, date: "2024-05-10", invoiceId: "inv1" },
+      { id: "t2", procedureId: "proc-06", procedure: "Dental Crown", tooth: 48, status: "Proposed", cost: 1200, date: "2024-06-01" },
+      { id: "t3", procedureId: "proc-01", procedure: "Regular Checkup & Cleaning", status: "Completed", cost: 75, date: "2024-03-01", invoiceId: "inv4" },
+      { id: "t6", procedureId: "proc-12", procedure: "Teeth Whitening", status: "Completed", cost: 450, date: "2024-07-20" }
     ],
     imaging: [
       { url: "https://picsum.photos/seed/xray1/800/600", description: "Initial panoramic X-ray", date: "2023-01-15" },
@@ -112,7 +112,7 @@ export let patients: Patient[] = [
     branchId: "b2",
     dentalRecords: [],
     treatmentPlans: [
-      { id: "t4", procedure: "Cleaning", status: "Completed", cost: 150, date: "2024-04-22", invoiceId: "inv2" },
+      { id: "t4", procedureId: "proc-01", procedure: "Regular Checkup & Cleaning", status: "Completed", cost: 150, date: "2024-04-22", invoiceId: "inv2" },
     ],
     imaging: [
         { url: "https://picsum.photos/seed/xray7/800/600", description: "Annual Bitewing", date: "2024-04-22" },
@@ -181,7 +181,7 @@ export let patients: Patient[] = [
     branchId: "b2",
     dentalRecords: [],
     treatmentPlans: [
-      { id: "t5", procedure: "Filling", status: "Completed", cost: 300, date: "2024-07-15", invoiceId: "inv3" }
+      { id: "t5", procedureId: "proc-02", procedure: "Composite Filling", status: "Completed", cost: 300, date: "2024-07-15", invoiceId: "inv3" }
     ],
     imaging: [],
     history: "New patient.",
@@ -243,7 +243,7 @@ export let invoices: Invoice[] = [
     issueDate: "2024-05-10", 
     dueDate: "2024-06-10", 
     branchId: "b1", 
-    treatments: [{ procedure: 'Filling for #16', cost: 250}], 
+    treatments: [{ procedureId: "proc-02", procedure: 'Composite Filling', cost: 250}], 
     otherCharges: [], 
     paymentMethod: 'Insurance',
     transactions: [
@@ -260,7 +260,7 @@ export let invoices: Invoice[] = [
     issueDate: "2024-04-22", 
     dueDate: "2024-05-22", 
     branchId: "b2", 
-    treatments: [{ procedure: 'Cleaning', cost: 150}], 
+    treatments: [{ procedureId: "proc-01", procedure: 'Regular Checkup & Cleaning', cost: 150}], 
     otherCharges: [], 
     paymentMethod: 'Credit Card',
     transactions: [
@@ -277,7 +277,7 @@ export let invoices: Invoice[] = [
     issueDate: "2024-07-15", 
     dueDate: "2024-08-15", 
     branchId: "b2", 
-    treatments: [{ procedure: 'Filling', cost: 300}], 
+    treatments: [{ procedureId: "proc-02", procedure: 'Composite Filling', cost: 300}], 
     otherCharges: [], 
     paymentMethod: 'Cash',
     transactions: [
@@ -294,7 +294,7 @@ export let invoices: Invoice[] = [
     issueDate: "2024-03-01", 
     dueDate: "2024-04-01", 
     branchId: "b1", 
-    treatments: [{ procedure: 'Regular Checkup', cost: 75}], 
+    treatments: [{ procedureId: "proc-01", procedure: 'Regular Checkup & Cleaning', cost: 75}], 
     otherCharges: [{ description: 'Late Fee', amount: 20 }],
     transactions: []
   },

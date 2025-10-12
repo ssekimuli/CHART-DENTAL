@@ -3,6 +3,7 @@
 
 
 
+
 export type ExpenseCategory = 'Supplies' | 'Rent' | 'Utilities' | 'Salaries' | 'Marketing' | 'Maintenance' | 'Other';
 
 export type Expense = {
@@ -49,6 +50,7 @@ export type DentalRecord = {
 
 export type Treatment = {
   id: string;
+  procedureId: string;
   procedure: string;
   tooth?: number;
   status: 'Proposed' | 'In Progress' | 'Completed' | 'Cancelled';
@@ -60,6 +62,7 @@ export type Treatment = {
 // This represents a treatment item on an invoice. It may or may not correspond
 // to a pre-existing treatment plan item.
 export type InvoiceTreatment = {
+  procedureId: string;
   procedure: string;
   cost: number;
   tooth?: number;
@@ -248,6 +251,7 @@ export type OrthodonticRecord = {
 };
 
 export type SystemTreatment = {
+    id: string;
     procedure: string;
     cost: number;
 };

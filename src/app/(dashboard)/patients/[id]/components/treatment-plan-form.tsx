@@ -37,9 +37,8 @@ import { Combobox } from "@/components/ui/combobox";
 import { getTreatments } from "@/lib/api";
 
 const formSchema = z.object({
-  procedure: z.string().min(2, {
-    message: "Procedure must be at least 2 characters.",
-  }),
+  procedureId: z.string().min(1, "Procedure is required."),
+  procedure: z.string().optional(),
   tooth: z.coerce.number().optional(),
   status: z.enum(['Proposed', 'In Progress', 'Completed', 'Cancelled']),
   cost: z.coerce.number().positive({ message: "Cost must be a positive number."}),
@@ -60,7 +59,7 @@ export function TreatmentPlanForm({ treatment, onSave, onOpenChange, toothId, cu
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      procedure: treatment?.procedure ?? "",
+      procedureId: treatment?.procedureId ?? "",
       status: treatment?.status ?? 'Proposed',
       tooth: treatment?.tooth ?? toothId,
       cost: treatment?.cost,
@@ -76,18 +75,25 @@ export function TreatmentPlanForm({ treatment, onSave, onOpenChange, toothId, cu
     fetchTreatments();
   }, [])
   
-  const selectedProcedure = form.watch("procedure");
+  const selectedProcedureId = form.watch("procedureId");
   useEffect(() => {
-    if (selectedProcedure) {
-        const matchingTreatment = systemTreatments.find(t => t.procedure === selectedProcedure);
-        if (matchingTreatment && !form.getValues('cost')) {
+    if (selectedProcedureId) {
+        const matchingTreatment = systemTreatments.find(t => t.id === selectedProcedureId);
+        if (matchingTreatment) {
             form.setValue('cost', matchingTreatment.cost);
+            form.setValue('procedure', matchingTreatment.procedure);
         }
     }
-  }, [selectedProcedure, systemTreatments, form])
+  }, [selectedProcedureId, systemTreatments, form])
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    onSave(values, values.condition);
+    const selectedSystemTreatment = systemTreatments.find(t => t.id === values.procedureId);
+    if (!selectedSystemTreatment) return;
+
+    onSave({
+        ...values,
+        procedure: selectedSystemTreatment.procedure,
+    }, values.condition);
   }
 
   const isEditing = !!treatment;
@@ -105,13 +111,13 @@ export function TreatmentPlanForm({ treatment, onSave, onOpenChange, toothId, cu
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                     <FormField
                       control={form.control}
-                      name="procedure"
+                      name="procedureId"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Procedure</FormLabel>
                           <FormControl>
                             <Combobox
-                                options={systemTreatments.map(t => ({ value: t.procedure, label: t.procedure }))}
+                                options={systemTreatments.map(t => ({ value: t.id, label: `${t.procedure} ($${t.cost})` }))}
                                 value={field.value}
                                 onChange={(value) => {
                                   field.onChange(value);
