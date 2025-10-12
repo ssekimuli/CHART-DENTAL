@@ -112,7 +112,7 @@ export default function ProfilePage() {
         return <div>Could not load user profile.</div>;
     }
     
-    const { employee, stats, payrolls } = profileData;
+    const { employee, stats } = profileData;
 
     return (
     <>
@@ -243,7 +243,7 @@ export default function ProfilePage() {
                             <CardDescription>Your past salary payments.</CardDescription>
                         </CardHeader>
                         <CardContent>
-                           <PayrollTable data={payrolls} />
+                           <PayrollTable data={profileData.payrolls} />
                         </CardContent>
                     </Card>
                 </TabsContent>
@@ -327,3 +327,4 @@ export default function ProfilePage() {
 }
 
     
+
