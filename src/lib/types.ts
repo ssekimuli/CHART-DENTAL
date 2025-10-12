@@ -1,10 +1,5 @@
 
 
-
-
-
-
-
 export type ExpenseCategory = 'Supplies' | 'Rent' | 'Utilities' | 'Salaries' | 'Marketing' | 'Maintenance' | 'Other';
 
 export type Expense = {
@@ -131,7 +126,7 @@ export type Employee = {
   email: string;
   role: EmployeeRole;
   status: 'Active' | 'On Leave';
-  salary: number;
+  salary: number | string;
   hireDate: string;
   branchId: string;
 };
@@ -141,9 +136,9 @@ export type Payroll = {
   employeeId: string;
   employeeName: string;
   payPeriod: string;
-  grossPay: number;
-  netPay: number;
-  deductions: number;
+  grossPay: number | string;
+  netPay: number | string;
+  deductions: number | string;
   payDate: string;
   status: 'Paid' | 'Pending';
   branchId: string;
@@ -333,7 +328,9 @@ export type ProfileDataStats = {
 }
 
 export type ProfileData = {
-    employee: Employee;
+    employee: Employee & {
+        appointments: Appointment[];
+    };
     stats: ProfileDataStats;
     payrolls: Payroll[];
 }

@@ -218,7 +218,7 @@ export default function ProfilePage() {
                                             </TableRow>
                                         ) : stats.recentAppointments.map(app => (
                                             <TableRow key={app.id}>
-                                                <TableCell>{app.date}</TableCell>
+                                                <TableCell>{app.date.split('T')[0]}</TableCell>
                                                 <TableCell>{app.patientName}</TableCell>
                                                 <TableCell>{app.treatment}</TableCell>
                                                 <TableCell><Badge variant="outline">{app.status}</Badge></TableCell>
