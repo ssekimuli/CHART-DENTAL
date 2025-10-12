@@ -34,7 +34,7 @@ export const login = async (email: string, password?: string): Promise<CurrentUs
     console.log('API CALL: login', { email });
     
     try {
-        const response = await customAxios.post('/api/login', { email, password });
+        const response = await customAxios.post('/login', { email, password });
         const { user, token } = response.data;
         setCurrentUser(user, token);
         return user;
@@ -52,7 +52,7 @@ export const login = async (email: string, password?: string): Promise<CurrentUs
 export const getProfileData = async (): Promise<ProfileData | null> => {
     console.log('API CALL: getProfileData');
     try {
-        const response = await customAxios.get('/api/profile');
+        const response = await customAxios.get('/profile');
         return response.data;
     } catch (error) {
         if (axios.isAxiosError(error)) {
