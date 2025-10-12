@@ -49,7 +49,7 @@ export function PayrollTable({ data }: { data: Payroll[] }) {
               </TableCell>
               <TableCell>{payroll.payDate}</TableCell>
               <TableCell className="text-right">
-                ${payroll.netPay.toFixed(2)}
+                ${Number(payroll.netPay).toFixed(2)}
               </TableCell>
             </TableRow>
           ))}
