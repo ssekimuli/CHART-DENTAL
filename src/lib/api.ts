@@ -20,7 +20,8 @@ import type { Patient, Appointment, Invoice, ChartData, Employee, Payroll, Branc
 import type { DateRange } from 'react-day-picker';
 import { format, parse } from "date-fns";
 import { speak } from '@/ai/flows/speak';
-import { clearCurrentUser, setCurrentUser } from './user';
+import { clearCurrentUser, getAuthToken, setCurrentUser } from './user';
+import customAxios from './axios';
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
@@ -51,29 +52,16 @@ export const login = async (email: string, password?: string): Promise<CurrentUs
     }
 
     try {
-        const response = await fetch(`${BACKEND_URL}/login`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Accept": "application/json",
-            },
-            body: JSON.stringify({ email, password }),
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-            console.error('Login failed:', data);
-            clearCurrentUser();
-            return null;
-        }
-
-        const { user, token } = data;
+        const response = await customAxios.post('/login', { email, password });
+        const { user, token } = response.data;
         setCurrentUser(user, token);
         return user;
-
     } catch (error) {
-        console.error("An error occurred during login:", error);
+        if (axios.isAxiosError(error)) {
+            console.error('Login failed:', error.response?.data);
+        } else {
+            console.error("An unexpected error occurred during login:", error);
+        }
         clearCurrentUser();
         return null;
     }
@@ -429,7 +417,7 @@ export const addImageToPatient = async (patientId: string, image: Omit<PatientIm
 }
 
 export const saveDentalRecord = async (patientId: string, record: DentalRecord): Promise<Patient | undefined> => {
-    console.log('API CALL: saveDentalRecord', { patientId, record });
+    console.log('API CALL: saveDentalRecord. Request Body:', { patientId, record });
     await delay(150);
     const patientIndex = allPatients.findIndex(p => p.id === patientId);
     if (patientIndex > -1) {
