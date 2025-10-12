@@ -66,7 +66,7 @@ export default function DashboardPage() {
       setIsLoading(false);
     };
     fetchData();
-  }, []);
+  }, [selectedBranch]);
 
   const { recentPatients, appointments, chartData, totalRevenue, activePatients, newAppointments, newPatients } = useMemo(() => {
     const today = new Date();
@@ -307,5 +307,7 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
 
     

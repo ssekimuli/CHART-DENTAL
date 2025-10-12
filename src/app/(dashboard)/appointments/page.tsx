@@ -77,7 +77,7 @@ export default function AppointmentsPage() {
         setIsLoading(false);
     };
     fetchData();
-  }, []);
+  }, [selectedBranch]);
 
   const filteredPatients = useMemo(() => {
      if (currentUser.role === 'Super Admin') {
@@ -369,6 +369,8 @@ export default function AppointmentsPage() {
     </>
   );
 }
+
+    
 
     
 

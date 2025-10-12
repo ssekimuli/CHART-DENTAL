@@ -48,7 +48,7 @@ export default function EmployeesPage() {
             setIsLoading(false);
         };
         fetchData();
-    }, []);
+    }, [selectedBranch]);
 
     const employees = useMemo(() => {
         if (currentUser.role === 'Super Admin') {
@@ -158,3 +158,5 @@ export default function EmployeesPage() {
     </>
   );
 }
+
+    

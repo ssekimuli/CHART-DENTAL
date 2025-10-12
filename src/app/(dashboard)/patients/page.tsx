@@ -47,7 +47,7 @@ export default function PatientsPage() {
         setIsLoading(false);
     }
     fetchData();
-  }, []);
+  }, [selectedBranch]);
 
   const patients = useMemo(() => {
     if (currentUser.role === 'Super Admin') {
@@ -160,3 +160,5 @@ export default function PatientsPage() {
     </>
   );
 }
+
+    
