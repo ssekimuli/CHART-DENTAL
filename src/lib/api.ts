@@ -17,9 +17,10 @@ import {
     expenses as allExpenses,
     roles
 } from '@/lib/data';
-import type { Patient, Appointment, Invoice, ChartData, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, BasePatient, InvoiceTreatment, OtherCharge, SystemTreatment, PaymentMethod, PaymentTransaction, AttendanceRecord, LeaveRequest, StaffAdvance, StaffAdvanceStatus, Expense, ExpenseCategory, RolePermissions, Permission, DentalRecord, PeriodontalRecord, OcclusalRecord, SoftTissueRecord, OrthodonticRecord, Treatment, DentalCondition, PatientImage, FinancialSummary, CurrentUser, ProfileData } from '@/lib/types';
+import type { Patient, Appointment, Invoice, ChartData, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, BasePatient, InvoiceTreatment, OtherCharge, SystemTreatment, PaymentMethod, PaymentTransaction, AttendanceRecord, LeaveRequest, StaffAdvance, StaffAdvanceStatus, Expense, ExpenseCategory, RolePermissions, Permission, DentalRecord, PeriodontalRecord, OcclusalRecord, SoftTissueRecord, OrthodonticRecord, Treatment, DentalCondition, PatientImage, FinancialSummary, CurrentUser, ProfileData, AppointmentStatus } from '@/lib/types';
 import type { DateRange } from 'react-day-picker';
 import { format, parse } from "date-fns";
+import { speak } from '@/ai/flows/speak';
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -810,4 +811,17 @@ export const updateRole = async (roleId: string, permissions: Permission[]): Pro
         return roles[roleIndex];
     }
     return undefined;
+}
+
+// Queue
+export const announcePatientInQueue = async (appointmentId: string): Promise<{audio_url?: string}> => {
+    const appointment = allAppointments.find(a => a.id === appointmentId);
+    if (!appointment) {
+        throw new Error("Appointment not found");
+    }
+
+    const announcementText = `Token number ${appointment.tokenNumber.split('').join(' ')}, please proceed to the doctor's room.`;
+    const audio = await speak(announcementText);
+
+    return { audio_url: audio.media };
 }

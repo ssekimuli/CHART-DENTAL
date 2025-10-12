@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import type { Appointment, Employee, AppointmentStatus } from "@/lib/types";
-import { getAppointments, getEmployees, updateAppointment } from "@/lib/api";
+import { getAppointments, getEmployees, updateAppointment, announcePatientInQueue } from "@/lib/api";
 import { useBranch } from "@/context/branch-context";
 import { currentUser } from "@/lib/user";
 import { format } from "date-fns";
@@ -20,7 +20,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Clock, UserCheck, CheckCircle, PauseCircle, Ban, Loader2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useRouter } from "next/navigation";
-import { speak } from "@/ai/flows/speak";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 type StatusColumn = {
@@ -114,10 +113,9 @@ export default function QueuePage() {
     const handleAnnounce = (appointment: Appointment) => {
         setCurrentlySpeaking(appointment.id);
         startTransition(async () => {
-            const announcement = `Token number ${appointment.tokenNumber}`;
-            const audio = await speak(announcement);
-            if (audio?.media) {
-                const audioPlayer = new Audio(audio.media);
+            const { audio_url } = await announcePatientInQueue(appointment.id);
+            if (audio_url) {
+                const audioPlayer = new Audio(audio_url);
                 audioPlayer.play();
                 audioPlayer.onended = () => setCurrentlySpeaking(null);
             } else {
