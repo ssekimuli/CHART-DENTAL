@@ -1,3 +1,6 @@
+
+"use client";
+
 import type { Metadata } from "next";
 import { cn } from "@/lib/utils";
 import {
@@ -16,17 +19,38 @@ import { ToothIcon } from "@/components/icons/tooth-icon";
 import { BranchProvider } from "@/context/branch-context";
 import { BranchSwitcher } from "@/components/dashboard/branch-switcher";
 import { PatientSearch } from "@/components/dashboard/patient-search";
-
-export const metadata: Metadata = {
-  title: "Dentio",
-  description: "Advanced Dental Charting and Practice Management",
-};
+import { useEffect, useState } from "react";
+import { getAuthToken } from "@/lib/user";
+import { useRouter } from "next/navigation";
+import { Loader2 } from "lucide-react";
 
 export default function DashboardLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const router = useRouter();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const token = getAuthToken();
+    if (token) {
+      setIsAuthenticated(true);
+    } else {
+      router.replace("/login");
+    }
+    setIsLoading(false);
+  }, [router]);
+
+  if (isLoading || !isAuthenticated) {
+    return (
+        <div className="flex h-screen w-full items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+    );
+  }
+
   return (
         <BranchProvider>
           <SidebarProvider>
