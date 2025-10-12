@@ -47,7 +47,7 @@ export function PayrollTable({ data }: { data: Payroll[] }) {
                   {payroll.status}
                 </Badge>
               </TableCell>
-              <TableCell>{payroll.payDate.split('T')[0]}</TableCell>
+              <TableCell>{payroll.payDate ? payroll.payDate.split('T')[0] : ''}</TableCell>
               <TableCell className="text-right">
                 ${Number(payroll.netPay).toFixed(2)}
               </TableCell>
