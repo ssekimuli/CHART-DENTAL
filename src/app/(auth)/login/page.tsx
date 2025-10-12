@@ -9,54 +9,81 @@ import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { ToothIcon } from "@/components/icons/tooth-icon";
 import { login } from "@/lib/api";
-import { setCurrentUser } from "@/lib/user";
 import Link from "next/link";
 
 export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState("lisa.cuddy@example.com");
+  const [password, setPassword] = useState("password");
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = async () => {
+    setIsLoading(true);
     if (!email || !password) {
       toast({
         variant: "destructive",
         title: "Login Failed",
         description: "Please enter both email and password.",
       });
+      setIsLoading(false);
       return;
     }
     
-    const loggedInUser = await login(email, password);
+    try {
+      const loggedInUser = await login(email, password);
 
-    if (loggedInUser) {
-       setCurrentUser(loggedInUser);
+      if (loggedInUser) {
+        toast({
+          title: "Login Successful",
+          description: `Welcome back, ${loggedInUser.name}!`,
+        });
+        router.push("/dashboard");
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Login Failed",
+          description: "Invalid email or password.",
+        });
+      }
+    } catch (error) {
        toast({
-        title: "Login Successful",
-        description: `Welcome back, ${loggedInUser.name}!`,
-      });
-      router.push("/dashboard");
-    } else {
-      toast({
         variant: "destructive",
-        title: "Login Failed",
-        description: "Invalid email or password.",
+        title: "Login Error",
+        description: "An unexpected error occurred. Please try again.",
       });
+    } finally {
+        setIsLoading(false);
     }
   };
 
   const handleGoogleSignIn = async () => {
+    setIsLoading(true);
     // In a real app, this would trigger the Google Sign-In flow.
     // For this prototype, we'll log in as the default super admin.
-    const loggedInUser = await login("lisa.cuddy@example.com", "password");
-     if (loggedInUser) {
-        setCurrentUser(loggedInUser);
-        toast({
-            title: "Login Successful",
-            description: `Welcome back, ${loggedInUser.name}!`,
+    try {
+      const loggedInUser = await login("lisa.cuddy@example.com", "password");
+      if (loggedInUser) {
+          toast({
+              title: "Login Successful",
+              description: `Welcome back, ${loggedInUser.name}!`,
+          });
+          router.push("/dashboard");
+      } else {
+         toast({
+          variant: "destructive",
+          title: "Login Failed",
+          description: "Could not log in with default user.",
         });
-        router.push("/dashboard");
+      }
+    } catch (error) {
+       toast({
+        variant: "destructive",
+        title: "Login Error",
+        description: "An unexpected error occurred. Please try again.",
+      });
+    } finally {
+        setIsLoading(false);
     }
   };
 
@@ -94,6 +121,7 @@ export default function LoginPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                disabled={isLoading}
               />
             </div>
             <div className="grid gap-2">
@@ -113,12 +141,13 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
+                disabled={isLoading}
               />
             </div>
-            <Button type="submit" className="w-full" onClick={handleLogin}>
-              Login
+            <Button type="submit" className="w-full" onClick={handleLogin} disabled={isLoading}>
+              {isLoading ? 'Logging in...' : 'Login'}
             </Button>
-            <Button variant="outline" className="w-full" onClick={handleGoogleSignIn}>
+            <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isLoading}>
               Login with Google
             </Button>
           </div>

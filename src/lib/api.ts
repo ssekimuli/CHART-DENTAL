@@ -20,27 +20,63 @@ import type { Patient, Appointment, Invoice, ChartData, Employee, Payroll, Branc
 import type { DateRange } from 'react-day-picker';
 import { format, parse } from "date-fns";
 import { speak } from '@/ai/flows/speak';
+import { clearCurrentUser, setCurrentUser } from './user';
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
 
 // --- READ OPERATIONS ---
 
 export const login = async (email: string, password?: string): Promise<CurrentUser | null> => {
     console.log('API CALL: login', { email });
-    await delay(200);
-    const employee = allEmployees.find(emp => emp.email === email);
-    // For this prototype, we accept any login if password is "password"
-    if (employee && password === "password") {
-        return {
-            role: employee.role,
-            branchId: employee.branchId,
-            email: employee.email,
-            name: employee.name,
-            avatar: employee.avatar,
-        };
+
+    if (!BACKEND_URL) {
+        console.error("BACKEND_URL is not set. Using mock data.");
+        // Fallback to mock data if backend URL is not set
+        await delay(200);
+        const employee = allEmployees.find(emp => emp.email === email);
+        if (employee && password === "password") {
+            const user = {
+                role: employee.role,
+                branchId: employee.branchId,
+                email: employee.email,
+                name: employee.name,
+                avatar: employee.avatar,
+            };
+            setCurrentUser(user, 'mock-token');
+            return user;
+        }
+        return null;
     }
-    return null;
+
+    try {
+        const response = await fetch(`${BACKEND_URL}/login`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+            },
+            body: JSON.stringify({ email, password }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            console.error('Login failed:', data);
+            clearCurrentUser();
+            return null;
+        }
+
+        const { user, token } = data;
+        setCurrentUser(user, token);
+        return user;
+
+    } catch (error) {
+        console.error("An error occurred during login:", error);
+        clearCurrentUser();
+        return null;
+    }
 }
 
 export const getProfileData = async (userEmail: string): Promise<ProfileData | null> => {

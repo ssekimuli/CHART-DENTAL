@@ -18,23 +18,32 @@ export function getCurrentUser(): CurrentUser | null {
         try {
             return JSON.parse(userJson);
         } catch (e) {
-            return defaultUser;
+            return null; // Return null if parsing fails
         }
     }
-    return defaultUser;
+    return null;
 }
 
-export function setCurrentUser(user: CurrentUser): void {
+export function setCurrentUser(user: CurrentUser, token: string): void {
     if (typeof window !== 'undefined') {
         localStorage.setItem('currentUser', JSON.stringify(user));
+        localStorage.setItem('authToken', token);
     }
+}
+
+export function getAuthToken(): string | null {
+    if (typeof window === 'undefined') {
+        return null;
+    }
+    return localStorage.getItem('authToken');
 }
 
 export function clearCurrentUser(): void {
     if (typeof window !== 'undefined') {
         localStorage.removeItem('currentUser');
+        localStorage.removeItem('authToken');
     }
 }
 
-// Fallback for server-side rendering
+// Fallback for server-side rendering, although it should ideally be null until client-side hydration
 export const currentUser = getCurrentUser() || defaultUser;
