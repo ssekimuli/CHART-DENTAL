@@ -69,15 +69,21 @@ export type AppointmentStatus = "Scheduled" | "Completed" | "Cancelled" | "Waiti
 
 export type Appointment = {
   id: string | number;
+  patient_name?: string;
   patientName: string;
+  patient_id?: string | number;
   patientId: string | number;
+  doctor_name?: string;
   doctorName: string;
+  doctor_id?: string | number;
   doctorId: string | number;
   treatment: string;
   status: AppointmentStatus;
   date: string;
   time: string;
+  branch_id?: string | number;
   branchId: string | number;
+  token_number?: string;
   tokenNumber: string;
 };
 
@@ -131,6 +137,7 @@ export type Employee = {
   branch_id: string | number;
   payrolls?: Payroll[];
   appointments?: Appointment[];
+  attendance?: AttendanceRecord[];
 };
 
 export type Payroll = {
@@ -307,7 +314,7 @@ export type Permission =
   | 'profile:read' | 'profile:update';
 
 export type RolePermissions = {
-    id: EmployeeRole;
+    id: string | number;
     name: string;
     permissions: Permission[];
 };

@@ -18,7 +18,7 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Checkbox } from "@/components/ui/checkbox";
-import type { RolePermissions, Permission } from "@/lib/types";
+import type { RolePermissions, Permission, EmployeeRole } from "@/lib/types";
 import { getRoles, updateRole } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -222,7 +222,7 @@ export default function SettingsPage() {
                     <div className="flex flex-col gap-1">
                         {roles.map(role => (
                              <Button
-                                key={role.id}
+                                key={role.name}
                                 variant={selectedRole?.id === role.id ? "secondary" : "ghost"}
                                 className="w-full justify-start"
                                 onClick={() => setSelectedRole(role)}

@@ -15,7 +15,7 @@ import {
     leaveRequests as allLeaveRequests,
     staffAdvances as allStaffAdvances,
     expenses as allExpenses,
-    roles
+    roles as mockRoles
 } from '@/lib/data';
 import type { Patient, Appointment, Invoice, ChartData, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, BasePatient, InvoiceTreatment, OtherCharge, SystemTreatment, PaymentMethod, PaymentTransaction, AttendanceRecord, LeaveRequest, StaffAdvance, StaffAdvanceStatus, Expense, ExpenseCategory, RolePermissions, Permission, DentalRecord, PeriodontalRecord, OcclusalRecord, SoftTissueRecord, OrthodonticRecord, Treatment, DentalCondition, PatientImage, FinancialSummary, CurrentUser, ProfileData, AppointmentStatus } from '@/lib/types';
 import type { DateRange } from 'react-day-picker';
@@ -108,7 +108,7 @@ export const getAppointments = async (): Promise<Appointment[]> => {
 }
 
 type GetInvoicesFilters = {
-    branchId?: string;
+    branchId?: string | number;
     searchQuery?: string;
     dateRange?: DateRange;
 };
@@ -153,7 +153,7 @@ export const getInvoiceById = async (id: string): Promise<Invoice | undefined> =
     return JSON.parse(JSON.stringify(allInvoices.find(i => i.id.toString() === id)));
 }
 
-export const getEmployees = async (branchId?: string): Promise<Employee[]> => {
+export const getEmployees = async (branchId?: string | number): Promise<Employee[]> => {
     console.log('API CALL: getEmployees', { branchId });
     await delay(100);
     let localEmployees = allEmployees;
@@ -170,7 +170,7 @@ export const getEmployeeById = async (id: string): Promise<Employee | undefined>
     return JSON.parse(JSON.stringify(allEmployees.find(e => e.id.toString() === id || e.email === id)));
 }
 
-export const getPayrolls = async (branchId?: string): Promise<Payroll[]> => {
+export const getPayrolls = async (branchId?: string | number): Promise<Payroll[]> => {
     console.log('API CALL: getPayrolls', { branchId });
     await delay(250);
     let localPayrolls = allPayrolls;
@@ -180,7 +180,7 @@ export const getPayrolls = async (branchId?: string): Promise<Payroll[]> => {
     return JSON.parse(JSON.stringify(localPayrolls));
 }
 
-export const getInventory = async (branchId?: string): Promise<InventoryItem[]> => {
+export const getInventory = async (branchId?: string | number): Promise<InventoryItem[]> => {
     console.log('API CALL: getInventory', { branchId });
     await delay(100);
     let localInventory = inventory;
@@ -190,7 +190,7 @@ export const getInventory = async (branchId?: string): Promise<InventoryItem[]> 
     return JSON.parse(JSON.stringify(localInventory));
 }
 
-export const getLabOrders = async (branchId?: string): Promise<LaboratoryOrder[]> => {
+export const getLabOrders = async (branchId?: string | number): Promise<LaboratoryOrder[]> => {
     console.log('API CALL: getLabOrders', { branchId });
     await delay(150);
     let localLabOrders = allLabOrders;
@@ -212,7 +212,7 @@ export const getTreatments = async (): Promise<SystemTreatment[]> => {
     return JSON.parse(JSON.stringify(allTreatments));
 }
 
-export const getAttendance = async (branchId?: string): Promise<AttendanceRecord[]> => {
+export const getAttendance = async (branchId?: string | number): Promise<AttendanceRecord[]> => {
     console.log('API CALL: getAttendance', { branchId });
     await delay(150);
     let localAttendance = allAttendance;
@@ -222,27 +222,27 @@ export const getAttendance = async (branchId?: string): Promise<AttendanceRecord
     return JSON.parse(JSON.stringify(localAttendance));
 }
 
-export const getLeaveRequests = async (branchId?: string): Promise<LeaveRequest[]> => {
+export const getLeaveRequests = async (branchId?: string | number): Promise<LeaveRequest[]> => {
     console.log('API CALL: getLeaveRequests', { branchId });
     await delay(150);
     let localLeaveRequests = allLeaveRequests;
     if (branchId) {
-        localLeaveRequests = localLeaveRequests.filter(l => l.branchId.toString() === branchId);
+        localLeaveRequests = localLeaveRequests.filter(l => l.branchId.toString() === branchId.toString());
     }
     return JSON.parse(JSON.stringify(localLeaveRequests));
 }
 
-export const getStaffAdvances = async (branchId?: string): Promise<StaffAdvance[]> => {
+export const getStaffAdvances = async (branchId?: string | number): Promise<StaffAdvance[]> => {
     console.log('API CALL: getStaffAdvances', { branchId });
     await delay(150);
     let localAdvances = allStaffAdvances;
     if (branchId) {
-        localAdvances = localAdvances.filter(s => s.branchId.toString() === branchId);
+        localAdvances = localAdvances.filter(s => s.branchId.toString() === branchId.toString());
     }
     return JSON.parse(JSON.stringify(localAdvances));
 }
 
-export const getExpenses = async (branchId?: string): Promise<Expense[]> => {
+export const getExpenses = async (branchId?: string | number): Promise<Expense[]> => {
     console.log('API CALL: getExpenses', { branchId });
     await delay(150);
     let localExpenses = allExpenses;
@@ -254,17 +254,28 @@ export const getExpenses = async (branchId?: string): Promise<Expense[]> => {
 
 export const getRoles = async (): Promise<RolePermissions[]> => {
     console.log('API CALL: getRoles');
-    await delay(100);
-    return JSON.parse(JSON.stringify(roles));
+    try {
+        const response = await customAxios.get('/settings/roles');
+        return response.data.data;
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            console.error('Failed to fetch roles:', error.response?.data);
+        } else {
+            console.error("An unexpected error occurred while fetching roles:", error);
+        }
+        // Fallback to mock data on error
+        return JSON.parse(JSON.stringify(mockRoles));
+    }
 }
 
-export const getFinancialSummary = async (branchId: string): Promise<FinancialSummary> => {
+
+export const getFinancialSummary = async (branchId: string | number): Promise<FinancialSummary> => {
     console.log('API CALL: getFinancialSummary', { branchId });
     await delay(300);
 
-    const branchInvoices = allInvoices.filter(i => i.branchId.toString() === branchId);
-    const branchPayrolls = allPayrolls.filter(p => p.branch_id.toString() === branchId);
-    const branchExpenses = allExpenses.filter(e => e.branchId.toString() === branchId);
+    const branchInvoices = allInvoices.filter(i => i.branchId.toString() === branchId.toString());
+    const branchPayrolls = allPayrolls.filter(p => p.branch_id.toString() === branchId.toString());
+    const branchExpenses = allExpenses.filter(e => e.branchId.toString() === branchId.toString());
     
     const paidInvoices = branchInvoices.filter(i => i.status === 'Paid');
     const totalIncome = paidInvoices.reduce((sum, i) => sum + i.amount, 0);
@@ -886,13 +897,13 @@ export const createExpense = async (data: Omit<Expense, 'id'>): Promise<Expense>
 
 
 // Roles
-export const updateRole = async (roleId: string, permissions: Permission[]): Promise<RolePermissions | undefined> => {
+export const updateRole = async (roleId: string | number, permissions: Permission[]): Promise<RolePermissions | undefined> => {
     console.log('API CALL: updateRole', { roleId, permissions });
     await delay(200);
-    const roleIndex = roles.findIndex(r => r.id === roleId);
+    const roleIndex = mockRoles.findIndex(r => r.id === roleId);
     if (roleIndex > -1) {
-        roles[roleIndex] = { ...roles[roleIndex], permissions };
-        return roles[roleIndex];
+        mockRoles[roleIndex] = { ...mockRoles[roleIndex], permissions };
+        return mockRoles[roleIndex];
     }
     return undefined;
 }
