@@ -3,8 +3,8 @@
 export type ExpenseCategory = 'Supplies' | 'Rent' | 'Utilities' | 'Salaries' | 'Marketing' | 'Maintenance' | 'Other';
 
 export type Expense = {
-    id: string;
-    branchId: string;
+    id: string | number;
+    branchId: string | number;
     date: string;
     category: ExpenseCategory;
     description: string;
@@ -12,7 +12,7 @@ export type Expense = {
 };
 
 export type Patient = {
-  id: string;
+  id: string | number;
   name: string;
   avatar: string;
   email: string;
@@ -23,7 +23,7 @@ export type Patient = {
   treatmentPlans: Treatment[];
   imaging: PatientImage[];
   history: string;
-  branchId: string;
+  branchId: string | number;
   periodontalRecords: PeriodontalRecord;
   occlusalRecords: OcclusalRecord;
   softTissueRecords: SoftTissueRecord[];
@@ -45,20 +45,20 @@ export type DentalRecord = {
 };
 
 export type Treatment = {
-  id: string;
-  procedureId: string;
+  id: string | number;
+  procedureId: string | number;
   procedure: string;
   tooth?: number;
   status: 'Proposed' | 'In Progress' | 'Completed' | 'Cancelled';
   cost: number;
   date: string;
-  invoiceId?: string;
+  invoiceId?: string | number;
 };
 
 // This represents a treatment item on an invoice. It may or may not correspond
 // to a pre-existing treatment plan item.
 export type InvoiceTreatment = {
-  procedureId: string;
+  procedureId: string | number;
   procedure: string;
   cost: number;
   tooth?: number;
@@ -68,16 +68,16 @@ export type InvoiceTreatment = {
 export type AppointmentStatus = "Scheduled" | "Completed" | "Cancelled" | "Waiting" | "In Session" | "On Hold";
 
 export type Appointment = {
-  id: string;
+  id: string | number;
   patientName: string;
-  patientId: string;
+  patientId: string | number;
   doctorName: string;
-  doctorId: string;
+  doctorId: string | number;
   treatment: string;
   status: AppointmentStatus;
   date: string;
   time: string;
-  branchId: string;
+  branchId: string | number;
   tokenNumber: string;
 };
 
@@ -89,22 +89,22 @@ export type OtherCharge = {
 export type PaymentMethod = 'Cash' | 'Credit Card' | 'Insurance' | 'Bank Transfer';
 
 export type PaymentTransaction = {
-  id: string;
+  id: string | number;
   date: string;
   amount: number;
   method: PaymentMethod;
 };
 
 export type Invoice = {
-  id: string;
+  id: string | number;
   patientName: string;
-  patientId: string;
+  patientId: string | number;
   amount: number;
   paidAmount: number;
   status: 'Paid' | 'Pending' | 'Overdue';
   issueDate: string;
   dueDate: string;
-  branchId: string;
+  branchId: string | number;
   treatments: InvoiceTreatment[];
   otherCharges?: OtherCharge[];
   paymentMethod?: PaymentMethod;
@@ -120,7 +120,7 @@ export type ChartData = {
 export type EmployeeRole = 'Super Admin' | 'Account' | 'HR' | 'Dentist' | 'Hygienist' | 'Receptionist' | 'Assistant';
 
 export type Employee = {
-  id: string;
+  id: string | number;
   name: string;
   avatar: string;
   email: string;
@@ -128,12 +128,12 @@ export type Employee = {
   status: 'Active' | 'On Leave';
   salary: number | string;
   hireDate: string;
-  branchId: string;
+  branchId: string | number;
 };
 
 export type Payroll = {
-  id: string;
-  employeeId: string;
+  id: string | number;
+  employeeId: string | number;
   employeeName: string;
   payPeriod: string;
   grossPay: number | string;
@@ -141,43 +141,43 @@ export type Payroll = {
   deductions: number | string;
   payDate: string;
   status: 'Paid' | 'Pending';
-  branchId: string;
+  branchId: string | number;
 };
 
 export type AttendanceStatus = 'Present' | 'Absent' | 'On Leave';
 
 export type AttendanceRecord = {
-    id: string;
-    employeeId: string;
+    id: string | number;
+    employeeId: string | number;
     employeeName: string;
     date: string;
     status: AttendanceStatus;
     checkIn?: string;
     checkOut?: string;
-    branchId: string;
+    branchId: string | number;
 };
 
 
 export type Branch = {
-  id: string;
+  id: string | number;
   name: string;
   address: string;
 };
 
 export type InventoryItem = {
-    id: string;
+    id: string | number;
     name: string;
     supplier: string;
     stock: number;
     reorderLevel: number;
     price: number;
     status: 'In Stock' | 'Low Stock' | 'Out of Stock';
-    branchId: string;
+    branchId: string | number;
 };
 
 export type LaboratoryOrder = {
-  id: string;
-  patientId: string;
+  id: string | number;
+  patientId: string | number;
   patientName: string;
   lab: string;
   item: string;
@@ -185,7 +185,7 @@ export type LaboratoryOrder = {
   status: 'Sent' | 'Received' | 'Completed' | 'Cancelled';
   sentDate: string;
   dueDate: string;
-  branchId: string;
+  branchId: string | number;
 };
 
 export type BasePatient = Omit<Patient, 'id' | 'dentalRecords' | 'treatmentPlans' | 'imaging' | 'lastVisit' | 'branchId' | 'periodontalRecords' | 'occlusalRecords' | 'softTissueRecords' | 'orthodonticRecords'>;
@@ -230,7 +230,7 @@ export type OcclusalRecord = {
 };
 
 export type SoftTissueRecord = {
-  id: string;
+  id: string | number;
   location: string;
   type: 'Ulcer' | 'Lesion' | 'Color Change' | 'Swelling';
   description: string;
@@ -238,7 +238,7 @@ export type SoftTissueRecord = {
 };
 
 export type OrthodonticRecord = {
-  id: string;
+  id: string | number;
   date: string;
   appliance: 'Braces' | 'Invisalign' | 'Retainer';
   wireSize?: string;
@@ -247,7 +247,7 @@ export type OrthodonticRecord = {
 };
 
 export type SystemTreatment = {
-    id: string;
+    id: string | number;
     procedure: string;
     cost: number;
 };
@@ -256,33 +256,33 @@ export type LeaveType = 'Annual' | 'Sick' | 'Unpaid' | 'Maternity';
 export type LeaveStatus = 'Pending' | 'Approved' | 'Rejected';
 
 export type LeaveRequest = {
-  id: string;
-  employeeId: string;
+  id: string | number;
+  employeeId: string | number;
   employeeName: string;
   leaveType: LeaveType;
   startDate: string;
   endDate: string;
   reason: string;
   status: LeaveStatus;
-  branchId: string;
+  branchId: string | number;
 };
 
 export type StaffAdvanceStatus = 'Pending' | 'Approved' | 'Paid' | 'Rejected';
 
 export type StaffAdvance = {
-  id: string;
-  employeeId: string;
+  id: string | number;
+  employeeId: string | number;
   employeeName: string;
   amount: number;
   date: string;
   reason: string;
   status: StaffAdvanceStatus;
-  branchId: string;
+  branchId: string | number;
 };
 
 export type CurrentUser = {
     role: EmployeeRole;
-    branchId: string;
+    branchId: string | number;
     name: string;
     email: string;
     avatar: string;
@@ -330,6 +330,7 @@ export type ProfileDataStats = {
 export type ProfileData = {
     employee: Employee & {
         appointments: Appointment[];
+        payrolls: Payroll[];
     };
     stats: ProfileDataStats;
     payrolls: Payroll[];
