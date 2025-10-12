@@ -1,5 +1,4 @@
 
-
 import { 
     patients as allPatients,
     appointments as allAppointments,
@@ -28,6 +27,7 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 // --- READ OPERATIONS ---
 
 export const login = async (email: string, password?: string): Promise<CurrentUser | null> => {
+    console.log('API CALL: login', { email });
     await delay(200);
     const employee = allEmployees.find(emp => emp.email === email);
     // For this prototype, we accept any login if password is "password"
@@ -44,6 +44,7 @@ export const login = async (email: string, password?: string): Promise<CurrentUs
 }
 
 export const getProfileData = async (userEmail: string): Promise<ProfileData | null> => {
+    console.log('API CALL: getProfileData', { userEmail });
     await delay(300);
     const employee = allEmployees.find(e => e.email === userEmail);
     if (!employee) return null;
@@ -78,11 +79,13 @@ export const getProfileData = async (userEmail: string): Promise<ProfileData | n
 
 
 export const getBranches = async (): Promise<Branch[]> => {
+    console.log('API CALL: getBranches');
     await delay(50);
     return JSON.parse(JSON.stringify(branches));
 }
 
 export const getPatients = async (branchId?: string): Promise<Patient[]> => {
+    console.log('API CALL: getPatients', { branchId });
     await delay(100);
     let localPatients = allPatients;
     if (branchId) {
@@ -92,11 +95,13 @@ export const getPatients = async (branchId?: string): Promise<Patient[]> => {
 }
 
 export const getPatientById = async (id: string): Promise<Patient | undefined> => {
+    console.log('API CALL: getPatientById', { id });
     await delay(100);
     return JSON.parse(JSON.stringify(allPatients.find(p => p.id === id)));
 }
 
 export const getAppointments = async (): Promise<Appointment[]> => {
+    console.log('API CALL: getAppointments');
     await delay(150);
     return JSON.parse(JSON.stringify(allAppointments));
 }
@@ -108,6 +113,7 @@ type GetInvoicesFilters = {
 };
 
 export const getInvoices = async (filters?: GetInvoicesFilters): Promise<Invoice[]> => {
+    console.log('API CALL: getInvoices', { filters });
     await delay(200);
     let localInvoices = allInvoices;
 
@@ -141,11 +147,13 @@ export const getInvoices = async (filters?: GetInvoicesFilters): Promise<Invoice
 }
 
 export const getInvoiceById = async (id: string): Promise<Invoice | undefined> => {
+    console.log('API CALL: getInvoiceById', { id });
     await delay(100);
     return JSON.parse(JSON.stringify(allInvoices.find(i => i.id === id)));
 }
 
 export const getEmployees = async (branchId?: string): Promise<Employee[]> => {
+    console.log('API CALL: getEmployees', { branchId });
     await delay(100);
     let localEmployees = allEmployees;
     if (branchId) {
@@ -155,12 +163,14 @@ export const getEmployees = async (branchId?: string): Promise<Employee[]> => {
 }
 
 export const getEmployeeById = async (id: string): Promise<Employee | undefined> => {
+    console.log('API CALL: getEmployeeById', { id });
     await delay(100);
     // Find by ID or email for profile page lookup
     return JSON.parse(JSON.stringify(allEmployees.find(e => e.id === id || e.email === id)));
 }
 
 export const getPayrolls = async (branchId?: string): Promise<Payroll[]> => {
+    console.log('API CALL: getPayrolls', { branchId });
     await delay(250);
     let localPayrolls = allPayrolls;
     if (branchId) {
@@ -170,6 +180,7 @@ export const getPayrolls = async (branchId?: string): Promise<Payroll[]> => {
 }
 
 export const getInventory = async (branchId?: string): Promise<InventoryItem[]> => {
+    console.log('API CALL: getInventory', { branchId });
     await delay(100);
     let localInventory = inventory;
     if (branchId) {
@@ -179,6 +190,7 @@ export const getInventory = async (branchId?: string): Promise<InventoryItem[]> 
 }
 
 export const getLabOrders = async (branchId?: string): Promise<LaboratoryOrder[]> => {
+    console.log('API CALL: getLabOrders', { branchId });
     await delay(150);
     let localLabOrders = allLabOrders;
     if (branchId) {
@@ -188,16 +200,19 @@ export const getLabOrders = async (branchId?: string): Promise<LaboratoryOrder[]
 }
 
 export const getChartData = async (): Promise<ChartData[]> => {
+    console.log('API CALL: getChartData');
     await delay(300);
     return JSON.parse(JSON.stringify(chartData));
 }
 
 export const getTreatments = async (): Promise<SystemTreatment[]> => {
+    console.log('API CALL: getTreatments');
     await delay(50);
     return JSON.parse(JSON.stringify(allTreatments));
 }
 
 export const getAttendance = async (branchId?: string): Promise<AttendanceRecord[]> => {
+    console.log('API CALL: getAttendance', { branchId });
     await delay(150);
     let localAttendance = allAttendance;
     if (branchId) {
@@ -207,6 +222,7 @@ export const getAttendance = async (branchId?: string): Promise<AttendanceRecord
 }
 
 export const getLeaveRequests = async (branchId?: string): Promise<LeaveRequest[]> => {
+    console.log('API CALL: getLeaveRequests', { branchId });
     await delay(150);
     let localLeaveRequests = allLeaveRequests;
     if (branchId) {
@@ -216,6 +232,7 @@ export const getLeaveRequests = async (branchId?: string): Promise<LeaveRequest[
 }
 
 export const getStaffAdvances = async (branchId?: string): Promise<StaffAdvance[]> => {
+    console.log('API CALL: getStaffAdvances', { branchId });
     await delay(150);
     let localAdvances = allStaffAdvances;
     if (branchId) {
@@ -225,6 +242,7 @@ export const getStaffAdvances = async (branchId?: string): Promise<StaffAdvance[
 }
 
 export const getExpenses = async (branchId?: string): Promise<Expense[]> => {
+    console.log('API CALL: getExpenses', { branchId });
     await delay(150);
     let localExpenses = allExpenses;
     if (branchId) {
@@ -234,11 +252,13 @@ export const getExpenses = async (branchId?: string): Promise<Expense[]> => {
 }
 
 export const getRoles = async (): Promise<RolePermissions[]> => {
+    console.log('API CALL: getRoles');
     await delay(100);
     return JSON.parse(JSON.stringify(roles));
 }
 
 export const getFinancialSummary = async (branchId: string): Promise<FinancialSummary> => {
+    console.log('API CALL: getFinancialSummary', { branchId });
     await delay(300);
 
     const branchInvoices = allInvoices.filter(i => i.branchId === branchId);
@@ -287,6 +307,7 @@ export const getFinancialSummary = async (branchId: string): Promise<FinancialSu
 }
 
 export const getTodaysQueue = async (filters: { branchId: string; doctorId?: string }): Promise<Appointment[]> => {
+    console.log('API CALL: getTodaysQueue', { filters });
     await delay(150);
     const today = format(new Date(), "yyyy-MM-dd");
     let filtered = allAppointments.filter(
@@ -316,6 +337,7 @@ export const getTodaysQueue = async (filters: { branchId: string; doctorId?: str
 
 // Patients
 export const createPatient = async (data: BasePatient & { branchId: string }): Promise<Patient> => {
+    console.log('API CALL: createPatient', { data });
     await delay(200);
     const newPatient: Patient = {
         ...data,
@@ -334,6 +356,7 @@ export const createPatient = async (data: BasePatient & { branchId: string }): P
 }
 
 export const updatePatient = async (id: string, data: Partial<Patient>): Promise<Patient | undefined> => {
+    console.log('API CALL: updatePatient', { id, data });
     await delay(200);
     const patientIndex = allPatients.findIndex(p => p.id === id);
     if (patientIndex > -1) {
@@ -344,6 +367,7 @@ export const updatePatient = async (id: string, data: Partial<Patient>): Promise
 }
 
 export const deletePatient = async (id: string): Promise<{ success: boolean }> => {
+    console.log('API CALL: deletePatient', { id });
     await delay(200);
     const initialLength = allPatients.length;
     const newPatients = allPatients.filter(p => p.id !== id);
@@ -353,6 +377,7 @@ export const deletePatient = async (id: string): Promise<{ success: boolean }> =
 }
 
 export const addImageToPatient = async (patientId: string, image: Omit<PatientImage, 'date'>): Promise<Patient | undefined> => {
+    console.log('API CALL: addImageToPatient', { patientId, image });
     await delay(200);
     const patientIndex = allPatients.findIndex(p => p.id === patientId);
     if (patientIndex > -1) {
@@ -368,6 +393,7 @@ export const addImageToPatient = async (patientId: string, image: Omit<PatientIm
 }
 
 export const saveDentalRecord = async (patientId: string, record: DentalRecord): Promise<Patient | undefined> => {
+    console.log('API CALL: saveDentalRecord', { patientId, record });
     await delay(150);
     const patientIndex = allPatients.findIndex(p => p.id === patientId);
     if (patientIndex > -1) {
@@ -386,6 +412,7 @@ export const saveDentalRecord = async (patientId: string, record: DentalRecord):
 }
 
 export const savePeriodontalRecord = async (patientId: string, records: PeriodontalRecord): Promise<Patient | undefined> => {
+    console.log('API CALL: savePeriodontalRecord', { patientId, recordsCount: records.length });
     await delay(150);
     const patientIndex = allPatients.findIndex(p => p.id === patientId);
     if (patientIndex > -1) {
@@ -396,6 +423,7 @@ export const savePeriodontalRecord = async (patientId: string, records: Periodon
 }
 
 export const saveOcclusalRecord = async (patientId: string, record: OcclusalRecord): Promise<Patient | undefined> => {
+    console.log('API CALL: saveOcclusalRecord', { patientId, record });
     await delay(150);
     const patientIndex = allPatients.findIndex(p => p.id === patientId);
     if (patientIndex > -1) {
@@ -406,6 +434,7 @@ export const saveOcclusalRecord = async (patientId: string, record: OcclusalReco
 };
 
 export const addTreatment = async (patientId: string, treatmentData: Omit<Treatment, 'id' | 'date'>, condition?: DentalCondition): Promise<Patient | undefined> => {
+    console.log('API CALL: addTreatment', { patientId, treatmentData, condition });
     await delay(200);
     const patientIndex = allPatients.findIndex(p => p.id === patientId);
     if (patientIndex > -1) {
@@ -432,6 +461,7 @@ export const addTreatment = async (patientId: string, treatmentData: Omit<Treatm
 }
 
 export const updateTreatment = async (patientId: string, treatment: Treatment): Promise<Patient | undefined> => {
+    console.log('API CALL: updateTreatment', { patientId, treatment });
     await delay(200);
     const patientIndex = allPatients.findIndex(p => p.id === patientId);
     if (patientIndex > -1) {
@@ -446,6 +476,7 @@ export const updateTreatment = async (patientId: string, treatment: Treatment): 
 }
 
 export const deleteTreatment = async (patientId: string, treatmentId: string): Promise<Patient | undefined> => {
+    console.log('API CALL: deleteTreatment', { patientId, treatmentId });
     await delay(200);
     const patientIndex = allPatients.findIndex(p => p.id === patientId);
     if (patientIndex > -1) {
@@ -457,6 +488,7 @@ export const deleteTreatment = async (patientId: string, treatmentId: string): P
 }
 
 export const saveOrthodonticRecord = async (patientId: string, recordData: Omit<OrthodonticRecord, 'id'>): Promise<Patient | undefined> => {
+    console.log('API CALL: saveOrthodonticRecord', { patientId, recordData });
     await delay(200);
     const patientIndex = allPatients.findIndex(p => p.id === patientId);
     if (patientIndex > -1) {
@@ -473,6 +505,7 @@ export const saveOrthodonticRecord = async (patientId: string, recordData: Omit<
 }
 
 export const updateOrthodonticRecord = async (patientId: string, record: OrthodonticRecord): Promise<Patient | undefined> => {
+    console.log('API CALL: updateOrthodonticRecord', { patientId, record });
     await delay(200);
     const patientIndex = allPatients.findIndex(p => p.id === patientId);
     if (patientIndex > -1) {
@@ -488,6 +521,7 @@ export const updateOrthodonticRecord = async (patientId: string, record: Orthodo
 }
 
 export const deleteOrthodonticRecord = async (patientId: string, recordId: string): Promise<Patient | undefined> => {
+    console.log('API CALL: deleteOrthodonticRecord', { patientId, recordId });
     await delay(200);
     const patientIndex = allPatients.findIndex(p => p.id === patientId);
     if (patientIndex > -1) {
@@ -499,6 +533,7 @@ export const deleteOrthodonticRecord = async (patientId: string, recordId: strin
 }
 
 export const saveSoftTissueRecord = async (patientId: string, recordData: Omit<SoftTissueRecord, 'id'>): Promise<Patient | undefined> => {
+    console.log('API CALL: saveSoftTissueRecord', { patientId, recordData });
     await delay(200);
     const patientIndex = allPatients.findIndex(p => p.id === patientId);
     if (patientIndex > -1) {
@@ -515,6 +550,7 @@ export const saveSoftTissueRecord = async (patientId: string, recordData: Omit<S
 }
 
 export const updateSoftTissueRecord = async (patientId: string, record: SoftTissueRecord): Promise<Patient | undefined> => {
+    console.log('API CALL: updateSoftTissueRecord', { patientId, record });
     await delay(200);
     const patientIndex = allPatients.findIndex(p => p.id === patientId);
     if (patientIndex > -1) {
@@ -530,6 +566,7 @@ export const updateSoftTissueRecord = async (patientId: string, record: SoftTiss
 }
 
 export const deleteSoftTissueRecord = async (patientId: string, recordId: string): Promise<Patient | undefined> => {
+    console.log('API CALL: deleteSoftTissueRecord', { patientId, recordId });
     await delay(200);
     const patientIndex = allPatients.findIndex(p => p.id === patientId);
     if (patientIndex > -1) {
@@ -543,6 +580,7 @@ export const deleteSoftTissueRecord = async (patientId: string, recordId: string
 
 // Appointments
 export const createAppointment = async (data: Omit<Appointment, 'id'>): Promise<Appointment> => {
+    console.log('API CALL: createAppointment', { data });
     await delay(200);
     const newAppointment: Appointment = {
         ...data,
@@ -553,6 +591,7 @@ export const createAppointment = async (data: Omit<Appointment, 'id'>): Promise<
 }
 
 export const updateAppointment = async (id: string, data: Partial<Appointment>): Promise<Appointment | undefined> => {
+    console.log('API CALL: updateAppointment', { id, data });
     await delay(200);
     const appointmentIndex = allAppointments.findIndex(a => a.id === id);
     if (appointmentIndex > -1) {
@@ -563,6 +602,7 @@ export const updateAppointment = async (id: string, data: Partial<Appointment>):
 }
 
 export const deleteAppointment = async (id: string): Promise<{ success: boolean }> => {
+    console.log('API CALL: deleteAppointment', { id });
     await delay(200);
     const initialLength = allAppointments.length;
     const newAppointments = allAppointments.filter(a => a.id !== id);
@@ -573,6 +613,7 @@ export const deleteAppointment = async (id: string): Promise<{ success: boolean 
 
 // Invoices
 export const createInvoice = async (data: Omit<Invoice, 'id' | 'amount' | 'paidAmount' | 'patientName'> & { branchId: string, treatments: InvoiceTreatment[] }): Promise<Invoice> => {
+    console.log('API CALL: createInvoice', { data });
     await delay(200);
     const patient = allPatients.find(p => p.id === data.patientId);
     if (!patient) throw new Error("Patient not found");
@@ -602,6 +643,7 @@ export const createInvoice = async (data: Omit<Invoice, 'id' | 'amount' | 'paidA
 }
 
 export const updateInvoice = async (id: string, data: Partial<Omit<Invoice, 'amount' | 'id'>>): Promise<Invoice | undefined> => {
+    console.log('API CALL: updateInvoice', { id, data });
     await delay(200);
     const invoiceIndex = allInvoices.findIndex(i => i.id === id);
 
@@ -622,6 +664,7 @@ export const updateInvoice = async (id: string, data: Partial<Omit<Invoice, 'amo
 }
 
 export const processPayment = async (invoiceId: string, paymentAmount: number, method: string): Promise<Invoice | undefined> => {
+    console.log('API CALL: processPayment', { invoiceId, paymentAmount, method });
     await delay(300);
     const invoiceIndex = allInvoices.findIndex(i => i.id === invoiceId);
     if (invoiceIndex > -1) {
@@ -652,6 +695,7 @@ export const processPayment = async (invoiceId: string, paymentAmount: number, m
 }
 
 export const deleteInvoice = async (id: string): Promise<{ success: boolean }> => {
+    console.log('API CALL: deleteInvoice', { id });
     await delay(200);
     const initialLength = allInvoices.length;
     const newInvoices = allInvoices.filter(i => i.id !== id);
@@ -663,6 +707,7 @@ export const deleteInvoice = async (id: string): Promise<{ success: boolean }> =
 
 // Employees
 export const createEmployee = async (data: Omit<Employee, 'id'>): Promise<Employee> => {
+    console.log('API CALL: createEmployee', { data });
     await delay(200);
     const newEmployee: Employee = {
         ...data,
@@ -673,6 +718,7 @@ export const createEmployee = async (data: Omit<Employee, 'id'>): Promise<Employ
 }
 
 export const updateEmployee = async (id: string, data: Partial<Employee>): Promise<Employee | undefined> => {
+    console.log('API CALL: updateEmployee', { id, data });
     await delay(200);
     const employeeIndex = allEmployees.findIndex(e => e.id === id);
     if (employeeIndex > -1) {
@@ -683,6 +729,7 @@ export const updateEmployee = async (id: string, data: Partial<Employee>): Promi
 }
 
 export const deleteEmployee = async (id: string): Promise<{ success: boolean }> => {
+    console.log('API CALL: deleteEmployee', { id });
     await delay(200);
     const initialLength = allEmployees.length;
     const newEmployees = allEmployees.filter(e => e.id !== id);
@@ -694,6 +741,7 @@ export const deleteEmployee = async (id: string): Promise<{ success: boolean }> 
 
 // Branches
 export const createBranch = async (data: Omit<Branch, 'id'>): Promise<Branch> => {
+    console.log('API CALL: createBranch', { data });
     await delay(200);
     const newBranch: Branch = {
         ...data,
@@ -705,6 +753,7 @@ export const createBranch = async (data: Omit<Branch, 'id'>): Promise<Branch> =>
 
 // Inventory
 export const createInventoryItem = async (data: Omit<InventoryItem, 'id' | 'status'>): Promise<InventoryItem> => {
+    console.log('API CALL: createInventoryItem', { data });
     await delay(200);
     const newItem: InventoryItem = {
         ...data,
@@ -717,6 +766,7 @@ export const createInventoryItem = async (data: Omit<InventoryItem, 'id' | 'stat
 
 // Lab Orders
 export const createLabOrder = async (data: Omit<LaboratoryOrder, 'id'>): Promise<LaboratoryOrder> => {
+    console.log('API CALL: createLabOrder', { data });
     await delay(200);
     const newOrder: LaboratoryOrder = {
         ...data,
@@ -728,6 +778,7 @@ export const createLabOrder = async (data: Omit<LaboratoryOrder, 'id'>): Promise
 
 // Payroll
 export const createPayroll = async (data: Omit<Payroll, 'id'>): Promise<Payroll> => {
+    console.log('API CALL: createPayroll', { data });
     await delay(200);
     const newPayroll: Payroll = {
         ...data,
@@ -740,6 +791,7 @@ export const createPayroll = async (data: Omit<Payroll, 'id'>): Promise<Payroll>
 
 // Attendance
 export const markAttendance = async(data: Omit<AttendanceRecord, 'id' | 'employeeName'>): Promise<AttendanceRecord> => {
+    console.log('API CALL: markAttendance', { data });
     await delay(200);
     const employee = allEmployees.find(e => e.id === data.employeeId);
     if (!employee) throw new Error("Employee not found");
@@ -765,6 +817,7 @@ export const markAttendance = async(data: Omit<AttendanceRecord, 'id' | 'employe
 
 // Leave
 export const createLeaveRequest = async (data: Omit<LeaveRequest, 'id' | 'employeeName' | 'status'>): Promise<LeaveRequest> => {
+    console.log('API CALL: createLeaveRequest', { data });
     await delay(200);
     const employee = allEmployees.find(e => e.id === data.employeeId);
     if (!employee) throw new Error("Employee not found");
@@ -780,6 +833,7 @@ export const createLeaveRequest = async (data: Omit<LeaveRequest, 'id' | 'employ
 }
 
 export const updateLeaveRequestStatus = async (id: string, status: LeaveRequest['status']): Promise<LeaveRequest | undefined> => {
+    console.log('API CALL: updateLeaveRequestStatus', { id, status });
     await delay(200);
     const requestIndex = allLeaveRequests.findIndex(req => req.id === id);
     if (requestIndex > -1) {
@@ -791,6 +845,7 @@ export const updateLeaveRequestStatus = async (id: string, status: LeaveRequest[
 
 // Staff Advances
 export const createStaffAdvance = async (data: Omit<StaffAdvance, 'id' | 'employeeName' | 'status'>): Promise<StaffAdvance> => {
+    console.log('API CALL: createStaffAdvance', { data });
     await delay(200);
     const employee = allEmployees.find(e => e.id === data.employeeId);
     if (!employee) throw new Error("Employee not found");
@@ -806,6 +861,7 @@ export const createStaffAdvance = async (data: Omit<StaffAdvance, 'id' | 'employ
 }
 
 export const updateStaffAdvanceStatus = async (id: string, status: StaffAdvanceStatus): Promise<StaffAdvance | undefined> => {
+    console.log('API CALL: updateStaffAdvanceStatus', { id, status });
     await delay(200);
     const advanceIndex = allStaffAdvances.findIndex(adv => adv.id === id);
     if (advanceIndex > -1) {
@@ -817,6 +873,7 @@ export const updateStaffAdvanceStatus = async (id: string, status: StaffAdvanceS
 
 // Expenses
 export const createExpense = async (data: Omit<Expense, 'id'>): Promise<Expense> => {
+    console.log('API CALL: createExpense', { data });
     await delay(200);
     const newExpense: Expense = {
         ...data,
@@ -829,6 +886,7 @@ export const createExpense = async (data: Omit<Expense, 'id'>): Promise<Expense>
 
 // Roles
 export const updateRole = async (roleId: string, permissions: Permission[]): Promise<RolePermissions | undefined> => {
+    console.log('API CALL: updateRole', { roleId, permissions });
     await delay(200);
     const roleIndex = roles.findIndex(r => r.id === roleId);
     if (roleIndex > -1) {
@@ -840,6 +898,7 @@ export const updateRole = async (roleId: string, permissions: Permission[]): Pro
 
 // Queue
 export const announcePatientInQueue = async (appointmentId: string): Promise<{audio_url?: string}> => {
+    console.log('API CALL: announcePatientInQueue', { appointmentId });
     const appointment = allAppointments.find(a => a.id === appointmentId);
     if (!appointment) {
         throw new Error("Appointment not found");
