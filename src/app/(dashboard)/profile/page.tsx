@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -47,7 +48,7 @@ export default function ProfilePage() {
 
         const fetchData = async () => {
             setIsLoading(true);
-            const data = await getProfileData(currentUser.email);
+            const data = await getProfileData();
             setProfileData(data);
             setIsLoading(false);
         }

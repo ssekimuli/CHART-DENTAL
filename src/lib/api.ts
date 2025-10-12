@@ -1,4 +1,5 @@
 
+
 import { 
     patients as allPatients,
     appointments as allAppointments,
@@ -33,7 +34,7 @@ export const login = async (email: string, password?: string): Promise<CurrentUs
     console.log('API CALL: login', { email });
     
     try {
-        const response = await customAxios.post('/login', { email, password });
+        const response = await customAxios.post('/api/login', { email, password });
         const { user, token } = response.data;
         setCurrentUser(user, token);
         return user;
@@ -48,38 +49,19 @@ export const login = async (email: string, password?: string): Promise<CurrentUs
     }
 }
 
-export const getProfileData = async (userEmail: string): Promise<ProfileData | null> => {
-    console.log('API CALL: getProfileData', { userEmail });
-    await delay(300);
-    const employee = allEmployees.find(e => e.email === userEmail);
-    if (!employee) return null;
-
-    const employeePayrolls = allPayrolls.filter(p => p.employeeId === employee.id);
-    const totalPaid = employeePayrolls.reduce((sum, p) => sum + p.netPay, 0);
-
-    const employeeAttendance = allAttendance.filter(a => a.employeeId === employee.id);
-    const presentDays = employeeAttendance.filter(a => a.status === 'Present').length;
-    const absentDays = employeeAttendance.filter(a => a.status === 'Absent').length;
-    const onLeaveDays = employeeAttendance.filter(a => a.status === 'On Leave').length;
-
-    const employeeAppointments = allAppointments.filter(a => a.doctorId === employee.id);
-    const uniquePatients = new Set(employeeAppointments.map(a => a.patientId)).size;
-
-    const stats = {
-        totalPaid,
-        presentDays,
-        absentDays,
-        onLeaveDays,
-        totalAppointments: employeeAppointments.length,
-        uniquePatients,
-        recentAppointments: employeeAppointments.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0,5),
-    };
-
-    return {
-        employee: JSON.parse(JSON.stringify(employee)),
-        stats,
-        payrolls: JSON.parse(JSON.stringify(employeePayrolls)),
-    };
+export const getProfileData = async (): Promise<ProfileData | null> => {
+    console.log('API CALL: getProfileData');
+    try {
+        const response = await customAxios.get('/api/profile');
+        return response.data;
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            console.error('Failed to fetch profile data:', error.response?.data);
+        } else {
+            console.error("An unexpected error occurred during profile fetch:", error);
+        }
+        return null;
+    }
 }
 
 
