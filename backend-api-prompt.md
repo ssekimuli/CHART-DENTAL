@@ -592,9 +592,9 @@ Define the database schemas for the following entities.
   - **Authorization**: Receptionist, Dentist, Super Admin.
   - **Body**: `Omit<Appointment, "id">`
   - **Response**: `201` with the new `Appointment` object.
-- **`PUT /api/appointments/{id}`**: Update an appointment (e.g., change status).
+- **`PUT /api/appointments/{id}`**: Update an appointment. This is the primary way to manage the patient queue by updating the `status` field.
   - **Authorization**: Receptionist, Assistant, Hygienist, Dentist, Super Admin.
-  - **Body**: `Partial<Appointment>` object.
+  - **Body**: `Partial<Appointment>` object. Example: `{ "status": "In Session" }`.
   - **Response**: `200` with the updated `Appointment` object.
 - **`DELETE /api/appointments/{id}`**: Delete an appointment.
   - **Authorization**: Receptionist, Dentist, Super Admin.
