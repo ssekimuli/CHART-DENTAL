@@ -22,35 +22,16 @@ import { format, parse } from "date-fns";
 import { speak } from '@/ai/flows/speak';
 import { clearCurrentUser, getAuthToken, setCurrentUser } from './user';
 import customAxios from './axios';
+import axios from 'axios';
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
 
 // --- READ OPERATIONS ---
 
 export const login = async (email: string, password?: string): Promise<CurrentUser | null> => {
     console.log('API CALL: login', { email });
-
-    if (!BACKEND_URL) {
-        console.error("BACKEND_URL is not set. Using mock data.");
-        // Fallback to mock data if backend URL is not set
-        await delay(200);
-        const employee = allEmployees.find(emp => emp.email === email);
-        if (employee && password === "password") {
-            const user = {
-                role: employee.role,
-                branchId: employee.branchId,
-                email: employee.email,
-                name: employee.name,
-                avatar: employee.avatar,
-            };
-            setCurrentUser(user, 'mock-token');
-            return user;
-        }
-        return null;
-    }
-
+    
     try {
         const response = await customAxios.post('/login', { email, password });
         const { user, token } = response.data;
