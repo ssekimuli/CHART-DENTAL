@@ -216,14 +216,14 @@ export default function ProfilePage() {
                                                     No recent appointments found.
                                                 </TableCell>
                                             </TableRow>
-                                        ) : stats.recentAppointments.map(app => (
+                                        ) : stats.recentAppointments.map((app: any) => (
                                             <TableRow key={app.id}>
                                                 <TableCell>{app.date.split('T')[0]}</TableCell>
-                                                <TableCell>{app.patientName}</TableCell>
+                                                <TableCell>{app.patient_name}</TableCell>
                                                 <TableCell>{app.treatment}</TableCell>
                                                 <TableCell><Badge variant="outline">{app.status}</Badge></TableCell>
                                                 <TableCell className="text-right">
-                                                    <Button variant="outline" size="sm" onClick={() => router.push(`/patients/${app.patientId}/charting`)}>
+                                                    <Button variant="outline" size="sm" onClick={() => router.push(`/patients/${app.patient_id}/charting`)}>
                                                         <FileText className="mr-2 h-4 w-4" />
                                                         Go to Chart
                                                     </Button>
