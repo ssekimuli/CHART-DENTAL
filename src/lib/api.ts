@@ -286,6 +286,31 @@ export const getFinancialSummary = async (branchId: string): Promise<FinancialSu
     return { totalIncome, totalExpenses, netProfit, monthlyFinancials };
 }
 
+export const getTodaysQueue = async (filters: { branchId: string; doctorId?: string }): Promise<Appointment[]> => {
+    await delay(150);
+    const today = format(new Date(), "yyyy-MM-dd");
+    let filtered = allAppointments.filter(
+      (a) =>
+        a.branchId === filters.branchId &&
+        a.date === today &&
+        a.status !== 'Cancelled' &&
+        a.status !== 'Scheduled'
+    );
+  
+    if (filters.doctorId) {
+      filtered = filtered.filter((a) => a.doctorId === filters.doctorId);
+    }
+  
+    // sort by token number's numeric part
+    const sorted = filtered.sort((a, b) => {
+      const numA = parseInt(a.tokenNumber.replace(/\D/g, ''), 10);
+      const numB = parseInt(b.tokenNumber.replace(/\D/g, ''), 10);
+      return numA - numB;
+    });
+  
+    return JSON.parse(JSON.stringify(sorted));
+};
+
 
 // --- WRITE OPERATIONS ---
 

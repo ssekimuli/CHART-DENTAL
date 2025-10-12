@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import type { Appointment, Employee, AppointmentStatus } from "@/lib/types";
-import { getAppointments, getEmployees, updateAppointment, announcePatientInQueue } from "@/lib/api";
+import { getTodaysQueue, getEmployees, updateAppointment, announcePatientInQueue } from "@/lib/api";
 import { useBranch } from "@/context/branch-context";
 import { currentUser } from "@/lib/user";
 import { format } from "date-fns";
@@ -57,7 +57,7 @@ function playNotificationSound() {
 export default function QueuePage() {
     const router = useRouter();
     const { selectedBranch } = useBranch();
-    const [allAppointments, setAllAppointments] = useState<Appointment[]>([]);
+    const [todaysAppointments, setTodaysAppointments] = useState<Appointment[]>([]);
     const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [doctorFilter, setDoctorFilter] = useState<string>("all");
@@ -65,25 +65,31 @@ export default function QueuePage() {
     const [currentlySpeaking, setCurrentlySpeaking] = useState<string | null>(null);
 
     useEffect(() => {
-        const fetchData = async () => {
-            setIsLoading(true);
-            const [appointmentsData, employeesData] = await Promise.all([
-                getAppointments(),
-                getEmployees()
-            ]);
-            setAllAppointments(appointmentsData);
+        const fetchEmployees = async () => {
+            const employeesData = await getEmployees();
             setAllEmployees(employeesData);
-            
-            if (currentUser.role === 'Dentist') {
+             if (currentUser.role === 'Dentist') {
                 const currentUserEmployee = employeesData.find(e => e.email === currentUser.email);
                 if (currentUserEmployee) {
                     setDoctorFilter(currentUserEmployee.id);
                 }
             }
+        }
+        fetchEmployees();
+    }, [])
+
+    useEffect(() => {
+        const fetchData = async () => {
+            setIsLoading(true);
+            const appointmentsData = await getTodaysQueue({
+                branchId: selectedBranch,
+                doctorId: doctorFilter !== 'all' ? doctorFilter : undefined,
+            });
+            setTodaysAppointments(appointmentsData);
             setIsLoading(false);
         };
         fetchData();
-    }, []);
+    }, [selectedBranch, doctorFilter]);
 
     const doctorsInBranch = useMemo(() => {
         const doctors = allEmployees.filter(e => e.role === 'Dentist');
@@ -93,23 +99,6 @@ export default function QueuePage() {
         return doctors.filter(d => d.branchId === currentUser.branchId);
     }, [allEmployees, selectedBranch]);
     
-    const todaysAppointments = useMemo(() => {
-        const today = format(new Date(), "yyyy-MM-dd");
-        let filtered = allAppointments.filter(
-          (a) => a.branchId === selectedBranch && a.date === today && a.status !== 'Cancelled' && a.status !== 'Scheduled'
-        );
-        if (doctorFilter !== "all") {
-          filtered = filtered.filter((a) => a.doctorId === doctorFilter);
-        }
-        // sort by token number's numeric part
-        return filtered.sort((a, b) => {
-            const numA = parseInt(a.tokenNumber.replace(/\D/g, ''), 10);
-            const numB = parseInt(b.tokenNumber.replace(/\D/g, ''), 10);
-            return numA - numB;
-        });
-      }, [allAppointments, selectedBranch, doctorFilter]);
-
-
     const handleAnnounce = (appointment: Appointment) => {
         setCurrentlySpeaking(appointment.id);
         startTransition(async () => {
@@ -127,7 +116,7 @@ export default function QueuePage() {
     const handleStatusChange = async (appointment: Appointment, status: AppointmentStatus) => {
         const updated = await updateAppointment(appointment.id, { status });
         if (updated) {
-            setAllAppointments(prev => prev.map(a => a.id === updated.id ? updated : a));
+            setTodaysAppointments(prev => prev.map(a => a.id === updated.id ? updated : a));
             if (status === 'In Session') {
                 handleAnnounce(appointment);
             } else {
