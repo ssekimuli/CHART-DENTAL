@@ -17,6 +17,7 @@ import { useRouter } from "next/navigation";
 import { getCurrentUser, clearCurrentUser } from "@/lib/user";
 import { useEffect, useState } from "react";
 import type { CurrentUser } from "@/lib/types";
+import { logout } from "@/lib/api";
 
 export function UserNav() {
   const router = useRouter();
@@ -26,7 +27,8 @@ export function UserNav() {
     setUser(getCurrentUser());
   }, []);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await logout();
     clearCurrentUser();
     router.push("/login");
   };
