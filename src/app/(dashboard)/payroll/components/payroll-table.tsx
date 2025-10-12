@@ -36,7 +36,7 @@ export function PayrollTable({ data }: { data: Payroll[] }) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {data.map((payroll) => (
+          {data && data.map((payroll) => (
             <TableRow
               key={payroll.id}
             >
@@ -53,7 +53,7 @@ export function PayrollTable({ data }: { data: Payroll[] }) {
               </TableCell>
             </TableRow>
           ))}
-           {data.length === 0 && (
+           {(!data || data.length === 0) && (
                 <TableRow>
                     <TableCell colSpan={5} className="h-24 text-center">
                         No payroll records found.
