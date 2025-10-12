@@ -82,7 +82,7 @@ export default function ProfilePage() {
                  updatedUser.avatar = `https://picsum.photos/seed/newAvatar${Date.now()}/200/200`;
             }
 
-            setCurrentUser(updatedUser);
+            setCurrentUser(updatedUser, localStorage.getItem('authToken') || '');
             setUser(updatedUser);
             setAvatarPreview(null);
             
@@ -327,4 +327,5 @@ export default function ProfilePage() {
 }
 
     
+
 
