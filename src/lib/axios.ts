@@ -2,7 +2,7 @@ import axios from 'axios';
 import { getAuthToken } from './user';
 
 const customAxios = axios.create({
-  baseURL: '/api/backend',
+  baseURL: process.env.NEXT_PUBLIC_BACKEND_URL,
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
