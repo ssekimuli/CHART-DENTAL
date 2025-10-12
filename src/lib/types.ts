@@ -127,21 +127,23 @@ export type Employee = {
   role: EmployeeRole;
   status: 'Active' | 'On Leave';
   salary: number | string;
-  hireDate: string;
-  branchId: string | number;
+  hire_date: string;
+  branch_id: string | number;
+  payrolls?: Payroll[];
+  appointments?: Appointment[];
 };
 
 export type Payroll = {
   id: string | number;
-  employeeId: string | number;
-  employeeName: string;
-  payPeriod: string;
-  grossPay: number | string;
-  netPay: number | string;
+  employee_id: string | number;
+  employee_name: string;
+  pay_period: string;
+  gross_pay: number | string;
+  net_pay: number | string;
   deductions: number | string;
-  payDate: string;
+  pay_date: string;
   status: 'Paid' | 'Pending';
-  branchId: string | number;
+  branch_id: string | number;
 };
 
 export type AttendanceStatus = 'Present' | 'Absent' | 'On Leave';
@@ -328,10 +330,7 @@ export type ProfileDataStats = {
 }
 
 export type ProfileData = {
-    employee: Employee & {
-        appointments: Appointment[];
-        payrolls: Payroll[];
-    };
+    employee: Employee;
     stats: ProfileDataStats;
     payrolls: Payroll[];
 }

@@ -39,23 +39,23 @@ export default function PayrollPage() {
 
   const filteredEmployees = useMemo(() => {
     if (currentUser.role === 'Super Admin') {
-      return allEmployees.filter(e => e.branchId === selectedBranch);
+      return allEmployees.filter(e => e.branch_id === selectedBranch);
     }
-    return allEmployees.filter(e => e.branchId === currentUser.branchId);
+    return allEmployees.filter(e => e.branch_id === currentUser.branchId);
   }, [selectedBranch, allEmployees]);
 
   const payrolls = useMemo(() => {
      if (currentUser.role === 'Super Admin') {
-      return allPayrolls.filter(p => p.branchId === selectedBranch);
+      return allPayrolls.filter(p => p.branch_id === selectedBranch);
     }
-    return allPayrolls.filter(p => p.branchId === currentUser.branchId);
+    return allPayrolls.filter(p => p.branch_id === currentUser.branchId);
   }, [selectedBranch, allPayrolls]);
 
-  const handleSavePayroll = async (data: Omit<Payroll, 'id' | 'employeeName' | 'branchId'>) => {
-    const employee = filteredEmployees.find(e => e.id === data.employeeId);
+  const handleSavePayroll = async (data: Omit<Payroll, 'id' | 'employee_name' | 'branch_id'>) => {
+    const employee = filteredEmployees.find(e => e.id === data.employee_id);
     if (!employee) return;
 
-    const newPayroll = await createPayroll({ ...data, employeeName: employee.name, branchId: selectedBranch });
+    const newPayroll = await createPayroll({ ...data, employee_name: employee.name, branch_id: selectedBranch });
     if(newPayroll) {
         setAllPayrolls(prev => [newPayroll, ...prev]);
     }

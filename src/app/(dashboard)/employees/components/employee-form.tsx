@@ -46,7 +46,7 @@ const formSchema = z.object({
   status: z.enum(['Active', 'On Leave']),
   salary: z.coerce.number().positive("Salary must be a positive number.").optional(),
   monthlySalary: z.coerce.number().optional(),
-  hireDate: z.date({
+  hire_date: z.date({
     required_error: "A hire date is required.",
   }),
   avatar: z.string().url().optional().or(z.literal('')),
@@ -54,7 +54,7 @@ const formSchema = z.object({
 
 type EmployeeFormProps = {
     employee?: Employee;
-    onSave: (data: Omit<Employee, 'id' | 'branchId'>) => void;
+    onSave: (data: Omit<Employee, 'id' | 'branch_id'>) => void;
     onOpenChange: (open: boolean) => void;
 };
 
@@ -66,9 +66,9 @@ export function EmployeeForm({ employee, onSave, onOpenChange }: EmployeeFormPro
         email: employee?.email ?? "",
         role: employee?.role,
         status: employee?.status ?? 'Active',
-        salary: employee?.salary,
-        monthlySalary: employee ? employee.salary / 12 : undefined,
-        hireDate: employee ? parseISO(employee.hireDate) : undefined,
+        salary: Number(employee?.salary),
+        monthlySalary: employee ? Number(employee.salary) / 12 : undefined,
+        hire_date: employee ? parseISO(employee.hire_date) : undefined,
         avatar: employee?.avatar ?? "",
     },
   });
@@ -97,7 +97,7 @@ export function EmployeeForm({ employee, onSave, onOpenChange }: EmployeeFormPro
     onSave({
         ...values,
         salary: values.salary ?? 0,
-        hireDate: format(values.hireDate, "yyyy-MM-dd"),
+        hire_date: format(values.hire_date, "yyyy-MM-dd"),
         avatar: values.avatar || `https://picsum.photos/seed/emp${Math.random()}/200/200`,
     });
   }
@@ -219,7 +219,7 @@ export function EmployeeForm({ employee, onSave, onOpenChange }: EmployeeFormPro
                      <div className="grid grid-cols-2 gap-4">
                         <FormField
                             control={form.control}
-                            name="hireDate"
+                            name="hire_date"
                             render={({ field }) => (
                                 <FormItem className="flex flex-col">
                                 <FormLabel>Hire Date</FormLabel>

@@ -70,8 +70,8 @@ export function EmployeesTable({ data, onView, onEdit, onDelete }: EmployeesTabl
                   {employee.status}
                 </Badge>
               </TableCell>
-              <TableCell>{employee.hireDate}</TableCell>
-              <TableCell className="text-right">${employee.salary.toLocaleString()}</TableCell>
+              <TableCell>{String(employee.hire_date).split('T')[0]}</TableCell>
+              <TableCell className="text-right">${Number(employee.salary).toLocaleString()}</TableCell>
               <TableCell className="text-right">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -82,7 +82,7 @@ export function EmployeesTable({ data, onView, onEdit, onDelete }: EmployeesTabl
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                    <DropdownMenuItem onClick={() => onView(employee.id)}>
+                    <DropdownMenuItem onClick={() => onView(employee.id.toString())}>
                         <Eye className="mr-2 h-4 w-4" />
                         View
                     </DropdownMenuItem>

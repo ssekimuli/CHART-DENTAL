@@ -40,16 +40,16 @@ export function PayrollTable({ data }: { data: Payroll[] }) {
             <TableRow
               key={payroll.id}
             >
-              <TableCell className="font-medium">{payroll.employeeName}</TableCell>
-              <TableCell>{payroll.payPeriod}</TableCell>
+              <TableCell className="font-medium">{payroll.employee_name}</TableCell>
+              <TableCell>{payroll.pay_period}</TableCell>
               <TableCell>
                 <Badge variant={getStatusVariant(payroll.status)}>
                   {payroll.status}
                 </Badge>
               </TableCell>
-              <TableCell>{payroll.payDate ? String(payroll.payDate).split('T')[0] : ''}</TableCell>
+              <TableCell>{payroll.pay_date ? String(payroll.pay_date).split('T')[0] : ''}</TableCell>
               <TableCell className="text-right">
-                ${Number(payroll.netPay).toFixed(2)}
+                ${Number(payroll.net_pay).toFixed(2)}
               </TableCell>
             </TableRow>
           ))}

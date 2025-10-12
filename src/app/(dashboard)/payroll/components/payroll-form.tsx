@@ -33,15 +33,15 @@ import { Combobox } from "@/components/ui/combobox";
 
 
 const formSchema = z.object({
-  employeeId: z.string({ required_error: "Please select an employee."}),
-  grossPay: z.coerce.number().positive("Gross pay must be a positive number."),
+  employee_id: z.string({ required_error: "Please select an employee."}),
+  gross_pay: z.coerce.number().positive("Gross pay must be a positive number."),
   deductions: z.coerce.number().min(0, "Deductions cannot be negative."),
-  payDate: z.date({ required_error: "A pay date is required." }),
+  pay_date: z.date({ required_error: "A pay date is required." }),
 });
 
 type PayrollFormProps = {
     employees: Employee[];
-    onSave: (data: Omit<Payroll, 'id' | 'employeeName' | 'branchId'>) => void;
+    onSave: (data: Omit<Payroll, 'id' | 'employee_name' | 'branch_id'>) => void;
     onOpenChange: (open: boolean) => void;
 };
 
@@ -49,21 +49,21 @@ export function PayrollForm({ employees, onSave, onOpenChange }: PayrollFormProp
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-        payDate: new Date(),
+        pay_date: new Date(),
     },
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    const payDate = values.payDate;
+    const payDate = values.pay_date;
     const periodStart = subDays(payDate, 14);
     
     onSave({
-        employeeId: values.employeeId,
-        grossPay: values.grossPay,
+        employee_id: values.employee_id,
+        gross_pay: values.gross_pay,
         deductions: values.deductions,
-        netPay: values.grossPay - values.deductions,
-        payDate: format(payDate, "yyyy-MM-dd"),
-        payPeriod: `${format(periodStart, "yyyy-MM-dd")} to ${format(payDate, "yyyy-MM-dd")}`,
+        net_pay: values.gross_pay - values.deductions,
+        pay_date: format(payDate, "yyyy-MM-dd"),
+        pay_period: `${format(periodStart, "yyyy-MM-dd")} to ${format(payDate, "yyyy-MM-dd")}`,
         status: 'Pending',
     });
   }
@@ -81,13 +81,13 @@ export function PayrollForm({ employees, onSave, onOpenChange }: PayrollFormProp
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                     <FormField
                         control={form.control}
-                        name="employeeId"
+                        name="employee_id"
                         render={({ field }) => (
                             <FormItem>
                             <FormLabel>Employee</FormLabel>
                             <FormControl>
                                 <Combobox
-                                    options={employees.map(e => ({ value: e.id, label: e.name }))}
+                                    options={employees.map(e => ({ value: e.id.toString(), label: e.name }))}
                                     value={field.value}
                                     onChange={field.onChange}
                                     placeholder="Select an employee"
@@ -103,7 +103,7 @@ export function PayrollForm({ employees, onSave, onOpenChange }: PayrollFormProp
                     <div className="grid grid-cols-2 gap-4">
                         <FormField
                             control={form.control}
-                            name="grossPay"
+                            name="gross_pay"
                             render={({ field }) => (
                                 <FormItem>
                                 <FormLabel>Gross Pay</FormLabel>
@@ -131,7 +131,7 @@ export function PayrollForm({ employees, onSave, onOpenChange }: PayrollFormProp
                     
                     <FormField
                         control={form.control}
-                        name="payDate"
+                        name="pay_date"
                         render={({ field }) => (
                             <FormItem className="flex flex-col">
                             <FormLabel>Pay Date</FormLabel>
