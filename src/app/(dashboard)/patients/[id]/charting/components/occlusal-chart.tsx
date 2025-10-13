@@ -22,6 +22,7 @@ import {
 import type { OcclusalRecord } from "@/lib/types";
 import { useState } from "react";
 import { Pencil } from "lucide-react";
+import { hasPermission } from "@/lib/user";
 
 type OcclusalChartProps = {
   initialRecord: OcclusalRecord;
@@ -31,6 +32,7 @@ type OcclusalChartProps = {
 export function OcclusalChart({ initialRecord, onSave }: OcclusalChartProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [record, setRecord] = useState<OcclusalRecord>(initialRecord);
+  const canUpdateChart = hasPermission('charting:update');
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -73,7 +75,7 @@ export function OcclusalChart({ initialRecord, onSave }: OcclusalChartProps) {
                 : "Bite relationship between upper and lower jaws."}
             </CardDescription>
         </div>
-        {!isEditing && (
+        {!isEditing && canUpdateChart && (
             <Button variant="outline" size="icon" onClick={() => setIsEditing(true)}>
                 <Pencil className="h-4 w-4" />
                 <span className="sr-only">Edit Chart</span>

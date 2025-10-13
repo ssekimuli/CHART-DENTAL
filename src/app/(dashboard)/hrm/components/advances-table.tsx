@@ -25,9 +25,10 @@ import {
 type AdvancesTableProps = {
     data: StaffAdvance[];
     onStatusChange: (id: string, status: StaffAdvanceStatus) => void;
+    canUpdate: boolean;
 };
 
-export function AdvancesTable({ data, onStatusChange }: AdvancesTableProps) {
+export function AdvancesTable({ data, onStatusChange, canUpdate }: AdvancesTableProps) {
     const getStatusVariant = (status: StaffAdvanceStatus) => {
         switch (status) {
           case "Approved":
@@ -59,7 +60,7 @@ export function AdvancesTable({ data, onStatusChange }: AdvancesTableProps) {
             <TableHead>Amount</TableHead>
             <TableHead>Reason</TableHead>
             <TableHead>Status</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
+            {canUpdate && <TableHead className="text-right">Actions</TableHead>}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -69,34 +70,36 @@ export function AdvancesTable({ data, onStatusChange }: AdvancesTableProps) {
             >
               <TableCell className="font-medium">{request.employeeName}</TableCell>
               <TableCell>{request.date}</TableCell>
-              <TableCell>${request.amount.toFixed(2)}</TableCell>
+              <TableCell>${Number(request.amount).toFixed(2)}</TableCell>
               <TableCell className="max-w-xs truncate">{request.reason}</TableCell>
               <TableCell>
                 <Badge variant={getStatusVariant(request.status)} className={getStatusClass(request.status)}>
                   {request.status}
                 </Badge>
               </TableCell>
-              <TableCell className="text-right">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="h-8 w-8 p-0" disabled={request.status !== 'Pending'}>
-                      <span className="sr-only">Open menu</span>
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                    <DropdownMenuItem onClick={() => onStatusChange(request.id, 'Approved')}>
-                        <Check className="mr-2 h-4 w-4" />
-                        Approve
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="text-red-600" onClick={() => onStatusChange(request.id, 'Rejected')}>
-                        <XIcon className="mr-2 h-4 w-4" />
-                        Reject
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </TableCell>
+              {canUpdate && (
+                <TableCell className="text-right">
+                    <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0" disabled={request.status !== 'Pending'}>
+                        <span className="sr-only">Open menu</span>
+                        <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuItem onClick={() => onStatusChange(request.id as string, 'Approved')}>
+                            <Check className="mr-2 h-4 w-4" />
+                            Approve
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="text-red-600" onClick={() => onStatusChange(request.id as string, 'Rejected')}>
+                            <XIcon className="mr-2 h-4 w-4" />
+                            Reject
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                    </DropdownMenu>
+                </TableCell>
+              )}
             </TableRow>
           ))}
            {data.length === 0 && (

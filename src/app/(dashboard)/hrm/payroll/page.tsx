@@ -17,6 +17,7 @@ import { PayrollForm } from "../components/payroll-form";
 import { useBranch } from "@/context/branch-context";
 import { createPayroll, getEmployees, getPayrolls } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
+import { hasPermission } from "@/lib/user";
 
 export default function PayrollPage() {
   const { selectedBranch } = useBranch();
@@ -24,6 +25,7 @@ export default function PayrollPage() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const canCreate = hasPermission('hrm:create');
 
   useEffect(() => {
       const fetchData = async () => {
@@ -39,11 +41,11 @@ export default function PayrollPage() {
       fetchData();
   }, [selectedBranch]);
 
-  const handleSavePayroll = async (data: Omit<Payroll, 'id' | 'employeeName' | 'branchId'>) => {
-    const employee = employees.find(e => e.id === data.employeeId);
+  const handleSavePayroll = async (data: Omit<Payroll, 'id' | 'employee_name' | 'branch_id'>) => {
+    const employee = employees.find(e => e.id === data.employee_id);
     if (!employee) return;
 
-    const newPayroll = await createPayroll({ ...data, employeeName: employee.name, branchId: selectedBranch });
+    const newPayroll = await createPayroll({ ...data, employee_name: employee.name, branch_id: selectedBranch });
     if(newPayroll) {
         setPayrolls(prev => [newPayroll, ...prev]);
     }
@@ -65,10 +67,12 @@ export default function PayrollPage() {
                     <Download className="mr-2 h-4 w-4" />
                     Export
                 </Button>
-                <Button onClick={() => setIsFormOpen(true)}>
-                    <PlusCircle className="mr-2" />
-                    Run Payroll
-                </Button>
+                {canCreate && (
+                    <Button onClick={() => setIsFormOpen(true)}>
+                        <PlusCircle className="mr-2" />
+                        Run Payroll
+                    </Button>
+                )}
             </div>
         </CardHeader>
         <CardContent>

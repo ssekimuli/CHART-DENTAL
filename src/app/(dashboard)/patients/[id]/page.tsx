@@ -49,6 +49,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { deletePatient, getPatientById, updatePatient, addTreatment, updateTreatment, deleteTreatment, addImageToPatient } from "@/lib/api";
 import { ImageUploadForm } from "./components/image-upload-form";
+import { hasPermission } from "@/lib/user";
 
 export default function PatientDetailPage({
   params,
@@ -65,6 +66,9 @@ export default function PatientDetailPage({
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const [isImageFormOpen, setIsImageFormOpen] = useState(false);
   const [historySummary, setHistorySummary] = useState<{ summary: string } | null>(null);
+
+  const canUpdatePatient = hasPermission('patients:update');
+  const canDeletePatient = hasPermission('patients:delete');
 
   useEffect(() => {
     if (typeof params.id !== "string") return;
@@ -131,7 +135,7 @@ export default function PatientDetailPage({
     handleCloseTreatmentForm();
   }
   
-  const handleDeleteTreatment = async (treatmentId: string) => {
+  const handleDeleteTreatment = async (treatmentId: string | number) => {
      if (!patient) return;
      const updatedPatient = await deleteTreatment(patient.id, treatmentId);
       if (updatedPatient) {
@@ -182,14 +186,18 @@ export default function PatientDetailPage({
                 <FileText className="mr-2 h-4 w-4" />
                 Charting
             </Button>
-            <Button variant="outline" size="icon" onClick={() => setIsPatientFormOpen(true)}>
-                <Pencil className="h-4 w-4" />
-                <span className="sr-only">Edit Patient</span>
-            </Button>
-             <Button variant="destructive" size="icon" onClick={() => setIsDeleteAlertOpen(true)}>
-                <Trash className="h-4 w-4" />
-                <span className="sr-only">Delete Patient</span>
-            </Button>
+            {canUpdatePatient && (
+                <Button variant="outline" size="icon" onClick={() => setIsPatientFormOpen(true)}>
+                    <Pencil className="h-4 w-4" />
+                    <span className="sr-only">Edit Patient</span>
+                </Button>
+            )}
+            {canDeletePatient && (
+                 <Button variant="destructive" size="icon" onClick={() => setIsDeleteAlertOpen(true)}>
+                    <Trash className="h-4 w-4" />
+                    <span className="sr-only">Delete Patient</span>
+                </Button>
+            )}
           </div>
         </CardHeader>
       </Card>
@@ -214,10 +222,12 @@ export default function PatientDetailPage({
                     List of proposed and ongoing treatments.
                   </CardDescription>
                 </div>
-                <Button size="sm" onClick={() => handleOpenTreatmentForm()}>
-                  <PlusCircle className="mr-2 h-4 w-4" />
-                  New Treatment
-                </Button>
+                {canUpdatePatient && (
+                    <Button size="sm" onClick={() => handleOpenTreatmentForm()}>
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    New Treatment
+                    </Button>
+                )}
               </CardHeader>
               <CardContent>
                 <Table>
@@ -227,7 +237,7 @@ export default function PatientDetailPage({
                       <TableHead>Tooth</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Cost</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
+                      {canUpdatePatient && <TableHead className="text-right">Actions</TableHead>}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -243,27 +253,29 @@ export default function PatientDetailPage({
                         <TableCell>
                           ${plan.cost.toFixed(2)}
                         </TableCell>
-                        <TableCell className="text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" className="h-8 w-8 p-0">
-                                <span className="sr-only">Open menu</span>
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                              <DropdownMenuItem onClick={() => handleOpenTreatmentForm(plan)}>
-                                <Pencil className="mr-2 h-4 w-4" />
-                                Edit
-                              </DropdownMenuItem>
-                              <DropdownMenuItem className="text-red-600" onClick={() => handleDeleteTreatment(plan.id)}>
-                                <Trash className="mr-2 h-4 w-4" />
-                                Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
+                        {canUpdatePatient && (
+                            <TableCell className="text-right">
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" className="h-8 w-8 p-0">
+                                    <span className="sr-only">Open menu</span>
+                                    <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                <DropdownMenuItem onClick={() => handleOpenTreatmentForm(plan)}>
+                                    <Pencil className="mr-2 h-4 w-4" />
+                                    Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem className="text-red-600" onClick={() => handleDeleteTreatment(plan.id)}>
+                                    <Trash className="mr-2 h-4 w-4" />
+                                    Delete
+                                </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                            </TableCell>
+                        )}
                       </TableRow>
                     ))}
                      {patient.treatmentPlans.length === 0 && (
@@ -289,10 +301,12 @@ export default function PatientDetailPage({
                   X-Rays and other patient images.
                 </CardDescription>
               </div>
-               <Button size="sm" onClick={() => setIsImageFormOpen(true)}>
-                  <Upload className="mr-2 h-4 w-4" />
-                  Upload Image
-                </Button>
+               {canUpdatePatient && (
+                    <Button size="sm" onClick={() => setIsImageFormOpen(true)}>
+                    <Upload className="mr-2 h-4 w-4" />
+                    Upload Image
+                    </Button>
+               )}
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">

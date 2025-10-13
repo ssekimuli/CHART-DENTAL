@@ -18,9 +18,10 @@ import { Pencil } from "lucide-react";
 type SalaryTableProps = {
     data: Employee[];
     onEdit: (employee: Employee) => void;
+    canUpdate: boolean;
 };
 
-export function SalaryTable({ data, onEdit }: SalaryTableProps) {
+export function SalaryTable({ data, onEdit, canUpdate }: SalaryTableProps) {
 
   return (
     <div className="rounded-md border">
@@ -30,7 +31,7 @@ export function SalaryTable({ data, onEdit }: SalaryTableProps) {
             <TableHead>Name</TableHead>
             <TableHead>Role</TableHead>
             <TableHead className="text-right">Annual Salary</TableHead>
-            <TableHead className="w-[100px] text-right">Actions</TableHead>
+            {canUpdate && <TableHead className="w-[100px] text-right">Actions</TableHead>}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -48,13 +49,15 @@ export function SalaryTable({ data, onEdit }: SalaryTableProps) {
                 </div>
               </TableCell>
               <TableCell>{employee.role}</TableCell>
-              <TableCell className="text-right font-mono">${employee.salary.toLocaleString()}</TableCell>
-              <TableCell className="text-right">
-                <Button variant="outline" size="sm" onClick={() => onEdit(employee)}>
-                    <Pencil className="mr-2 h-4 w-4" />
-                    Edit
-                </Button>
-              </TableCell>
+              <TableCell className="text-right font-mono">${Number(employee.salary).toLocaleString()}</TableCell>
+              {canUpdate && (
+                <TableCell className="text-right">
+                    <Button variant="outline" size="sm" onClick={() => onEdit(employee)}>
+                        <Pencil className="mr-2 h-4 w-4" />
+                        Edit
+                    </Button>
+                </TableCell>
+              )}
             </TableRow>
           ))}
           {data.length === 0 && (

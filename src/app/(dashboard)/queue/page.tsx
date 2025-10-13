@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import type { Appointment, Employee, AppointmentStatus } from "@/lib/types";
 import { getTodaysQueue, getEmployees, updateAppointment, announcePatientInQueue } from "@/lib/api";
 import { useBranch } from "@/context/branch-context";
-import { currentUser } from "@/lib/user";
+import { currentUser, hasPermission } from "@/lib/user";
 import { format } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Clock, UserCheck, CheckCircle, PauseCircle, Ban, Loader2 } from "lucide-react";
@@ -64,6 +64,8 @@ export default function QueuePage() {
     const [isSpeaking, startTransition] = useTransition();
     const [currentlySpeaking, setCurrentlySpeaking] = useState<string | null>(null);
 
+    const canUpdateAppointments = hasPermission('appointments:update');
+
     useEffect(() => {
         const fetchEmployees = async () => {
             const employeesData = await getEmployees();
@@ -71,7 +73,7 @@ export default function QueuePage() {
              if (currentUser.role === 'Dentist') {
                 const currentUserEmployee = employeesData.find(e => e.email === currentUser.email);
                 if (currentUserEmployee) {
-                    setDoctorFilter(currentUserEmployee.id);
+                    setDoctorFilter(currentUserEmployee.id as string);
                 }
             }
         }
@@ -94,13 +96,13 @@ export default function QueuePage() {
     const doctorsInBranch = useMemo(() => {
         const doctors = allEmployees.filter(e => e.role === 'Dentist');
          if (currentUser.role === 'Super Admin') {
-            return doctors.filter(d => d.branchId === selectedBranch);
+            return doctors.filter(d => String(d.branch_id) === String(selectedBranch));
         }
-        return doctors.filter(d => d.branchId === currentUser.branchId);
+        return doctors.filter(d => String(d.branch_id) === String(currentUser.branchId));
     }, [allEmployees, selectedBranch]);
     
     const handleAnnounce = (appointment: Appointment) => {
-        setCurrentlySpeaking(appointment.id);
+        setCurrentlySpeaking(appointment.id as string);
         startTransition(async () => {
             const { audio_url } = await announcePatientInQueue(appointment.id);
             if (audio_url) {
@@ -114,6 +116,7 @@ export default function QueuePage() {
     }
 
     const handleStatusChange = async (appointment: Appointment, status: AppointmentStatus) => {
+        if (!canUpdateAppointments) return;
         const updated = await updateAppointment(appointment.id, { status });
         if (updated) {
             setTodaysAppointments(prev => prev.map(a => a.id === updated.id ? updated : a));
@@ -147,7 +150,7 @@ export default function QueuePage() {
                             <SelectContent>
                                 <SelectItem value="all">All Doctors</SelectItem>
                                 {doctorsInBranch.map(doc => (
-                                    <SelectItem key={doc.id} value={doc.id}>{doc.name}</SelectItem>
+                                    <SelectItem key={doc.id} value={String(doc.id)}>{doc.name}</SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
@@ -195,7 +198,7 @@ export default function QueuePage() {
                                                 <TooltipProvider>
                                                      <Tooltip>
                                                         <TooltipTrigger asChild>
-                                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-500 hover:text-blue-600" onClick={() => handleStatusChange(appointment, 'Waiting')}>
+                                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-500 hover:text-blue-600" onClick={() => handleStatusChange(appointment, 'Waiting')} disabled={!canUpdateAppointments}>
                                                                 <Clock className="h-5 w-5"/>
                                                             </Button>
                                                         </TooltipTrigger>
@@ -205,7 +208,7 @@ export default function QueuePage() {
                                                     </Tooltip>
                                                     <Tooltip>
                                                         <TooltipTrigger asChild>
-                                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-yellow-500 hover:text-yellow-600" onClick={() => handleStatusChange(appointment, 'In Session')}>
+                                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-yellow-500 hover:text-yellow-600" onClick={() => handleStatusChange(appointment, 'In Session')} disabled={!canUpdateAppointments}>
                                                                 <UserCheck className="h-5 w-5"/>
                                                             </Button>
                                                         </TooltipTrigger>
@@ -215,7 +218,7 @@ export default function QueuePage() {
                                                     </Tooltip>
                                                      <Tooltip>
                                                         <TooltipTrigger asChild>
-                                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-orange-500 hover:text-orange-600" onClick={() => handleStatusChange(appointment, 'On Hold')}>
+                                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-orange-500 hover:text-orange-600" onClick={() => handleStatusChange(appointment, 'On Hold')} disabled={!canUpdateAppointments}>
                                                                 <PauseCircle className="h-5 w-5"/>
                                                             </Button>
                                                         </TooltipTrigger>
@@ -225,7 +228,7 @@ export default function QueuePage() {
                                                     </Tooltip>
                                                      <Tooltip>
                                                         <TooltipTrigger asChild>
-                                                          <Button variant="ghost" size="icon" className="h-8 w-8 text-green-500 hover:text-green-600" onClick={() => handleStatusChange(appointment, 'Completed')}>
+                                                          <Button variant="ghost" size="icon" className="h-8 w-8 text-green-500 hover:text-green-600" onClick={() => handleStatusChange(appointment, 'Completed')} disabled={!canUpdateAppointments}>
                                                                 <CheckCircle className="h-5 w-5"/>
                                                             </Button>
                                                         </TooltipTrigger>
@@ -235,7 +238,7 @@ export default function QueuePage() {
                                                     </Tooltip>
                                                      <Tooltip>
                                                         <TooltipTrigger asChild>
-                                                          <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-500 hover:text-gray-600" onClick={() => handleStatusChange(appointment, 'Scheduled')}>
+                                                          <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-500 hover:text-gray-600" onClick={() => handleStatusChange(appointment, 'Scheduled')} disabled={!canUpdateAppointments}>
                                                                 <Ban className="h-5 w-5"/>
                                                             </Button>
                                                         </TooltipTrigger>

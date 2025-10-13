@@ -28,19 +28,21 @@ import {
 import { OrthodonticRecordForm } from "./orthodontic-record-form";
 import type { OrthodonticRecord } from "@/lib/types";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { hasPermission } from "@/lib/user";
 
 type OrthodonticChartProps = {
   initialRecords: OrthodonticRecord[];
   onSave: (record: Omit<OrthodonticRecord, 'id'>) => void;
   onUpdate: (record: OrthodonticRecord) => void;
-  onDelete: (recordId: string) => void;
+  onDelete: (recordId: string | number) => void;
 };
 
 export function OrthodonticChart({ initialRecords, onSave, onUpdate, onDelete }: OrthodonticChartProps) {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<OrthodonticRecord | undefined>(undefined);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
-  const [recordToDelete, setRecordToDelete] = useState<string | undefined>(undefined);
+  const [recordToDelete, setRecordToDelete] = useState<string | number | undefined>(undefined);
+  const canUpdateChart = hasPermission('charting:update');
 
 
   const handleOpenForm = (record?: OrthodonticRecord) => {
@@ -62,7 +64,7 @@ export function OrthodonticChart({ initialRecords, onSave, onUpdate, onDelete }:
     handleCloseForm();
   }
 
-  const openDeleteDialog = (recordId: string) => {
+  const openDeleteDialog = (recordId: string | number) => {
     setRecordToDelete(recordId);
     setIsDeleteAlertOpen(true);
   }
@@ -86,10 +88,12 @@ export function OrthodonticChart({ initialRecords, onSave, onUpdate, onDelete }:
             Track braces, tooth movement, and alignment progress.
             </CardDescription>
         </div>
-        <Button size="sm" onClick={() => handleOpenForm()}>
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Add Record
-        </Button>
+        {canUpdateChart && (
+            <Button size="sm" onClick={() => handleOpenForm()}>
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Add Record
+            </Button>
+        )}
       </CardHeader>
       <CardContent>
         <Table>
@@ -99,7 +103,7 @@ export function OrthodonticChart({ initialRecords, onSave, onUpdate, onDelete }:
                     <TableHead>Appliance</TableHead>
                     <TableHead>Wire Size</TableHead>
                     <TableHead>Notes</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    {canUpdateChart && <TableHead className="text-right">Actions</TableHead>}
                 </TableRow>
             </TableHeader>
             <TableBody>
@@ -114,24 +118,26 @@ export function OrthodonticChart({ initialRecords, onSave, onUpdate, onDelete }:
                         <TableCell>{record.appliance}</TableCell>
                         <TableCell>{record.wireSize || 'N/A'}</TableCell>
                         <TableCell className="max-w-xs truncate">{record.notes}</TableCell>
-                        <TableCell className="text-right">
-                             <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" className="h-8 w-8 p-0">
-                                    <span className="sr-only">Open menu</span>
-                                    <MoreHorizontal className="h-4 w-4" />
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                    <DropdownMenuItem onClick={() => handleOpenForm(record)}>
-                                        <Pencil className="mr-2 h-4 w-4" /> Edit
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem className="text-red-600" onClick={() => openDeleteDialog(record.id)}>
-                                        <Trash className="mr-2 h-4 w-4" /> Delete
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                        </TableCell>
+                        {canUpdateChart && (
+                            <TableCell className="text-right">
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" className="h-8 w-8 p-0">
+                                        <span className="sr-only">Open menu</span>
+                                        <MoreHorizontal className="h-4 w-4" />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                        <DropdownMenuItem onClick={() => handleOpenForm(record)}>
+                                            <Pencil className="mr-2 h-4 w-4" /> Edit
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem className="text-red-600" onClick={() => openDeleteDialog(record.id)}>
+                                            <Trash className="mr-2 h-4 w-4" /> Delete
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </TableCell>
+                        )}
                     </TableRow>
                 ))}
             </TableBody>

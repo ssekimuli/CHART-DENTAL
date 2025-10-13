@@ -25,9 +25,10 @@ import {
 type LeaveTableProps = {
     data: LeaveRequest[];
     onStatusChange: (id: string, status: LeaveStatus) => void;
+    canUpdate: boolean;
 };
 
-export function LeaveTable({ data, onStatusChange }: LeaveTableProps) {
+export function LeaveTable({ data, onStatusChange, canUpdate }: LeaveTableProps) {
     const getStatusVariant = (status: LeaveStatus) => {
         switch (status) {
           case "Approved":
@@ -57,7 +58,7 @@ export function LeaveTable({ data, onStatusChange }: LeaveTableProps) {
             <TableHead>Dates</TableHead>
             <TableHead>Reason</TableHead>
             <TableHead>Status</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
+            {canUpdate && <TableHead className="text-right">Actions</TableHead>}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -74,27 +75,29 @@ export function LeaveTable({ data, onStatusChange }: LeaveTableProps) {
                   {request.status}
                 </Badge>
               </TableCell>
-              <TableCell className="text-right">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="h-8 w-8 p-0" disabled={request.status !== 'Pending'}>
-                      <span className="sr-only">Open menu</span>
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                    <DropdownMenuItem onClick={() => onStatusChange(request.id, 'Approved')}>
-                        <Check className="mr-2 h-4 w-4" />
-                        Approve
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="text-red-600" onClick={() => onStatusChange(request.id, 'Rejected')}>
-                        <XIcon className="mr-2 h-4 w-4" />
-                        Reject
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </TableCell>
+              {canUpdate && (
+                  <TableCell className="text-right">
+                    <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0" disabled={request.status !== 'Pending'}>
+                        <span className="sr-only">Open menu</span>
+                        <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuItem onClick={() => onStatusChange(request.id as string, 'Approved')}>
+                            <Check className="mr-2 h-4 w-4" />
+                            Approve
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="text-red-600" onClick={() => onStatusChange(request.id as string, 'Rejected')}>
+                            <XIcon className="mr-2 h-4 w-4" />
+                            Reject
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                    </DropdownMenu>
+                </TableCell>
+              )}
             </TableRow>
           ))}
            {data.length === 0 && (

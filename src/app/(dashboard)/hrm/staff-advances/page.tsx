@@ -17,6 +17,7 @@ import { getEmployees, getStaffAdvances, createStaffAdvance, updateStaffAdvanceS
 import { Skeleton } from "@/components/ui/skeleton";
 import { AdvancesTable } from "../components/advances-table";
 import { AdvanceForm } from "../components/advance-form";
+import { hasPermission } from "@/lib/user";
 
 export default function StaffAdvancesPage() {
     const { selectedBranch } = useBranch();
@@ -24,6 +25,8 @@ export default function StaffAdvancesPage() {
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isFormOpen, setIsFormOpen] = useState(false);
+    const canCreate = hasPermission('hrm:create');
+    const canUpdate = hasPermission('hrm:update');
 
     useEffect(() => {
         const fetchData = async () => {
@@ -64,10 +67,12 @@ export default function StaffAdvancesPage() {
               Manage and track salary advances for staff.
             </CardDescription>
           </div>
-          <Button onClick={() => setIsFormOpen(true)}>
-            <PlusCircle className="mr-2" />
-            New Advance
-          </Button>
+          {canCreate && (
+            <Button onClick={() => setIsFormOpen(true)}>
+                <PlusCircle className="mr-2" />
+                New Advance
+            </Button>
+          )}
         </CardHeader>
         <CardContent>
             {isLoading ? (
@@ -76,7 +81,7 @@ export default function StaffAdvancesPage() {
                     <Skeleton className="h-12 w-full" />
                 </div>
             ) : (
-                <AdvancesTable data={advances} onStatusChange={handleStatusChange} />
+                <AdvancesTable data={advances} onStatusChange={handleStatusChange} canUpdate={canUpdate} />
             )}
         </CardContent>
       </Card>

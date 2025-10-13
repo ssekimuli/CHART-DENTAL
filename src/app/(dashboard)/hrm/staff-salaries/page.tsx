@@ -15,6 +15,7 @@ import { getEmployees, updateEmployee } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SalaryTable } from "../components/salary-table";
 import { SalaryForm } from "../components/salary-form";
+import { hasPermission } from "@/lib/user";
 
 export default function StaffSalariesPage() {
     const { selectedBranch } = useBranch();
@@ -23,6 +24,7 @@ export default function StaffSalariesPage() {
 
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [selectedEmployee, setSelectedEmployee] = useState<Employee | undefined>(undefined);
+    const canUpdate = hasPermission('hrm:update');
     
     useEffect(() => {
         const fetchData = async () => {
@@ -73,6 +75,7 @@ export default function StaffSalariesPage() {
                 <SalaryTable 
                     data={employees}
                     onEdit={handleOpenForm}
+                    canUpdate={canUpdate}
                 />
             )}
         </CardContent>

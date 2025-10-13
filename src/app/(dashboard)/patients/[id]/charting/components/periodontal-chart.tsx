@@ -27,6 +27,7 @@ import type {
 } from "@/lib/types";
 import { useState, useRef, createRef } from "react";
 import Image from "next/image";
+import { hasPermission } from "@/lib/user";
 
 const quadrants = {
   upperRight: [18, 17, 16, 15, 14, 13, 12, 11],
@@ -71,6 +72,7 @@ export function PeriodontalChart({
   const [records, setRecords] =
     useState<PeriodontalRecord>(initialRecords);
   const [selectedTooth, setSelectedTooth] = useState<number | undefined>();
+  const canUpdateChart = hasPermission('charting:update');
   
 
   const getRecord = (toothId: number): PeriodontalMeasurement => {
@@ -164,6 +166,7 @@ export function PeriodontalChart({
               value={record.pockets[pos] ?? ""}
               onChange={(e) => handlePocketChange(toothId, pos, e.target.value)}
               onFocus={() => setSelectedTooth(toothId)}
+              disabled={!canUpdateChart}
             />
           </foreignObject>
         ))}
@@ -182,6 +185,7 @@ export function PeriodontalChart({
               value={record.pockets[pos] ?? ""}
               onChange={(e) => handlePocketChange(toothId, pos, e.target.value)}
               onFocus={() => setSelectedTooth(toothId)}
+              disabled={!canUpdateChart}
             />
           </foreignObject>
         ))}
@@ -189,7 +193,7 @@ export function PeriodontalChart({
     )
 
     const conditionToggles = (
-       <g transform="translate(18, 172)" className="cursor-pointer" onClick={() => setSelectedTooth(toothId)}>
+       <g transform="translate(18, 172)" className={cn(canUpdateChart && "cursor-pointer")} onClick={() => canUpdateChart && setSelectedTooth(toothId)}>
           {conditionKeys.map((con, i) => (
             <circle
               key={con}
@@ -207,7 +211,7 @@ export function PeriodontalChart({
                     }[con]
                   : "fill-muted"
               )}
-              onClick={(e) => { e.stopPropagation(); handleConditionToggle(toothId, con); }}
+              onClick={(e) => { if (canUpdateChart) { e.stopPropagation(); handleConditionToggle(toothId, con); } }}
             >
               <title>{con.charAt(0).toUpperCase() + con.slice(1)}</title>
             </circle>
@@ -227,6 +231,7 @@ export function PeriodontalChart({
               value={record.recession ?? ''}
               onChange={e => handleRecessionChange(toothId, e.target.value)}
               onFocus={() => setSelectedTooth(toothId)}
+              disabled={!canUpdateChart}
             />
         </foreignObject>
          <foreignObject x="0" y={312} width="36" height="24">
@@ -234,6 +239,7 @@ export function PeriodontalChart({
               value={record.mobility}
               onValueChange={(val) => handleSelectChange(toothId, "mobility", val)}
               onOpenChange={(open) => open && setSelectedTooth(toothId)}
+              disabled={!canUpdateChart}
             >
               <SelectTrigger className="h-full w-full text-xs px-1">
                 <SelectValue placeholder="MOB" />
@@ -251,6 +257,7 @@ export function PeriodontalChart({
               value={record.furcation}
               onValueChange={(val) => handleSelectChange(toothId, "furcation", val)}
               onOpenChange={(open) => open && setSelectedTooth(toothId)}
+              disabled={!canUpdateChart}
             >
               <SelectTrigger className="h-full w-full text-xs px-1">
                 <SelectValue placeholder="FUR" />
@@ -346,9 +353,11 @@ export function PeriodontalChart({
              <line x1={40 + 24 * 40} y1="0" x2={40 + 24 * 40} y2="400" className="stroke-muted-foreground stroke-2" />
         </svg>
       </CardContent>
-      <CardFooter>
-        <Button onClick={() => onSave(records)}>Save Chart</Button>
-      </CardFooter>
+      {canUpdateChart && (
+        <CardFooter>
+            <Button onClick={() => onSave(records)}>Save Chart</Button>
+        </CardFooter>
+      )}
     </Card>
   );
 }

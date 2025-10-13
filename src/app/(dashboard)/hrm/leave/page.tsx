@@ -17,6 +17,7 @@ import { getEmployees, getLeaveRequests, createLeaveRequest, updateLeaveRequestS
 import { Skeleton } from "@/components/ui/skeleton";
 import { LeaveRequestForm } from "../components/leave-request-form";
 import { LeaveTable } from "../components/leave-table";
+import { hasPermission } from "@/lib/user";
 
 export default function LeavePage() {
     const { selectedBranch } = useBranch();
@@ -24,6 +25,8 @@ export default function LeavePage() {
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isFormOpen, setIsFormOpen] = useState(false);
+    const canCreate = hasPermission('hrm:create');
+    const canUpdate = hasPermission('hrm:update');
 
     useEffect(() => {
         const fetchData = async () => {
@@ -64,10 +67,12 @@ export default function LeavePage() {
               Track and manage employee leave requests.
             </CardDescription>
           </div>
-          <Button onClick={() => setIsFormOpen(true)}>
-            <PlusCircle className="mr-2" />
-            New Request
-          </Button>
+          {canCreate && (
+            <Button onClick={() => setIsFormOpen(true)}>
+                <PlusCircle className="mr-2" />
+                New Request
+            </Button>
+          )}
         </CardHeader>
         <CardContent>
             {isLoading ? (
@@ -76,7 +81,7 @@ export default function LeavePage() {
                     <Skeleton className="h-12 w-full" />
                 </div>
             ) : (
-                <LeaveTable data={leaveRequests} onStatusChange={handleStatusChange} />
+                <LeaveTable data={leaveRequests} onStatusChange={handleStatusChange} canUpdate={canUpdate} />
             )}
         </CardContent>
       </Card>
