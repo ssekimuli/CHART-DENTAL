@@ -34,55 +34,65 @@ import {
   DollarSign,
   Landmark,
 } from "lucide-react";
-import type { EmployeeRole } from "@/lib/types";
+import type { EmployeeRole, Permission } from "@/lib/types";
 import { currentUser } from "@/lib/user";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../ui/collapsible";
 import React, { useEffect, useState } from "react";
 
-const allLinks = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ['Super Admin', 'Account', 'HR', 'Dentist', 'Hygienist', 'Receptionist', 'Assistant'] as EmployeeRole[] },
-  { href: "/queue", label: "Queue", icon: ClipboardList, roles: ['Super Admin', 'Dentist', 'Hygienist', 'Receptionist', 'Assistant'] as EmployeeRole[] },
-  { href: "/patients", label: "Patients", icon: Users, roles: ['Super Admin', 'Dentist', 'Hygienist', 'Receptionist', 'Assistant'] as EmployeeRole[] },
-  { href: "/charting", label: "Charting", icon: FileText, roles: ['Super Admin', 'Dentist', 'Hygienist'] as EmployeeRole[] },
-  { href: "/appointments", label: "Appointments", icon: Calendar, roles: ['Super Admin', 'Dentist', 'Hygienist', 'Receptionist', 'Assistant'] as EmployeeRole[] },
-  { href: "/billing", label: "Billing", icon: CreditCard, roles: ['Super Admin', 'Account', 'Receptionist'] as EmployeeRole[] },
-  { href: "/accounting", label: "Accounting", icon: Landmark, roles: ['Super Admin', 'Account'] as EmployeeRole[] },
-  { href: "/inventory", label: "Inventory", icon: Package, roles: ['Super Admin', 'Receptionist', 'Assistant'] as EmployeeRole[] },
-  { href: "/laboratory", label: "Laboratory", icon: FlaskConical, roles: ['Super Admin', 'Dentist', 'Assistant'] as EmployeeRole[] },
+type NavLink = {
+    href?: string;
+    label: string;
+    icon: React.ElementType;
+    permission: Permission;
+    subLinks?: Omit<NavLink, 'subLinks'>[];
+}
+
+const allLinks: NavLink[] = [
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, permission: 'dashboard:read' },
+  { href: "/queue", label: "Queue", icon: ClipboardList, permission: 'queue:read' },
+  { href: "/patients", label: "Patients", icon: Users, permission: 'patients:read' },
+  { href: "/charting", label: "Charting", icon: FileText, permission: 'charting:read' },
+  { href: "/appointments", label: "Appointments", icon: Calendar, permission: 'appointments:read' },
+  { href: "/billing", label: "Billing", icon: CreditCard, permission: 'billing:read' },
+  { href: "/accounting", label: "Accounting", icon: Landmark, permission: 'accounting:read' },
+  { href: "/inventory", label: "Inventory", icon: Package, permission: 'inventory:read' },
+  { href: "/laboratory", label: "Laboratory", icon: FlaskConical, permission: 'laboratory:read' },
   { 
     label: "HRM", 
     icon: Briefcase, 
-    roles: ['Super Admin', 'HR', 'Account'] as EmployeeRole[],
+    permission: 'hrm:read',
     subLinks: [
-        { href: "/hrm/staff", label: "Staff", icon: User, roles: ['Super Admin', 'HR'] as EmployeeRole[] },
-        { href: "/hrm/staff-position", label: "Staff Position", icon: UserCog, roles: ['Super Admin', 'HR'] as EmployeeRole[] },
-        { href: "/hrm/payroll", label: "Payroll", icon: HandCoins, roles: ['Super Admin', 'HR', 'Account'] as EmployeeRole[] },
-        { href: "/hrm/staff-salaries", label: "Staff Salaries", icon: DollarSign, roles: ['Super Admin', 'HR', 'Account'] as EmployeeRole[] },
-        { href: "/hrm/leave", label: "Leave", icon: CalendarClock, roles: ['Super Admin', 'HR'] as EmployeeRole[] },
-        { href: "/hrm/staff-advances", label: "Staff Advances", icon: NotebookPen, roles: ['Super Admin', 'HR', 'Account'] as EmployeeRole[] },
-        { href: "/hrm/attendance", label: "Attendance", icon: Clock, roles: ['Super Admin', 'HR'] as EmployeeRole[] },
+        { href: "/hrm/staff", label: "Staff", icon: User, permission: 'hrm:read' },
+        { href: "/hrm/staff-position", label: "Staff Position", icon: UserCog, permission: 'hrm:read' },
+        { href: "/hrm/payroll", label: "Payroll", icon: HandCoins, permission: 'hrm:read' },
+        { href: "/hrm/staff-salaries", label: "Staff Salaries", icon: DollarSign, permission: 'hrm:read' },
+        { href: "/hrm/leave", label: "Leave", icon: CalendarClock, permission: 'hrm:read' },
+        { href: "/hrm/staff-advances", label: "Staff Advances", icon: NotebookPen, permission: 'hrm:read' },
+        { href: "/hrm/attendance", label: "Attendance", icon: Clock, permission: 'hrm:read' },
     ]
   },
-  { href: "/branches", label: "Branches", icon: Building, roles: ['Super Admin'] as EmployeeRole[] },
-  { href: "/reports", label: "Reports", icon: BarChart3, roles: ['Super Admin', 'Account', 'HR'] as EmployeeRole[] },
-  { href: "/settings", label: "Settings", icon: Settings, roles: ['Super Admin', 'Account', 'HR', 'Dentist', 'Hygienist', 'Receptionist', 'Assistant'] as EmployeeRole[] },
+  { href: "/branches", label: "Branches", icon: Building, permission: 'branches:read' },
+  { href: "/reports", label: "Reports", icon: BarChart3, permission: 'reports:read' },
+  { href: "/settings", label: "Settings", icon: Settings, permission: 'settings:manage' },
 ];
 
 export function MainNav() {
   const pathname = usePathname();
-  const [userRole, setUserRole] = useState(currentUser.role);
+  const [userPermissions, setUserPermissions] = useState<Permission[]>(currentUser.permissions);
   
   useEffect(() => {
-    // This effect can be used to update the role if it changes during the session
-    setUserRole(currentUser.role);
+    // This effect can be used to update permissions if they change during the session
+    setUserPermissions(currentUser.permissions);
   }, []);
+
+  const hasPermission = (permission: Permission) => userPermissions.includes(permission);
 
   const isHrmActive = pathname.startsWith('/hrm');
 
   const accessibleLinks = allLinks.filter(link => {
-    if (link.roles.includes(userRole)) {
+    if (hasPermission(link.permission)) {
         if (link.subLinks) {
-            link.subLinks = link.subLinks.filter(sublink => sublink.roles.includes(userRole));
+            link.subLinks = link.subLinks.filter(sublink => hasPermission(sublink.permission));
             return link.subLinks.length > 0;
         }
         return true;
@@ -115,8 +125,8 @@ export function MainNav() {
                         <SidebarMenuSub>
                             {link.subLinks.map(subLink => (
                                 <SidebarMenuSubItem key={subLink.href}>
-                                    <SidebarMenuSubButton asChild isActive={pathname.startsWith(subLink.href)}>
-                                        <Link href={subLink.href}>
+                                    <SidebarMenuSubButton asChild isActive={pathname.startsWith(subLink.href!)}>
+                                        <Link href={subLink.href!}>
                                             <subLink.icon />
                                             <span>{subLink.label}</span>
                                         </Link>

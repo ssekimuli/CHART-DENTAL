@@ -1,12 +1,31 @@
 
-import type { EmployeeRole, CurrentUser } from "./types";
+
+import type { EmployeeRole, CurrentUser, Permission } from "./types";
+
+const allPermissions: Permission[] = [
+    'dashboard:read', 'queue:read', 
+    'patients:read', 'patients:create', 'patients:update', 'patients:delete', 
+    'charting:read', 'charting:update', 
+    'appointments:read', 'appointments:create', 'appointments:update', 'appointments:delete', 
+    'billing:read', 'billing:create', 'billing:update', 'billing:delete', 
+    'accounting:read', 'accounting:create', 
+    'inventory:read', 'inventory:create', 'inventory:update', 
+    'laboratory:read', 'laboratory:create', 'laboratory:update', 
+    'hrm:read', 'hrm:create', 'hrm:update', 'hrm:delete', 
+    'branches:read', 'branches:create', 
+    'reports:read', 
+    'settings:manage', 
+    'profile:read', 'profile:update'
+];
 
 const defaultUser: CurrentUser = {
   role: 'Super Admin',
   branchId: 'b1',
+  branchName: 'Downtown Clinic',
   email: 'lisa.cuddy@example.com',
   name: 'Dr. Lisa Cuddy',
-  avatar: 'https://picsum.photos/seed/emp1/200/200'
+  avatar: 'https://picsum.photos/seed/emp1/200/200',
+  permissions: allPermissions
 };
 
 export function getCurrentUser(): CurrentUser | null {
