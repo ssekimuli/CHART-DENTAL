@@ -120,10 +120,12 @@ export default function DashboardPage() {
     }
   };
 
+  const canReadAccounting = hasPermission('accounting:read');
+
   return (
     <div className="flex flex-col gap-6">
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {hasPermission('accounting:read') && (
+        {canReadAccounting && (
             <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">
@@ -186,10 +188,10 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        {hasPermission('accounting:read') ? (
+        {canReadAccounting ? (
             <Card className="lg:col-span-4">
             <CardHeader>
-                <CardTitle>Overview</CardTitle>
+                <CardTitle>Financial Overview</CardTitle>
             </CardHeader>
             <CardContent className="pl-2">
                 {isLoading ? <Skeleton className="h-[300px] w-full" /> : (
@@ -308,6 +310,51 @@ export default function DashboardPage() {
             </Card>
         )}
       </div>
+
+       { canReadAccounting &&
+         <Card>
+            <CardHeader>
+                <CardTitle>Patient Activity Overview</CardTitle>
+                <CardDescription>New patients and appointments over the last few months.</CardDescription>
+            </CardHeader>
+             <CardContent className="pl-2">
+                {isLoading ? <Skeleton className="h-[350px] w-full" /> : (
+                <ChartContainer config={chartConfig} className="h-[350px] w-full">
+                    <BarChart accessibilityLayer data={chartData}>
+                        <CartesianGrid vertical={false} />
+                        <XAxis
+                            dataKey="month"
+                            tickLine={false}
+                            tickMargin={10}
+                            axisLine={false}
+                            tickFormatter={(value) => value.slice(0, 3)}
+                        />
+                        <YAxis
+                            tickLine={false}
+                            axisLine={false}
+                            tickMargin={10}
+                        />
+                        <ChartTooltip
+                            cursor={false}
+                            content={<ChartTooltipContent />}
+                        />
+                        <Bar
+                            dataKey="newPatients"
+                            fill="var(--color-newPatients)"
+                            radius={8}
+                        />
+                        <Bar
+                            dataKey="newAppointments"
+                            fill="var(--color-newAppointments)"
+                            radius={8}
+                        />
+                    </BarChart>
+                </ChartContainer>
+                )}
+            </CardContent>
+            </Card>
+       }
+
 
         {hasPermission('appointments:read') && (
             <Card>
