@@ -72,7 +72,7 @@ const allLinks: NavLink[] = [
   },
   { href: "/branches", label: "Branches", icon: Building, permission: 'branches:read' },
   { href: "/reports", label: "Reports", icon: BarChart3 },
-  { href: "/settings", label: "Settings", icon: Settings, permission: 'settings:manage' },
+  { href: "/settings", label: "Settings", icon: Settings },
 ];
 
 export function MainNav() {
@@ -97,13 +97,16 @@ export function MainNav() {
     const newLink = { ...link };
 
     // Special visibility rules based on role
-    if (newLink.href === '/charting' && userRole === 'Account') {
+    if (newLink.href === '/charting' && userRole === 'Accountant') {
         return null; // Hide charting for accountants
     }
     if ((newLink.href === '/billing' || newLink.href === '/accounting') && !['Super Admin', 'Account'].includes(userRole as string)) {
-        return null; // Only Super Admins and Accountants can see billing/accounting links
+        return null;
     }
     if ((newLink.href === '/inventory' || newLink.href === '/reports' || newLink.label === 'HRM') && !['Super Admin', 'HR'].includes(userRole as string)) {
+        return null;
+    }
+    if (newLink.href === '/settings' && userRole !== 'Super Admin') {
         return null;
     }
 
