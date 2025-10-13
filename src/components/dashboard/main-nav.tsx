@@ -78,44 +78,49 @@ const allLinks: NavLink[] = [
 
 export function MainNav() {
   const pathname = usePathname();
-  const [userPermissions, setUserPermissions] = useState<Permission[]>([]);
+  const [user, setUser] = useState<ReturnType<typeof getCurrentUser>>(null);
   
   useEffect(() => {
     // On component mount on the client, get the full user object from local storage.
     const user = getCurrentUser();
-    setUserPermissions(user?.permissions || []);
+    setUser(user);
   }, [pathname]); // Re-check on path change if needed, though login state is main driver
+
+  const userPermissions = user?.permissions || [];
+  const userRole = user?.role;
 
   const hasPermission = (permission: Permission) => userPermissions.includes(permission);
 
   const isHrmActive = pathname.startsWith('/hrm');
 
-  const accessibleLinks = allLinks.filter(link => {
-    // If a link has no permission, it's accessible to everyone (like the Dashboard)
-    if (!link.permission) {
-        return true;
+  const accessibleLinks = allLinks.map(link => {
+    // Make a copy to avoid mutating the original array
+    const newLink = { ...link };
+
+    // Special logic for Charting link visibility
+    if (newLink.href === '/charting') {
+        if (userRole === 'Account') {
+            return null; // Hide charting for accountants
+        }
+    }
+
+    // Filter sublinks based on permissions
+    if (newLink.subLinks) {
+        newLink.subLinks = newLink.subLinks.filter(sublink => !sublink.permission || hasPermission(sublink.permission));
+    }
+
+    // Check parent link permission
+    if (newLink.permission && !hasPermission(newLink.permission)) {
+        return null;
     }
     
-    if (hasPermission(link.permission)) {
-        if (link.subLinks) {
-            // Important: create a new object to avoid mutating the original allLinks array
-            const newLink = { ...link };
-            newLink.subLinks = newLink.subLinks!.filter(sublink => !sublink.permission || hasPermission(sublink.permission));
-            return newLink.subLinks.length > 0;
-        }
-        return true;
+    // If it's a group, check if it has any visible sublinks left
+    if (newLink.subLinks && newLink.subLinks.length === 0) {
+        return null;
     }
-    return false;
-  }).map(link => {
-      // This map is to ensure we are using the filtered sublinks
-      if (link.subLinks && (!link.permission || hasPermission(link.permission))) {
-          const filteredSubLinks = link.subLinks.filter(sublink => !sublink.permission || hasPermission(sublink.permission));
-          if (filteredSubLinks.length > 0) {
-              return { ...link, subLinks: filteredSubLinks };
-          }
-      }
-      return link;
-  }).filter(link => link.subLinks ? link.subLinks.length > 0 : link.href); // final filter for empty parent groups
+
+    return newLink;
+  }).filter(Boolean) as NavLink[];
 
 
   return (
