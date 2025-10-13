@@ -6,7 +6,7 @@ import {
     chartData,
     employees as allEmployees,
     payrolls as allPayrolls,
-    branches,
+    branches as mockBranches,
     inventory,
     labOrders as allLabOrders,
     treatments as allTreatments,
@@ -80,8 +80,18 @@ export const getProfileData = async (): Promise<ProfileData | null> => {
 
 export const getBranches = async (): Promise<Branch[]> => {
     console.log('API CALL: getBranches');
-    await delay(50);
-    return JSON.parse(JSON.stringify(branches));
+    try {
+        const response = await customAxios.get('/all-branch');
+        // The API returns 'id' as a number, which matches our updated type.
+        return response.data;
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            console.error('Failed to fetch branches:', error.response?.data);
+        } else {
+            console.error("An unexpected error occurred while fetching branches:", error);
+        }
+        return []; // Return empty array on error
+    }
 }
 
 export const getPatients = async (branchId?: string | number): Promise<Patient[]> => {
@@ -267,7 +277,7 @@ export const getRoles = async (): Promise<RolePermissions[]> => {
     }
 }
 
-export const getRolesList = async (): Promise<{id: EmployeeRole, name: string}[]> => {
+export const getRolesList = async (): Promise<{id: string, name: string}[]> => {
     console.log('API CALL: getRolesList');
      try {
         const response = await customAxios.get('/roles');
@@ -797,9 +807,9 @@ export const createBranch = async (data: Omit<Branch, 'id'>): Promise<Branch> =>
     await delay(200);
     const newBranch: Branch = {
         ...data,
-        id: `b${branches.length + 1}`
+        id: `b${mockBranches.length + 1}`
     };
-    branches.push(newBranch);
+    mockBranches.push(newBranch);
     return newBranch;
 }
 

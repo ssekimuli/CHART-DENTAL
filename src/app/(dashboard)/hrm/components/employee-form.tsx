@@ -32,12 +32,12 @@ import {
     SelectTrigger,
     SelectValue,
   } from "@/components/ui/select";
-import type { Employee, EmployeeRole } from "@/lib/types";
+import type { Employee, EmployeeRole, Branch } from "@/lib/types";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { CalendarIcon } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
-import { getRolesList } from "@/lib/api";
+import { getBranches, getRolesList } from "@/lib/api";
 
 
 const formSchema = z.object({
@@ -51,16 +51,18 @@ const formSchema = z.object({
     required_error: "A hire date is required.",
   }),
   avatar: z.string().url().optional().or(z.literal('')),
+  branchId: z.string({ required_error: "Branch is required."}),
 });
 
 type EmployeeFormProps = {
     employee?: Employee;
-    onSave: (data: Omit<Employee, 'id' | 'branchId'>) => void;
+    onSave: (data: Omit<Employee, 'id' | 'branchId'> & { branchId: string | number }) => void;
     onOpenChange: (open: boolean) => void;
 };
 
 export function EmployeeForm({ employee, onSave, onOpenChange }: EmployeeFormProps) {
-  const [roles, setRoles] = useState<{id: EmployeeRole, name: string}[]>([]);
+  const [roles, setRoles] = useState<{id: string, name: string}[]>([]);
+  const [branches, setBranches] = useState<Branch[]>([]);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -73,6 +75,7 @@ export function EmployeeForm({ employee, onSave, onOpenChange }: EmployeeFormPro
         monthlySalary: employee ? Number(employee.salary) / 12 : undefined,
         hire_date: employee ? parseISO(employee.hire_date) : undefined,
         avatar: employee?.avatar ?? "",
+        branchId: employee ? String(employee.branchId) : undefined,
     },
   });
 
@@ -81,7 +84,12 @@ export function EmployeeForm({ employee, onSave, onOpenChange }: EmployeeFormPro
         const rolesData = await getRolesList();
         setRoles(rolesData);
     };
+    const fetchBranches = async () => {
+        const branchesData = await getBranches();
+        setBranches(branchesData);
+    }
     fetchRoles();
+    fetchBranches();
   }, []);
 
   const annualSalary = form.watch("salary");
@@ -161,7 +169,7 @@ export function EmployeeForm({ employee, onSave, onOpenChange }: EmployeeFormPro
                             render={({ field }) => (
                                 <FormItem>
                                 <FormLabel>Role</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <Select onValueChange={field.onChange} defaultValue={String(field.value)}>
                                     <FormControl>
                                     <SelectTrigger>
                                         <SelectValue placeholder="Select role" />
@@ -177,21 +185,22 @@ export function EmployeeForm({ employee, onSave, onOpenChange }: EmployeeFormPro
                                 </FormItem>
                             )}
                         />
-                        <FormField
+                         <FormField
                             control={form.control}
-                            name="status"
+                            name="branchId"
                             render={({ field }) => (
                                 <FormItem>
-                                <FormLabel>Status</FormLabel>
+                                <FormLabel>Branch</FormLabel>
                                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                                     <FormControl>
                                     <SelectTrigger>
-                                        <SelectValue placeholder="Select status" />
+                                        <SelectValue placeholder="Select branch" />
                                     </SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
-                                        <SelectItem value="Active">Active</SelectItem>
-                                        <SelectItem value="On Leave">On Leave</SelectItem>
+                                        {branches.map(branch => (
+                                            <SelectItem key={branch.id} value={String(branch.id)}>{branch.name}</SelectItem>
+                                        ))}
                                     </SelectContent>
                                 </Select>
                                 <FormMessage />
@@ -266,6 +275,27 @@ export function EmployeeForm({ employee, onSave, onOpenChange }: EmployeeFormPro
                                 </FormItem>
                             )}
                         />
+                        <FormField
+                            control={form.control}
+                            name="status"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Status</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <FormControl>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select status" />
+                                    </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                        <SelectItem value="Active">Active</SelectItem>
+                                        <SelectItem value="On Leave">On Leave</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
                     </div>
                      <DialogFooter>
                         <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
@@ -277,3 +307,4 @@ export function EmployeeForm({ employee, onSave, onOpenChange }: EmployeeFormPro
     </Dialog>
   );
 }
+

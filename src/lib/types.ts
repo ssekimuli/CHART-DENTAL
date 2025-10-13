@@ -164,7 +164,7 @@ export type AttendanceRecord = {
 
 
 export type Branch = {
-  id: string | number;
+  id: number;
   name: string;
   address: string;
 };
