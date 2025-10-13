@@ -23,6 +23,7 @@ import { TreatmentPlanForm } from "../components/treatment-plan-form";
 import { OrthodonticChart } from "./components/orthodontic-chart";
 import { ConditionLogger } from "../components/condition-logger";
 import { getPatientById, addTreatment, saveDentalRecord, savePeriodontalRecord, saveOcclusalRecord, saveOrthodonticRecord, updateOrthodonticRecord, deleteOrthodonticRecord, saveSoftTissueRecord, updateSoftTissueRecord, deleteSoftTissueRecord } from "@/lib/api";
+import { getCurrentUser } from "@/lib/user";
 
 export default function PatientChartingPage({
   params,
@@ -41,6 +42,12 @@ export default function PatientChartingPage({
 
 
   useEffect(() => {
+    const user = getCurrentUser();
+    if (user && (user.role === 'Receptionist' || user.role === 'Account')) {
+        router.replace('/dashboard');
+        return;
+    }
+
     if (typeof params.id !== 'string') return;
     const fetchData = async () => {
         setIsLoading(true);
@@ -49,7 +56,7 @@ export default function PatientChartingPage({
         setIsLoading(false);
     }
     fetchData();
-  }, [params.id]);
+  }, [params.id, router]);
 
 
   if (isLoading) {
@@ -73,7 +80,12 @@ export default function PatientChartingPage({
   }
 
   if (!patient) {
-    notFound();
+    // This could be because of loading, redirection, or not found.
+    // If not loading and no patient, it's a 404.
+    if (!isLoading) {
+       notFound();
+    }
+    return null; // Return null during the loading/redirect state
   }
 
   const handleAddTreatment = async (newTreatment: Omit<Treatment, 'id' | 'date'>, condition?: DentalCondition) => {
