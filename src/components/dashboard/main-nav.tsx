@@ -53,14 +53,13 @@ const allLinks: NavLink[] = [
   { href: "/patients", label: "Patients", icon: Users },
   { href: "/charting", label: "Charting", icon: FileText },
   { href: "/appointments", label: "Appointments", icon: Calendar },
-  { href: "/billing", label: "Billing", icon: CreditCard, permission: 'billing:read' },
-  { href: "/accounting", label: "Accounting", icon: Landmark, permission: 'accounting:read' },
-  { href: "/inventory", label: "Inventory", icon: Package, permission: 'inventory:read' },
+  { href: "/billing", label: "Billing", icon: CreditCard },
+  { href: "/accounting", label: "Accounting", icon: Landmark },
+  { href: "/inventory", label: "Inventory", icon: Package },
   { href: "/laboratory", label: "Laboratory", icon: FlaskConical, permission: 'laboratory:read' },
   { 
     label: "HRM", 
     icon: Briefcase, 
-    permission: 'hrm:read',
     subLinks: [
         { href: "/hrm/staff", label: "Staff", icon: User, permission: 'hrm:read' },
         { href: "/hrm/staff-position", label: "Staff Position", icon: UserCog, permission: 'hrm:read' },
@@ -72,7 +71,7 @@ const allLinks: NavLink[] = [
     ]
   },
   { href: "/branches", label: "Branches", icon: Building, permission: 'branches:read' },
-  { href: "/reports", label: "Reports", icon: BarChart3, permission: 'reports:read' },
+  { href: "/reports", label: "Reports", icon: BarChart3 },
   { href: "/settings", label: "Settings", icon: Settings, permission: 'settings:manage' },
 ];
 
@@ -104,6 +103,10 @@ export function MainNav() {
     if ((newLink.href === '/billing' || newLink.href === '/accounting') && !['Super Admin', 'Account'].includes(userRole as string)) {
         return null; // Only Super Admins and Accountants can see billing/accounting links
     }
+    if ((newLink.href === '/inventory' || newLink.href === '/reports' || newLink.label === 'HRM') && !['Super Admin', 'HR'].includes(userRole as string)) {
+        return null;
+    }
+
 
     // Filter sublinks based on permissions
     if (newLink.subLinks) {
