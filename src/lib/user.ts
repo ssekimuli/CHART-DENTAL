@@ -66,3 +66,14 @@ export function clearCurrentUser(): void {
 
 // Fallback for server-side rendering, although it should ideally be null until client-side hydration
 export const currentUser = getCurrentUser() || defaultUser;
+
+export function hasPermission(permission: Permission): boolean {
+    if (typeof window === 'undefined') {
+        return true; // Allow all for SSR to prevent layout shifts
+    }
+    const user = getCurrentUser();
+    if (!user) {
+        return false;
+    }
+    return user.permissions.includes(permission);
+}

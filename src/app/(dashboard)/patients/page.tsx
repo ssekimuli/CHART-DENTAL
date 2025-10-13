@@ -13,7 +13,7 @@ import { PlusCircle } from "lucide-react";
 import { PatientsTable } from "./components/patients-table";
 import { useBranch } from "@/context/branch-context";
 import { useState, useMemo, useEffect } from "react";
-import { currentUser } from "@/lib/user";
+import { currentUser, hasPermission } from "@/lib/user";
 import type { Patient, BasePatient } from "@/lib/types";
 import { PatientForm } from "./components/patient-form";
 import { useRouter } from "next/navigation";
@@ -111,10 +111,12 @@ export default function PatientsPage() {
             Manage your patients and view their records.
           </CardDescription>
         </div>
-        <Button onClick={() => handleOpenForm()}>
-          <PlusCircle className="mr-2" />
-          Add Patient
-        </Button>
+        {hasPermission('patients:create') && (
+          <Button onClick={() => handleOpenForm()}>
+            <PlusCircle className="mr-2" />
+            Add Patient
+          </Button>
+        )}
       </CardHeader>
       <CardContent>
         {isLoading ? (
@@ -160,5 +162,3 @@ export default function PatientsPage() {
     </>
   );
 }
-
-    

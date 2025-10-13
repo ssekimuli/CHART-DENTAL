@@ -23,6 +23,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { hasPermission } from "@/lib/user";
 
 type PatientsTableProps = {
     data: Patient[];
@@ -32,6 +33,9 @@ type PatientsTableProps = {
 };
 
 export function PatientsTable({ data, onView, onEdit, onDelete }: PatientsTableProps) {
+  const canUpdate = hasPermission('patients:update');
+  const canDelete = hasPermission('patients:delete');
+
   return (
     <div className="rounded-md border">
       <Table>
@@ -79,19 +83,25 @@ export function PatientsTable({ data, onView, onEdit, onDelete }: PatientsTableP
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                    <DropdownMenuItem onClick={() => onView(patient.id)}>
+                    <DropdownMenuItem onClick={() => onView(patient.id.toString())}>
                         <Eye className="mr-2 h-4 w-4" />
                         View
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => onEdit(patient)}>
-                        <Pencil className="mr-2 h-4 w-4" />
-                        Edit
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem className="text-red-600" onClick={() => onDelete(patient)}>
-                        <Trash className="mr-2 h-4 w-4" />
-                        Delete
-                    </DropdownMenuItem>
+                    {canUpdate && (
+                      <DropdownMenuItem onClick={() => onEdit(patient)}>
+                          <Pencil className="mr-2 h-4 w-4" />
+                          Edit
+                      </DropdownMenuItem>
+                    )}
+                    {canDelete && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem className="text-red-600" onClick={() => onDelete(patient)}>
+                            <Trash className="mr-2 h-4 w-4" />
+                            Delete
+                        </DropdownMenuItem>
+                      </>
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </TableCell>

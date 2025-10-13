@@ -23,6 +23,7 @@ import {
   } from "@/components/ui/table";
 import { createBranch, getBranches } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
+import { hasPermission } from "@/lib/user";
 
 export default function BranchesPage() {
     const [branches, setBranches] = useState<Branch[]>([]);
@@ -57,10 +58,12 @@ export default function BranchesPage() {
                 Manage your practice's locations.
             </CardDescription>
             </div>
-            <Button onClick={() => setIsFormOpen(true)}>
-            <PlusCircle className="mr-2" />
-            Add Branch
-            </Button>
+            {hasPermission('branches:create') && (
+              <Button onClick={() => setIsFormOpen(true)}>
+                <PlusCircle className="mr-2" />
+                Add Branch
+              </Button>
+            )}
         </CardHeader>
         <CardContent>
             {isLoading ? (
