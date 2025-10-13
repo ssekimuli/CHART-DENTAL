@@ -37,6 +37,7 @@ import { useMemo, useState, useEffect } from "react";
 import type { Patient, Appointment, ChartData, AppointmentStatus } from "@/lib/types";
 import { getPatients, getAppointments, getChartData, updateAppointment } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
+import { hasPermission } from "@/lib/user";
 
 const chartConfig = {
   revenue: {
@@ -114,200 +115,212 @@ export default function DashboardPage() {
   return (
     <div className="flex flex-col gap-6">
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Total Revenue
-            </CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            {isLoading ? <Skeleton className="h-8 w-3/4" /> : <div className="text-2xl font-bold">${totalRevenue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>}
-            <p className="text-xs text-muted-foreground">
-              For selected branch
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Active Patients
-            </CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-             {isLoading ? <Skeleton className="h-8 w-1/4" /> : <div className="text-2xl font-bold">+{activePatients}</div>}
-            <p className="text-xs text-muted-foreground">
-              In selected branch
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Appointments</CardTitle>
-            <CalendarCheck className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            {isLoading ? <Skeleton className="h-8 w-1/4" /> : <div className="text-2xl font-bold">+{newAppointments}</div>}
-            <p className="text-xs text-muted-foreground">
-              in the last 30 days
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">New Patients</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            {isLoading ? <Skeleton className="h-8 w-1/4" /> : <div className="text-2xl font-bold">+{newPatients}</div>}
-            <p className="text-xs text-muted-foreground">
-             in the last 30 days
-            </p>
-          </CardContent>
-        </Card>
+        {hasPermission('accounting:read') && (
+            <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                Total Revenue
+                </CardTitle>
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+                {isLoading ? <Skeleton className="h-8 w-3/4" /> : <div className="text-2xl font-bold">${totalRevenue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>}
+                <p className="text-xs text-muted-foreground">
+                For selected branch
+                </p>
+            </CardContent>
+            </Card>
+        )}
+        {hasPermission('patients:read') && (
+            <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                Active Patients
+                </CardTitle>
+                <Users className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+                {isLoading ? <Skeleton className="h-8 w-1/4" /> : <div className="text-2xl font-bold">+{activePatients}</div>}
+                <p className="text-xs text-muted-foreground">
+                In selected branch
+                </p>
+            </CardContent>
+            </Card>
+        )}
+        {hasPermission('appointments:read') && (
+            <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Appointments</CardTitle>
+                <CalendarCheck className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+                {isLoading ? <Skeleton className="h-8 w-1/4" /> : <div className="text-2xl font-bold">+{newAppointments}</div>}
+                <p className="text-xs text-muted-foreground">
+                in the last 30 days
+                </p>
+            </CardContent>
+            </Card>
+        )}
+        {hasPermission('patients:read') && (
+            <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">New Patients</CardTitle>
+                <Activity className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+                {isLoading ? <Skeleton className="h-8 w-1/4" /> : <div className="text-2xl font-bold">+{newPatients}</div>}
+                <p className="text-xs text-muted-foreground">
+                in the last 30 days
+                </p>
+            </CardContent>
+            </Card>
+        )}
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        <Card className="lg:col-span-4">
-          <CardHeader>
-            <CardTitle>Overview</CardTitle>
-          </CardHeader>
-          <CardContent className="pl-2">
-            {isLoading ? <Skeleton className="h-[300px] w-full" /> : (
-            <ChartContainer config={chartConfig} className="h-[300px] w-full">
-              <BarChart accessibilityLayer data={chartData}>
-                <CartesianGrid vertical={false} />
-                <XAxis
-                  dataKey="month"
-                  tickLine={false}
-                  tickMargin={10}
-                  axisLine={false}
-                  tickFormatter={(value) => value.slice(0, 3)}
-                />
-                 <YAxis
-                  tickLine={false}
-                  axisLine={false}
-                  tickMargin={10}
-                  tickFormatter={(value) => `$${value / 1000}K`}
-                />
-                <ChartTooltip
-                  cursor={false}
-                  content={<ChartTooltipContent />}
-                />
-                <Bar
-                  dataKey="revenue"
-                  fill="var(--color-revenue)"
-                  radius={8}
-                />
-              </BarChart>
-            </ChartContainer>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="lg:col-span-3">
-          <CardHeader>
-            <CardTitle>Recent Patients</CardTitle>
-            <CardDescription asChild>
-              {isLoading ? <div className="text-sm text-muted-foreground"><Skeleton className="h-4 w-1/2" /></div> : <p className="text-sm text-muted-foreground">{`You have ${recentPatients.length} recent patients in this branch.`}</p>}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {isLoading ? (
-                <>
-                  <Skeleton className="h-10 w-full" />
-                  <Skeleton className="h-10 w-full" />
-                  <Skeleton className="h-10 w-full" />
-                </>
-              ) : recentPatients.map((patient) => (
-                <div className="flex items-center" key={patient.id}>
-                  <Avatar className="h-9 w-9">
-                    <AvatarImage src={patient.avatar} alt="Avatar" />
-                    <AvatarFallback>{patient.name.charAt(0)}</AvatarFallback>
-                  </Avatar>
-                  <div className="ml-4 space-y-1">
-                    <p className="text-sm font-medium leading-none">
-                      {patient.name}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {patient.email}
-                    </p>
-                  </div>
-                  <div className="ml-auto font-medium">{patient.lastVisit}</div>
-                </div>
-              ))}
-               {recentPatients.length === 0 && !isLoading && (
-                 <p className="text-sm text-muted-foreground text-center">No recent patients in this branch.</p>
+        {hasPermission('accounting:read') && (
+            <Card className="lg:col-span-4">
+            <CardHeader>
+                <CardTitle>Overview</CardTitle>
+            </CardHeader>
+            <CardContent className="pl-2">
+                {isLoading ? <Skeleton className="h-[300px] w-full" /> : (
+                <ChartContainer config={chartConfig} className="h-[300px] w-full">
+                <BarChart accessibilityLayer data={chartData}>
+                    <CartesianGrid vertical={false} />
+                    <XAxis
+                    dataKey="month"
+                    tickLine={false}
+                    tickMargin={10}
+                    axisLine={false}
+                    tickFormatter={(value) => value.slice(0, 3)}
+                    />
+                    <YAxis
+                    tickLine={false}
+                    axisLine={false}
+                    tickMargin={10}
+                    tickFormatter={(value) => `$${value / 1000}K`}
+                    />
+                    <ChartTooltip
+                    cursor={false}
+                    content={<ChartTooltipContent />}
+                    />
+                    <Bar
+                    dataKey="revenue"
+                    fill="var(--color-revenue)"
+                    radius={8}
+                    />
+                </BarChart>
+                </ChartContainer>
                 )}
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+            </Card>
+        )}
+
+        {hasPermission('patients:read') && (
+            <Card className="lg:col-span-3">
+            <CardHeader>
+                <CardTitle>Recent Patients</CardTitle>
+                <CardDescription asChild>
+                {isLoading ? <div className="text-sm text-muted-foreground"><Skeleton className="h-4 w-1/2" /></div> : <p className="text-sm text-muted-foreground">{`You have ${recentPatients.length} recent patients in this branch.`}</p>}
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div className="space-y-4">
+                {isLoading ? (
+                    <>
+                    <Skeleton className="h-10 w-full" />
+                    <Skeleton className="h-10 w-full" />
+                    <Skeleton className="h-10 w-full" />
+                    </>
+                ) : recentPatients.map((patient) => (
+                    <div className="flex items-center" key={patient.id}>
+                    <Avatar className="h-9 w-9">
+                        <AvatarImage src={patient.avatar} alt="Avatar" />
+                        <AvatarFallback>{patient.name.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                    <div className="ml-4 space-y-1">
+                        <p className="text-sm font-medium leading-none">
+                        {patient.name}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                        {patient.email}
+                        </p>
+                    </div>
+                    <div className="ml-auto font-medium">{patient.lastVisit}</div>
+                    </div>
+                ))}
+                {recentPatients.length === 0 && !isLoading && (
+                    <p className="text-sm text-muted-foreground text-center">No recent patients in this branch.</p>
+                    )}
+                </div>
+            </CardContent>
+            </Card>
+        )}
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Upcoming Appointments</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? <Skeleton className="h-48 w-full" /> : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Patient</TableHead>
-                <TableHead>Doctor</TableHead>
-                <TableHead>Treatment</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Time</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {appointments.slice(0, 5).map((appointment) => (
-                <TableRow key={appointment.id}>
-                  <TableCell>
-                    <div className="font-medium">{appointment.patientName}</div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="font-medium">{appointment.doctorName}</div>
-                  </TableCell>
-                  <TableCell>{appointment.treatment}</TableCell>
-                  <TableCell>
-                    <Badge variant={getStatusVariant(appointment.status)}>{appointment.status}</Badge>
-                  </TableCell>
-                  <TableCell>{appointment.date}</TableCell>
-                  <TableCell>{appointment.time}</TableCell>
-                  <TableCell className="text-right">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => handleSendToQueue(appointment)}
-                      disabled={appointment.status !== 'Scheduled'}
-                    >
-                      <Send className="mr-2 h-4 w-4" />
-                      Send to Queue
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {appointments.length === 0 && !isLoading && (
-                <TableRow>
-                    <TableCell colSpan={7} className="h-24 text-center">
-                        No upcoming appointments in this branch.
-                    </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-          )}
-        </CardContent>
-      </Card>
+        {hasPermission('appointments:read') && (
+            <Card>
+                <CardHeader>
+                <CardTitle>Upcoming Appointments</CardTitle>
+                </CardHeader>
+                <CardContent>
+                {isLoading ? <Skeleton className="h-48 w-full" /> : (
+                <Table>
+                    <TableHeader>
+                    <TableRow>
+                        <TableHead>Patient</TableHead>
+                        <TableHead>Doctor</TableHead>
+                        <TableHead>Treatment</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Time</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                    {appointments.slice(0, 5).map((appointment) => (
+                        <TableRow key={appointment.id}>
+                        <TableCell>
+                            <div className="font-medium">{appointment.patientName}</div>
+                        </TableCell>
+                        <TableCell>
+                            <div className="font-medium">{appointment.doctorName}</div>
+                        </TableCell>
+                        <TableCell>{appointment.treatment}</TableCell>
+                        <TableCell>
+                            <Badge variant={getStatusVariant(appointment.status)}>{appointment.status}</Badge>
+                        </TableCell>
+                        <TableCell>{appointment.date}</TableCell>
+                        <TableCell>{appointment.time}</TableCell>
+                        <TableCell className="text-right">
+                           {hasPermission('appointments:update') && (
+                             <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => handleSendToQueue(appointment)}
+                                disabled={appointment.status !== 'Scheduled'}
+                                >
+                                <Send className="mr-2 h-4 w-4" />
+                                Send to Queue
+                                </Button>
+                           )}
+                        </TableCell>
+                        </TableRow>
+                    ))}
+                    {appointments.length === 0 && !isLoading && (
+                        <TableRow>
+                            <TableCell colSpan={7} className="h-24 text-center">
+                                No upcoming appointments in this branch.
+                            </TableCell>
+                        </TableRow>
+                    )}
+                    </TableBody>
+                </Table>
+                )}
+                </CardContent>
+            </Card>
+        )}
     </div>
   );
 }
-
-    
-
-    
