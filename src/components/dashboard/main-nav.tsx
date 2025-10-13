@@ -35,7 +35,7 @@ import {
   Landmark,
 } from "lucide-react";
 import type { EmployeeRole, Permission } from "@/lib/types";
-import { currentUser, getCurrentUser } from "@/lib/user";
+import { currentUser, getCurrentUser, hasPermission } from "@/lib/user";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../ui/collapsible";
 import React, { useEffect, useState } from "react";
 
@@ -43,12 +43,12 @@ type NavLink = {
     href?: string;
     label: string;
     icon: React.ElementType;
-    permission: Permission;
+    permission?: Permission;
     subLinks?: Omit<NavLink, 'subLinks'>[];
 }
 
 const allLinks: NavLink[] = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, permission: 'dashboard:read' },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/queue", label: "Queue", icon: ClipboardList, permission: 'queue:read' },
   { href: "/patients", label: "Patients", icon: Users, permission: 'patients:read' },
   { href: "/charting", label: "Charting", icon: FileText, permission: 'charting:read' },
@@ -84,18 +84,23 @@ export function MainNav() {
     // On component mount on the client, get the full user object from local storage.
     const user = getCurrentUser();
     setUserPermissions(user?.permissions || []);
-  }, []);
+  }, [pathname]); // Re-check on path change if needed, though login state is main driver
 
   const hasPermission = (permission: Permission) => userPermissions.includes(permission);
 
   const isHrmActive = pathname.startsWith('/hrm');
 
   const accessibleLinks = allLinks.filter(link => {
+    // If a link has no permission, it's accessible to everyone (like the Dashboard)
+    if (!link.permission) {
+        return true;
+    }
+    
     if (hasPermission(link.permission)) {
         if (link.subLinks) {
             // Important: create a new object to avoid mutating the original allLinks array
             const newLink = { ...link };
-            newLink.subLinks = newLink.subLinks!.filter(sublink => hasPermission(sublink.permission));
+            newLink.subLinks = newLink.subLinks!.filter(sublink => !sublink.permission || hasPermission(sublink.permission));
             return newLink.subLinks.length > 0;
         }
         return true;
@@ -103,8 +108,8 @@ export function MainNav() {
     return false;
   }).map(link => {
       // This map is to ensure we are using the filtered sublinks
-      if (link.subLinks && hasPermission(link.permission)) {
-          const filteredSubLinks = link.subLinks.filter(sublink => hasPermission(sublink.permission));
+      if (link.subLinks && (!link.permission || hasPermission(link.permission))) {
+          const filteredSubLinks = link.subLinks.filter(sublink => !sublink.permission || hasPermission(sublink.permission));
           if (filteredSubLinks.length > 0) {
               return { ...link, subLinks: filteredSubLinks };
           }
