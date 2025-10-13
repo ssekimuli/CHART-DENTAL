@@ -97,13 +97,13 @@ export function MainNav() {
     const newLink = { ...link };
 
     // Special visibility rules based on role
-    if (newLink.href === '/charting' && userRole === 'Accountant') {
-        return null; // Hide charting for accountants
+    if (newLink.href === '/charting' && (userRole === 'Account' || userRole === 'Receptionist')) {
+        return null; // Hide charting for accountants and receptionists
     }
     if ((newLink.href === '/billing' || newLink.href === '/accounting') && !['Super Admin', 'Account'].includes(userRole as string)) {
         return null;
     }
-    if ((newLink.href === '/inventory' || newLink.href === '/reports' || newLink.label === 'HRM') && !['Super Admin', 'HR'].includes(userRole as string)) {
+    if ((newLink.href === '/inventory' || newLink.label === 'HRM' || newLink.href === '/reports') && !['Super Admin', 'HR'].includes(userRole as string)) {
         return null;
     }
     if (newLink.href === '/settings' && userRole !== 'Super Admin') {
@@ -170,8 +170,12 @@ export function MainNav() {
                 <SidebarMenuButton
                     asChild
                     isActive={
-                        link.href === "/dashboard"
-                        ? pathname === "/dashboard" || pathname === "/"
+                        link.href === "/dashboard" ? pathname === "/dashboard" || pathname === "/"
+                        : link.href === "/patients" ? pathname.startsWith("/patients")
+                        : link.href === "/appointments" ? pathname.startsWith("/appointments")
+                        : link.href === "/billing" ? pathname.startsWith("/billing")
+                        : link.href === "/charting" ? pathname.startsWith("/charting")
+                        : link.href === "/queue" ? pathname.startsWith("/queue")
                         : pathname.startsWith(link.href!)
                     }
                     tooltip={link.label}
