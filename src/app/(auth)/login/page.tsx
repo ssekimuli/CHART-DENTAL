@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ToothIcon } from "@/components/icons/tooth-icon";
 import { login } from "@/lib/api";
 import Link from "next/link";
+import axios from "axios";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -40,6 +41,8 @@ export default function LoginPage() {
         });
         router.push("/dashboard");
       } else {
+        // This case handles failed logins where the server responds, but credentials are wrong.
+        // The API function returns null in this scenario.
         toast({
           variant: "destructive",
           title: "Login Failed",
@@ -47,11 +50,17 @@ export default function LoginPage() {
         });
       }
     } catch (error) {
-       toast({
-        variant: "destructive",
-        title: "Login Error",
-        description: "An unexpected error occurred. Please try again.",
-      });
+       // This catch block handles network errors or other unexpected issues.
+       // The global axios interceptor will show a toast for network errors.
+       // We can show a generic one here as a fallback.
+       if (!axios.isAxiosError(error) || error.response) {
+         toast({
+            variant: "destructive",
+            title: "Login Error",
+            description: "An unexpected error occurred. Please try again.",
+          });
+       }
+       // If it's a network error, the global interceptor in axios.ts handles the toast.
     } finally {
         setIsLoading(false);
     }
@@ -77,11 +86,13 @@ export default function LoginPage() {
         });
       }
     } catch (error) {
-       toast({
-        variant: "destructive",
-        title: "Login Error",
-        description: "An unexpected error occurred. Please try again.",
-      });
+       if (!axios.isAxiosError(error) || error.response) {
+         toast({
+          variant: "destructive",
+          title: "Login Error",
+          description: "An unexpected error occurred. Please try again.",
+        });
+       }
     } finally {
         setIsLoading(false);
     }
