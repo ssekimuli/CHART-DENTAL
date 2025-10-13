@@ -28,6 +28,7 @@ import {
   } from "@/components/ui/alert-dialog";
 import { createEmployee, deleteEmployee, getEmployees, updateEmployee } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
+import { hasPermission } from "@/lib/user";
 
 export default function StaffPage() {
     const router = useRouter();
@@ -40,6 +41,10 @@ export default function StaffPage() {
     const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
     
     useEffect(() => {
+        if (!hasPermission('hrm:read')) {
+            router.replace('/dashboard');
+            return;
+        }
         const fetchData = async () => {
             setIsLoading(true);
             const data = await getEmployees(selectedBranch);
@@ -47,7 +52,7 @@ export default function StaffPage() {
             setIsLoading(false);
         };
         fetchData();
-    }, [selectedBranch]);
+    }, [selectedBranch, router]);
 
     const handleOpenForm = (employee?: Employee) => {
         setSelectedEmployee(employee);
@@ -102,10 +107,12 @@ export default function StaffPage() {
                 Manage your practice's staff members.
             </CardDescription>
             </div>
-            <Button onClick={() => handleOpenForm()}>
-            <PlusCircle className="mr-2" />
-            Add Employee
-            </Button>
+            {hasPermission('hrm:create') && (
+                <Button onClick={() => handleOpenForm()}>
+                    <PlusCircle className="mr-2" />
+                    Add Employee
+                </Button>
+            )}
         </CardHeader>
         <CardContent>
             {isLoading ? (

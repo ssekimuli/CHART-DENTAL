@@ -28,6 +28,8 @@ import type { Invoice, Payroll, Expense, FinancialSummary } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ExpenseForm } from "./components/expense-form";
+import { useRouter } from "next/navigation";
+import { hasPermission } from "@/lib/user";
 
 const chartConfig = {
     income: { label: "Income", color: "hsl(var(--chart-1))" },
@@ -35,6 +37,7 @@ const chartConfig = {
 };
 
 export default function AccountingPage() {
+    const router = useRouter();
     const { selectedBranch } = useBranch();
     const [invoices, setInvoices] = useState<Invoice[]>([]);
     const [payrolls, setPayrolls] = useState<Payroll[]>([]);
@@ -44,6 +47,10 @@ export default function AccountingPage() {
     const [isFormOpen, setIsFormOpen] = useState(false);
 
     useEffect(() => {
+        if (!hasPermission('accounting:read')) {
+            router.replace('/dashboard');
+            return;
+        }
         const fetchData = async () => {
           setIsLoading(true);
           const [invoicesData, payrollsData, expensesData, summaryData] = await Promise.all([
@@ -59,7 +66,7 @@ export default function AccountingPage() {
           setIsLoading(false);
         };
         fetchData();
-      }, [selectedBranch]);
+      }, [selectedBranch, router]);
 
     const paidInvoices = useMemo(() => {
         return invoices.filter(i => i.status === 'Paid');
@@ -183,10 +190,12 @@ export default function AccountingPage() {
                         <CardTitle>Expense Records</CardTitle>
                         <CardDescription>All payroll and operational expenses for the selected branch.</CardDescription>
                     </div>
-                    <Button onClick={() => setIsFormOpen(true)}>
-                        <PlusCircle className="mr-2 h-4 w-4"/>
-                        Add Expense
-                    </Button>
+                    {hasPermission('accounting:create') && (
+                        <Button onClick={() => setIsFormOpen(true)}>
+                            <PlusCircle className="mr-2 h-4 w-4"/>
+                            Add Expense
+                        </Button>
+                    )}
                 </CardHeader>
                 <CardContent>
                     <Table>

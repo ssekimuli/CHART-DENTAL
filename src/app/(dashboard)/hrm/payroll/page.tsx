@@ -18,8 +18,10 @@ import { useBranch } from "@/context/branch-context";
 import { createPayroll, getEmployees, getPayrolls } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
 import { hasPermission } from "@/lib/user";
+import { useRouter } from "next/navigation";
 
 export default function PayrollPage() {
+  const router = useRouter();
   const { selectedBranch } = useBranch();
   const [payrolls, setPayrolls] = useState<Payroll[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -28,6 +30,10 @@ export default function PayrollPage() {
   const canCreate = hasPermission('hrm:create');
 
   useEffect(() => {
+    if (!hasPermission('hrm:read')) {
+        router.replace('/dashboard');
+        return;
+    }
       const fetchData = async () => {
           setIsLoading(true);
           const [payrollsData, employeesData] = await Promise.all([
@@ -39,7 +45,7 @@ export default function PayrollPage() {
           setIsLoading(false);
       }
       fetchData();
-  }, [selectedBranch]);
+  }, [selectedBranch, router]);
 
   const handleSavePayroll = async (data: Omit<Payroll, 'id' | 'employee_name' | 'branch_id'>) => {
     const employee = employees.find(e => e.id === data.employee_id);

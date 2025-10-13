@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -23,6 +22,8 @@ import { getRoles, updateRole } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { hasPermission } from "@/lib/user";
+import { useRouter } from "next/navigation";
 
 const permissionGroups = {
     Dashboard: ['dashboard:read'],
@@ -43,12 +44,17 @@ const permissionGroups = {
 
 
 export default function SettingsPage() {
+    const router = useRouter();
     const { toast } = useToast();
     const [roles, setRoles] = useState<RolePermissions[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [selectedRole, setSelectedRole] = useState<RolePermissions | null>(null);
 
     useEffect(() => {
+        if (!hasPermission("settings:manage")) {
+            router.replace("/dashboard");
+            return;
+        }
         const fetchRoles = async () => {
             setIsLoading(true);
             const data = await getRoles();
@@ -57,7 +63,7 @@ export default function SettingsPage() {
             setIsLoading(false);
         }
         fetchRoles();
-    }, [])
+    }, [router])
 
     const handlePermissionChange = (permission: Permission, checked: boolean) => {
         if (!selectedRole) return;

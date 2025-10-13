@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -17,14 +17,21 @@ import { ItemForm } from "./components/item-form";
 import { useBranch } from "@/context/branch-context";
 import { createInventoryItem, getInventory } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
+import { hasPermission } from "@/lib/user";
+import { useRouter } from "next/navigation";
 
 export default function InventoryPage() {
+    const router = useRouter();
     const { selectedBranch } = useBranch();
     const [inventory, setInventory] = useState<InventoryItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isFormOpen, setIsFormOpen] = useState(false);
     
     useEffect(() => {
+        if (!hasPermission("inventory:read")) {
+            router.replace("/dashboard");
+            return;
+        }
         const fetchData = async () => {
             setIsLoading(true);
             const data = await getInventory(selectedBranch);
@@ -32,7 +39,7 @@ export default function InventoryPage() {
             setIsLoading(false);
         };
         fetchData();
-    }, [selectedBranch]);
+    }, [selectedBranch, router]);
 
     const handleSaveItem = async (data: Omit<InventoryItem, 'id' | 'branchId' | 'status'>) => {
         const newItem = await createInventoryItem({ ...data, branchId: selectedBranch });
@@ -52,10 +59,12 @@ export default function InventoryPage() {
                 Manage your dental supplies and stock levels.
             </CardDescription>
             </div>
-            <Button onClick={() => setIsFormOpen(true)}>
-            <PlusCircle className="mr-2" />
-            Add Item
-            </Button>
+            {hasPermission('inventory:create') && (
+                <Button onClick={() => setIsFormOpen(true)}>
+                <PlusCircle className="mr-2" />
+                Add Item
+                </Button>
+            )}
         </CardHeader>
         <CardContent>
             {isLoading ? (

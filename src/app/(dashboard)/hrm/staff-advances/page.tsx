@@ -18,8 +18,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { AdvancesTable } from "../components/advances-table";
 import { AdvanceForm } from "../components/advance-form";
 import { hasPermission } from "@/lib/user";
+import { useRouter } from "next/navigation";
 
 export default function StaffAdvancesPage() {
+    const router = useRouter();
     const { selectedBranch } = useBranch();
     const [advances, setAdvances] = useState<StaffAdvance[]>([]);
     const [employees, setEmployees] = useState<Employee[]>([]);
@@ -29,6 +31,10 @@ export default function StaffAdvancesPage() {
     const canUpdate = hasPermission('hrm:update');
 
     useEffect(() => {
+        if (!hasPermission('hrm:read')) {
+            router.replace('/dashboard');
+            return;
+        }
         const fetchData = async () => {
             setIsLoading(true);
             const [advancesData, employeesData] = await Promise.all([
@@ -40,7 +46,7 @@ export default function StaffAdvancesPage() {
             setIsLoading(false);
         }
         fetchData();
-    }, [selectedBranch]);
+    }, [selectedBranch, router]);
 
     const handleSaveRequest = async (data: Omit<StaffAdvance, 'id' | 'employeeName' | 'status'>) => {
         const newAdvance = await createStaffAdvance(data);

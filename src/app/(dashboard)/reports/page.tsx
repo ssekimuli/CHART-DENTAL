@@ -1,4 +1,8 @@
 
+"use client";
+
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import {
     Card,
     CardContent,
@@ -6,8 +10,17 @@ import {
     CardHeader,
     CardTitle,
   } from "@/components/ui/card";
+import { hasPermission } from "@/lib/user";
   
   export default function ReportsPage() {
+    const router = useRouter();
+
+    useEffect(() => {
+        if (!hasPermission("reports:read")) {
+            router.replace("/dashboard");
+        }
+    }, [router]);
+
     return (
       <Card>
         <CardHeader>
@@ -30,4 +43,3 @@ import {
       </Card>
     );
   }
-  

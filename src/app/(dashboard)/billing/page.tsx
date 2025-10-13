@@ -25,7 +25,7 @@ import { FileDown, PlusCircle, MoreHorizontal, Pencil, Trash, Eye, HandCoins, Ca
 import type { Invoice, Patient, InvoiceTreatment } from "@/lib/types";
 import { InvoiceForm } from "./components/invoice-form";
 import { useBranch } from "@/context/branch-context";
-import { currentUser } from "@/lib/user";
+import { currentUser, hasPermission } from "@/lib/user";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -78,6 +78,10 @@ export default function BillingPage() {
 
 
   useEffect(() => {
+    if (!hasPermission('billing:read')) {
+        router.replace('/dashboard');
+        return;
+    }
     const fetchData = async () => {
       setIsLoading(true);
       const [invoicesData, patientsData] = await Promise.all([
@@ -93,7 +97,7 @@ export default function BillingPage() {
       setIsLoading(false);
     };
     fetchData();
-  }, [selectedBranch, searchQuery, dateRange]);
+  }, [selectedBranch, searchQuery, dateRange, router]);
 
   const getStatusVariant = (status: "Paid" | "Pending" | "Overdue") => {
     switch (status) {
@@ -233,10 +237,12 @@ export default function BillingPage() {
                     onChange={(e) => setSearchQuery(e.target.value)}
                 />
             </div>
-            <Button onClick={() => handleOpenForm()}>
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Create Invoice
-            </Button>
+            {hasPermission('billing:create') && (
+                <Button onClick={() => handleOpenForm()}>
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Create Invoice
+                </Button>
+            )}
           </div>
         </CardHeader>
         <CardContent>
@@ -288,19 +294,25 @@ export default function BillingPage() {
                                 <Eye className="mr-2 h-4 w-4" />
                                 View Invoice
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleOpenForm(invoice)}>
-                                <Pencil className="mr-2 h-4 w-4" />
-                                Edit
-                            </DropdownMenuItem>
+                            {hasPermission('billing:update') && (
+                                <DropdownMenuItem onClick={() => handleOpenForm(invoice)}>
+                                    <Pencil className="mr-2 h-4 w-4" />
+                                    Edit
+                                </DropdownMenuItem>
+                            )}
                              <DropdownMenuItem onClick={() => handleOpenPaymentForm(invoice)} disabled={invoice.status === 'Paid'}>
                                 <HandCoins className="mr-2 h-4 w-4" />
                                 Pay
                             </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem className="text-red-600" onClick={() => openDeleteDialog(invoice)}>
-                                <Trash className="mr-2 h-4 w-4" />
-                                Delete
-                            </DropdownMenuItem>
+                            {hasPermission('billing:delete') && (
+                                <>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem className="text-red-600" onClick={() => openDeleteDialog(invoice)}>
+                                        <Trash className="mr-2 h-4 w-4" />
+                                        Delete
+                                    </DropdownMenuItem>
+                                </>
+                            )}
                         </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -429,5 +441,3 @@ export default function BillingPage() {
     </>
   );
 }
-
-    

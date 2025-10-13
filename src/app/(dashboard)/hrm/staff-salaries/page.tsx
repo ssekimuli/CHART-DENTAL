@@ -16,8 +16,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { SalaryTable } from "../components/salary-table";
 import { SalaryForm } from "../components/salary-form";
 import { hasPermission } from "@/lib/user";
+import { useRouter } from "next/navigation";
 
 export default function StaffSalariesPage() {
+    const router = useRouter();
     const { selectedBranch } = useBranch();
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -27,6 +29,10 @@ export default function StaffSalariesPage() {
     const canUpdate = hasPermission('hrm:update');
     
     useEffect(() => {
+        if (!hasPermission('hrm:read')) {
+            router.replace('/dashboard');
+            return;
+        }
         const fetchData = async () => {
             setIsLoading(true);
             const data = await getEmployees(selectedBranch);
@@ -34,7 +40,7 @@ export default function StaffSalariesPage() {
             setIsLoading(false);
         };
         fetchData();
-    }, [selectedBranch]);
+    }, [selectedBranch, router]);
 
     const handleOpenForm = (employee: Employee) => {
         setSelectedEmployee(employee);

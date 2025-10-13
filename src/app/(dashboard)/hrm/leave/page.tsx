@@ -18,8 +18,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { LeaveRequestForm } from "../components/leave-request-form";
 import { LeaveTable } from "../components/leave-table";
 import { hasPermission } from "@/lib/user";
+import { useRouter } from "next/navigation";
 
 export default function LeavePage() {
+    const router = useRouter();
     const { selectedBranch } = useBranch();
     const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
     const [employees, setEmployees] = useState<Employee[]>([]);
@@ -29,6 +31,10 @@ export default function LeavePage() {
     const canUpdate = hasPermission('hrm:update');
 
     useEffect(() => {
+        if (!hasPermission('hrm:read')) {
+            router.replace('/dashboard');
+            return;
+        }
         const fetchData = async () => {
             setIsLoading(true);
             const [requests, employeesData] = await Promise.all([
@@ -40,7 +46,7 @@ export default function LeavePage() {
             setIsLoading(false);
         }
         fetchData();
-    }, [selectedBranch]);
+    }, [selectedBranch, router]);
 
     const handleSaveRequest = async (data: Omit<LeaveRequest, 'id' | 'employeeName' | 'status'>) => {
         const newRequest = await createLeaveRequest(data);

@@ -29,9 +29,12 @@ import { Badge } from "@/components/ui/badge";
 import { AttendanceForm } from "../components/attendance-form";
 import { Checkbox } from "@/components/ui/checkbox";
 import { MassAttendanceForm } from "../components/mass-attendance-form";
+import { hasPermission } from "@/lib/user";
+import { useRouter } from "next/navigation";
 
 
 export default function AttendancePage() {
+    const router = useRouter();
     const { selectedBranch } = useBranch();
     const [allAttendance, setAllAttendance] = useState<AttendanceRecord[]>([]);
     const [employees, setEmployees] = useState<Employee[]>([]);
@@ -42,6 +45,10 @@ export default function AttendancePage() {
     const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>([]);
     
     useEffect(() => {
+        if (!hasPermission('hrm:read')) {
+            router.replace('/dashboard');
+            return;
+        }
         const fetchInitialData = async () => {
             setIsLoading(true);
             const [attendanceData, employeesData] = await Promise.all([
@@ -53,7 +60,7 @@ export default function AttendancePage() {
             setIsLoading(false);
         };
         fetchInitialData();
-    }, [selectedBranch]);
+    }, [selectedBranch, router]);
 
     useEffect(() => {
         if (!selectedDate || !selectedBranch) return;
@@ -204,10 +211,12 @@ export default function AttendancePage() {
                         {selectedDate ? `Showing attendance for ${format(selectedDate, 'PPP')}` : 'Select a date'}
                     </CardDescription>
                     </div>
-                    <Button onClick={() => setIsFormOpen(true)}>
-                    <PlusCircle className="mr-2" />
-                    Mark Attendance
-                    </Button>
+                    {hasPermission('hrm:create') && (
+                        <Button onClick={() => setIsFormOpen(true)}>
+                            <PlusCircle className="mr-2" />
+                            Mark Attendance
+                        </Button>
+                    )}
                 </CardHeader>
                 <CardContent>
                     {isLoading ? (
@@ -218,34 +227,38 @@ export default function AttendancePage() {
                         </div>
                     ) : (
                     <>
-                    <div className="mb-4 flex items-center gap-2">
-                        <Button
-                            size="sm"
-                            onClick={() => setIsMassFormOpen(true)}
-                            disabled={selectedEmployeeIds.length === 0}
-                        >
-                            Mark Selected as Present
-                        </Button>
-                        <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => handleMarkStatus(selectedEmployeeIds, 'Absent')}
-                             disabled={selectedEmployeeIds.length === 0}
-                        >
-                            Mark Selected as Absent
-                        </Button>
-                        <span className="text-sm text-muted-foreground ml-auto">{selectedEmployeeIds.length} selected</span>
-                    </div>
+                    {hasPermission('hrm:update') && (
+                        <div className="mb-4 flex items-center gap-2">
+                            <Button
+                                size="sm"
+                                onClick={() => setIsMassFormOpen(true)}
+                                disabled={selectedEmployeeIds.length === 0}
+                            >
+                                Mark Selected as Present
+                            </Button>
+                            <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => handleMarkStatus(selectedEmployeeIds, 'Absent')}
+                                disabled={selectedEmployeeIds.length === 0}
+                            >
+                                Mark Selected as Absent
+                            </Button>
+                            <span className="text-sm text-muted-foreground ml-auto">{selectedEmployeeIds.length} selected</span>
+                        </div>
+                    )}
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead className="w-[50px]">
-                                     <Checkbox
-                                        checked={selectedEmployeeIds.length === attendanceForDate.length && attendanceForDate.length > 0}
-                                        onCheckedChange={handleSelectAll}
-                                        aria-label="Select all"
-                                    />
-                                </TableHead>
+                                {hasPermission('hrm:update') && (
+                                    <TableHead className="w-[50px]">
+                                        <Checkbox
+                                            checked={selectedEmployeeIds.length === attendanceForDate.length && attendanceForDate.length > 0}
+                                            onCheckedChange={handleSelectAll}
+                                            aria-label="Select all"
+                                        />
+                                    </TableHead>
+                                )}
                                 <TableHead>Employee</TableHead>
                                 <TableHead>Status</TableHead>
                                 <TableHead>Check-in</TableHead>
@@ -255,13 +268,15 @@ export default function AttendancePage() {
                         <TableBody>
                             {attendanceForDate.map((record) => (
                                 <TableRow key={record.employeeId}>
-                                     <TableCell>
-                                        <Checkbox
-                                            checked={selectedEmployeeIds.includes(record.employeeId)}
-                                            onCheckedChange={(checked) => handleSelectSingle(record.employeeId, !!checked)}
-                                            aria-label={`Select ${record.employeeName}`}
-                                        />
-                                    </TableCell>
+                                     {hasPermission('hrm:update') && (
+                                        <TableCell>
+                                            <Checkbox
+                                                checked={selectedEmployeeIds.includes(record.employeeId)}
+                                                onCheckedChange={(checked) => handleSelectSingle(record.employeeId, !!checked)}
+                                                aria-label={`Select ${record.employeeName}`}
+                                            />
+                                        </TableCell>
+                                     )}
                                     <TableCell className="font-medium">{record.employeeName}</TableCell>
                                     <TableCell>
                                         <Badge variant={getStatusVariant(record.status)}>{record.status}</Badge>
@@ -272,7 +287,7 @@ export default function AttendancePage() {
                             ))}
                             {attendanceForDate.length === 0 && (
                                 <TableRow>
-                                    <TableCell colSpan={5} className="h-24 text-center">
+                                    <TableCell colSpan={hasPermission('hrm:update') ? 5 : 4} className="h-24 text-center">
                                         No employees in this branch.
                                     </TableCell>
                                 </TableRow>

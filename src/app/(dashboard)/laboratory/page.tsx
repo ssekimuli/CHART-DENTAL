@@ -17,9 +17,11 @@ import { LabOrderForm } from "./components/lab-order-form";
 import { useBranch } from "@/context/branch-context";
 import { createLabOrder, getLabOrders, getPatients } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
-import { currentUser } from "@/lib/user";
+import { currentUser, hasPermission } from "@/lib/user";
+import { useRouter } from "next/navigation";
 
 export default function LaboratoryPage() {
+    const router = useRouter();
     const { selectedBranch } = useBranch();
     const [labOrders, setLabOrders] = useState<LaboratoryOrder[]>([]);
     const [patients, setPatients] = useState<Patient[]>([]);
@@ -27,6 +29,11 @@ export default function LaboratoryPage() {
     const [isFormOpen, setIsFormOpen] = useState(false);
     
     useEffect(() => {
+        if (!hasPermission("laboratory:read")) {
+            router.replace("/dashboard");
+            return;
+        }
+
         const branchToFetch = currentUser.role === 'Super Admin' ? selectedBranch : currentUser.branchId;
         const fetchData = async () => {
             setIsLoading(true);
@@ -39,7 +46,7 @@ export default function LaboratoryPage() {
             setIsLoading(false);
         };
         fetchData();
-    }, [selectedBranch]);
+    }, [selectedBranch, router]);
 
     const handleSaveOrder = async (data: Omit<LaboratoryOrder, 'id' | 'branchId' | 'patientName'>) => {
         const patient = patients.find(p => p.id === data.patientId);
@@ -62,10 +69,12 @@ export default function LaboratoryPage() {
                 Track and manage dental lab orders.
             </CardDescription>
             </div>
-            <Button onClick={() => setIsFormOpen(true)}>
-            <PlusCircle className="mr-2" />
-            New Lab Order
-            </Button>
+            {hasPermission('laboratory:create') && (
+                <Button onClick={() => setIsFormOpen(true)}>
+                    <PlusCircle className="mr-2" />
+                    New Lab Order
+                </Button>
+            )}
         </CardHeader>
         <CardContent>
             {isLoading ? (

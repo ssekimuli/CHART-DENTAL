@@ -24,13 +24,19 @@ import {
 import { createBranch, getBranches } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
 import { hasPermission } from "@/lib/user";
+import { useRouter } from "next/navigation";
 
 export default function BranchesPage() {
+    const router = useRouter();
     const [branches, setBranches] = useState<Branch[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isFormOpen, setIsFormOpen] = useState(false);
 
     useEffect(() => {
+      if (!hasPermission("branches:read")) {
+        router.replace("/dashboard");
+        return;
+      }
         const fetchData = async () => {
             setIsLoading(true);
             const branchesData = await getBranches();
@@ -38,7 +44,7 @@ export default function BranchesPage() {
             setIsLoading(false);
         };
         fetchData();
-    }, []);
+    }, [router]);
 
     const handleSaveBranch = async (data: Omit<Branch, 'id'>) => {
         const newBranch = await createBranch(data);
