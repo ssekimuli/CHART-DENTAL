@@ -60,7 +60,7 @@ type EmployeeFormProps = {
 };
 
 export function EmployeeForm({ employee, onSave, onOpenChange }: EmployeeFormProps) {
-  const [roles, setRoles] = useState<{id: EmployeeRole, name: string}[]>([]);
+  const [roles, setRoles] = useState<{id: string, name: string}[]>([]);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -79,7 +79,7 @@ export function EmployeeForm({ employee, onSave, onOpenChange }: EmployeeFormPro
   useEffect(() => {
     const fetchRoles = async () => {
         const rolesData = await getRolesList();
-        setRoles(rolesData);
+        setRoles(rolesData.map(r => ({ ...r, id: String(r.id) })));
     };
     fetchRoles();
   }, []);
@@ -105,9 +105,10 @@ export function EmployeeForm({ employee, onSave, onOpenChange }: EmployeeFormPro
 
 
   function onSubmit(values: z.infer<typeof formSchema>) {
+    const roleName = roles.find(r => r.id === values.role)?.name as EmployeeRole;
     onSave({
         ...values,
-        role: values.role as EmployeeRole,
+        role: roleName,
         salary: values.salary ?? 0,
         hire_date: format(values.hire_date, "yyyy-MM-dd"),
         avatar: values.avatar || `https://picsum.photos/seed/emp${Math.random()}/200/200`,
@@ -161,7 +162,7 @@ export function EmployeeForm({ employee, onSave, onOpenChange }: EmployeeFormPro
                             render={({ field }) => (
                                 <FormItem>
                                 <FormLabel>Role</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <Select onValueChange={field.onChange} defaultValue={String(field.value)}>
                                     <FormControl>
                                     <SelectTrigger>
                                         <SelectValue placeholder="Select role" />
@@ -277,3 +278,5 @@ export function EmployeeForm({ employee, onSave, onOpenChange }: EmployeeFormPro
     </Dialog>
   );
 }
+
+    

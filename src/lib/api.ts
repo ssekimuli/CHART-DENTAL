@@ -271,7 +271,7 @@ export const getRolesList = async (): Promise<{id: EmployeeRole, name: string}[]
     console.log('API CALL: getRolesList');
      try {
         const response = await customAxios.get('/roles');
-        return response.data.data;
+        return response.data.data.map((role: any) => ({ ...role, id: String(role.id) }));
     } catch (error) {
         if (axios.isAxiosError(error)) {
             console.error('Failed to fetch roles list:', error.response?.data);
@@ -280,7 +280,7 @@ export const getRolesList = async (): Promise<{id: EmployeeRole, name: string}[]
         }
         // Fallback to a constructed list from types
         const roles: EmployeeRole[] = ['Super Admin', 'Account', 'HR', 'Dentist', 'Hygienist', 'Receptionist', 'Assistant'];
-        return roles.map(role => ({ id: role, name: role }));
+        return roles.map((role, i) => ({ id: String(i + 1), name: role }));
     }
 }
 
@@ -734,16 +734,42 @@ export const deleteInvoice = async (id: string | number): Promise<{ success: boo
 
 
 // Employees
-export const createEmployee = async (data: Omit<Employee, 'id'>): Promise<Employee> => {
+export const createEmployee = async (data: Omit<Employee, 'id' | 'branchId' | 'status'> & { branchId: string | number; status: 'Active' | 'On Leave' }): Promise<Employee> => {
     console.log('API CALL: createEmployee', { data });
-    await delay(200);
-    const newEmployee: Employee = {
-        ...data,
-        id: `emp${allEmployees.length + 1}`,
+    const requestBody = {
+        name: data.name,
+        avatar: data.avatar,
+        email: data.email,
+        role: data.role,
+        salary: data.salary,
+        hire_date: data.hire_date,
+        branch_id: data.branchId,
     };
-    allEmployees.push(newEmployee);
-    return newEmployee;
+    try {
+        const response = await customAxios.post('/employees', requestBody);
+        const newEmployee = response.data;
+        
+        // The API returns branch_id, but our frontend type uses branchId.
+        // We'll map it here for consistency in the frontend state.
+        const feEmployee: Employee = {
+            ...newEmployee,
+            branchId: newEmployee.branch_id,
+        };
+        
+        allEmployees.push(feEmployee);
+        return feEmployee;
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            console.error('Failed to create employee:', error.response?.data);
+            // Optionally re-throw or handle validation errors
+            throw new Error(error.response?.data?.message || "Failed to create employee");
+        } else {
+            console.error("An unexpected error occurred during employee creation:", error);
+            throw error;
+        }
+    }
 }
+
 
 export const updateEmployee = async (id: string | number, data: Partial<Employee>): Promise<Employee | undefined> => {
     console.log('API CALL: updateEmployee', { id, data });
@@ -941,3 +967,5 @@ export const announcePatientInQueue = async (appointmentId: string | number): Pr
 
     return { audio_url: audio.media };
 }
+
+    
