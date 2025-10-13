@@ -35,7 +35,7 @@ import {
   Landmark,
 } from "lucide-react";
 import type { EmployeeRole, Permission } from "@/lib/types";
-import { currentUser } from "@/lib/user";
+import { currentUser, getCurrentUser } from "@/lib/user";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../ui/collapsible";
 import React, { useEffect, useState } from "react";
 
@@ -78,11 +78,12 @@ const allLinks: NavLink[] = [
 
 export function MainNav() {
   const pathname = usePathname();
-  const [userPermissions, setUserPermissions] = useState<Permission[]>(currentUser.permissions);
+  const [userPermissions, setUserPermissions] = useState<Permission[]>([]);
   
   useEffect(() => {
-    // This effect can be used to update permissions if they change during the session
-    setUserPermissions(currentUser.permissions);
+    // On component mount on the client, get the full user object from local storage.
+    const user = getCurrentUser();
+    setUserPermissions(user?.permissions || []);
   }, []);
 
   const hasPermission = (permission: Permission) => userPermissions.includes(permission);
@@ -92,13 +93,25 @@ export function MainNav() {
   const accessibleLinks = allLinks.filter(link => {
     if (hasPermission(link.permission)) {
         if (link.subLinks) {
-            link.subLinks = link.subLinks.filter(sublink => hasPermission(sublink.permission));
-            return link.subLinks.length > 0;
+            // Important: create a new object to avoid mutating the original allLinks array
+            const newLink = { ...link };
+            newLink.subLinks = newLink.subLinks!.filter(sublink => hasPermission(sublink.permission));
+            return newLink.subLinks.length > 0;
         }
         return true;
     }
     return false;
-  });
+  }).map(link => {
+      // This map is to ensure we are using the filtered sublinks
+      if (link.subLinks && hasPermission(link.permission)) {
+          const filteredSubLinks = link.subLinks.filter(sublink => hasPermission(sublink.permission));
+          if (filteredSubLinks.length > 0) {
+              return { ...link, subLinks: filteredSubLinks };
+          }
+      }
+      return link;
+  }).filter(link => link.subLinks ? link.subLinks.length > 0 : link.href); // final filter for empty parent groups
+
 
   return (
     <div className="flex w-full flex-col gap-2 p-2">
