@@ -23,6 +23,8 @@ import {
   DollarSign,
   Users,
   Send,
+  LineChart,
+  Users2,
 } from "lucide-react";
 import {
   ChartContainer,
@@ -38,6 +40,7 @@ import type { Patient, Appointment, ChartData, AppointmentStatus } from "@/lib/t
 import { getPatients, getAppointments, getChartData, updateAppointment } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
 import { hasPermission } from "@/lib/user";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const chartConfig = {
   revenue: {
@@ -47,10 +50,12 @@ const chartConfig = {
   newPatients: {
     label: "New Patients",
     color: "hsl(var(--chart-1))",
+    icon: Users,
   },
   newAppointments: {
     label: "New Appointments",
     color: "hsl(var(--chart-2))",
+    icon: CalendarCheck,
   },
 };
 
@@ -188,94 +193,124 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        {canReadAccounting ? (
-            <Card className="lg:col-span-4">
-            <CardHeader>
-                <CardTitle>Financial Overview</CardTitle>
-            </CardHeader>
-            <CardContent className="pl-2">
-                {isLoading ? <Skeleton className="h-[300px] w-full" /> : (
-                <ChartContainer config={chartConfig} className="h-[300px] w-full">
-                <BarChart accessibilityLayer data={chartData}>
-                    <CartesianGrid vertical={false} />
-                    <XAxis
-                    dataKey="month"
-                    tickLine={false}
-                    tickMargin={10}
-                    axisLine={false}
-                    tickFormatter={(value) => value.slice(0, 3)}
-                    />
-                    <YAxis
-                    tickLine={false}
-                    axisLine={false}
-                    tickMargin={10}
-                    tickFormatter={(value) => `$${value / 1000}K`}
-                    />
-                    <ChartTooltip
-                    cursor={false}
-                    content={<ChartTooltipContent />}
-                    />
-                    <Bar
-                    dataKey="revenue"
-                    fill="var(--color-revenue)"
-                    radius={8}
-                    />
-                </BarChart>
-                </ChartContainer>
+        <Card className="lg:col-span-4">
+            <Tabs defaultValue={canReadAccounting ? "financial" : "activity"}>
+                <CardHeader>
+                    <div className="flex items-center justify-between">
+                         <div>
+                            <CardTitle>Practice Overview</CardTitle>
+                            <CardDescription>A summary of your practice's performance.</CardDescription>
+                        </div>
+                        {canReadAccounting && (
+                        <TabsList>
+                            <TabsTrigger value="financial"><LineChart className="mr-2 h-4 w-4" />Financial</TabsTrigger>
+                            <TabsTrigger value="activity"><Users2 className="mr-2 h-4 w-4" />Activity</TabsTrigger>
+                        </TabsList>
+                        )}
+                    </div>
+                </CardHeader>
+                 {canReadAccounting && (
+                    <TabsContent value="financial" className="pl-2">
+                        <CardContent>
+                        {isLoading ? <Skeleton className="h-[300px] w-full" /> : (
+                            <ChartContainer config={chartConfig} className="h-[300px] w-full">
+                                <BarChart accessibilityLayer data={chartData}>
+                                    <CartesianGrid vertical={false} />
+                                    <XAxis dataKey="month" tickLine={false} tickMargin={10} axisLine={false} tickFormatter={(value) => value.slice(0, 3)} />
+                                    <YAxis tickLine={false} axisLine={false} tickMargin={10} tickFormatter={(value) => `$${value / 1000}K`} />
+                                    <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+                                    <Bar dataKey="revenue" fill="var(--color-revenue)" radius={8} />
+                                </BarChart>
+                            </ChartContainer>
+                        )}
+                        </CardContent>
+                    </TabsContent>
+                 )}
+                 <TabsContent value="activity" className="pl-2">
+                    <CardContent>
+                        {isLoading ? <Skeleton className="h-[300px] w-full" /> : (
+                            <ChartContainer config={chartConfig} className="h-[300px] w-full">
+                                <BarChart accessibilityLayer data={chartData}>
+                                    <CartesianGrid vertical={false} />
+                                    <XAxis dataKey="month" tickLine={false} tickMargin={10} axisLine={false} tickFormatter={(value) => value.slice(0, 3)} />
+                                    <YAxis yAxisId="left" orientation="left" stroke="hsl(var(--chart-1))" tickLine={false} axisLine={false} tickMargin={10} />
+                                    <YAxis yAxisId="right" orientation="right" stroke="hsl(var(--chart-2))" tickLine={false} axisLine={false} tickMargin={10} />
+                                    <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+                                    <Bar yAxisId="left" dataKey="newPatients" fill="var(--color-newPatients)" radius={8} />
+                                    <Bar yAxisId="right" dataKey="newAppointments" fill="var(--color-newAppointments)" radius={8} />
+                                </BarChart>
+                            </ChartContainer>
+                        )}
+                    </CardContent>
+                </TabsContent>
+            </Tabs>
+        </Card>
+
+        {hasPermission('appointments:read') && (
+            <Card className="lg:col-span-3">
+                <CardHeader>
+                <CardTitle>Upcoming Appointments</CardTitle>
+                <CardDescription>
+                    Today's scheduled appointments for this branch.
+                </CardDescription>
+                </CardHeader>
+                <CardContent>
+                {isLoading ? <Skeleton className="h-48 w-full" /> : (
+                <Table>
+                    <TableHeader>
+                    <TableRow>
+                        <TableHead>Time</TableHead>
+                        <TableHead>Patient</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                    {appointments.slice(0, 5).map((appointment) => (
+                        <TableRow key={appointment.id}>
+                        <TableCell>{appointment.time}</TableCell>
+                        <TableCell>
+                            <div className="font-medium">{appointment.patientName}</div>
+                            <div className="text-sm text-muted-foreground">{appointment.treatment}</div>
+                        </TableCell>
+                        <TableCell>
+                            <Badge variant={getStatusVariant(appointment.status)}>{appointment.status}</Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                           {hasPermission('appointments:update') && (
+                             <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => handleSendToQueue(appointment)}
+                                disabled={appointment.status !== 'Scheduled'}
+                                >
+                                <Send className="mr-2 h-4 w-4" />
+                                Queue
+                                </Button>
+                           )}
+                        </TableCell>
+                        </TableRow>
+                    ))}
+                    {appointments.length === 0 && !isLoading && (
+                        <TableRow>
+                            <TableCell colSpan={4} className="h-24 text-center">
+                                No upcoming appointments in this branch.
+                            </TableCell>
+                        </TableRow>
+                    )}
+                    </TableBody>
+                </Table>
                 )}
-            </CardContent>
-            </Card>
-        ) : (
-            <Card className="lg:col-span-4">
-            <CardHeader>
-                <CardTitle>Patient Activity Overview</CardTitle>
-                <CardDescription>New patients and appointments over the last few months.</CardDescription>
-            </CardHeader>
-             <CardContent className="pl-2">
-                {isLoading ? <Skeleton className="h-[300px] w-full" /> : (
-                <ChartContainer config={chartConfig} className="h-[300px] w-full">
-                    <BarChart accessibilityLayer data={chartData}>
-                        <CartesianGrid vertical={false} />
-                        <XAxis
-                            dataKey="month"
-                            tickLine={false}
-                            tickMargin={10}
-                            axisLine={false}
-                            tickFormatter={(value) => value.slice(0, 3)}
-                        />
-                        <YAxis
-                            tickLine={false}
-                            axisLine={false}
-                            tickMargin={10}
-                        />
-                        <ChartTooltip
-                            cursor={false}
-                            content={<ChartTooltipContent />}
-                        />
-                        <Bar
-                            dataKey="newPatients"
-                            fill="var(--color-newPatients)"
-                            radius={8}
-                        />
-                        <Bar
-                            dataKey="newAppointments"
-                            fill="var(--color-newAppointments)"
-                            radius={8}
-                        />
-                    </BarChart>
-                </ChartContainer>
-                )}
-            </CardContent>
+                </CardContent>
             </Card>
         )}
-
-        {hasPermission('patients:read') && (
-            <Card className="lg:col-span-3">
+      </div>
+      
+       {hasPermission('patients:read') && (
+            <Card>
             <CardHeader>
                 <CardTitle>Recent Patients</CardTitle>
-                <CardDescription asChild>
-                {isLoading ? <div className="text-sm text-muted-foreground"><Skeleton className="h-4 w-1/2" /></div> : <p className="text-sm text-muted-foreground">{`You have ${recentPatients.length} recent patients in this branch.`}</p>}
-                </CardDescription>
+                <CardDescription>The last 5 patients with recent visits.</CardDescription>
             </CardHeader>
             <CardContent>
                 <div className="space-y-4">
@@ -309,115 +344,8 @@ export default function DashboardPage() {
             </CardContent>
             </Card>
         )}
-      </div>
-
-       { canReadAccounting &&
-         <Card>
-            <CardHeader>
-                <CardTitle>Patient Activity Overview</CardTitle>
-                <CardDescription>New patients and appointments over the last few months.</CardDescription>
-            </CardHeader>
-             <CardContent className="pl-2">
-                {isLoading ? <Skeleton className="h-[350px] w-full" /> : (
-                <ChartContainer config={chartConfig} className="h-[350px] w-full">
-                    <BarChart accessibilityLayer data={chartData}>
-                        <CartesianGrid vertical={false} />
-                        <XAxis
-                            dataKey="month"
-                            tickLine={false}
-                            tickMargin={10}
-                            axisLine={false}
-                            tickFormatter={(value) => value.slice(0, 3)}
-                        />
-                        <YAxis
-                            tickLine={false}
-                            axisLine={false}
-                            tickMargin={10}
-                        />
-                        <ChartTooltip
-                            cursor={false}
-                            content={<ChartTooltipContent />}
-                        />
-                        <Bar
-                            dataKey="newPatients"
-                            fill="var(--color-newPatients)"
-                            radius={8}
-                        />
-                        <Bar
-                            dataKey="newAppointments"
-                            fill="var(--color-newAppointments)"
-                            radius={8}
-                        />
-                    </BarChart>
-                </ChartContainer>
-                )}
-            </CardContent>
-            </Card>
-       }
-
-
-        {hasPermission('appointments:read') && (
-            <Card>
-                <CardHeader>
-                <CardTitle>Upcoming Appointments</CardTitle>
-                </CardHeader>
-                <CardContent>
-                {isLoading ? <Skeleton className="h-48 w-full" /> : (
-                <Table>
-                    <TableHeader>
-                    <TableRow>
-                        <TableHead>Patient</TableHead>
-                        <TableHead>Doctor</TableHead>
-                        <TableHead>Treatment</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Time</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                    {appointments.slice(0, 5).map((appointment) => (
-                        <TableRow key={appointment.id}>
-                        <TableCell>
-                            <div className="font-medium">{appointment.patientName}</div>
-                        </TableCell>
-                        <TableCell>
-                            <div className="font-medium">{appointment.doctorName}</div>
-                        </TableCell>
-                        <TableCell>{appointment.treatment}</TableCell>
-                        <TableCell>
-                            <Badge variant={getStatusVariant(appointment.status)}>{appointment.status}</Badge>
-                        </TableCell>
-                        <TableCell>{appointment.date}</TableCell>
-                        <TableCell>{appointment.time}</TableCell>
-                        <TableCell className="text-right">
-                           {hasPermission('appointments:update') && (
-                             <Button 
-                                variant="outline" 
-                                size="sm" 
-                                onClick={() => handleSendToQueue(appointment)}
-                                disabled={appointment.status !== 'Scheduled'}
-                                >
-                                <Send className="mr-2 h-4 w-4" />
-                                Send to Queue
-                                </Button>
-                           )}
-                        </TableCell>
-                        </TableRow>
-                    ))}
-                    {appointments.length === 0 && !isLoading && (
-                        <TableRow>
-                            <TableCell colSpan={7} className="h-24 text-center">
-                                No upcoming appointments in this branch.
-                            </TableCell>
-                        </TableRow>
-                    )}
-                    </TableBody>
-                </Table>
-                )}
-                </CardContent>
-            </Card>
-        )}
     </div>
   );
 }
+
+    
