@@ -1,4 +1,5 @@
 
+
 import { 
     patients as allPatients,
     appointments as allAppointments,
@@ -748,7 +749,7 @@ export const createEmployee = async (data: Omit<Employee, 'id' | 'branchId' | 's
         name: data.name,
         avatar: data.avatar,
         email: data.email,
-        role: data.role,
+        role: parseInt(data.role as string, 10),
         salary: data.salary,
         hire_date: data.hire_date,
         branch_id: data.branchId,
@@ -807,7 +808,7 @@ export const createBranch = async (data: Omit<Branch, 'id'>): Promise<Branch> =>
     await delay(200);
     const newBranch: Branch = {
         ...data,
-        id: `b${mockBranches.length + 1}`
+        id: mockBranches.length + 1
     };
     mockBranches.push(newBranch);
     return newBranch;
