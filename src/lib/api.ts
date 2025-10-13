@@ -157,7 +157,7 @@ export const getEmployees = async (branchId?: string | number): Promise<Employee
     await delay(100);
     let localEmployees = allEmployees;
     if (branchId) {
-        localEmployees = localEmployees.filter(e => e.branch_id === branchId);
+        localEmployees = localEmployees.filter(e => e.branchId === branchId);
     }
     return JSON.parse(JSON.stringify(localEmployees));
 }

@@ -43,7 +43,7 @@ import { getRolesList } from "@/lib/api";
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
   email: z.string().email("Please enter a valid email."),
-  role: z.enum(['Super Admin', 'Account', 'HR', 'Dentist', 'Hygienist', 'Receptionist', 'Assistant']),
+  role: z.string({ required_error: "Role is required."}),
   status: z.enum(['Active', 'On Leave']),
   salary: z.coerce.number().positive("Salary must be a positive number.").optional(),
   monthlySalary: z.coerce.number().optional(),
@@ -55,7 +55,7 @@ const formSchema = z.object({
 
 type EmployeeFormProps = {
     employee?: Employee;
-    onSave: (data: Omit<Employee, 'id' | 'branch_id'>) => void;
+    onSave: (data: Omit<Employee, 'id' | 'branchId'>) => void;
     onOpenChange: (open: boolean) => void;
 };
 
@@ -107,6 +107,7 @@ export function EmployeeForm({ employee, onSave, onOpenChange }: EmployeeFormPro
   function onSubmit(values: z.infer<typeof formSchema>) {
     onSave({
         ...values,
+        role: values.role as EmployeeRole,
         salary: values.salary ?? 0,
         hire_date: format(values.hire_date, "yyyy-MM-dd"),
         avatar: values.avatar || `https://picsum.photos/seed/emp${Math.random()}/200/200`,

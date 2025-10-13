@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { format, parseISO } from "date-fns";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -37,16 +37,17 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import { CalendarIcon } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
+import { getRolesList } from "@/lib/api";
 
 
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
   email: z.string().email("Please enter a valid email."),
-  role: z.enum(['Super Admin', 'Account', 'HR', 'Dentist', 'Hygienist', 'Receptionist', 'Assistant']),
+  role: z.string({ required_error: "Role is required."}),
   status: z.enum(['Active', 'On Leave']),
   salary: z.coerce.number().positive("Salary must be a positive number.").optional(),
   monthlySalary: z.coerce.number().optional(),
-  hireDate: z.date({
+  hire_date: z.date({
     required_error: "A hire date is required.",
   }),
   avatar: z.string().url().optional().or(z.literal('')),
@@ -59,6 +60,8 @@ type EmployeeFormProps = {
 };
 
 export function EmployeeForm({ employee, onSave, onOpenChange }: EmployeeFormProps) {
+  const [roles, setRoles] = useState<{id: EmployeeRole, name: string}[]>([]);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -66,12 +69,20 @@ export function EmployeeForm({ employee, onSave, onOpenChange }: EmployeeFormPro
         email: employee?.email ?? "",
         role: employee?.role,
         status: employee?.status ?? 'Active',
-        salary: employee?.salary,
-        monthlySalary: employee ? employee.salary / 12 : undefined,
-        hireDate: employee ? parseISO(employee.hireDate) : undefined,
+        salary: Number(employee?.salary),
+        monthlySalary: employee ? Number(employee.salary) / 12 : undefined,
+        hire_date: employee ? parseISO(employee.hire_date) : undefined,
         avatar: employee?.avatar ?? "",
     },
   });
+
+  useEffect(() => {
+    const fetchRoles = async () => {
+        const rolesData = await getRolesList();
+        setRoles(rolesData);
+    };
+    fetchRoles();
+  }, []);
 
   const annualSalary = form.watch("salary");
   const monthlySalary = form.watch("monthlySalary");
@@ -96,13 +107,13 @@ export function EmployeeForm({ employee, onSave, onOpenChange }: EmployeeFormPro
   function onSubmit(values: z.infer<typeof formSchema>) {
     onSave({
         ...values,
+        role: values.role as EmployeeRole,
         salary: values.salary ?? 0,
-        hireDate: format(values.hireDate, "yyyy-MM-dd"),
+        hire_date: format(values.hire_date, "yyyy-MM-dd"),
         avatar: values.avatar || `https://picsum.photos/seed/emp${Math.random()}/200/200`,
     });
   }
 
-  const roles: EmployeeRole[] = ['Super Admin', 'Account', 'HR', 'Dentist', 'Hygienist', 'Receptionist', 'Assistant'];
 
   return (
     <Dialog open={true} onOpenChange={onOpenChange}>
@@ -158,7 +169,7 @@ export function EmployeeForm({ employee, onSave, onOpenChange }: EmployeeFormPro
                                     </FormControl>
                                     <SelectContent>
                                         {roles.map(role => (
-                                            <SelectItem key={role} value={role}>{role}</SelectItem>
+                                            <SelectItem key={role.id} value={role.id}>{role.name}</SelectItem>
                                         ))}
                                     </SelectContent>
                                 </Select>
@@ -219,7 +230,7 @@ export function EmployeeForm({ employee, onSave, onOpenChange }: EmployeeFormPro
                      <div className="grid grid-cols-2 gap-4">
                         <FormField
                             control={form.control}
-                            name="hireDate"
+                            name="hire_date"
                             render={({ field }) => (
                                 <FormItem className="flex flex-col">
                                 <FormLabel>Hire Date</FormLabel>

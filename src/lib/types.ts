@@ -128,8 +128,8 @@ export type Employee = {
   email: string;
   role: EmployeeRole;
   status: 'Active' | 'On Leave';
-  salary: number | string;
-  hireDate: string;
+  salary: number;
+  hire_date: string;
   branchId: string | number;
   payrolls?: Payroll[];
   appointments?: Appointment[];
