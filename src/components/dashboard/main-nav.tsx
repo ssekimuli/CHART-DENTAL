@@ -52,7 +52,7 @@ const allLinks: NavLink[] = [
   { href: "/queue", label: "Queue", icon: ClipboardList },
   { href: "/patients", label: "Patients", icon: Users },
   { href: "/charting", label: "Charting", icon: FileText, permission: 'charting:read' },
-  { href: "/appointments", label: "Appointments", icon: Calendar, permission: 'appointments:read' },
+  { href: "/appointments", label: "Appointments", icon: Calendar },
   { href: "/billing", label: "Billing", icon: CreditCard, permission: 'billing:read' },
   { href: "/accounting", label: "Accounting", icon: Landmark, permission: 'accounting:read' },
   { href: "/inventory", label: "Inventory", icon: Package, permission: 'inventory:read' },
