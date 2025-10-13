@@ -278,9 +278,7 @@ export const getRolesList = async (): Promise<{id: EmployeeRole, name: string}[]
         } else {
             console.error("An unexpected error occurred while fetching roles list:", error);
         }
-        // Fallback to a constructed list from types
-        const roles: EmployeeRole[] = ['Super Admin', 'Account', 'HR', 'Dentist', 'Hygienist', 'Receptionist', 'Assistant'];
-        return roles.map((role, i) => ({ id: String(i + 1), name: role }));
+        return [];
     }
 }
 
