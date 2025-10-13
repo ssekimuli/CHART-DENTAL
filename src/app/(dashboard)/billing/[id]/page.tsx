@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { notFound, useParams } from 'next/navigation';
@@ -11,9 +10,12 @@ import type { Invoice, Patient, PaymentMethod, PaymentTransaction } from '@/lib/
 import { Button } from '@/components/ui/button';
 import { Printer, Download, Loader2 } from 'lucide-react';
 import { getInvoiceById, getPatientById } from '@/lib/api';
+import { useRouter } from 'next/navigation';
+import { hasPermission } from '@/lib/user';
 
 export default function InvoiceDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const { id } = params;
 
   const [invoice, setInvoice] = useState<Invoice | undefined>(undefined);
@@ -21,6 +23,10 @@ export default function InvoiceDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    if (!hasPermission('billing:read')) {
+      router.replace('/dashboard');
+      return;
+    }
     if (typeof id !== 'string') return;
     const fetchData = async () => {
       setIsLoading(true);
@@ -33,7 +39,7 @@ export default function InvoiceDetailPage() {
       setIsLoading(false);
     };
     fetchData();
-  }, [id]);
+  }, [id, router]);
 
   const treatments = useMemo(() => {
     if (!invoice) return [];

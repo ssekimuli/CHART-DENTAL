@@ -12,6 +12,7 @@ import { ArrowLeft, Loader2, DollarSign, UserCheck, CalendarDays, UserPlus } fro
 import { useRouter } from 'next/navigation';
 import { getEmployeeById, getPayrolls, getAttendance, getAppointments } from '@/lib/api';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { hasPermission } from '@/lib/user';
 
 export default function EmployeeDetailPage() {
   const router = useRouter();
@@ -25,6 +26,10 @@ export default function EmployeeDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    if (!hasPermission('hrm:read')) {
+      router.replace('/dashboard');
+      return;
+    }
     if (typeof id !== 'string') return;
     const fetchData = async () => {
         setIsLoading(true);
@@ -41,13 +46,13 @@ export default function EmployeeDetailPage() {
         setIsLoading(false);
     }
     fetchData();
-  }, [id]);
+  }, [id, router]);
 
   const stats = useMemo(() => {
     if (!employee) return null;
 
-    const employeePayrolls = payrolls.filter(p => p.employeeId === employee.id);
-    const totalPaid = employeePayrolls.reduce((sum, p) => sum + p.netPay, 0);
+    const employeePayrolls = payrolls.filter(p => p.employee_id === employee.id);
+    const totalPaid = employeePayrolls.reduce((sum, p) => sum + Number(p.net_pay), 0);
 
     const employeeAttendance = attendance.filter(a => a.employeeId === employee.id);
     const presentDays = employeeAttendance.filter(a => a.status === 'Present').length;
@@ -137,15 +142,15 @@ export default function EmployeeDetailPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                     <div className="grid gap-1">
                         <span className="text-muted-foreground">Hire Date</span>
-                        <span className="font-medium">{employee.hireDate}</span>
+                        <span className="font-medium">{employee.hire_date}</span>
                     </div>
                     <div className="grid gap-1">
                         <span className="text-muted-foreground">Salary</span>
-                        <span className="font-medium">${employee.salary.toLocaleString()}</span>
+                        <span className="font-medium">${Number(employee.salary).toLocaleString()}</span>
                     </div>
                     <div className="grid gap-1">
                         <span className="text-muted-foreground">Branch ID</span>
-                        <span className="font-medium">{employee.branchId}</span>
+                        <span className="font-medium">{employee.branch_id}</span>
                     </div>
                 </div>
             </CardContent>

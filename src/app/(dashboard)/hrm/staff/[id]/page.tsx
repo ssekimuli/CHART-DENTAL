@@ -12,6 +12,7 @@ import { ArrowLeft, Loader2, DollarSign, UserCheck, CalendarDays, UserPlus } fro
 import { useRouter } from 'next/navigation';
 import { getEmployeeById, getPayrolls, getAttendance, getAppointments } from '@/lib/api';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { hasPermission } from '@/lib/user';
 
 export default function EmployeeDetailPage() {
   const router = useRouter();
@@ -25,6 +26,10 @@ export default function EmployeeDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    if (!hasPermission('hrm:read')) {
+      router.replace('/dashboard');
+      return;
+    }
     if (typeof id !== 'string') return;
     const fetchData = async () => {
         setIsLoading(true);
@@ -41,7 +46,7 @@ export default function EmployeeDetailPage() {
         setIsLoading(false);
     }
     fetchData();
-  }, [id]);
+  }, [id, router]);
 
   const stats = useMemo(() => {
     if (!employee) return null;
