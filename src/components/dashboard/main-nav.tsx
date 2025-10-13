@@ -51,7 +51,7 @@ const allLinks: NavLink[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/queue", label: "Queue", icon: ClipboardList },
   { href: "/patients", label: "Patients", icon: Users },
-  { href: "/charting", label: "Charting", icon: FileText, permission: 'charting:read' },
+  { href: "/charting", label: "Charting", icon: FileText },
   { href: "/appointments", label: "Appointments", icon: Calendar },
   { href: "/billing", label: "Billing", icon: CreditCard, permission: 'billing:read' },
   { href: "/accounting", label: "Accounting", icon: Landmark, permission: 'accounting:read' },
@@ -97,11 +97,12 @@ export function MainNav() {
     // Make a copy to avoid mutating the original array
     const newLink = { ...link };
 
-    // Special logic for Charting link visibility
-    if (newLink.href === '/charting') {
-        if (userRole === 'Account') {
-            return null; // Hide charting for accountants
-        }
+    // Special visibility rules based on role
+    if (newLink.href === '/charting' && userRole === 'Account') {
+        return null; // Hide charting for accountants
+    }
+    if ((newLink.href === '/billing' || newLink.href === '/accounting') && !['Super Admin', 'Account'].includes(userRole as string)) {
+        return null; // Only Super Admins and Accountants can see billing/accounting links
     }
 
     // Filter sublinks based on permissions
@@ -109,7 +110,7 @@ export function MainNav() {
         newLink.subLinks = newLink.subLinks.filter(sublink => !sublink.permission || hasPermission(sublink.permission));
     }
 
-    // Check parent link permission
+    // Check parent link permission, but only if it has one (some are now public)
     if (newLink.permission && !hasPermission(newLink.permission)) {
         return null;
     }
