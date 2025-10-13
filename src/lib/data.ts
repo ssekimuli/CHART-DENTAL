@@ -301,18 +301,18 @@ export let invoices: Invoice[] = [
 ];
 
 export const chartData: ChartData[] = [
-    { month: "January", revenue: 18600, branchId: "b1" },
-    { month: "February", revenue: 30500, branchId: "b1" },
-    { month: "March", revenue: 23700, branchId: "b1" },
-    { month: "April", revenue: 27800, branchId: "b1" },
-    { month: "May", revenue: 45231, branchId: "b1" },
-    { month: "June", revenue: 34900, branchId: "b1" },
-    { month: "January", revenue: 15000, branchId: "b2" },
-    { month: "February", revenue: 28000, branchId: "b2" },
-    { month: "March", revenue: 21000, branchId: "b2" },
-    { month: "April", revenue: 25000, branchId: "b2" },
-    { month: "May", revenue: 41000, branchId: "b2" },
-    { month: "June", revenue: 32000, branchId: "b2" },
+    { month: "January", revenue: 18600, newPatients: 15, newAppointments: 50, branchId: "b1" },
+    { month: "February", revenue: 30500, newPatients: 20, newAppointments: 65, branchId: "b1" },
+    { month: "March", revenue: 23700, newPatients: 18, newAppointments: 60, branchId: "b1" },
+    { month: "April", revenue: 27800, newPatients: 22, newAppointments: 70, branchId: "b1" },
+    { month: "May", revenue: 45231, newPatients: 30, newAppointments: 80, branchId: "b1" },
+    { month: "June", revenue: 34900, newPatients: 25, newAppointments: 75, branchId: "b1" },
+    { month: "January", revenue: 15000, newPatients: 10, newAppointments: 40, branchId: "b2" },
+    { month: "February", revenue: 28000, newPatients: 18, newAppointments: 55, branchId: "b2" },
+    { month: "March", revenue: 21000, newPatients: 12, newAppointments: 50, branchId: "b2" },
+    { month: "April", revenue: 25000, newPatients: 16, newAppointments: 60, branchId: "b2" },
+    { month: "May", revenue: 41000, newPatients: 25, newAppointments: 70, branchId: "b2" },
+    { month: "June", revenue: 32000, newPatients: 20, newAppointments: 65, branchId: "b2" },
 ];
 
 export const employees: Employee[] = [

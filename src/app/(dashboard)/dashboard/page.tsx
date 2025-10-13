@@ -44,6 +44,14 @@ const chartConfig = {
     label: "Revenue",
     color: "hsl(var(--chart-1))",
   },
+  newPatients: {
+    label: "New Patients",
+    color: "hsl(var(--chart-1))",
+  },
+  newAppointments: {
+    label: "New Appointments",
+    color: "hsl(var(--chart-2))",
+  },
 };
 
 export default function DashboardPage() {
@@ -217,42 +225,45 @@ export default function DashboardPage() {
             </Card>
         ) : (
             <Card className="lg:col-span-4">
-                <CardHeader>
-                    <CardTitle>Recent Patients</CardTitle>
-                    <CardDescription asChild>
-                    {isLoading ? <div className="text-sm text-muted-foreground"><Skeleton className="h-4 w-1/2" /></div> : <p className="text-sm text-muted-foreground">{`You have ${recentPatients.length} recent patients in this branch.`}</p>}
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="space-y-4">
-                    {isLoading ? (
-                        <>
-                        <Skeleton className="h-10 w-full" />
-                        <Skeleton className="h-10 w-full" />
-                        <Skeleton className="h-10 w-full" />
-                        </>
-                    ) : recentPatients.map((patient) => (
-                        <div className="flex items-center" key={patient.id}>
-                        <Avatar className="h-9 w-9">
-                            <AvatarImage src={patient.avatar} alt="Avatar" />
-                            <AvatarFallback>{patient.name.charAt(0)}</AvatarFallback>
-                        </Avatar>
-                        <div className="ml-4 space-y-1">
-                            <p className="text-sm font-medium leading-none">
-                            {patient.name}
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                            {patient.email}
-                            </p>
-                        </div>
-                        <div className="ml-auto font-medium">{patient.lastVisit}</div>
-                        </div>
-                    ))}
-                    {recentPatients.length === 0 && !isLoading && (
-                        <p className="text-sm text-muted-foreground text-center">No recent patients in this branch.</p>
-                        )}
-                    </div>
-                </CardContent>
+            <CardHeader>
+                <CardTitle>Patient Activity Overview</CardTitle>
+                <CardDescription>New patients and appointments over the last few months.</CardDescription>
+            </CardHeader>
+             <CardContent className="pl-2">
+                {isLoading ? <Skeleton className="h-[300px] w-full" /> : (
+                <ChartContainer config={chartConfig} className="h-[300px] w-full">
+                    <BarChart accessibilityLayer data={chartData}>
+                        <CartesianGrid vertical={false} />
+                        <XAxis
+                            dataKey="month"
+                            tickLine={false}
+                            tickMargin={10}
+                            axisLine={false}
+                            tickFormatter={(value) => value.slice(0, 3)}
+                        />
+                        <YAxis
+                            tickLine={false}
+                            axisLine={false}
+                            tickMargin={10}
+                        />
+                        <ChartTooltip
+                            cursor={false}
+                            content={<ChartTooltipContent />}
+                        />
+                        <Bar
+                            dataKey="newPatients"
+                            fill="var(--color-newPatients)"
+                            radius={8}
+                        />
+                        <Bar
+                            dataKey="newAppointments"
+                            fill="var(--color-newAppointments)"
+                            radius={8}
+                        />
+                    </BarChart>
+                </ChartContainer>
+                )}
+            </CardContent>
             </Card>
         )}
 

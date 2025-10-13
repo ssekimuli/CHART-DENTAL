@@ -114,6 +114,8 @@ export type Invoice = {
 export type ChartData = {
   month: string;
   revenue: number;
+  newPatients: number;
+  newAppointments: number;
   branchId: string;
 };
 
