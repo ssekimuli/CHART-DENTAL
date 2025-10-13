@@ -49,8 +49,8 @@ type NavLink = {
 
 const allLinks: NavLink[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/queue", label: "Queue", icon: ClipboardList, permission: 'queue:read' },
-  { href: "/patients", label: "Patients", icon: Users, permission: 'patients:read' },
+  { href: "/queue", label: "Queue", icon: ClipboardList },
+  { href: "/patients", label: "Patients", icon: Users },
   { href: "/charting", label: "Charting", icon: FileText, permission: 'charting:read' },
   { href: "/appointments", label: "Appointments", icon: Calendar, permission: 'appointments:read' },
   { href: "/billing", label: "Billing", icon: CreditCard, permission: 'billing:read' },
