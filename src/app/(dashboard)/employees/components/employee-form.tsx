@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { format, parseISO } from "date-fns";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -37,6 +37,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import { CalendarIcon } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
+import { getRolesList } from "@/lib/api";
 
 
 const formSchema = z.object({
@@ -59,6 +60,8 @@ type EmployeeFormProps = {
 };
 
 export function EmployeeForm({ employee, onSave, onOpenChange }: EmployeeFormProps) {
+  const [roles, setRoles] = useState<{id: EmployeeRole, name: string}[]>([]);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -72,6 +75,14 @@ export function EmployeeForm({ employee, onSave, onOpenChange }: EmployeeFormPro
         avatar: employee?.avatar ?? "",
     },
   });
+
+  useEffect(() => {
+    const fetchRoles = async () => {
+        const rolesData = await getRolesList();
+        setRoles(rolesData);
+    };
+    fetchRoles();
+  }, []);
 
   const annualSalary = form.watch("salary");
   const monthlySalary = form.watch("monthlySalary");
@@ -102,7 +113,6 @@ export function EmployeeForm({ employee, onSave, onOpenChange }: EmployeeFormPro
     });
   }
 
-  const roles: EmployeeRole[] = ['Super Admin', 'Account', 'HR', 'Dentist', 'Hygienist', 'Receptionist', 'Assistant'];
 
   return (
     <Dialog open={true} onOpenChange={onOpenChange}>
@@ -158,7 +168,7 @@ export function EmployeeForm({ employee, onSave, onOpenChange }: EmployeeFormPro
                                     </FormControl>
                                     <SelectContent>
                                         {roles.map(role => (
-                                            <SelectItem key={role} value={role}>{role}</SelectItem>
+                                            <SelectItem key={role.id} value={role.id}>{role.name}</SelectItem>
                                         ))}
                                     </SelectContent>
                                 </Select>

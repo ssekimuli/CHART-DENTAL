@@ -1,5 +1,4 @@
 
-
 import { 
     patients as allPatients,
     appointments as allAppointments,
@@ -17,7 +16,7 @@ import {
     expenses as allExpenses,
     roles as mockRoles
 } from '@/lib/data';
-import type { Patient, Appointment, Invoice, ChartData, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, BasePatient, InvoiceTreatment, OtherCharge, SystemTreatment, PaymentMethod, PaymentTransaction, AttendanceRecord, LeaveRequest, StaffAdvance, StaffAdvanceStatus, Expense, ExpenseCategory, RolePermissions, Permission, DentalRecord, PeriodontalRecord, OcclusalRecord, SoftTissueRecord, OrthodonticRecord, Treatment, DentalCondition, PatientImage, FinancialSummary, CurrentUser, ProfileData, AppointmentStatus } from '@/lib/types';
+import type { Patient, Appointment, Invoice, ChartData, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, BasePatient, InvoiceTreatment, OtherCharge, SystemTreatment, PaymentMethod, PaymentTransaction, AttendanceRecord, LeaveRequest, StaffAdvance, StaffAdvanceStatus, Expense, ExpenseCategory, RolePermissions, Permission, DentalRecord, PeriodontalRecord, OcclusalRecord, SoftTissueRecord, OrthodonticRecord, Treatment, DentalCondition, PatientImage, FinancialSummary, CurrentUser, ProfileData, AppointmentStatus, EmployeeRole } from '@/lib/types';
 import type { DateRange } from 'react-day-picker';
 import { format, parse } from "date-fns";
 import { speak } from '@/ai/flows/speak';
@@ -265,6 +264,23 @@ export const getRoles = async (): Promise<RolePermissions[]> => {
         }
         // Fallback to mock data on error
         return JSON.parse(JSON.stringify(mockRoles));
+    }
+}
+
+export const getRolesList = async (): Promise<{id: EmployeeRole, name: string}[]> => {
+    console.log('API CALL: getRolesList');
+     try {
+        const response = await customAxios.get('/roles');
+        return response.data.data;
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            console.error('Failed to fetch roles list:', error.response?.data);
+        } else {
+            console.error("An unexpected error occurred while fetching roles list:", error);
+        }
+        // Fallback to a constructed list from types
+        const roles: EmployeeRole[] = ['Super Admin', 'Account', 'HR', 'Dentist', 'Hygienist', 'Receptionist', 'Assistant'];
+        return roles.map(role => ({ id: role, name: role }));
     }
 }
 
