@@ -1,4 +1,5 @@
 
+
 import { 
     patients as allPatients,
     appointments as allAppointments,
@@ -194,9 +195,32 @@ export const getEmployees = async (branchId?: string | number): Promise<Employee
 
 export const getEmployeeById = async (id: string | number): Promise<Employee | undefined> => {
     console.log('API CALL: getEmployeeById', { id });
-    await delay(100);
-    // Find by ID or email for profile page lookup
-    return JSON.parse(JSON.stringify(allEmployees.find(e => String(e.id) === String(id) || e.email === id)));
+    try {
+        const response = await customAxios.get(`/employees/${id}`);
+        const emp = response.data;
+        if (!emp) return undefined;
+
+        // Map the response back to the frontend Employee type
+        const feEmployee: Employee = {
+            id: String(emp.id),
+            name: emp.name,
+            avatar: emp.avatar,
+            email: emp.email,
+            role: emp.role,
+            status: emp.status,
+            salary: parseFloat(emp.salary),
+            hire_date: emp.hire_date.split('T')[0],
+            branchId: String(emp.branch_id),
+        };
+        return feEmployee;
+    } catch (error) {
+        if (axios.isAxiosError(error) && error.response?.status !== 404) {
+            console.error(`Failed to fetch employee ${id}:`, error.response?.data);
+        } else if (!axios.isAxiosError(error)) {
+             console.error("An unexpected error occurred while fetching employee:", error);
+        }
+        return undefined;
+    }
 }
 
 export const getPayrolls = async (branchId?: string | number): Promise<Payroll[]> => {
@@ -301,8 +325,8 @@ export const getRolesList = async (): Promise<{id: string, name: string}[]> => {
     console.log('API CALL: getRolesList');
      try {
         const response = await customAxios.get('/roles');
-        if (response.data && response.data.data) {
-            return response.data.data.map((role: any) => ({ ...role, id: String(role.id) }));
+        if (response.data && Array.isArray(response.data)) {
+            return response.data.map((role: any) => ({ ...role, id: String(role.id) }));
         }
         return [];
     } catch (error) {
@@ -765,13 +789,13 @@ export const deleteInvoice = async (id: string | number): Promise<{ success: boo
 
 
 // Employees
-export const createEmployee = async (data: Omit<Employee, 'id' | 'branchId'> & { branchId: string | number }): Promise<Employee> => {
+export const createEmployee = async (data: Omit<Employee, 'id'>): Promise<Employee> => {
     console.log('API CALL: createEmployee', { data });
     const requestBody = {
         name: data.name,
         avatar: data.avatar,
         email: data.email,
-        role: parseInt(data.role as string, 10),
+        role_id: parseInt(data.role as string, 10),
         salary: data.salary,
         hire_date: data.hire_date,
         branch_id: data.branchId,
@@ -811,7 +835,7 @@ export const updateEmployee = async (id: string | number, data: Partial<Employee
     console.log('API CALL: updateEmployee', { id, data });
     
     // Create a mutable copy of the data to avoid modifying the original object
-    const requestData = { ...data };
+    const requestData: Partial<Employee> & { role_id?: number, branch_id?: number } = { ...data };
 
     // Remap frontend keys to backend keys
     const requestBody: { [key: string]: any } = {};
