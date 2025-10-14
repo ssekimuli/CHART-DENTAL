@@ -64,14 +64,14 @@ export default function StaffPage() {
         setIsFormOpen(false);
     };
 
-    const handleSaveEmployee = async (data: Omit<Employee, 'id' | 'branchId'>) => {
+    const handleSaveEmployee = async (data: Omit<Employee, 'id' | 'branchId'> & { branchId: string | number }) => {
         if (selectedEmployee) {
             const updated = await updateEmployee(selectedEmployee.id, data);
             if(updated) {
                 setEmployees(prev => prev.map(e => e.id === updated.id ? updated : e));
             }
         } else {
-            const newEmployee = await createEmployee({ ...data, branchId: selectedBranch });
+            const newEmployee = await createEmployee({ ...data, branchId: selectedBranch, status: 'Active' });
             if(newEmployee) {
                 setEmployees(prev => [...prev, newEmployee]);
             }
