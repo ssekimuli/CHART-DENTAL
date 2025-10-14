@@ -84,7 +84,7 @@ export const getBranches = async (): Promise<Branch[]> => {
     try {
         const response = await customAxios.get('/all-branch');
         // The API returns 'id' as a number, which matches our updated type.
-        return response.data.map((branch: any) => ({ ...branch, id: String(branch.id) }));
+        return response.data.map((branch: any) => ({ ...branch, id: branch.id }));
     } catch (error) {
         if (axios.isAxiosError(error)) {
             console.error('Failed to fetch branches:', error.response?.data);
@@ -172,7 +172,7 @@ export const getEmployees = async (branchId?: string | number): Promise<Employee
         }
         const response = await customAxios.get('/employees', { params });
         // Map API response to frontend type
-        return response.data.data.map((emp: any) => ({
+        return response.data.map((emp: any) => ({
             id: String(emp.id),
             name: emp.name,
             avatar: emp.avatar,
@@ -829,7 +829,7 @@ export const createBranch = async (data: Omit<Branch, 'id'>): Promise<Branch> =>
     await delay(200);
     const newBranch: Branch = {
         ...data,
-        id: `b${mockBranches.length + 1}`
+        id: mockBranches.length + 1
     };
     mockBranches.push(newBranch);
     return newBranch;
