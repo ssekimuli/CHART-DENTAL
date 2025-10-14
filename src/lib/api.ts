@@ -21,7 +21,7 @@ import type { Patient, Appointment, Invoice, ChartData, Employee, Payroll, Branc
 import type { DateRange } from 'react-day-picker';
 import { format, parse } from "date-fns";
 import { speak } from '@/ai/flows/speak';
-import { clearCurrentUser, getAuthToken, setCurrentUser } from './user';
+import { clearCurrentUser, getAuthToken, setCurrentUser, currentUser as userDetails } from './user';
 import customAxios from './axios';
 import axios from 'axios';
 
@@ -84,7 +84,7 @@ export const getBranches = async (): Promise<Branch[]> => {
     try {
         const response = await customAxios.get('/all-branch');
         // The API returns 'id' as a number, which matches our updated type.
-        return response.data;
+        return response.data.map((branch: any) => ({ ...branch, id: String(branch.id) }));
     } catch (error) {
         if (axios.isAxiosError(error)) {
             console.error('Failed to fetch branches:', error.response?.data);
@@ -100,7 +100,7 @@ export const getPatients = async (branchId?: string | number): Promise<Patient[]
     await delay(100);
     let localPatients = allPatients;
     if (branchId) {
-        localPatients = localPatients.filter(p => p.branchId === branchId);
+        localPatients = localPatients.filter(p => String(p.branchId) === String(branchId));
     }
     return JSON.parse(JSON.stringify(localPatients));
 }
@@ -108,7 +108,7 @@ export const getPatients = async (branchId?: string | number): Promise<Patient[]
 export const getPatientById = async (id: string | number): Promise<Patient | undefined> => {
     console.log('API CALL: getPatientById', { id });
     await delay(100);
-    return JSON.parse(JSON.stringify(allPatients.find(p => p.id === id)));
+    return JSON.parse(JSON.stringify(allPatients.find(p => String(p.id) === String(id))));
 }
 
 export const getAppointments = async (): Promise<Appointment[]> => {
@@ -129,7 +129,7 @@ export const getInvoices = async (filters?: GetInvoicesFilters): Promise<Invoice
     let localInvoices = allInvoices;
 
     if (filters?.branchId) {
-        localInvoices = localInvoices.filter(i => i.branchId === filters.branchId);
+        localInvoices = localInvoices.filter(i => String(i.branchId) === String(filters.branchId));
     }
     
     if (filters?.searchQuery) {
@@ -171,10 +171,17 @@ export const getEmployees = async (branchId?: string | number): Promise<Employee
             params.branch_id = branchId;
         }
         const response = await customAxios.get('/employees', { params });
-        // Map branch_id to branchId for frontend consistency
+        // Map API response to frontend type
         return response.data.data.map((emp: any) => ({
-            ...emp,
-            branchId: emp.branch_id
+            id: String(emp.id),
+            name: emp.name,
+            avatar: emp.avatar,
+            email: emp.email,
+            role: emp.role,
+            status: emp.status,
+            salary: parseFloat(emp.salary),
+            hire_date: emp.hire_date.split('T')[0], // Format date to YYYY-MM-DD
+            branchId: String(emp.branch_id)
         }));
     } catch (error) {
         if (axios.isAxiosError(error)) {
@@ -198,7 +205,7 @@ export const getPayrolls = async (branchId?: string | number): Promise<Payroll[]
     await delay(250);
     let localPayrolls = allPayrolls;
     if (branchId) {
-        localPayrolls = localPayrolls.filter(p => p.branch_id === branchId);
+        localPayrolls = localPayrolls.filter(p => String(p.branch_id) === String(branchId));
     }
     return JSON.parse(JSON.stringify(localPayrolls));
 }
@@ -208,7 +215,7 @@ export const getInventory = async (branchId?: string | number): Promise<Inventor
     await delay(100);
     let localInventory = inventory;
     if (branchId) {
-        localInventory = localInventory.filter(i => i.branchId === branchId);
+        localInventory = localInventory.filter(i => String(i.branchId) === String(branchId));
     }
     return JSON.parse(JSON.stringify(localInventory));
 }
@@ -218,7 +225,7 @@ export const getLabOrders = async (branchId?: string | number): Promise<Laborato
     await delay(150);
     let localLabOrders = allLabOrders;
     if (branchId) {
-        localLabOrders = localLabOrders.filter(l => l.branchId === branchId);
+        localLabOrders = localLabOrders.filter(l => String(l.branchId) === String(branchId));
     }
     return JSON.parse(JSON.stringify(localLabOrders));
 }
@@ -240,7 +247,7 @@ export const getAttendance = async (branchId?: string | number): Promise<Attenda
     await delay(150);
     let localAttendance = allAttendance;
     if (branchId) {
-        localAttendance = localAttendance.filter(a => a.branchId === branchId);
+        localAttendance = localAttendance.filter(a => String(a.branchId) === String(branchId));
     }
     return JSON.parse(JSON.stringify(localAttendance));
 }
@@ -270,7 +277,7 @@ export const getExpenses = async (branchId?: string | number): Promise<Expense[]
     await delay(150);
     let localExpenses = allExpenses;
     if (branchId) {
-        localExpenses = localExpenses.filter(e => e.branchId === branchId);
+        localExpenses = localExpenses.filter(e => String(e.branchId) === String(branchId));
     }
     return JSON.parse(JSON.stringify(localExpenses));
 }
@@ -516,7 +523,7 @@ export const updateTreatment = async (patientId: string | number, treatment: Tre
     const patientIndex = allPatients.findIndex(p => String(p.id) === String(patientId));
     if (patientIndex > -1) {
         const patient = allPatients[patientIndex];
-        const treatmentIndex = patient.treatmentPlans.findIndex(t => t.id === treatment.id);
+        const treatmentIndex = patient.treatmentPlans.findIndex(t => String(t.id) === String(treatment.id));
         if (treatmentIndex > -1) {
             patient.treatmentPlans[treatmentIndex] = treatment;
         }
@@ -560,7 +567,7 @@ export const updateOrthodonticRecord = async (patientId: string | number, record
     const patientIndex = allPatients.findIndex(p => String(p.id) === String(patientId));
     if (patientIndex > -1) {
         const patient = allPatients[patientIndex];
-        const recordIndex = patient.orthodonticRecords.findIndex(r => r.id === record.id);
+        const recordIndex = patient.orthodonticRecords.findIndex(r => String(r.id) === String(record.id));
         if (recordIndex > -1) {
             patient.orthodonticRecords[recordIndex] = record;
             patient.orthodonticRecords.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -605,7 +612,7 @@ export const updateSoftTissueRecord = async (patientId: string | number, record:
     const patientIndex = allPatients.findIndex(p => String(p.id) === String(patientId));
     if (patientIndex > -1) {
         const patient = allPatients[patientIndex];
-        const recordIndex = patient.softTissueRecords.findIndex(r => r.id === record.id);
+        const recordIndex = patient.softTissueRecords.findIndex(r => String(r.id) === String(record.id));
         if (recordIndex > -1) {
             patient.softTissueRecords[recordIndex] = record;
             patient.softTissueRecords.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -665,7 +672,7 @@ export const deleteAppointment = async (id: string | number): Promise<{ success:
 export const createInvoice = async (data: Omit<Invoice, 'id' | 'amount' | 'paidAmount' | 'patientName'> & { branchId: string | number, treatments: InvoiceTreatment[] }): Promise<Invoice> => {
     console.log('API CALL: createInvoice', { data });
     await delay(200);
-    const patient = allPatients.find(p => p.id === data.patientId);
+    const patient = allPatients.find(p => String(p.id) === String(data.patientId));
     if (!patient) throw new Error("Patient not found");
 
     const treatmentsTotal = data.treatments.reduce((sum, t) => sum + t.cost, 0);
@@ -756,7 +763,7 @@ export const deleteInvoice = async (id: string | number): Promise<{ success: boo
 
 
 // Employees
-export const createEmployee = async (data: Omit<Employee, 'id' | 'branchId' | 'status'> & { branchId: string | number; status: 'Active' | 'On Leave' }): Promise<Employee> => {
+export const createEmployee = async (data: Omit<Employee, 'id' | 'branchId'> & { branchId: string | number }): Promise<Employee> => {
     console.log('API CALL: createEmployee', { data });
     const requestBody = {
         name: data.name,
@@ -771,11 +778,12 @@ export const createEmployee = async (data: Omit<Employee, 'id' | 'branchId' | 's
         const response = await customAxios.post('/employees', requestBody);
         const newEmployee = response.data;
         
-        // The API returns branch_id, but our frontend type uses branchId.
-        // We'll map it here for consistency in the frontend state.
         const feEmployee: Employee = {
             ...newEmployee,
-            branchId: newEmployee.branch_id,
+            id: String(newEmployee.id),
+            salary: parseFloat(newEmployee.salary),
+            hire_date: newEmployee.hire_date.split('T')[0],
+            branchId: String(newEmployee.branch_id),
         };
         
         allEmployees.push(feEmployee);
@@ -821,7 +829,7 @@ export const createBranch = async (data: Omit<Branch, 'id'>): Promise<Branch> =>
     await delay(200);
     const newBranch: Branch = {
         ...data,
-        id: mockBranches.length + 1
+        id: `b${mockBranches.length + 1}`
     };
     mockBranches.push(newBranch);
     return newBranch;
@@ -869,7 +877,7 @@ export const createPayroll = async (data: Omit<Payroll, 'id'>): Promise<Payroll>
 export const markAttendance = async(data: Omit<AttendanceRecord, 'id' | 'employeeName'>): Promise<AttendanceRecord> => {
     console.log('API CALL: markAttendance', { data });
     await delay(200);
-    const employee = allEmployees.find(e => e.id === data.employeeId);
+    const employee = allEmployees.find(e => String(e.id) === String(data.employeeId));
     if (!employee) throw new Error("Employee not found");
 
     const existingIndex = allAttendance.findIndex(
@@ -895,7 +903,7 @@ export const markAttendance = async(data: Omit<AttendanceRecord, 'id' | 'employe
 export const createLeaveRequest = async (data: Omit<LeaveRequest, 'id' | 'employeeName' | 'status'>): Promise<LeaveRequest> => {
     console.log('API CALL: createLeaveRequest', { data });
     await delay(200);
-    const employee = allEmployees.find(e => e.id === data.employeeId);
+    const employee = allEmployees.find(e => String(e.id) === String(data.employeeId));
     if (!employee) throw new Error("Employee not found");
 
     const newRequest: LeaveRequest = {
@@ -923,7 +931,7 @@ export const updateLeaveRequestStatus = async (id: string | number, status: Leav
 export const createStaffAdvance = async (data: Omit<StaffAdvance, 'id' | 'employeeName' | 'status'>): Promise<StaffAdvance> => {
     console.log('API CALL: createStaffAdvance', { data });
     await delay(200);
-    const employee = allEmployees.find(e => e.id === data.employeeId);
+    const employee = allEmployees.find(e => String(e.id) === String(data.employeeId));
     if (!employee) throw new Error("Employee not found");
 
     const newAdvance: StaffAdvance = {

@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -38,6 +39,7 @@ import { cn } from "@/lib/utils";
 import { CalendarIcon } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { getBranches, getRolesList } from "@/lib/api";
+import { useBranch } from "@/context/branch-context";
 
 
 const formSchema = z.object({
@@ -63,6 +65,7 @@ type EmployeeFormProps = {
 export function EmployeeForm({ employee, onSave, onOpenChange }: EmployeeFormProps) {
   const [roles, setRoles] = useState<{id: string, name: string}[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
+  const { selectedBranch } = useBranch();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -75,7 +78,7 @@ export function EmployeeForm({ employee, onSave, onOpenChange }: EmployeeFormPro
         monthlySalary: employee ? Number(employee.salary) / 12 : undefined,
         hire_date: employee ? parseISO(employee.hire_date) : undefined,
         avatar: employee?.avatar ?? "",
-        branchId: employee ? String(employee.branchId) : undefined,
+        branchId: employee ? String(employee.branchId) : selectedBranch,
     },
   });
 
@@ -307,4 +310,5 @@ export function EmployeeForm({ employee, onSave, onOpenChange }: EmployeeFormPro
     </Dialog>
   );
 }
+
 
