@@ -13,6 +13,7 @@ import { useRouter } from 'next/navigation';
 import { getEmployeeById, getPayrolls, getAttendance, getAppointments } from '@/lib/api';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { hasPermission } from '@/lib/user';
+import { PayrollTable } from '../../payroll/components/payroll-table';
 
 export default function EmployeeDetailPage() {
   const router = useRouter();
@@ -48,8 +49,8 @@ export default function EmployeeDetailPage() {
     fetchData();
   }, [id, router]);
 
-  const stats = useMemo(() => {
-    if (!employee) return null;
+  const { stats, employeePayrolls } = useMemo(() => {
+    if (!employee) return { stats: null, employeePayrolls: [] };
 
     const employeePayrolls = payrolls.filter(p => p.employee_id === employee.id);
     const totalPaid = employeePayrolls.reduce((sum, p) => sum + Number(p.net_pay), 0);
@@ -63,6 +64,7 @@ export default function EmployeeDetailPage() {
     const uniquePatients = new Set(employeeAppointments.map(a => a.patientId)).size;
 
     return {
+      stats: {
         totalPaid,
         presentDays,
         absentDays,
@@ -70,6 +72,8 @@ export default function EmployeeDetailPage() {
         totalAppointments: employeeAppointments.length,
         uniquePatients,
         recentAppointments: employeeAppointments.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0,5),
+      },
+      employeePayrolls,
     }
   }, [employee, payrolls, attendance, appointments]);
   
@@ -201,35 +205,10 @@ export default function EmployeeDetailPage() {
 
         <Card>
             <CardHeader>
-                <CardTitle>Recent Appointments</CardTitle>
+                <CardTitle>Payroll History</CardTitle>
             </CardHeader>
             <CardContent>
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Date</TableHead>
-                            <TableHead>Patient</TableHead>
-                            <TableHead>Treatment</TableHead>
-                            <TableHead>Status</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {stats.recentAppointments.length === 0 ? (
-                            <TableRow>
-                                <TableCell colSpan={4} className="h-24 text-center">
-                                    No recent appointments found for this employee.
-                                </TableCell>
-                            </TableRow>
-                        ) : stats.recentAppointments.map(app => (
-                            <TableRow key={app.id}>
-                                <TableCell>{app.date}</TableCell>
-                                <TableCell>{app.patientName}</TableCell>
-                                <TableCell>{app.treatment}</TableCell>
-                                <TableCell><Badge variant="outline">{app.status}</Badge></TableCell>
-                            </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
+                <PayrollTable data={employeePayrolls} />
             </CardContent>
         </Card>
     </div>
