@@ -817,7 +817,7 @@ export const updateEmployee = async (id: string | number, data: Partial<Employee
     // Remap frontend keys to backend keys
     const requestBody: { [key: string]: any } = {};
     if (requestData.branchId) {
-        requestBody.branch_id = requestData.branchId;
+        requestBody.branch_id = parseInt(String(requestData.branchId), 10);
         delete requestData.branchId;
     }
     if (requestData.role) {
