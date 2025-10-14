@@ -165,12 +165,25 @@ export const getInvoiceById = async (id: string | number): Promise<Invoice | und
 
 export const getEmployees = async (branchId?: string | number): Promise<Employee[]> => {
     console.log('API CALL: getEmployees', { branchId });
-    await delay(100);
-    let localEmployees = allEmployees;
-    if (branchId) {
-        localEmployees = localEmployees.filter(e => e.branchId === branchId);
+    try {
+        const params: { branch_id?: string | number } = {};
+        if (branchId) {
+            params.branch_id = branchId;
+        }
+        const response = await customAxios.get('/employees', { params });
+        // Map branch_id to branchId for frontend consistency
+        return response.data.data.map((emp: any) => ({
+            ...emp,
+            branchId: emp.branch_id
+        }));
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            console.error('Failed to fetch employees:', error.response?.data);
+        } else {
+            console.error("An unexpected error occurred while fetching employees:", error);
+        }
+        return [];
     }
-    return JSON.parse(JSON.stringify(localEmployees));
 }
 
 export const getEmployeeById = async (id: string | number): Promise<Employee | undefined> => {
