@@ -208,7 +208,32 @@ export default function EmployeeDetailPage() {
                 <CardTitle>Payroll History</CardTitle>
             </CardHeader>
             <CardContent>
-                <PayrollTable data={employeePayrolls} />
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Date</TableHead>
+                            <TableHead>Patient</TableHead>
+                            <TableHead>Treatment</TableHead>
+                            <TableHead>Status</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {stats.recentAppointments.length === 0 ? (
+                            <TableRow>
+                                <TableCell colSpan={4} className="h-24 text-center">
+                                    No recent appointments found for this employee.
+                                </TableCell>
+                            </TableRow>
+                        ) : stats.recentAppointments.map(app => (
+                            <TableRow key={app.id}>
+                                <TableCell>{app.date}</TableCell>
+                                <TableCell>{app.patientName}</TableCell>
+                                <TableCell>{app.treatment}</TableCell>
+                                <TableCell><Badge variant="outline">{app.status}</Badge></TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
             </CardContent>
         </Card>
     </div>
