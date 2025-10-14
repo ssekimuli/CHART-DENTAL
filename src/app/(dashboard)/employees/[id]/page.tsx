@@ -123,7 +123,7 @@ export default function EmployeeDetailPage() {
         </h1>
       </div>
         <Card>
-            <CardHeader className="flex flex-row items-center gap-4">
+            <CardHeader className="flex flex-row items-start gap-4">
                 <Avatar className="h-24 w-24 border">
                     <AvatarImage src={employee.avatar} />
                     <AvatarFallback>{employee.name.charAt(0)}</AvatarFallback>
@@ -153,8 +153,8 @@ export default function EmployeeDetailPage() {
                         <span className="font-medium">${Number(employee.salary).toLocaleString()}</span>
                     </div>
                     <div className="grid gap-1">
-                        <span className="text-muted-foreground">Branch ID</span>
-                        <span className="font-medium">{employee.branchId}</span>
+                        <span className="text-muted-foreground">Branch</span>
+                        <span className="font-medium">{employee.branchName || employee.branchId}</span>
                     </div>
                 </div>
             </CardContent>
