@@ -211,7 +211,7 @@ export const getEmployeeById = async (id: string | number): Promise<Employee | u
             salary: parseFloat(emp.salary),
             hire_date: emp.hire_date.split('T')[0],
             branchId: String(emp.branch_id),
-            branchName: emp.branch?.name
+            branchName: emp.branch.name
         };
         return feEmployee;
     } catch (error) {
@@ -1087,3 +1087,4 @@ export const announcePatientInQueue = async (appointmentId: string | number): Pr
 
     return { audio_url: audio.media };
 }
+
