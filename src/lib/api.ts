@@ -1,5 +1,4 @@
 
-
 import { 
     patients as allPatients,
     appointments as allAppointments,
@@ -868,12 +867,24 @@ export const updateEmployee = async (id: string | number, data: Partial<Employee
 
 export const deleteEmployee = async (id: string | number): Promise<{ success: boolean }> => {
     console.log('API CALL: deleteEmployee', { id });
-    await delay(200);
-    const initialLength = allEmployees.length;
-    const newEmployees = allEmployees.filter(e => String(e.id) !== String(id));
-    allEmployees.length = 0;
-    Array.prototype.push.apply(allEmployees, newEmployees);
-    return { success: allEmployees.length < initialLength };
+    try {
+        const response = await customAxios.delete(`/employees/${id}`);
+        if (response.data.success) {
+            // Also remove from local mock array to keep UI in sync without a full re-fetch
+            const employeeIndex = allEmployees.findIndex(e => String(e.id) === String(id));
+            if (employeeIndex > -1) {
+                allEmployees.splice(employeeIndex, 1);
+            }
+        }
+        return response.data;
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            console.error(`Failed to delete employee ${id}:`, error.response?.data);
+        } else {
+            console.error("An unexpected error occurred during employee deletion:", error);
+        }
+        return { success: false };
+    }
 }
 
 
