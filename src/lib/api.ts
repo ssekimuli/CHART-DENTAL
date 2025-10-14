@@ -302,7 +302,10 @@ export const getRolesList = async (): Promise<{id: string, name: string}[]> => {
     console.log('API CALL: getRolesList');
      try {
         const response = await customAxios.get('/roles');
-        return response.data.data.map((role: any) => ({ ...role, id: String(role.id) }));
+        if (response.data && response.data.data) {
+            return response.data.data.map((role: any) => ({ ...role, id: String(role.id) }));
+        }
+        return [];
     } catch (error) {
         if (axios.isAxiosError(error)) {
             console.error('Failed to fetch roles list:', error.response?.data);
@@ -779,8 +782,12 @@ export const createEmployee = async (data: Omit<Employee, 'id' | 'branchId'> & {
         const newEmployee = response.data;
         
         const feEmployee: Employee = {
-            ...newEmployee,
             id: String(newEmployee.id),
+            name: newEmployee.name,
+            avatar: newEmployee.avatar,
+            email: newEmployee.email,
+            role: newEmployee.role,
+            status: newEmployee.status,
             salary: parseFloat(newEmployee.salary),
             hire_date: newEmployee.hire_date.split('T')[0],
             branchId: String(newEmployee.branch_id),
@@ -803,13 +810,60 @@ export const createEmployee = async (data: Omit<Employee, 'id' | 'branchId'> & {
 
 export const updateEmployee = async (id: string | number, data: Partial<Employee>): Promise<Employee | undefined> => {
     console.log('API CALL: updateEmployee', { id, data });
-    await delay(200);
-    const employeeIndex = allEmployees.findIndex(e => String(e.id) === String(id));
-    if (employeeIndex > -1) {
-        allEmployees[employeeIndex] = { ...allEmployees[employeeIndex], ...data };
-        return allEmployees[employeeIndex];
+    
+    // Create a mutable copy of the data to avoid modifying the original object
+    const requestData = { ...data };
+
+    // Remap frontend keys to backend keys
+    const requestBody: { [key: string]: any } = {};
+    if (requestData.branchId) {
+        requestBody.branch_id = requestData.branchId;
+        delete requestData.branchId;
     }
-    return undefined;
+    if (requestData.role) {
+        requestBody.role_id = parseInt(requestData.role as string, 10);
+        delete requestData.role;
+    }
+    
+    // Copy the rest of the properties
+    Object.assign(requestBody, requestData);
+    
+    try {
+        const response = await customAxios.put(`/employees/${id}`, requestBody);
+        const updatedEmployeeData = response.data;
+        
+        // Map the response back to the frontend Employee type
+        const feEmployee: Employee = {
+            id: String(updatedEmployeeData.id),
+            name: updatedEmployeeData.name,
+            avatar: updatedEmployeeData.avatar,
+            email: updatedEmployeeData.email,
+            role: updatedEmployeeData.role,
+            status: updatedEmployeeData.status,
+            salary: parseFloat(updatedEmployeeData.salary),
+            hire_date: updatedEmployeeData.hire_date.split('T')[0],
+            branchId: String(updatedEmployeeData.branch_id),
+        };
+
+        // Update the local cache
+        const employeeIndex = allEmployees.findIndex(e => String(e.id) === String(id));
+        if (employeeIndex > -1) {
+            allEmployees[employeeIndex] = feEmployee;
+        } else {
+            allEmployees.push(feEmployee);
+        }
+
+        return feEmployee;
+
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            console.error(`Failed to update employee ${id}:`, error.response?.data);
+            throw new Error(error.response?.data?.message || "Failed to update employee");
+        } else {
+            console.error("An unexpected error occurred during employee update:", error);
+            throw error;
+        }
+    }
 }
 
 export const deleteEmployee = async (id: string | number): Promise<{ success: boolean }> => {
