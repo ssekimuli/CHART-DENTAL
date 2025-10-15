@@ -27,7 +27,10 @@ export default function EmployeeDetailPage() {
       router.replace('/dashboard');
       return;
     }
-    if (typeof id !== 'string') return;
+    if (typeof id !== 'string') {
+        setIsLoading(false);
+        return;
+    };
     const fetchData = async () => {
         setIsLoading(true);
         const data = await getEmployeeById(id);
@@ -116,8 +119,7 @@ export default function EmployeeDetailPage() {
                     </div>
                     <div className="grid gap-1">
                         <span className="text-muted-foreground">Branch</span>
-
-                        <span className="font-medium">{employee?.branch?.name}</span>
+                        <span className="font-medium">{employee.branch}</span>
                     </div>
                 </div>
             </CardContent>

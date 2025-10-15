@@ -90,7 +90,7 @@ export default function EmployeeDetailPage() {
             <CardHeader className="flex flex-row items-start gap-4">
                 <Avatar className="h-24 w-24 border">
                     <AvatarImage src={employee.avatar} />
-                    <AvatarFallback>{employee.name.charAt(0)}</AvatarFallback>
+                    <AvatarFallback>{employee.name?.charAt(0)}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1">
                     <CardTitle className="text-3xl">{employee.name}</CardTitle>
