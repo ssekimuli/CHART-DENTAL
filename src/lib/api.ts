@@ -211,7 +211,8 @@ export const getEmployeeById = async (id: string | number): Promise<ProfileData 
             salary: parseFloat(emp.salary),
             hire_date: emp.hire_date.split('T')[0],
             branchId: String(emp.branch_id),
-            branchName: emp.branch?.name
+            branch: emp.branch, // Keep the nested branch object
+            branchName: emp.branch?.name,
         };
         
         const payrolls: Payroll[] = emp.payrolls.map((p: any) => ({
