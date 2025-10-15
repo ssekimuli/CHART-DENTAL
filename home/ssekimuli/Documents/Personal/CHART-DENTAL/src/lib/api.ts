@@ -1045,7 +1045,7 @@ export const createLabOrder = async (data: Omit<LaboratoryOrder, 'id'>): Promise
 }
 
 // Payroll
-export const createPayroll = async (data: Omit<Payroll, 'id' | 'employeeName' | 'branchId'> & { employeeName: string; branchId: string | number }): Promise<Payroll> => {
+export const createPayroll = async (data: Omit<Payroll, 'id'>): Promise<Payroll> => {
     console.log('API CALL: createPayroll', { data });
 
     const requestBody = {
@@ -1117,7 +1117,7 @@ export const markAttendance = async(data: Omit<AttendanceRecord, 'id' | 'employe
 }
 
 // Leave
-export const createLeaveRequest = async (data: Omit<LeaveRequest, 'id' | 'status'>): Promise<LeaveRequest> => {
+export const createLeaveRequest = async (data: Omit<LeaveRequest, 'id' | 'status'>): Promise<LeaveRequest | null> => {
     console.log('API CALL: createLeaveRequest', { data });
     const requestBody = {
       employee_id: parseInt(String(data.employeeId), 10),
@@ -1131,8 +1131,10 @@ export const createLeaveRequest = async (data: Omit<LeaveRequest, 'id' | 'status
   
     try {
       const response = await customAxios.post('/management/leave-requests', requestBody);
-      const newRequestData = response.data;
+      const newRequestData = response.data.data;
   
+      if (!newRequestData) return null;
+
       const feRequest: LeaveRequest = {
         id: newRequestData.id,
         employeeId: newRequestData.employee_id,
@@ -1272,3 +1274,4 @@ export const announcePatientInQueue = async (appointmentId: string | number): Pr
 
     return { audio_url: audio.media };
 }
+
