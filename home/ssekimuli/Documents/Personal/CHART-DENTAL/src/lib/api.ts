@@ -11,7 +11,7 @@ import {
     labOrders as allLabOrders,
     treatments as allTreatments,
     attendance as allAttendance,
-    leaveRequests as mockLeaveRequests,
+    leaveRequests as allLeaveRequests,
     staffAdvances as allStaffAdvances,
     expenses as allExpenses,
     roles as mockRoles
@@ -1144,7 +1144,7 @@ export const createLeaveRequest = async (data: Omit<LeaveRequest, 'id' | 'status
         status: newRequestData.status,
         branchId: newRequestData.branch_id,
       };
-      mockLeaveRequests.push(feRequest);
+      allLeaveRequests.push(feRequest);
       return feRequest;
     } catch (error) {
       if (axios.isAxiosError(error)) {
@@ -1161,10 +1161,10 @@ export const createLeaveRequest = async (data: Omit<LeaveRequest, 'id' | 'status
 export const updateLeaveRequestStatus = async (id: string | number, status: LeaveRequest['status']): Promise<LeaveRequest | undefined> => {
     console.log('API CALL: updateLeaveRequestStatus', { id, status });
     await delay(200);
-    const requestIndex = mockLeaveRequests.findIndex(req => String(req.id) === String(id));
+    const requestIndex = allLeaveRequests.findIndex(req => String(req.id) === String(id));
     if (requestIndex > -1) {
-        mockLeaveRequests[requestIndex] = { ...mockLeaveRequests[requestIndex], status };
-        return mockLeaveRequests[requestIndex];
+        allLeaveRequests[requestIndex] = { ...allLeaveRequests[requestIndex], status };
+        return allLeaveRequests[requestIndex];
     }
     return undefined;
 }
