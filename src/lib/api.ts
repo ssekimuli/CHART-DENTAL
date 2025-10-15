@@ -1115,8 +1115,8 @@ export const createLeaveRequest = async (data: Omit<LeaveRequest, 'id' | 'status
         employeeId: newRequestData.employee_id,
         employeeName: data.employeeName, // employeeName is passed from the component
         leaveType: newRequestData.leave_type,
-        startDate: newRequestData.start_date.split('T')[0],
-        endDate: newRequestData.end_date.split('T')[0],
+        startDate: newRequestData.start_date,
+        endDate: newRequestData.end_date,
         reason: newRequestData.reason,
         status: newRequestData.status,
         branchId: newRequestData.branch_id,
