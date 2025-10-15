@@ -12,7 +12,7 @@ import { ArrowLeft, Loader2, DollarSign, UserCheck, CalendarDays, UserPlus } fro
 import { useRouter } from 'next/navigation';
 import { getEmployeeById } from '@/lib/api';
 import { hasPermission } from '@/lib/user';
-import { PayrollTable } from '../../../hrm/components/payroll-table';
+import { PayrollTable } from '../../../payroll/components/payroll-table';
 
 export default function EmployeeDetailPage() {
   const router = useRouter();
@@ -119,7 +119,7 @@ export default function EmployeeDetailPage() {
                     </div>
                     <div className="grid gap-1">
                         <span className="text-muted-foreground">Branch</span>
-                        <span className="font-medium">{employee.branchName}</span>
+                        <span className="font-medium">{employee.branch}</span>
                     </div>
                 </div>
             </CardContent>
