@@ -375,8 +375,8 @@ export const getRolesList = async (): Promise<{id: string, name: string}[]> => {
     console.log('API CALL: getRolesList');
      try {
         const response = await customAxios.get('/roles');
-        if (response.data && Array.isArray(response.data)) {
-            return response.data.map((role: any) => ({ ...role, id: String(role.id) }));
+        if (response.data && Array.isArray(response.data.data)) {
+            return response.data.data.map((role: any) => ({ ...role, id: String(role.id) }));
         }
         return [];
     } catch (error) {
@@ -1108,7 +1108,7 @@ export const createExpense = async (data: Omit<Expense, 'id'>): Promise<Expense>
 
 
 // Roles
-export const updateRolePermissions = async (roleId: string | number, permissions: Permission[]): Promise<RolePermissions | undefined> => {
+export const updateRole = async (roleId: string | number, permissions: Permission[]): Promise<RolePermissions | undefined> => {
     console.log('API CALL: updateRole', { roleId, permissions });
     try {
         const response = await customAxios.put(`/settings/roles/${roleId}`, { permissions });
@@ -1169,6 +1169,7 @@ export const announcePatientInQueue = async (appointmentId: string | number): Pr
 
     return { audio_url: audio.media };
 }
+
 
 
 
