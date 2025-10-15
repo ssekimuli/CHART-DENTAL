@@ -1045,7 +1045,7 @@ export const createLabOrder = async (data: Omit<LaboratoryOrder, 'id'>): Promise
 }
 
 // Payroll
-export const createPayroll = async (data: Omit<Payroll, 'id'>): Promise<Payroll> => {
+export const createPayroll = async (data: Omit<Payroll, 'id' | 'employeeName' | 'branchId'> & { employeeName: string; branchId: string | number }): Promise<Payroll> => {
     console.log('API CALL: createPayroll', { data });
 
     const requestBody = {
@@ -1136,7 +1136,7 @@ export const createLeaveRequest = async (data: Omit<LeaveRequest, 'id' | 'status
       const feRequest: LeaveRequest = {
         id: newRequestData.id,
         employeeId: newRequestData.employee_id,
-        employeeName: newRequestData.employee_name,
+        employeeName: data.employeeName, // Use the name from the input data, not the response
         leaveType: newRequestData.leave_type,
         startDate: newRequestData.start_date.split('T')[0],
         endDate: newRequestData.end_date.split('T')[0],
