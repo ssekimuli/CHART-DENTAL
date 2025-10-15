@@ -150,7 +150,7 @@ export default function EmployeeDetailPage() {
                     </div>
                     <div className="grid gap-1">
                         <span className="text-muted-foreground">Branch</span>
-                        <span className="font-medium">{employee.branch.name}</span>
+                        <span className="font-medium">{employee?.branch?.name}</span>
                     </div>
                 </div>
             </CardContent>
