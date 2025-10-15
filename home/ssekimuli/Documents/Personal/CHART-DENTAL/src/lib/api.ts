@@ -349,9 +349,9 @@ export const getAttendance = async (branchId?: string | number): Promise<Attenda
 export const getLeaveRequests = async (branchId?: string | number): Promise<LeaveRequest[]> => {
     console.log('API CALL: getLeaveRequests', { branchId });
     try {
-        const params: { branch_id?: string | number } = {};
+        const params: { branch_id?: number } = {};
         if (branchId) {
-            params.branch_id = branchId;
+            params.branch_id = parseInt(String(branchId), 10);
         }
         const response = await customAxios.get('/management/leave-requests', { params });
         
@@ -1045,7 +1045,7 @@ export const createLabOrder = async (data: Omit<LaboratoryOrder, 'id'>): Promise
 }
 
 // Payroll
-export const createPayroll = async (data: Omit<Payroll, 'id'>): Promise<Payroll> => {
+export const createPayroll = async (data: Omit<Payroll, 'id' | 'status'>): Promise<Payroll> => {
     console.log('API CALL: createPayroll', { data });
 
     const requestBody = {
@@ -1274,5 +1274,3 @@ export const announcePatientInQueue = async (appointmentId: string | number): Pr
 }
 
 
-
-    
