@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import type { Employee, Payroll } from '@/lib/types';
+import type { Employee, Payroll, ProfileData } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Loader2, DollarSign, UserCheck, CalendarDays, UserPlus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -14,18 +14,7 @@ import { getEmployeeById } from '@/lib/api';
 import { hasPermission } from '@/lib/user';
 import { PayrollTable } from '../../payroll/components/payroll-table';
 
-type EmployeeDetailData = {
-    employee: Employee;
-    payrolls: Payroll[];
-    stats: {
-        totalPaid: number;
-        presentDays: number;
-        absentDays: number;
-        onLeaveDays: number;
-        totalAppointments: number;
-        uniquePatients: number;
-    }
-}
+type EmployeeDetailData = ProfileData;
 
 export default function EmployeeDetailPage() {
   const router = useRouter();
@@ -80,7 +69,7 @@ export default function EmployeeDetailPage() {
       )
   }
 
-  if (!employeeData) {
+  if (!employeeData || !employeeData.employee) {
     notFound();
   }
 
@@ -129,7 +118,7 @@ export default function EmployeeDetailPage() {
                     </div>
                     <div className="grid gap-1">
                         <span className="text-muted-foreground">Branch</span>
-                        <span className="font-medium">{employee?.branch?.name}</span>
+                        <span className="font-medium">{employee.branchName}</span>
                     </div>
                 </div>
             </CardContent>
