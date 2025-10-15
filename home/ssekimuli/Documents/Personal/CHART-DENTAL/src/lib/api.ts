@@ -7,13 +7,10 @@ import {
     chartData,
     employees as allEmployees,
     payrolls as mockPayrolls,
-    branches as mockBranches,
     inventory,
     labOrders as allLabOrders,
     treatments as allTreatments,
     attendance as allAttendance,
-    leaveRequests as allLeaveRequests,
-    staffAdvances as allStaffAdvances,
     expenses as allExpenses,
     roles as mockRoles
 } from '@/lib/data';
@@ -115,6 +112,7 @@ export const getBranches = async (): Promise<Branch[]> => {
     console.log('API CALL: getBranches');
     try {
         const response = await customAxios.get('/all-branch');
+        // The API returns 'id' as a number, which matches our updated type.
         return response.data.map((branch: any) => ({ ...branch, id: String(branch.id) }));
     } catch (error) {
         if (axios.isAxiosError(error)) {
@@ -122,7 +120,7 @@ export const getBranches = async (): Promise<Branch[]> => {
         } else {
             console.error("An unexpected error occurred while fetching branches:", error);
         }
-        return [];
+        return []; // Return empty array on error
     }
 }
 
@@ -353,11 +351,10 @@ export const getLeaveRequests = async (branchId?: string | number): Promise<Leav
         if (branchId) {
             params.branch_id = parseInt(String(branchId), 10);
         }
-        const response = await customAxios.get('/leave-requests', { params });
+        const response = await customAxios.get('/get-leave-requests', { params });
         
-        // The API returns the data directly in response.data
-        if (response.data && Array.isArray(response.data)) {
-            return response.data.map((req: any) => ({
+        if (response.data && Array.isArray(response.data.data)) {
+            return response.data.data.map((req: any) => ({
                 id: req.id,
                 employeeId: req.employee_id,
                 employeeName: req.employee_name,
@@ -1011,13 +1008,24 @@ export const deleteEmployee = async (id: string | number): Promise<{ success: bo
 // Branches
 export const createBranch = async (data: Omit<Branch, 'id'>): Promise<Branch> => {
     console.log('API CALL: createBranch', { data });
-    await delay(200);
-    const newBranch: Branch = {
-        ...data,
-        id: mockBranches.length + 1
-    };
-    mockBranches.push(newBranch);
-    return newBranch;
+    try {
+        const response = await customAxios.post('/branches', data);
+        const newBranchData = response.data.data;
+        const feBranch: Branch = {
+            id: newBranchData.id,
+            name: newBranchData.name,
+            address: newBranchData.address,
+        };
+        return feBranch;
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            console.error('Failed to create branch:', error.response?.data);
+            throw new Error(error.response?.data?.message || "Failed to create branch");
+        } else {
+            console.error("An unexpected error occurred during branch creation:", error);
+            throw error;
+        }
+    }
 }
 
 // Inventory
@@ -1131,7 +1139,7 @@ export const createLeaveRequest = async (data: Omit<LeaveRequest, 'id' | 'status
   
     try {
         const response = await customAxios.post('/leave-requests', requestBody);
-        const newRequestData = response.data;
+        const newRequestData = response.data.data;
   
         if (!newRequestData) return null;
 
@@ -1146,7 +1154,6 @@ export const createLeaveRequest = async (data: Omit<LeaveRequest, 'id' | 'status
             status: newRequestData.status,
             branchId: newRequestData.branch_id,
         };
-        allLeaveRequests.push(feRequest);
         return feRequest;
     } catch (error) {
         if (axios.isAxiosError(error)) {
@@ -1287,6 +1294,5 @@ export const announcePatientInQueue = async (appointmentId: string | number): Pr
 
     return { audio_url: audio.media };
 }
-
 
 
