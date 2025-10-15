@@ -139,15 +139,15 @@ export type Employee = {
 
 export type Payroll = {
   id: string | number;
-  employee_id: string | number;
-  employee_name: string;
-  pay_period: string;
-  gross_pay: number | string;
-  net_pay: number | string;
-  deductions: number | string;
-  pay_date: string;
+  employeeId: string | number;
+  employeeName: string;
+  payPeriod: string;
+  grossPay: number;
+  netPay: number;
+  deductions: number;
+  payDate: string;
   status: 'Paid' | 'Pending';
-  branch_id: string | number;
+  branchId: string | number;
 };
 
 export type AttendanceStatus = 'Present' | 'Absent' | 'On Leave';

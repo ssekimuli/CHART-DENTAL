@@ -192,7 +192,7 @@ export const getEmployees = async (branchId?: string | number): Promise<Employee
     }
 }
 
-export const getEmployeeById = async (id: string | number): Promise<any | undefined> => {
+export const getEmployeeById = async (id: string | number): Promise<ProfileData | undefined> => {
     console.log('API CALL: getEmployeeById', { id });
     try {
         const response = await customAxios.get(`/employees/${id}`);
@@ -215,15 +215,15 @@ export const getEmployeeById = async (id: string | number): Promise<any | undefi
         
         const payrolls: Payroll[] = emp.payrolls.map((p: any) => ({
             id: p.id,
-            employee_id: p.employee_id,
-            employee_name: p.employee_name,
-            pay_period: p.pay_period,
-            gross_pay: parseFloat(p.gross_pay),
+            employeeId: p.employee_id,
+            employeeName: p.employee_name,
+            payPeriod: p.pay_period,
+            grossPay: parseFloat(p.gross_pay),
             deductions: parseFloat(p.deductions),
-            net_pay: parseFloat(p.net_pay),
-            pay_date: p.pay_date.split('T')[0],
+            netPay: parseFloat(p.net_pay),
+            payDate: p.pay_date.split('T')[0],
             status: p.status,
-            branch_id: p.branch_id
+            branchId: p.branch_id
         }));
 
         return {
@@ -247,7 +247,7 @@ export const getPayrolls = async (branchId?: string | number): Promise<Payroll[]
     await delay(250);
     let localPayrolls = allPayrolls;
     if (branchId) {
-        localPayrolls = localPayrolls.filter(p => String(p.branch_id) === String(branchId));
+        localPayrolls = localPayrolls.filter(p => String(p.branchId) === String(branchId));
     }
     return JSON.parse(JSON.stringify(localPayrolls));
 }
@@ -364,13 +364,13 @@ export const getFinancialSummary = async (branchId: string | number): Promise<Fi
     await delay(300);
 
     const branchInvoices = allInvoices.filter(i => String(i.branchId) === String(branchId));
-    const branchPayrolls = allPayrolls.filter(p => String(p.branch_id) === String(branchId));
+    const branchPayrolls = allPayrolls.filter(p => String(p.branchId) === String(branchId));
     const branchExpenses = allExpenses.filter(e => String(e.branchId) === String(branchId));
     
     const paidInvoices = branchInvoices.filter(i => i.status === 'Paid');
     const totalIncome = paidInvoices.reduce((sum, i) => sum + i.amount, 0);
 
-    const payrollExpenses = branchPayrolls.reduce((sum, p) => sum + Number(p.gross_pay), 0);
+    const payrollExpenses = branchPayrolls.reduce((sum, p) => sum + Number(p.grossPay), 0);
     const otherExpenses = branchExpenses.reduce((sum, e) => sum + e.amount, 0);
     const totalExpenses = payrollExpenses + otherExpenses;
 
@@ -385,9 +385,9 @@ export const getFinancialSummary = async (branchId: string | number): Promise<Fi
     });
 
     branchPayrolls.forEach(payroll => {
-        const monthKey = format(new Date(payroll.pay_date), "yyyy-MM");
+        const monthKey = format(new Date(payroll.payDate), "yyyy-MM");
         if (!financialsByMonth[monthKey]) financialsByMonth[monthKey] = { income: 0, expense: 0 };
-        financialsByMonth[monthKey].expense += Number(payroll.gross_pay);
+        financialsByMonth[monthKey].expense += Number(payroll.grossPay);
     });
 
     branchExpenses.forEach(expense => {
