@@ -48,10 +48,7 @@ export default function PayrollPage() {
   }, [selectedBranch, router]);
 
   const handleSavePayroll = async (data: Omit<Payroll, 'id' | 'employeeName' | 'branchId'>) => {
-    const employee = employees.find(e => e.id === data.employeeId);
-    if (!employee) return;
-
-    const newPayroll = await createPayroll({ ...data, employeeName: employee.name, branchId: selectedBranch });
+    const newPayroll = await createPayroll(data);
     if(newPayroll) {
         setPayrolls(prev => [newPayroll, ...prev]);
     }
@@ -103,3 +100,4 @@ export default function PayrollPage() {
     </>
   );
 }
+

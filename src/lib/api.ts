@@ -1024,15 +1024,47 @@ export const createLabOrder = async (data: Omit<LaboratoryOrder, 'id'>): Promise
 }
 
 // Payroll
-export const createPayroll = async (data: Omit<Payroll, 'id'>): Promise<Payroll> => {
+export const createPayroll = async (data: Omit<Payroll, 'id' | 'employeeName'>): Promise<Payroll> => {
     console.log('API CALL: createPayroll', { data });
-    await delay(200);
-    const newPayroll: Payroll = {
-        ...data,
-        id: `pay${mockPayrolls.length + 1}`,
+
+    const requestBody = {
+        employee_id: data.employeeId,
+        gross_pay: data.grossPay,
+        deductions: data.deductions,
+        net_pay: data.netPay,
+        pay_date: data.payDate,
+        pay_period: data.payPeriod,
+        branch_id: data.branchId
     };
-    mockPayrolls.unshift(newPayroll);
-    return newPayroll;
+
+    try {
+        const response = await customAxios.post('/management/payrolls', requestBody);
+        const newPayrollData = response.data;
+        
+        const fePayroll: Payroll = {
+            id: newPayrollData.id,
+            employeeId: newPayrollData.employee_id,
+            employeeName: newPayrollData.employee_name,
+            payPeriod: newPayrollData.pay_period,
+            grossPay: parseFloat(newPayrollData.gross_pay),
+            deductions: parseFloat(newPayrollData.deductions),
+            netPay: parseFloat(newPayrollData.net_pay),
+            payDate: newPayrollData.pay_date.split('T')[0],
+            status: newPayrollData.status,
+            branchId: newPayrollData.branch_id,
+        };
+
+        mockPayrolls.unshift(fePayroll); // Add to local mock data for UI update
+        return fePayroll;
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            console.error('Failed to create payroll:', error.response?.data);
+            throw new Error(error.response?.data?.message || "Failed to create payroll");
+        } else {
+            console.error("An unexpected error occurred during payroll creation:", error);
+            throw error;
+        }
+    }
 }
 
 
@@ -1193,6 +1225,7 @@ export const announcePatientInQueue = async (appointmentId: string | number): Pr
 
     return { audio_url: audio.media };
 }
+
 
 
 

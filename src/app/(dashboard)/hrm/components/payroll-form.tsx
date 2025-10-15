@@ -87,7 +87,7 @@ export function PayrollForm({ employees, onSave, onOpenChange }: PayrollFormProp
                             <FormLabel>Employee</FormLabel>
                             <FormControl>
                                 <Combobox
-                                    options={employees.map(e => ({ value: e.id, label: e.name }))}
+                                    options={employees.map(e => ({ value: e.id.toString(), label: e.name }))}
                                     value={field.value}
                                     onChange={field.onChange}
                                     placeholder="Select an employee"
