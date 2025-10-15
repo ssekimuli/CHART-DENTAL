@@ -6,23 +6,20 @@ import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import type { Employee, Payroll, AttendanceRecord, Appointment } from '@/lib/types';
+import type { Employee, Payroll, AttendanceRecord, Appointment, ProfileData } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Loader2, DollarSign, UserCheck, CalendarDays, UserPlus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { getEmployeeById, getPayrolls, getAttendance, getAppointments } from '@/lib/api';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { getEmployeeById } from '@/lib/api';
 import { hasPermission } from '@/lib/user';
+import { PayrollTable } from '../../payroll/components/payroll-table';
 
 export default function EmployeeDetailPage() {
   const router = useRouter();
   const params = useParams();
   const { id } = params;
 
-  const [employee, setEmployee] = useState<Employee | undefined>(undefined);
-  const [payrolls, setPayrolls] = useState<Payroll[]>([]);
-  const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [employeeData, setEmployeeData] = useState<ProfileData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -33,45 +30,12 @@ export default function EmployeeDetailPage() {
     if (typeof id !== 'string') return;
     const fetchData = async () => {
         setIsLoading(true);
-        const [employeeData, payrollData, attendanceData, appointmentData] = await Promise.all([
-            getEmployeeById(id),
-            getPayrolls(),
-            getAttendance(),
-            getAppointments()
-        ]);
-        setEmployee(employeeData);
-        setPayrolls(payrollData);
-        setAttendance(attendanceData);
-        setAppointments(appointmentData);
+        const data = await getEmployeeById(id);
+        setEmployeeData(data);
         setIsLoading(false);
     }
     fetchData();
   }, [id, router]);
-
-  const stats = useMemo(() => {
-    if (!employee) return null;
-
-    const employeePayrolls = payrolls.filter(p => p.employee_id === employee.id);
-    const totalPaid = employeePayrolls.reduce((sum, p) => sum + Number(p.net_pay), 0);
-
-    const employeeAttendance = attendance.filter(a => a.employeeId === employee.id);
-    const presentDays = employeeAttendance.filter(a => a.status === 'Present').length;
-    const absentDays = employeeAttendance.filter(a => a.status === 'Absent').length;
-    const onLeaveDays = employeeAttendance.filter(a => a.status === 'On Leave').length;
-
-    const employeeAppointments = appointments.filter(a => a.doctorId === employee.id);
-    const uniquePatients = new Set(employeeAppointments.map(a => a.patientId)).size;
-
-    return {
-        totalPaid,
-        presentDays,
-        absentDays,
-        onLeaveDays,
-        totalAppointments: employeeAppointments.length,
-        uniquePatients,
-        recentAppointments: employeeAppointments.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0,5),
-    }
-  }, [employee, payrolls, attendance, appointments]);
   
   if (isLoading) {
       return (
@@ -103,9 +67,11 @@ export default function EmployeeDetailPage() {
       )
   }
 
-  if (!employee || !stats) {
+  if (!employeeData || !employeeData.employee) {
     notFound();
   }
+
+  const { employee, stats, payrolls } = employeeData;
 
   return (
     <div className="flex flex-col gap-6">
@@ -119,10 +85,10 @@ export default function EmployeeDetailPage() {
         </h1>
       </div>
         <Card>
-            <CardHeader className="flex flex-row items-center gap-4">
+            <CardHeader className="flex flex-row items-start gap-4">
                 <Avatar className="h-24 w-24 border">
                     <AvatarImage src={employee.avatar} />
-                    <AvatarFallback>{employee.name.charAt(0)}</AvatarFallback>
+                    <AvatarFallback>{employee.name?.charAt(0)}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1">
                     <CardTitle className="text-3xl">{employee.name}</CardTitle>
@@ -139,7 +105,7 @@ export default function EmployeeDetailPage() {
                 </div>
             </CardHeader>
             <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                     <div className="grid gap-1">
                         <span className="text-muted-foreground">Hire Date</span>
                         <span className="font-medium">{employee.hire_date}</span>
@@ -150,6 +116,7 @@ export default function EmployeeDetailPage() {
                     </div>
                     <div className="grid gap-1">
                         <span className="text-muted-foreground">Branch</span>
+
                         <span className="font-medium">{employee?.branch?.name}</span>
                     </div>
                 </div>
@@ -201,35 +168,10 @@ export default function EmployeeDetailPage() {
 
         <Card>
             <CardHeader>
-                <CardTitle>Recent Appointments</CardTitle>
+                <CardTitle>Payroll History</CardTitle>
             </CardHeader>
             <CardContent>
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Date</TableHead>
-                            <TableHead>Patient</TableHead>
-                            <TableHead>Treatment</TableHead>
-                            <TableHead>Status</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {stats.recentAppointments.length === 0 ? (
-                            <TableRow>
-                                <TableCell colSpan={4} className="h-24 text-center">
-                                    No recent appointments found for this employee.
-                                </TableCell>
-                            </TableRow>
-                        ) : stats.recentAppointments.map(app => (
-                            <TableRow key={app.id}>
-                                <TableCell>{app.date}</TableCell>
-                                <TableCell>{app.patientName}</TableCell>
-                                <TableCell>{app.treatment}</TableCell>
-                                <TableCell><Badge variant="outline">{app.status}</Badge></TableCell>
-                            </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
+                <PayrollTable data={payrolls} />
             </CardContent>
         </Card>
     </div>
