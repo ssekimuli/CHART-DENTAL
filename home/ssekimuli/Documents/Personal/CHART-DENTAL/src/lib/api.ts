@@ -7,10 +7,13 @@ import {
     chartData,
     employees as allEmployees,
     payrolls as mockPayrolls,
+    branches as mockBranches,
     inventory,
     labOrders as allLabOrders,
     treatments as allTreatments,
     attendance as allAttendance,
+    leaveRequests as allLeaveRequests,
+    staffAdvances as allStaffAdvances,
     expenses as allExpenses,
     roles as mockRoles
 } from '@/lib/data';
@@ -351,7 +354,7 @@ export const getLeaveRequests = async (branchId?: string | number): Promise<Leav
         if (branchId) {
             params.branch_id = parseInt(String(branchId), 10);
         }
-        const response = await customAxios.get('/get-leave-requests', { params });
+        const response = await customAxios.get('/leave-requests', { params });
         
         if (response.data && Array.isArray(response.data.data)) {
             return response.data.data.map((req: any) => ({
@@ -1010,13 +1013,7 @@ export const createBranch = async (data: Omit<Branch, 'id'>): Promise<Branch> =>
     console.log('API CALL: createBranch', { data });
     try {
         const response = await customAxios.post('/branches', data);
-        const newBranchData = response.data.data;
-        const feBranch: Branch = {
-            id: newBranchData.id,
-            name: newBranchData.name,
-            address: newBranchData.address,
-        };
-        return feBranch;
+        return response.data;
     } catch (error) {
         if (axios.isAxiosError(error)) {
             console.error('Failed to create branch:', error.response?.data);
@@ -1139,6 +1136,7 @@ export const createLeaveRequest = async (data: Omit<LeaveRequest, 'id' | 'status
   
     try {
         const response = await customAxios.post('/leave-requests', requestBody);
+        // The API response has the new leave request in response.data.data
         const newRequestData = response.data.data;
   
         if (!newRequestData) return null;
@@ -1146,10 +1144,10 @@ export const createLeaveRequest = async (data: Omit<LeaveRequest, 'id' | 'status
         const feRequest: LeaveRequest = {
             id: newRequestData.id,
             employeeId: newRequestData.employee_id,
-            employeeName: data.employeeName,
+            employeeName: data.employeeName, // Use the name passed from the form
             leaveType: newRequestData.leave_type,
-            startDate: newRequestData.start_date,
-            endDate: newRequestData.end_date,
+            startDate: newRequestData.start_date, // Use the date directly
+            endDate: newRequestData.end_date,     // Use the date directly
             reason: newRequestData.reason,
             status: newRequestData.status,
             branchId: newRequestData.branch_id,
@@ -1169,18 +1167,30 @@ export const updateLeaveRequestStatus = async (id:  string | number, status: Lea
     console.log('API CALL: updateLeaveRequestStatus', { id, status });
     try {
         const response = await customAxios.patch(`/leave-requests/${id}/status`, { status });
-        const updatedRequestData = response.data;
+        const updatedRequestData = response.data.data;
         if (!updatedRequestData) return null;
+
+        // Find the original request to preserve the employeeName
+        const originalRequest = allLeaveRequests.find(req => req.id === id);
+
+        const feRequest: LeaveRequest = {
+            id: updatedRequestData.id,
+            employeeId: updatedRequestData.employee_id,
+            employeeName: originalRequest?.employeeName || 'Unknown',
+            leaveType: updatedRequestData.leave_type,
+            startDate: updatedRequestData.start_date,
+            endDate: updatedRequestData.end_date,
+            reason: updatedRequestData.reason,
+            status: updatedRequestData.status,
+            branchId: updatedRequestData.branch_id,
+        };
 
         const requestIndex = allLeaveRequests.findIndex(req => req.id === id);
         if (requestIndex > -1) {
-            allLeaveRequests[requestIndex] = {
-                ...allLeaveRequests[requestIndex],
-                status: updatedRequestData.status
-            };
-            return allLeaveRequests[requestIndex];
+            allLeaveRequests[requestIndex] = feRequest;
         }
-        return null;
+
+        return feRequest;
     } catch (error) {
         if (axios.isAxiosError(error)) {
             console.error(`Failed to update leave request ${id}:`, error.response?.data);
@@ -1294,5 +1304,3 @@ export const announcePatientInQueue = async (appointmentId: string | number): Pr
 
     return { audio_url: audio.media };
 }
-
-
