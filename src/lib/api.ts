@@ -871,7 +871,7 @@ export const createEmployee = async (data: Omit<Employee, 'id'>): Promise<Employ
         role_id: parseInt(data.role as string, 10),
         salary: data.salary,
         hire_date: data.hire_date,
-        branch_id: data.branchId,
+        branch_id: parseInt(String(data.branchId), 10),
     };
     try {
         const response = await customAxios.post('/employees', requestBody);
@@ -1027,14 +1027,14 @@ export const createPayroll = async (data: Omit<Payroll, 'id'>): Promise<Payroll>
     console.log('API CALL: createPayroll', { data });
 
     const requestBody = {
-        employee_id: data.employeeId,
+        employee_id: parseInt(String(data.employeeId), 10),
         employee_name: data.employeeName,
         gross_pay: data.grossPay,
         deductions: data.deductions,
         net_pay: data.netPay,
         pay_date: data.payDate,
         pay_period: data.payPeriod,
-        branch_id: data.branchId,
+        branch_id: parseInt(String(data.branchId), 10),
     };
 
     try {
@@ -1225,6 +1225,7 @@ export const announcePatientInQueue = async (appointmentId: string | number): Pr
 
     return { audio_url: audio.media };
 }
+
 
 
 
