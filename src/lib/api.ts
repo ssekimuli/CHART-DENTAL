@@ -1,5 +1,3 @@
-
-
 import { 
     patients as allPatients,
     appointments as allAppointments,
@@ -77,7 +75,7 @@ export const getProfileData = async (): Promise<ProfileData | null> => {
             role: data.role,
             status: data.status,
             salary: parseFloat(data.salary),
-            hire_date: data.hire_date.split('T')[0],
+            hire_date: data.hire_date ? data.hire_date.split('T')[0] : '',
             branchId: String(data.branch_id),
             branch: data.branch,
         };
@@ -90,7 +88,7 @@ export const getProfileData = async (): Promise<ProfileData | null> => {
             grossPay: parseFloat(p.gross_pay),
             deductions: parseFloat(p.deductions),
             netPay: parseFloat(p.net_pay),
-            payDate: p.pay_date.split('T')[0],
+            payDate: p.pay_date ? p.pay_date.split('T')[0] : '',
             status: p.status,
             branchId: p.branch_id,
         }));
@@ -212,7 +210,7 @@ export const getEmployees = async (branchId?: string | number): Promise<Employee
             role: emp.role,
             status: emp.status,
             salary: parseFloat(emp.salary),
-            hire_date: emp.hire_date.split('T')[0], // Format date to YYYY-MM-DD
+            hire_date: emp.hire_date ? emp.hire_date.split('T')[0] : '', // Format date to YYYY-MM-DD
             branchId: String(emp.branch_id)
         }));
     } catch (error) {
@@ -240,9 +238,10 @@ export const getEmployeeById = async (id: string | number): Promise<ProfileData 
             role: emp.role,
             status: emp.status,
             salary: parseFloat(emp.salary),
-            hire_date: emp.hire_date.split('T')[0],
+            hire_date: emp.hire_date ? emp.hire_date.split('T')[0] : '',
             branchId: String(emp.branch_id),
             branch: emp.branch,
+            branchName: emp.branch?.name,
         };
         
         const payrolls: Payroll[] = emp.payrolls.map((p: any) => ({
@@ -253,7 +252,7 @@ export const getEmployeeById = async (id: string | number): Promise<ProfileData 
             grossPay: parseFloat(p.gross_pay),
             deductions: parseFloat(p.deductions),
             netPay: parseFloat(p.net_pay),
-            payDate: p.pay_date.split('T')[0],
+            payDate: p.pay_date ? p.pay_date.split('T')[0] : '',
             status: p.status,
             branchId: p.branch_id,
         }));
@@ -915,7 +914,7 @@ export const updateEmployee = async (id: string | number, data: Partial<Employee
             role: updatedEmployeeData.role,
             status: updatedEmployeeData.status,
             salary: parseFloat(updatedEmployeeData.salary),
-            hire_date: updatedEmployeeData.hire_date.split('T')[0],
+            hire_date: updatedEmployeeData.hire_date ? updatedEmployeeData.hire_date.split('T')[0] : '',
             branchId: String(updatedEmployeeData.branch_id),
         };
 
@@ -1137,3 +1136,4 @@ export const announcePatientInQueue = async (appointmentId: string | number): Pr
 
     return { audio_url: audio.media };
 }
+
