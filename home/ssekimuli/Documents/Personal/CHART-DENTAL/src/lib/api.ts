@@ -1045,7 +1045,7 @@ export const createLabOrder = async (data: Omit<LaboratoryOrder, 'id'>): Promise
 }
 
 // Payroll
-export const createPayroll = async (data: Omit<Payroll, 'id' | 'status'>): Promise<Payroll> => {
+export const createPayroll = async (data: Omit<Payroll, 'id'>): Promise<Payroll> => {
     console.log('API CALL: createPayroll', { data });
 
     const requestBody = {
@@ -1131,7 +1131,7 @@ export const createLeaveRequest = async (data: Omit<LeaveRequest, 'id' | 'status
   
     try {
       const response = await customAxios.post('/management/leave-requests', requestBody);
-      const newRequestData = response.data;
+      const newRequestData = response.data.data;
   
       const feRequest: LeaveRequest = {
         id: newRequestData.id,
