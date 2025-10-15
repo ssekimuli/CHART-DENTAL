@@ -12,7 +12,7 @@ import { ArrowLeft, Loader2, DollarSign, UserCheck, CalendarDays, UserPlus } fro
 import { useRouter } from 'next/navigation';
 import { getEmployeeById } from '@/lib/api';
 import { hasPermission } from '@/lib/user';
-import { PayrollTable } from '../../payroll/components/payroll-table';
+import { PayrollTable } from '../../../payroll/components/payroll-table';
 
 export default function EmployeeDetailPage() {
   const router = useRouter();
