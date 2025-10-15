@@ -47,11 +47,11 @@ export default function PayrollPage() {
       fetchData();
   }, [selectedBranch, router]);
 
-  const handleSavePayroll = async (data: Omit<Payroll, 'id' | 'employee_name' | 'branch_id'>) => {
-    const employee = employees.find(e => e.id === data.employee_id);
+  const handleSavePayroll = async (data: Omit<Payroll, 'id' | 'employeeName' | 'branchId'>) => {
+    const employee = employees.find(e => e.id === data.employeeId);
     if (!employee) return;
 
-    const newPayroll = await createPayroll({ ...data, employee_name: employee.name, branch_id: selectedBranch });
+    const newPayroll = await createPayroll({ ...data, employeeName: employee.name, branchId: selectedBranch });
     if(newPayroll) {
         setPayrolls(prev => [newPayroll, ...prev]);
     }

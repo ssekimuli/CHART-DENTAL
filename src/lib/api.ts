@@ -1,11 +1,12 @@
 
+
 import { 
     patients as allPatients,
     appointments as allAppointments,
     invoices as allInvoices,
     chartData,
     employees as allEmployees,
-    payrolls as allPayrolls,
+    payrolls as mockPayrolls,
     branches as mockBranches,
     inventory,
     labOrders as allLabOrders,
@@ -241,7 +242,8 @@ export const getEmployeeById = async (id: string | number): Promise<ProfileData 
             salary: parseFloat(emp.salary),
             hire_date: emp.hire_date ? emp.hire_date.split('T')[0] : '',
             branchId: String(emp.branch_id),
-            branch: emp.branch,
+            branchName: emp.branch?.name,
+            branch: emp.branch
         };
         
         const payrolls: Payroll[] = emp.payrolls.map((p: any) => ({
@@ -275,12 +277,33 @@ export const getEmployeeById = async (id: string | number): Promise<ProfileData 
 
 export const getPayrolls = async (branchId?: string | number): Promise<Payroll[]> => {
     console.log('API CALL: getPayrolls', { branchId });
-    await delay(250);
-    let localPayrolls = allPayrolls;
-    if (branchId) {
-        localPayrolls = localPayrolls.filter(p => String(p.branchId) === String(branchId));
+     try {
+        const params: { branch_id?: string | number } = {};
+        if (branchId) {
+            params.branch_id = branchId;
+        }
+        const response = await customAxios.get('/management/payrolls', { params });
+        // Map API response to frontend type
+        return response.data.map((p: any) => ({
+            id: p.id,
+            employeeId: p.employee_id,
+            employeeName: p.employee_name,
+            payPeriod: p.pay_period,
+            grossPay: parseFloat(p.gross_pay),
+            deductions: parseFloat(p.deductions),
+            netPay: parseFloat(p.net_pay),
+            payDate: p.pay_date ? p.pay_date.split('T')[0] : '',
+            status: p.status,
+            branchId: p.branch_id,
+        }));
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            console.error('Failed to fetch payrolls:', error.response?.data);
+        } else {
+            console.error("An unexpected error occurred while fetching payrolls:", error);
+        }
+        return [];
     }
-    return JSON.parse(JSON.stringify(localPayrolls));
 }
 
 export const getInventory = async (branchId?: string | number): Promise<InventoryItem[]> => {
@@ -395,13 +418,13 @@ export const getFinancialSummary = async (branchId: string | number): Promise<Fi
     await delay(300);
 
     const branchInvoices = allInvoices.filter(i => String(i.branchId) === String(branchId));
-    const branchPayrolls = allPayrolls.filter(p => String(p.branchId) === String(branchId));
+    const branchPayrolls = mockPayrolls.filter(p => String(p.branch_id) === String(branchId));
     const branchExpenses = allExpenses.filter(e => String(e.branchId) === String(branchId));
     
     const paidInvoices = branchInvoices.filter(i => i.status === 'Paid');
     const totalIncome = paidInvoices.reduce((sum, i) => sum + i.amount, 0);
 
-    const payrollExpenses = branchPayrolls.reduce((sum, p) => sum + Number(p.grossPay), 0);
+    const payrollExpenses = branchPayrolls.reduce((sum, p) => sum + Number(p.gross_pay), 0);
     const otherExpenses = branchExpenses.reduce((sum, e) => sum + e.amount, 0);
     const totalExpenses = payrollExpenses + otherExpenses;
 
@@ -416,9 +439,10 @@ export const getFinancialSummary = async (branchId: string | number): Promise<Fi
     });
 
     branchPayrolls.forEach(payroll => {
-        const monthKey = format(new Date(payroll.payDate), "yyyy-MM");
+        const payDate = payroll.pay_date.split('T')[0];
+        const monthKey = format(new Date(payDate), "yyyy-MM");
         if (!financialsByMonth[monthKey]) financialsByMonth[monthKey] = { income: 0, expense: 0 };
-        financialsByMonth[monthKey].expense += Number(payroll.grossPay);
+        financialsByMonth[monthKey].expense += Number(payroll.gross_pay);
     });
 
     branchExpenses.forEach(expense => {
@@ -1005,9 +1029,9 @@ export const createPayroll = async (data: Omit<Payroll, 'id'>): Promise<Payroll>
     await delay(200);
     const newPayroll: Payroll = {
         ...data,
-        id: `pay${allPayrolls.length + 1}`,
+        id: `pay${mockPayrolls.length + 1}`,
     };
-    allPayrolls.unshift(newPayroll);
+    mockPayrolls.unshift(newPayroll);
     return newPayroll;
 }
 
@@ -1169,6 +1193,7 @@ export const announcePatientInQueue = async (appointmentId: string | number): Pr
 
     return { audio_url: audio.media };
 }
+
 
 
 
