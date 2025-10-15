@@ -1,5 +1,4 @@
 
-
 import { 
     patients as allPatients,
     appointments as allAppointments,
@@ -193,15 +192,15 @@ export const getEmployees = async (branchId?: string | number): Promise<Employee
     }
 }
 
-export const getEmployeeById = async (id: string | number): Promise<Employee | undefined> => {
+export const getEmployeeById = async (id: string | number): Promise<any | undefined> => {
     console.log('API CALL: getEmployeeById', { id });
     try {
         const response = await customAxios.get(`/employees/${id}`);
         const emp = response.data;
         if (!emp) return undefined;
 
-        // Map the response back to the frontend Employee type
-        const feEmployee: Employee = {
+        // Map the response to the structure needed by the component
+        const employee: Employee = {
             id: String(emp.id),
             name: emp.name,
             avatar: emp.avatar,
@@ -211,9 +210,28 @@ export const getEmployeeById = async (id: string | number): Promise<Employee | u
             salary: parseFloat(emp.salary),
             hire_date: emp.hire_date.split('T')[0],
             branchId: String(emp.branch_id),
-            branchName: emp.branch.name
+            branchName: emp.branch?.name
         };
-        return feEmployee;
+        
+        const payrolls: Payroll[] = emp.payrolls.map((p: any) => ({
+            id: p.id,
+            employee_id: p.employee_id,
+            employee_name: p.employee_name,
+            pay_period: p.pay_period,
+            gross_pay: parseFloat(p.gross_pay),
+            deductions: parseFloat(p.deductions),
+            net_pay: parseFloat(p.net_pay),
+            pay_date: p.pay_date.split('T')[0],
+            status: p.status,
+            branch_id: p.branch_id
+        }));
+
+        return {
+            employee,
+            payrolls,
+            stats: emp.stats
+        };
+
     } catch (error) {
         if (axios.isAxiosError(error) && error.response?.status !== 404) {
             console.error(`Failed to fetch employee ${id}:`, error.response?.data);
@@ -1087,4 +1105,3 @@ export const announcePatientInQueue = async (appointmentId: string | number): Pr
 
     return { audio_url: audio.media };
 }
-

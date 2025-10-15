@@ -2,28 +2,37 @@
 "use client";
 
 import { notFound, useParams } from 'next/navigation';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import type { Employee, Payroll, AttendanceRecord, Appointment } from '@/lib/types';
+import type { Employee, Payroll } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Loader2, DollarSign, UserCheck, CalendarDays, UserPlus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { getEmployeeById, getPayrolls, getAttendance, getAppointments } from '@/lib/api';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { getEmployeeById } from '@/lib/api';
 import { hasPermission } from '@/lib/user';
 import { PayrollTable } from '../../payroll/components/payroll-table';
+
+type EmployeeDetailData = {
+    employee: Employee;
+    payrolls: Payroll[];
+    stats: {
+        totalPaid: number;
+        presentDays: number;
+        absentDays: number;
+        onLeaveDays: number;
+        totalAppointments: number;
+        uniquePatients: number;
+    }
+}
 
 export default function EmployeeDetailPage() {
   const router = useRouter();
   const params = useParams();
   const { id } = params;
 
-  const [employee, setEmployee] = useState<Employee | undefined>(undefined);
-  const [payrolls, setPayrolls] = useState<Payroll[]>([]);
-  const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [employeeData, setEmployeeData] = useState<EmployeeDetailData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -34,48 +43,12 @@ export default function EmployeeDetailPage() {
     if (typeof id !== 'string') return;
     const fetchData = async () => {
         setIsLoading(true);
-        const [employeeData, payrollData, attendanceData, appointmentData] = await Promise.all([
-            getEmployeeById(id),
-            getPayrolls(),
-            getAttendance(),
-            getAppointments()
-        ]);
-        setEmployee(employeeData);
-        setPayrolls(payrollData);
-        setAttendance(attendanceData);
-        setAppointments(appointmentData);
+        const data = await getEmployeeById(id);
+        setEmployeeData(data);
         setIsLoading(false);
     }
     fetchData();
   }, [id, router]);
-
-  const { stats, employeePayrolls } = useMemo(() => {
-    if (!employee) return { stats: null, employeePayrolls: [] };
-
-    const employeePayrolls = payrolls.filter(p => p.employee_id === employee.id);
-    const totalPaid = employeePayrolls.reduce((sum, p) => sum + Number(p.net_pay), 0);
-
-    const employeeAttendance = attendance.filter(a => a.employeeId === employee.id);
-    const presentDays = employeeAttendance.filter(a => a.status === 'Present').length;
-    const absentDays = employeeAttendance.filter(a => a.status === 'Absent').length;
-    const onLeaveDays = employeeAttendance.filter(a => a.status === 'On Leave').length;
-
-    const employeeAppointments = appointments.filter(a => a.doctorId === employee.id);
-    const uniquePatients = new Set(employeeAppointments.map(a => a.patientId)).size;
-
-    return {
-      stats: {
-        totalPaid,
-        presentDays,
-        absentDays,
-        onLeaveDays,
-        totalAppointments: employeeAppointments.length,
-        uniquePatients,
-        recentAppointments: employeeAppointments.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0,5),
-      },
-      employeePayrolls,
-    }
-  }, [employee, payrolls, attendance, appointments]);
   
   if (isLoading) {
       return (
@@ -107,9 +80,11 @@ export default function EmployeeDetailPage() {
       )
   }
 
-  if (!employee || !stats) {
+  if (!employeeData) {
     notFound();
   }
+
+  const { employee, stats, payrolls } = employeeData;
 
   return (
     <div className="flex flex-col gap-6">
@@ -208,11 +183,9 @@ export default function EmployeeDetailPage() {
                 <CardTitle>Payroll History</CardTitle>
             </CardHeader>
             <CardContent>
-                <PayrollTable data={employeePayrolls} />
+                <PayrollTable data={payrolls} />
             </CardContent>
         </Card>
     </div>
   );
 }
-
-    
