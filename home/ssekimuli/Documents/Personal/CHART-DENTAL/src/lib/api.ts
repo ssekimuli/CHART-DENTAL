@@ -115,7 +115,6 @@ export const getBranches = async (): Promise<Branch[]> => {
     console.log('API CALL: getBranches');
     try {
         const response = await customAxios.get('/all-branch');
-        // The API returns 'id' as a number, which matches our updated type.
         return response.data.map((branch: any) => ({ ...branch, id: String(branch.id) }));
     } catch (error) {
         if (axios.isAxiosError(error)) {
@@ -123,7 +122,7 @@ export const getBranches = async (): Promise<Branch[]> => {
         } else {
             console.error("An unexpected error occurred while fetching branches:", error);
         }
-        return []; // Return empty array on error
+        return [];
     }
 }
 
@@ -354,7 +353,7 @@ export const getLeaveRequests = async (branchId?: string | number): Promise<Leav
         if (branchId) {
             params.branch_id = parseInt(String(branchId), 10);
         }
-        const response = await customAxios.get('/get-leave-requests', { params });
+        const response = await customAxios.get('/management/get-leave-requests', { params });
         
         if (response.data && Array.isArray(response.data.data)) {
             return response.data.data.map((req: any) => ({

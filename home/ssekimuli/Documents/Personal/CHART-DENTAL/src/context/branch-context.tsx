@@ -4,6 +4,7 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import type { Branch } from '@/lib/types';
 import { getBranches } from '@/lib/api';
+import { getCurrentUser } from '@/lib/user';
 
 interface BranchContextType {
   selectedBranch: string;
@@ -14,18 +15,31 @@ interface BranchContextType {
 const BranchContext = createContext<BranchContextType | undefined>(undefined);
 
 export function BranchProvider({ children }: { children: ReactNode }) {
-  const [selectedBranch, setSelectedBranch] = useState<string>(''); // Default to empty
+  const [selectedBranch, setSelectedBranch] = useState<string>('');
   const [availableBranches, setAvailableBranches] = useState<Branch[]>([]);
 
   useEffect(() => {
-    const fetchBranches = async () => {
-        const branches = await getBranches();
-        setAvailableBranches(branches);
-        if (branches.length > 0) {
-            setSelectedBranch(String(branches[0].id));
-        }
-    }
-    fetchBranches();
+    const initializeBranchData = async () => {
+      const user = getCurrentUser();
+      if (!user) return;
+
+      // Set the default selected branch from the user's profile
+      setSelectedBranch(String(user.branchId));
+
+      if (user.role === 'Super Admin') {
+        // Super Admins can see and switch between all branches
+        const allBranches = await getBranches();
+        setAvailableBranches(allBranches);
+      } else {
+        // Other users only see their own branch
+        setAvailableBranches([{ 
+            id: user.branchId, 
+            name: user.branchName, 
+            address: '' // Address is not needed for the switcher
+        }]);
+      }
+    };
+    initializeBranchData();
   }, []);
 
   return (
