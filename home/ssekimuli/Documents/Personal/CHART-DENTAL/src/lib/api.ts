@@ -354,7 +354,7 @@ export const getLeaveRequests = async (branchId?: string | number): Promise<Leav
         if (branchId) {
             params.branch_id = parseInt(String(branchId), 10);
         }
-        const response = await customAxios.get('/leave-requests', { params });
+        const response = await customAxios.get('/get-leave-requests', { params });
         
         if (response.data && Array.isArray(response.data.data)) {
             return response.data.data.map((req: any) => ({
@@ -1136,18 +1136,17 @@ export const createLeaveRequest = async (data: Omit<LeaveRequest, 'id' | 'status
   
     try {
         const response = await customAxios.post('/leave-requests', requestBody);
-        // The API response has the new leave request in response.data.data
-        const newRequestData = response.data.data;
+        const newRequestData = response.data?.data;
   
         if (!newRequestData) return null;
 
         const feRequest: LeaveRequest = {
             id: newRequestData.id,
             employeeId: newRequestData.employee_id,
-            employeeName: data.employeeName, // Use the name passed from the form
+            employeeName: data.employeeName, 
             leaveType: newRequestData.leave_type,
-            startDate: newRequestData.start_date, // Use the date directly
-            endDate: newRequestData.end_date,     // Use the date directly
+            startDate: newRequestData.start_date,
+            endDate: newRequestData.end_date,
             reason: newRequestData.reason,
             status: newRequestData.status,
             branchId: newRequestData.branch_id,
@@ -1304,3 +1303,5 @@ export const announcePatientInQueue = async (appointmentId: string | number): Pr
 
     return { audio_url: audio.media };
 }
+
+
