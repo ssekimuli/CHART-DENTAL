@@ -67,7 +67,39 @@ export const getProfileData = async (): Promise<ProfileData | null> => {
     console.log('API CALL: getProfileData');
     try {
         const response = await customAxios.get('/profile');
-        return response.data;
+        const data = response.data;
+
+        const employee: Employee = {
+            id: String(data.id),
+            name: data.name,
+            avatar: data.avatar,
+            email: data.email,
+            role: data.role,
+            status: data.status,
+            salary: parseFloat(data.salary),
+            hire_date: data.hire_date.split('T')[0],
+            branchId: String(data.branch_id),
+            branch: data.branch,
+        };
+
+        const payrolls: Payroll[] = data.payrolls.map((p: any) => ({
+            id: p.id,
+            employeeId: p.employee_id,
+            employeeName: p.employee_name,
+            payPeriod: p.pay_period,
+            grossPay: parseFloat(p.gross_pay),
+            deductions: parseFloat(p.deductions),
+            netPay: parseFloat(p.net_pay),
+            payDate: p.pay_date.split('T')[0],
+            status: p.status,
+            branchId: p.branch_id,
+        }));
+
+        return {
+            employee: employee,
+            stats: data.stats,
+            payrolls: payrolls,
+        };
     } catch (error) {
         if (axios.isAxiosError(error)) {
             console.error('Failed to fetch profile data:', error.response?.data);
@@ -200,7 +232,6 @@ export const getEmployeeById = async (id: string | number): Promise<ProfileData 
         const emp = response.data;
         if (!emp) return undefined;
 
-        // Map the response to the structure needed by the component
         const employee: Employee = {
             id: String(emp.id),
             name: emp.name,
@@ -211,8 +242,7 @@ export const getEmployeeById = async (id: string | number): Promise<ProfileData 
             salary: parseFloat(emp.salary),
             hire_date: emp.hire_date.split('T')[0],
             branchId: String(emp.branch_id),
-            branch: emp.branch, // Keep the nested branch object
-            branchName: emp.branch?.name,
+            branch: emp.branch,
         };
         
         const payrolls: Payroll[] = emp.payrolls.map((p: any) => ({
@@ -225,7 +255,7 @@ export const getEmployeeById = async (id: string | number): Promise<ProfileData 
             netPay: parseFloat(p.net_pay),
             payDate: p.pay_date.split('T')[0],
             status: p.status,
-            branchId: p.branch_id
+            branchId: p.branch_id,
         }));
 
         return {
