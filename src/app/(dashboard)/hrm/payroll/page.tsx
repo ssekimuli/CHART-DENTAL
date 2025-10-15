@@ -19,15 +19,33 @@ import { createPayroll, getEmployees, getPayrolls } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
 import { hasPermission } from "@/lib/user";
 import { useRouter } from "next/navigation";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useToast } from "@/hooks/use-toast";
+
 
 export default function PayrollPage() {
   const router = useRouter();
+  const { toast } = useToast();
   const { selectedBranch } = useBranch();
   const [payrolls, setPayrolls] = useState<Payroll[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [selectedPayroll, setSelectedPayroll] = useState<Payroll | undefined>(undefined);
+  const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
+  
   const canCreate = hasPermission('hrm:create');
+  const canUpdate = hasPermission('hrm:update');
+  const canDelete = hasPermission('hrm:delete');
 
   useEffect(() => {
     if (!hasPermission('hrm:read')) {
@@ -47,16 +65,52 @@ export default function PayrollPage() {
       fetchData();
   }, [selectedBranch, router]);
 
+  const handleOpenForm = (payroll?: Payroll) => {
+    setSelectedPayroll(payroll);
+    setIsFormOpen(true);
+  };
+
+  const handleCloseForm = () => {
+    setSelectedPayroll(undefined);
+    setIsFormOpen(false);
+  };
+
   const handleSavePayroll = async (data: Omit<Payroll, 'id' | 'employeeName' | 'branchId'>) => {
     const employee = employees.find(e => String(e.id) === String(data.employeeId));
     if (!employee) return;
 
-    const newPayroll = await createPayroll({ ...data, employeeName: employee.name, branchId: selectedBranch });
-    if(newPayroll) {
-        setPayrolls(prev => [newPayroll, ...prev]);
+    if (selectedPayroll) {
+        // Update logic will go here
+        toast({ title: "Payroll Updated", description: "The record has been updated." });
+    } else {
+        // Create
+        const newPayroll = await createPayroll({ ...data, employeeName: employee.name, branchId: selectedBranch });
+        if(newPayroll) {
+            setPayrolls(prev => [newPayroll, ...prev]);
+            toast({ title: "Payroll Created", description: "The new payroll record has been added." });
+        }
     }
-    setIsFormOpen(false);
+    handleCloseForm();
   }
+
+  const handleViewEmployee = (employeeId: string | number) => {
+    router.push(`/hrm/staff/${employeeId}`);
+  };
+
+  const openDeleteDialog = (payroll: Payroll) => {
+    setSelectedPayroll(payroll);
+    setIsDeleteAlertOpen(true);
+  };
+
+  const handleDeletePayroll = async () => {
+    if (selectedPayroll) {
+        // Delete logic will go here
+        toast({ title: "Payroll Deleted", description: "The record has been deleted." });
+        setPayrolls(prev => prev.filter(p => p.id !== selectedPayroll.id));
+    }
+    setIsDeleteAlertOpen(false);
+    setSelectedPayroll(undefined);
+  };
 
   return (
     <>
@@ -74,7 +128,7 @@ export default function PayrollPage() {
                     Export
                 </Button>
                 {canCreate && (
-                    <Button onClick={() => setIsFormOpen(true)}>
+                    <Button onClick={() => handleOpenForm()}>
                         <PlusCircle className="mr-2" />
                         Run Payroll
                     </Button>
@@ -89,18 +143,41 @@ export default function PayrollPage() {
                     <Skeleton className="h-12 w-full" />
                 </div>
             ) : (
-                <PayrollTable data={payrolls} />
+                <PayrollTable 
+                  data={payrolls} 
+                  onView={handleViewEmployee}
+                  onEdit={handleOpenForm}
+                  onDelete={openDeleteDialog}
+                  canUpdate={canUpdate}
+                  canDelete={canDelete}
+                />
             )}
         </CardContent>
         </Card>
         {isFormOpen && (
             <PayrollForm
+                payroll={selectedPayroll}
                 employees={employees}
                 onSave={handleSavePayroll}
-                onOpenChange={setIsFormOpen}
+                onOpenChange={handleCloseForm}
             />
         )}
+         <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This action cannot be undone. This will permanently delete the payroll record.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel onClick={() => setSelectedPayroll(undefined)}>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDeletePayroll} className="bg-destructive hover:bg-destructive/90">
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
     </>
   );
 }
-

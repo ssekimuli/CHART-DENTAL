@@ -4,7 +4,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { format, subDays } from "date-fns";
+import { format, parseISO, subDays } from "date-fns";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -40,16 +40,20 @@ const formSchema = z.object({
 });
 
 type PayrollFormProps = {
+    payroll?: Payroll;
     employees: Employee[];
     onSave: (data: Omit<Payroll, 'id' | 'employeeName' | 'branchId'>) => void;
     onOpenChange: (open: boolean) => void;
 };
 
-export function PayrollForm({ employees, onSave, onOpenChange }: PayrollFormProps) {
+export function PayrollForm({ payroll, employees, onSave, onOpenChange }: PayrollFormProps) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-        payDate: new Date(),
+        employeeId: payroll?.employeeId ? String(payroll.employeeId) : undefined,
+        grossPay: payroll?.grossPay,
+        deductions: payroll?.deductions,
+        payDate: payroll ? parseISO(payroll.payDate) : new Date(),
     },
   });
 
@@ -63,18 +67,20 @@ export function PayrollForm({ employees, onSave, onOpenChange }: PayrollFormProp
         deductions: values.deductions,
         netPay: values.grossPay - values.deductions,
         payDate: format(payDate, "yyyy-MM-dd"),
-        payPeriod: `${format(periodStart, "yyyy-MM-dd")} to ${format(payDate, "yyyy-MM-dd")}`,
-        status: 'Pending',
+        payPeriod: payroll?.payPeriod || `${format(periodStart, "yyyy-MM-dd")} to ${format(payDate, "yyyy-MM-dd")}`,
+        status: payroll?.status || 'Pending',
     });
   }
+
+  const isEditing = !!payroll;
 
   return (
     <Dialog open={true} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
-                <DialogTitle>Run Payroll</DialogTitle>
+                <DialogTitle>{isEditing ? "Edit Payroll Record" : "Run Payroll"}</DialogTitle>
                 <DialogDescription>
-                    Fill out the details to process payroll for an employee.
+                    {isEditing ? `Update payroll for ${payroll.employeeName}.` : "Fill out the details to process payroll for an employee."}
                 </DialogDescription>
             </DialogHeader>
             <Form {...form}>
@@ -170,7 +176,7 @@ export function PayrollForm({ employees, onSave, onOpenChange }: PayrollFormProp
 
                      <DialogFooter>
                         <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-                        <Button type="submit">Process Payroll</Button>
+                        <Button type="submit">{isEditing ? "Save Changes" : "Process Payroll"}</Button>
                     </DialogFooter>
                 </form>
             </Form>
