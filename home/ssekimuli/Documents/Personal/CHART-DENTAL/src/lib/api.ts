@@ -1131,7 +1131,7 @@ export const createLeaveRequest = async (data: Omit<LeaveRequest, 'id' | 'status
   
     try {
       const response = await customAxios.post('/management/leave-requests', requestBody);
-      const newRequestData = response.data.data;
+      const newRequestData = response.data;
   
       const feRequest: LeaveRequest = {
         id: newRequestData.id,
