@@ -1,5 +1,4 @@
 
-
 import { 
     patients as allPatients,
     appointments as allAppointments,
@@ -1095,21 +1094,45 @@ export const markAttendance = async(data: Omit<AttendanceRecord, 'id' | 'employe
 }
 
 // Leave
-export const createLeaveRequest = async (data: Omit<LeaveRequest, 'id' | 'employeeName' | 'status'>): Promise<LeaveRequest> => {
+export const createLeaveRequest = async (data: Omit<LeaveRequest, 'id' | 'status'>): Promise<LeaveRequest> => {
     console.log('API CALL: createLeaveRequest', { data });
-    await delay(200);
-    const employee = allEmployees.find(e => String(e.id) === String(data.employeeId));
-    if (!employee) throw new Error("Employee not found");
-
-    const newRequest: LeaveRequest = {
-        ...data,
-        id: `leave${allLeaveRequests.length + 1}`,
-        employeeName: employee.name,
-        status: 'Pending',
+    const requestBody = {
+      employee_id: parseInt(String(data.employeeId), 10),
+      leave_type: data.leaveType,
+      start_date: data.startDate,
+      end_date: data.endDate,
+      reason: data.reason,
+      branch_id: parseInt(String(data.branchId), 10),
     };
-    allLeaveRequests.push(newRequest);
-    return newRequest;
-}
+  
+    try {
+      const response = await customAxios.post('/management/leave-requests', requestBody);
+      const newRequestData = response.data;
+  
+      const feRequest: LeaveRequest = {
+        id: newRequestData.id,
+        employeeId: newRequestData.employee_id,
+        employeeName: data.employeeName, // employeeName is passed from the component
+        leaveType: newRequestData.leave_type,
+        startDate: newRequestData.start_date.split('T')[0],
+        endDate: newRequestData.end_date.split('T')[0],
+        reason: newRequestData.reason,
+        status: newRequestData.status,
+        branchId: newRequestData.branch_id,
+      };
+      allLeaveRequests.push(feRequest);
+      return feRequest;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        console.error('Failed to create leave request:', error.response?.data);
+        throw new Error(error.response?.data?.message || "Failed to create leave request");
+      } else {
+        console.error("An unexpected error occurred during leave request creation:", error);
+        throw error;
+      }
+    }
+  };
+  
 
 export const updateLeaveRequestStatus = async (id: string | number, status: LeaveRequest['status']): Promise<LeaveRequest | undefined> => {
     console.log('API CALL: updateLeaveRequestStatus', { id, status });
@@ -1225,11 +1248,3 @@ export const announcePatientInQueue = async (appointmentId: string | number): Pr
 
     return { audio_url: audio.media };
 }
-
-
-
-
-
-
-
-

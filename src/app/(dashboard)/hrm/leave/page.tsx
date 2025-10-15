@@ -49,9 +49,12 @@ export default function LeavePage() {
     }, [selectedBranch, router]);
 
     const handleSaveRequest = async (data: Omit<LeaveRequest, 'id' | 'employeeName' | 'status'>) => {
-        const newRequest = await createLeaveRequest(data);
+        const employee = employees.find(e => e.id === data.employeeId);
+        if (!employee) return;
+    
+        const newRequest = await createLeaveRequest({ ...data, employeeName: employee.name });
         if (newRequest) {
-            setLeaveRequests(prev => [...prev, newRequest]);
+            setLeaveRequests(prev => [newRequest, ...prev]);
         }
         setIsFormOpen(false);
     };
