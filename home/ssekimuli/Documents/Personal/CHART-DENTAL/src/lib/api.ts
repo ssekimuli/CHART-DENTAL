@@ -1136,7 +1136,7 @@ export const createLeaveRequest = async (data: Omit<LeaveRequest, 'id' | 'status
       const feRequest: LeaveRequest = {
         id: newRequestData.id,
         employeeId: newRequestData.employee_id,
-        employeeName: data.employeeName, // employeeName is passed from the component
+        employeeName: newRequestData.employee_name,
         leaveType: newRequestData.leave_type,
         startDate: newRequestData.start_date.split('T')[0],
         endDate: newRequestData.end_date.split('T')[0],
@@ -1272,5 +1272,3 @@ export const announcePatientInQueue = async (appointmentId: string | number): Pr
 
     return { audio_url: audio.media };
 }
-
-

@@ -51,8 +51,18 @@ export default function LeavePage() {
     }, [selectedBranch, router]);
 
     const handleSaveRequest = async (data: Omit<LeaveRequest, 'id' | 'status'>) => {
+        const employee = employees.find(e => String(e.id) === String(data.employeeId));
+        if (!employee) {
+             toast({
+                variant: "destructive",
+                title: "Error",
+                description: "Selected employee not found.",
+            });
+            return;
+        };
+    
         try {
-            const newRequest = await createLeaveRequest(data);
+            const newRequest = await createLeaveRequest({ ...data, employeeName: employee.name, branchId: employee.branchId });
             if (newRequest) {
                 setLeaveRequests(prev => [newRequest, ...prev].sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime()));
                 toast({
@@ -115,5 +125,3 @@ export default function LeavePage() {
     </>
   );
 }
-
-    
