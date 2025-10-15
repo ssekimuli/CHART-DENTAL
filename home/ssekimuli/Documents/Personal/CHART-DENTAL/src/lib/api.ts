@@ -361,8 +361,8 @@ export const getLeaveRequests = async (branchId?: string | number): Promise<Leav
                 employeeId: req.employee_id,
                 employeeName: req.employee_name,
                 leaveType: req.leave_type,
-                startDate: req.start_date.split('T')[0],
-                endDate: req.end_date.split('T')[0],
+                startDate: req.start_date,
+                endDate: req.end_date,
                 reason: req.reason,
                 status: req.status,
                 branchId: req.branch_id,
@@ -1117,10 +1117,10 @@ export const markAttendance = async(data: Omit<AttendanceRecord, 'id' | 'employe
 }
 
 // Leave
-export const createLeaveRequest = async (data: Omit<LeaveRequest, 'id' | 'status'>): Promise<LeaveRequest | null> => {
+export const createLeaveRequest = async (data: Omit<LeaveRequest, 'id' | 'status'>)=> {
     console.log('API CALL: createLeaveRequest', { data });
     const requestBody = {
-      employee_id: parseInt(String(data.employeeId), 10),
+      employee_id: data.employeeId,
       employee_name: data.employeeName,
       leave_type: data.leaveType,
       start_date: data.startDate,
@@ -1140,8 +1140,8 @@ export const createLeaveRequest = async (data: Omit<LeaveRequest, 'id' | 'status
             employeeId: newRequestData.employee_id,
             employeeName: data.employeeName,
             leaveType: newRequestData.leave_type,
-            startDate: newRequestData.start_date.split('T')[0],
-            endDate: newRequestData.end_date.split('T')[0],
+            startDate: newRequestData.start_date,
+            endDate: newRequestData.end_date,
             reason: newRequestData.reason,
             status: newRequestData.status,
             branchId: newRequestData.branch_id,
@@ -1159,7 +1159,7 @@ export const createLeaveRequest = async (data: Omit<LeaveRequest, 'id' | 'status
   };
   
 
-export const updateLeaveRequestStatus = async (id: string | number, status: LeaveRequest['status']): Promise<LeaveRequest | undefined> => {
+export const updateLeaveRequestStatus = async (id:  number, status: LeaveRequest['status']): Promise<LeaveRequest | undefined> => {
     console.log('API CALL: updateLeaveRequestStatus', { id, status });
     await delay(200);
     const requestIndex = allLeaveRequests.findIndex(req => String(req.id) === String(id));
