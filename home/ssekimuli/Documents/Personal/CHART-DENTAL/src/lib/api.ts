@@ -353,10 +353,11 @@ export const getLeaveRequests = async (branchId?: string | number): Promise<Leav
         if (branchId) {
             params.branch_id = parseInt(String(branchId), 10);
         }
-        const response = await customAxios.get('/management/get-leave-requests', { params });
+        const response = await customAxios.get('/leave-requests', { params });
         
-        if (response.data && Array.isArray(response.data.data)) {
-            return response.data.data.map((req: any) => ({
+        // The API returns the data directly in response.data
+        if (response.data && Array.isArray(response.data)) {
+            return response.data.map((req: any) => ({
                 id: req.id,
                 employeeId: req.employee_id,
                 employeeName: req.employee_name,
@@ -1121,17 +1122,16 @@ export const createLeaveRequest = async (data: Omit<LeaveRequest, 'id' | 'status
     console.log('API CALL: createLeaveRequest', { data });
     const requestBody = {
       employee_id: parseInt(String(data.employeeId), 10),
-      employee_name: data.employeeName,
       leave_type: data.leaveType,
       start_date: data.startDate,
       end_date: data.endDate,
       reason: data.reason,
-      branch_id: String(data.branchId),
+      branch_id: parseInt(String(data.branchId), 10),
     };
   
     try {
-        const response = await customAxios.post('/management/leave-requests', requestBody);
-        const newRequestData = response.data.data;
+        const response = await customAxios.post('/leave-requests', requestBody);
+        const newRequestData = response.data;
   
         if (!newRequestData) return null;
 
@@ -1156,18 +1156,32 @@ export const createLeaveRequest = async (data: Omit<LeaveRequest, 'id' | 'status
         }
         throw error;
     }
-  };
-  
+};
 
-export const updateLeaveRequestStatus = async (id:  string | number, status: LeaveRequest['status']): Promise<LeaveRequest | undefined> => {
+export const updateLeaveRequestStatus = async (id:  string | number, status: LeaveRequest['status']): Promise<LeaveRequest | null> => {
     console.log('API CALL: updateLeaveRequestStatus', { id, status });
-    await delay(200);
-    const requestIndex = allLeaveRequests.findIndex(req => String(req.id) === String(id));
-    if (requestIndex > -1) {
-        allLeaveRequests[requestIndex] = { ...allLeaveRequests[requestIndex], status };
-        return allLeaveRequests[requestIndex];
+    try {
+        const response = await customAxios.patch(`/leave-requests/${id}/status`, { status });
+        const updatedRequestData = response.data;
+        if (!updatedRequestData) return null;
+
+        const requestIndex = allLeaveRequests.findIndex(req => req.id === id);
+        if (requestIndex > -1) {
+            allLeaveRequests[requestIndex] = {
+                ...allLeaveRequests[requestIndex],
+                status: updatedRequestData.status
+            };
+            return allLeaveRequests[requestIndex];
+        }
+        return null;
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            console.error(`Failed to update leave request ${id}:`, error.response?.data);
+        } else {
+            console.error("An unexpected error occurred during leave request update:", error);
+        }
+        return null;
     }
-    return undefined;
 }
 
 // Staff Advances
@@ -1273,5 +1287,6 @@ export const announcePatientInQueue = async (appointmentId: string | number): Pr
 
     return { audio_url: audio.media };
 }
+
 
 
