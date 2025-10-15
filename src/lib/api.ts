@@ -1,3 +1,4 @@
+
 import { 
     patients as allPatients,
     appointments as allAppointments,
@@ -78,7 +79,6 @@ export const getProfileData = async (): Promise<ProfileData | null> => {
             hire_date: data.hire_date ? data.hire_date.split('T')[0] : '',
             branchId: String(data.branch_id),
             branch: data.branch,
-            branchName: data.branch?.name,
         };
 
         const payrolls: Payroll[] = data.payrolls.map((p: any) => ({
@@ -242,7 +242,6 @@ export const getEmployeeById = async (id: string | number): Promise<ProfileData 
             hire_date: emp.hire_date ? emp.hire_date.split('T')[0] : '',
             branchId: String(emp.branch_id),
             branch: emp.branch,
-            branchName: emp.branch?.name,
         };
         
         const payrolls: Payroll[] = emp.payrolls.map((p: any) => ({
@@ -376,8 +375,8 @@ export const getRolesList = async (): Promise<{id: string, name: string}[]> => {
     console.log('API CALL: getRolesList');
      try {
         const response = await customAxios.get('/roles');
-        if (response.data && response.data.data && Array.isArray(response.data.data)) {
-            return response.data.data.map((role: any) => ({ ...role, id: String(role.id) }));
+        if (response.data && Array.isArray(response.data)) {
+            return response.data.map((role: any) => ({ ...role, id: String(role.id) }));
         }
         return [];
     } catch (error) {
@@ -1109,7 +1108,7 @@ export const createExpense = async (data: Omit<Expense, 'id'>): Promise<Expense>
 
 
 // Roles
-export const updateRole = async (roleId: string | number, permissions: Permission[]): Promise<RolePermissions | undefined> => {
+export const updateRolePermissions = async (roleId: string | number, permissions: Permission[]): Promise<RolePermissions | undefined> => {
     console.log('API CALL: updateRole', { roleId, permissions });
     try {
         const response = await customAxios.put(`/settings/roles/${roleId}`, { permissions });
@@ -1122,6 +1121,39 @@ export const updateRole = async (roleId: string | number, permissions: Permissio
         }
         return undefined;
     }
+}
+
+export const createRole = async (name: string): Promise<{id: string, name: string}> => {
+    console.log('API CALL: createRole', { name });
+    // This is a mock implementation
+    await delay(200);
+    const newRole = { id: `role${mockRoles.length + 1}`, name };
+    mockRoles.push({ ...newRole, permissions: [] });
+    return newRole;
+}
+
+export const updateRoleName = async (id: string | number, name: string): Promise<{id: string | number, name: string}> => {
+    console.log('API CALL: updateRoleName', { id, name });
+    // This is a mock implementation
+    await delay(200);
+    const role = mockRoles.find(r => r.id === id);
+    if(role) {
+        role.name = name;
+        return { id: role.id, name: role.name };
+    }
+    throw new Error("Role not found");
+}
+
+export const deleteRole = async (id: string | number): Promise<boolean> => {
+    console.log('API CALL: deleteRole', { id });
+     // This is a mock implementation
+    await delay(200);
+    const index = mockRoles.findIndex(r => r.id === id);
+    if(index > -1) {
+        mockRoles.splice(index, 1);
+        return true;
+    }
+    return false;
 }
 
 // Queue
@@ -1137,5 +1169,6 @@ export const announcePatientInQueue = async (appointmentId: string | number): Pr
 
     return { audio_url: audio.media };
 }
+
 
 
