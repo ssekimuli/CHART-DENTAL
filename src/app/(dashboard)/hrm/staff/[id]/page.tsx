@@ -149,8 +149,8 @@ export default function EmployeeDetailPage() {
                         <span className="font-medium">${Number(employee.salary).toLocaleString()}</span>
                     </div>
                     <div className="grid gap-1">
-                        <span className="text-muted-foreground">Branch ID</span>
-                        <span className="font-medium">{employee.branchId}</span>
+                        <span className="text-muted-foreground">Branch</span>
+                        <span className="font-medium">{employee.branchId.name}</span>
                     </div>
                 </div>
             </CardContent>

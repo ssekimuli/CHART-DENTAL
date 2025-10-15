@@ -75,5 +75,6 @@ export function hasPermission(permission: Permission): boolean {
     if (!user) {
         return false;
     }
+    console.log('User permissions:', user.permissions);
     return user.permissions.includes(permission);
 }
