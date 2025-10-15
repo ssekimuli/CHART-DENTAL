@@ -78,6 +78,7 @@ export const getProfileData = async (): Promise<ProfileData | null> => {
             hire_date: data.hire_date ? data.hire_date.split('T')[0] : '',
             branchId: String(data.branch_id),
             branch: data.branch,
+            branchName: data.branch?.name,
         };
 
         const payrolls: Payroll[] = data.payrolls.map((p: any) => ({
@@ -375,8 +376,8 @@ export const getRolesList = async (): Promise<{id: string, name: string}[]> => {
     console.log('API CALL: getRolesList');
      try {
         const response = await customAxios.get('/roles');
-        if (response.data && Array.isArray(response.data)) {
-            return response.data.map((role: any) => ({ ...role, id: String(role.id) }));
+        if (response.data && response.data.data && Array.isArray(response.data.data)) {
+            return response.data.data.map((role: any) => ({ ...role, id: String(role.id) }));
         }
         return [];
     } catch (error) {
@@ -1136,4 +1137,5 @@ export const announcePatientInQueue = async (appointmentId: string | number): Pr
 
     return { audio_url: audio.media };
 }
+
 
