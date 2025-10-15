@@ -242,7 +242,6 @@ export const getEmployeeById = async (id: string | number): Promise<ProfileData 
             salary: parseFloat(emp.salary),
             hire_date: emp.hire_date ? emp.hire_date.split('T')[0] : '',
             branchId: String(emp.branch_id),
-            branchName: emp.branch?.name,
             branch: emp.branch
         };
         
@@ -1024,17 +1023,18 @@ export const createLabOrder = async (data: Omit<LaboratoryOrder, 'id'>): Promise
 }
 
 // Payroll
-export const createPayroll = async (data: Omit<Payroll, 'id' | 'employeeName'>): Promise<Payroll> => {
+export const createPayroll = async (data: Omit<Payroll, 'id'>): Promise<Payroll> => {
     console.log('API CALL: createPayroll', { data });
 
     const requestBody = {
         employee_id: data.employeeId,
+        employee_name: data.employeeName,
         gross_pay: data.grossPay,
         deductions: data.deductions,
         net_pay: data.netPay,
         pay_date: data.payDate,
         pay_period: data.payPeriod,
-        branch_id: data.branchId
+        branch_id: data.branchId,
     };
 
     try {
@@ -1225,6 +1225,7 @@ export const announcePatientInQueue = async (appointmentId: string | number): Pr
 
     return { audio_url: audio.media };
 }
+
 
 
 
