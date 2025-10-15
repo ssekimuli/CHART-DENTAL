@@ -1117,10 +1117,10 @@ export const markAttendance = async(data: Omit<AttendanceRecord, 'id' | 'employe
 }
 
 // Leave
-export const createLeaveRequest = async (data: Omit<LeaveRequest, 'id' | 'status'>)=> {
+export const createLeaveRequest = async (data: Omit<LeaveRequest, 'id' | 'status'>): Promise<LeaveRequest | null> => {
     console.log('API CALL: createLeaveRequest', { data });
     const requestBody = {
-      employee_id: data.employeeId,
+      employee_id: parseInt(String(data.employeeId), 10),
       employee_name: data.employeeName,
       leave_type: data.leaveType,
       start_date: data.startDate,
@@ -1159,7 +1159,7 @@ export const createLeaveRequest = async (data: Omit<LeaveRequest, 'id' | 'status
   };
   
 
-export const updateLeaveRequestStatus = async (id:  number, status: LeaveRequest['status']): Promise<LeaveRequest | undefined> => {
+export const updateLeaveRequestStatus = async (id:  string | number, status: LeaveRequest['status']): Promise<LeaveRequest | undefined> => {
     console.log('API CALL: updateLeaveRequestStatus', { id, status });
     await delay(200);
     const requestIndex = allLeaveRequests.findIndex(req => String(req.id) === String(id));
@@ -1273,3 +1273,5 @@ export const announcePatientInQueue = async (appointmentId: string | number): Pr
 
     return { audio_url: audio.media };
 }
+
+
