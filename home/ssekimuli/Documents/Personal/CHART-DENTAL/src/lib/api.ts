@@ -1,4 +1,5 @@
 
+
 import { 
     patients as allPatients,
     appointments as allAppointments,
@@ -353,7 +354,7 @@ export const getLeaveRequests = async (branchId?: string | number): Promise<Leav
         if (branchId) {
             params.branch_id = parseInt(String(branchId), 10);
         }
-        const response = await customAxios.get('/management/leave-requests', { params });
+        const response = await customAxios.get('/get-leave-requests', { params });
         
         if (response.data && Array.isArray(response.data.data)) {
             return response.data.data.map((req: any) => ({
@@ -1138,7 +1139,7 @@ export const createLeaveRequest = async (data: Omit<LeaveRequest, 'id' | 'status
       const feRequest: LeaveRequest = {
         id: newRequestData.id,
         employeeId: newRequestData.employee_id,
-        employeeName: data.employeeName, // Use the name from the input data, not the response
+        employeeName: data.employeeName,
         leaveType: newRequestData.leave_type,
         startDate: newRequestData.start_date.split('T')[0],
         endDate: newRequestData.end_date.split('T')[0],
@@ -1151,11 +1152,10 @@ export const createLeaveRequest = async (data: Omit<LeaveRequest, 'id' | 'status
     } catch (error) {
       if (axios.isAxiosError(error)) {
         console.error('Failed to create leave request:', error.response?.data);
-        throw new Error(error.response?.data?.message || "Failed to create leave request");
       } else {
-        console.error("An unexpected error occurred during leave request creation:", error);
-        throw error;
+         console.error("An unexpected error occurred during leave request creation:", error);
       }
+      throw error;
     }
   };
   
@@ -1274,4 +1274,5 @@ export const announcePatientInQueue = async (appointmentId: string | number): Pr
 
     return { audio_url: audio.media };
 }
+
 
