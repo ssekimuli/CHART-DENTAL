@@ -17,7 +17,7 @@ export function BranchSwitcher() {
   const currentUser = getCurrentUser();
 
   const canSwitchBranches = currentUser?.role === 'Super Admin' && availableBranches.length > 1;
-  const branchName = availableBranches.find(b => String(b.id) === String(selectedBranch))?.name || "Select Branch";
+  const branchName = availableBranches.find(b => String(b.id) === String(selectedBranch))?.name || currentUser?.branchName || "Select Branch";
 
   return (
     <div className="flex items-center gap-2">

@@ -1130,31 +1130,31 @@ export const createLeaveRequest = async (data: Omit<LeaveRequest, 'id' | 'status
     };
   
     try {
-      const response = await customAxios.post('/management/leave-requests', requestBody);
-      const newRequestData = response.data.data;
+        const response = await customAxios.post('/management/leave-requests', requestBody);
+        const newRequestData = response.data.data;
   
-      if (!newRequestData) return null;
+        if (!newRequestData) return null;
 
-      const feRequest: LeaveRequest = {
-        id: newRequestData.id,
-        employeeId: newRequestData.employee_id,
-        employeeName: data.employeeName,
-        leaveType: newRequestData.leave_type,
-        startDate: newRequestData.start_date.split('T')[0],
-        endDate: newRequestData.end_date.split('T')[0],
-        reason: newRequestData.reason,
-        status: newRequestData.status,
-        branchId: newRequestData.branch_id,
-      };
-      allLeaveRequests.push(feRequest);
-      return feRequest;
+        const feRequest: LeaveRequest = {
+            id: newRequestData.id,
+            employeeId: newRequestData.employee_id,
+            employeeName: data.employeeName,
+            leaveType: newRequestData.leave_type,
+            startDate: newRequestData.start_date.split('T')[0],
+            endDate: newRequestData.end_date.split('T')[0],
+            reason: newRequestData.reason,
+            status: newRequestData.status,
+            branchId: newRequestData.branch_id,
+        };
+        allLeaveRequests.push(feRequest);
+        return feRequest;
     } catch (error) {
-      if (axios.isAxiosError(error)) {
-        console.error('Failed to create leave request:', error.response?.data);
-      } else {
-         console.error("An unexpected error occurred during leave request creation:", error);
-      }
-      throw error;
+        if (axios.isAxiosError(error)) {
+            console.error('Failed to create leave request:', error.response?.data);
+        } else {
+            console.error("An unexpected error occurred during leave request creation:", error);
+        }
+        throw error;
     }
   };
   
@@ -1273,5 +1273,3 @@ export const announcePatientInQueue = async (appointmentId: string | number): Pr
 
     return { audio_url: audio.media };
 }
-
-

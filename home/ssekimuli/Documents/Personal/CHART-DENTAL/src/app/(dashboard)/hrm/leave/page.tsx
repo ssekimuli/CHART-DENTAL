@@ -48,7 +48,7 @@ export default function LeavePage() {
         fetchData();
     }, [selectedBranch, router]);
 
-    const handleSaveRequest = async (data: Omit<LeaveRequest, 'id' | 'status'>) => {
+    const handleSaveRequest = async (data: Omit<LeaveRequest, 'id' | 'employeeName' | 'status'>) => {
         const employee = employees.find(e => String(e.id) === String(data.employeeId));
         if (!employee) {
             console.error("Selected employee not found.");
@@ -59,11 +59,10 @@ export default function LeavePage() {
             const newRequest = await createLeaveRequest({ ...data, employeeName: employee.name, branchId: employee.branchId });
             if (newRequest) {
                 setLeaveRequests(prev => [newRequest, ...prev].sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime()));
+                setIsFormOpen(false);
             }
         } catch (error) {
             console.error("Could not submit the leave request. Please try again.", error);
-        } finally {
-            setIsFormOpen(false);
         }
     };
 
