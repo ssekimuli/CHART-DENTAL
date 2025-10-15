@@ -116,7 +116,7 @@ export const getBranches = async (): Promise<Branch[]> => {
     try {
         const response = await customAxios.get('/all-branch');
         // The API returns 'id' as a number, which matches our updated type.
-        return response.data.map((branch: any) => ({ ...branch, id: branch.id }));
+        return response.data.map((branch: any) => ({ ...branch, id: String(branch.id) }));
     } catch (error) {
         if (axios.isAxiosError(error)) {
             console.error('Failed to fetch branches:', error.response?.data);
