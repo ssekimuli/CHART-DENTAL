@@ -1028,11 +1028,11 @@ export const createPayroll = async (data: Omit<Payroll, 'id'>): Promise<Payroll>
     const requestBody = {
         employee_id: parseInt(String(data.employeeId), 10),
         employee_name: data.employeeName,
+        pay_period: data.payPeriod,
         gross_pay: data.grossPay,
         deductions: data.deductions,
         net_pay: data.netPay,
         pay_date: data.payDate,
-        pay_period: data.payPeriod,
         branch_id: parseInt(String(data.branchId), 10),
     };
 
@@ -1098,11 +1098,12 @@ export const createLeaveRequest = async (data: Omit<LeaveRequest, 'id' | 'status
     console.log('API CALL: createLeaveRequest', { data });
     const requestBody = {
       employee_id: parseInt(String(data.employeeId), 10),
+      employee_name: data.employeeName,
       leave_type: data.leaveType,
       start_date: data.startDate,
       end_date: data.endDate,
       reason: data.reason,
-      branch_id: parseInt(String(data.branchId), 10),
+      branch_id: String(data.branchId),
     };
   
     try {
@@ -1248,3 +1249,4 @@ export const announcePatientInQueue = async (appointmentId: string | number): Pr
 
     return { audio_url: audio.media };
 }
+
