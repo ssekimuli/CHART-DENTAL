@@ -19,11 +19,9 @@ import { LeaveRequestForm } from "../components/leave-request-form";
 import { LeaveTable } from "../components/leave-table";
 import { hasPermission } from "@/lib/user";
 import { useRouter } from "next/navigation";
-import { useToast } from "@/hooks/use-toast";
 
 export default function LeavePage() {
     const router = useRouter();
-    const { toast } = useToast();
     const { selectedBranch } = useBranch();
     const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
     const [employees, setEmployees] = useState<Employee[]>([]);
@@ -53,11 +51,7 @@ export default function LeavePage() {
     const handleSaveRequest = async (data: Omit<LeaveRequest, 'id' | 'status'>) => {
         const employee = employees.find(e => String(e.id) === String(data.employeeId));
         if (!employee) {
-             toast({
-                variant: "destructive",
-                title: "Error",
-                description: "Selected employee not found.",
-            });
+            console.error("Selected employee not found.");
             return;
         };
     
@@ -65,18 +59,11 @@ export default function LeavePage() {
             const newRequest = await createLeaveRequest({ ...data, employeeName: employee.name, branchId: employee.branchId });
             if (newRequest) {
                 setLeaveRequests(prev => [newRequest, ...prev].sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime()));
-                toast({
-                    title: "Success",
-                    description: "Leave request submitted successfully.",
-                });
-                setIsFormOpen(false);
             }
         } catch (error) {
-             toast({
-                variant: "destructive",
-                title: "Submission Failed",
-                description: "Could not submit the leave request. Please try again.",
-            });
+            console.error("Could not submit the leave request. Please try again.", error);
+        } finally {
+            setIsFormOpen(false);
         }
     };
 
