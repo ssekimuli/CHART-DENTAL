@@ -15,6 +15,7 @@ import { hasPermission } from '@/lib/user';
 import { PayrollTable } from '../../../payroll/components/payroll-table';
 
 export default function EmployeeDetailPage() {
+
   const router = useRouter();
   const params = useParams();
   const { id } = params;
@@ -119,7 +120,7 @@ export default function EmployeeDetailPage() {
                     </div>
                     <div className="grid gap-1">
                         <span className="text-muted-foreground">Branch</span>
-                        <span className="font-medium">{employee.branch}</span>
+                        <span className="font-medium">{employee?.branch?.name}</span>
                     </div>
                 </div>
             </CardContent>

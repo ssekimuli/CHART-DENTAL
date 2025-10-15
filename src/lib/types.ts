@@ -131,7 +131,7 @@ export type Employee = {
   salary: number;
   hire_date: string;
   branchId: string | number;
-  branchName?: string;
+  branch?: object;
   payrolls?: Payroll[];
   appointments?: Appointment[];
   attendance?: AttendanceRecord[];
