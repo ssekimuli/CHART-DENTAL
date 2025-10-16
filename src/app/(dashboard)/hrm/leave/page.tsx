@@ -10,7 +10,16 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { PlusCircle } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { PlusCircle, Filter, X } from "lucide-react";
 import type { Employee, LeaveRequest } from "@/lib/types";
 import { useBranch } from "@/context/branch-context";
 import { getEmployees, getLeaveRequests, createLeaveRequest, updateLeaveRequestStatus } from "@/lib/api";
@@ -29,8 +38,27 @@ export default function LeavePage() {
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isFormOpen, setIsFormOpen] = useState(false);
+    const [showFilters, setShowFilters] = useState(false);
+    const [filters, setFilters] = useState({
+        status: 'all',
+        startDate: '',
+        endDate: '',
+    });
     const canCreate = hasPermission('hrm:create');
     const canUpdate = hasPermission('hrm:update');
+
+    const fetchLeaveRequests = async () => {
+        setIsLoading(true);
+        const filterParams = {
+            branchId: typeof selectedBranch === 'number' ? selectedBranch : parseInt(String(selectedBranch), 10),
+            ...(filters.status && filters.status !== 'all' && { status: filters.status }),
+            ...(filters.startDate && { startDate: filters.startDate }),
+            ...(filters.endDate && { endDate: filters.endDate }),
+        };
+        const requests = await getLeaveRequests(filterParams);
+        setLeaveRequests(requests);
+        setIsLoading(false);
+    };
 
     useEffect(() => {
         if (!hasPermission('hrm:read')) {
@@ -39,8 +67,11 @@ export default function LeavePage() {
         }
         const fetchData = async () => {
             setIsLoading(true);
+            const filterParams = {
+                branchId: typeof selectedBranch === 'number' ? selectedBranch : parseInt(String(selectedBranch), 10),
+            };
             const [requests, employeesData] = await Promise.all([
-                getLeaveRequests(selectedBranch), 
+                getLeaveRequests(filterParams),
                 getEmployees(selectedBranch)
             ]);
             setLeaveRequests(requests);
@@ -87,21 +118,115 @@ export default function LeavePage() {
         }
     };
 
+    const handleApplyFilters = () => {
+        fetchLeaveRequests();
+    };
+
+    const handleClearFilters = () => {
+        setFilters({
+            status: 'all',
+            startDate: '',
+            endDate: '',
+        });
+        // Fetch data without filters
+        setTimeout(async () => {
+            setIsLoading(true);
+            const filterParams = {
+                branchId: typeof selectedBranch === 'number' ? selectedBranch : parseInt(String(selectedBranch), 10),
+            };
+            const requests = await getLeaveRequests(filterParams);
+            setLeaveRequests(requests);
+            setIsLoading(false);
+        }, 0);
+    };
+
+    const hasActiveFilters = (filters.status && filters.status !== 'all') || filters.startDate || filters.endDate;
+
   return (
     <>
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle>Leave Management</CardTitle>
-            <CardDescription>
-              Track and manage employee leave requests.
-            </CardDescription>
+        <CardHeader>
+          <div className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle>Leave Management</CardTitle>
+              <CardDescription>
+                Track and manage employee leave requests.
+              </CardDescription>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setShowFilters(!showFilters)}
+              >
+                <Filter className="mr-2 h-4 w-4" />
+                {showFilters ? 'Hide Filters' : 'Show Filters'}
+              </Button>
+              {canCreate && (
+                <Button onClick={() => setIsFormOpen(true)}>
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  New Request
+                </Button>
+              )}
+            </div>
           </div>
-          {canCreate && (
-            <Button onClick={() => setIsFormOpen(true)}>
-                <PlusCircle className="mr-2" />
-                New Request
-            </Button>
+
+          {showFilters && (
+            <div className="mt-4 space-y-4">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="space-y-2">
+                  <Label htmlFor="status-filter">Status</Label>
+                  <Select
+                    value={filters.status}
+                    onValueChange={(value) => setFilters(prev => ({ ...prev, status: value }))}
+                  >
+                    <SelectTrigger id="status-filter">
+                      <SelectValue placeholder="All Statuses" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Statuses</SelectItem>
+                      <SelectItem value="Pending">Pending</SelectItem>
+                      <SelectItem value="Approved">Approved</SelectItem>
+                      <SelectItem value="Rejected">Rejected</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="start-date-filter">Start Date From</Label>
+                  <Input
+                    id="start-date-filter"
+                    type="date"
+                    value={filters.startDate}
+                    onChange={(e) => setFilters(prev => ({ ...prev, startDate: e.target.value }))}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="end-date-filter">End Date To</Label>
+                  <Input
+                    id="end-date-filter"
+                    type="date"
+                    value={filters.endDate}
+                    onChange={(e) => setFilters(prev => ({ ...prev, endDate: e.target.value }))}
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                <Button onClick={handleApplyFilters}>
+                  Apply Filters
+                </Button>
+                {hasActiveFilters && (
+                  <Button
+                    variant="outline"
+                    onClick={handleClearFilters}
+                  >
+                    <X className="mr-2 h-4 w-4" />
+                    Clear Filters
+                  </Button>
+                )}
+              </div>
+            </div>
           )}
         </CardHeader>
         <CardContent>

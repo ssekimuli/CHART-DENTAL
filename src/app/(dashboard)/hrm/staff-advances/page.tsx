@@ -10,7 +10,16 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { PlusCircle } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { PlusCircle, Filter, X } from "lucide-react";
 import type { Employee, StaffAdvance } from "@/lib/types";
 import { useBranch } from "@/context/branch-context";
 import { getEmployees, getStaffAdvances, createStaffAdvance, updateStaffAdvanceStatus } from "@/lib/api";
@@ -27,8 +36,27 @@ export default function StaffAdvancesPage() {
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isFormOpen, setIsFormOpen] = useState(false);
+    const [showFilters, setShowFilters] = useState(false);
+    const [filters, setFilters] = useState({
+        status: 'all',
+        startDate: '',
+        endDate: '',
+    });
     const canCreate = hasPermission('hrm:create');
     const canUpdate = hasPermission('hrm:update');
+
+    const fetchStaffAdvances = async () => {
+        setIsLoading(true);
+        const filterParams = {
+            branchId: typeof selectedBranch === 'number' ? selectedBranch : parseInt(String(selectedBranch), 10),
+            ...(filters.status && filters.status !== 'all' && { status: filters.status }),
+            ...(filters.startDate && { startDate: filters.startDate }),
+            ...(filters.endDate && { endDate: filters.endDate }),
+        };
+        const advancesData = await getStaffAdvances(filterParams);
+        setAdvances(advancesData);
+        setIsLoading(false);
+    };
 
     useEffect(() => {
         if (!hasPermission('hrm:read')) {
@@ -37,8 +65,11 @@ export default function StaffAdvancesPage() {
         }
         const fetchData = async () => {
             setIsLoading(true);
+            const filterParams = {
+                branchId: typeof selectedBranch === 'number' ? selectedBranch : parseInt(String(selectedBranch), 10),
+            };
             const [advancesData, employeesData] = await Promise.all([
-                getStaffAdvances(selectedBranch), 
+                getStaffAdvances(filterParams),
                 getEmployees(selectedBranch)
             ]);
             setAdvances(advancesData);
@@ -63,21 +94,116 @@ export default function StaffAdvancesPage() {
         }
     };
 
+    const handleApplyFilters = () => {
+        fetchStaffAdvances();
+    };
+
+    const handleClearFilters = () => {
+        setFilters({
+            status: 'all',
+            startDate: '',
+            endDate: '',
+        });
+        // Fetch data without filters
+        setTimeout(async () => {
+            setIsLoading(true);
+            const filterParams = {
+                branchId: typeof selectedBranch === 'number' ? selectedBranch : parseInt(String(selectedBranch), 10),
+            };
+            const advancesData = await getStaffAdvances(filterParams);
+            setAdvances(advancesData);
+            setIsLoading(false);
+        }, 0);
+    };
+
+    const hasActiveFilters = (filters.status && filters.status !== 'all') || filters.startDate || filters.endDate;
+
   return (
     <>
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle>Staff Advances</CardTitle>
-            <CardDescription>
-              Manage and track salary advances for staff.
-            </CardDescription>
+        <CardHeader>
+          <div className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle>Staff Advances</CardTitle>
+              <CardDescription>
+                Manage and track salary advances for staff.
+              </CardDescription>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setShowFilters(!showFilters)}
+              >
+                <Filter className="mr-2 h-4 w-4" />
+                {showFilters ? 'Hide Filters' : 'Show Filters'}
+              </Button>
+              {canCreate && (
+                <Button onClick={() => setIsFormOpen(true)}>
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  New Advance
+                </Button>
+              )}
+            </div>
           </div>
-          {canCreate && (
-            <Button onClick={() => setIsFormOpen(true)}>
-                <PlusCircle className="mr-2" />
-                New Advance
-            </Button>
+
+          {showFilters && (
+            <div className="mt-4 space-y-4">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="space-y-2">
+                  <Label htmlFor="status-filter">Status</Label>
+                  <Select
+                    value={filters.status}
+                    onValueChange={(value) => setFilters(prev => ({ ...prev, status: value }))}
+                  >
+                    <SelectTrigger id="status-filter">
+                      <SelectValue placeholder="All Statuses" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Statuses</SelectItem>
+                      <SelectItem value="Pending">Pending</SelectItem>
+                      <SelectItem value="Approved">Approved</SelectItem>
+                      <SelectItem value="Paid">Paid</SelectItem>
+                      <SelectItem value="Rejected">Rejected</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="start-date-filter">Date From</Label>
+                  <Input
+                    id="start-date-filter"
+                    type="date"
+                    value={filters.startDate}
+                    onChange={(e) => setFilters(prev => ({ ...prev, startDate: e.target.value }))}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="end-date-filter">Date To</Label>
+                  <Input
+                    id="end-date-filter"
+                    type="date"
+                    value={filters.endDate}
+                    onChange={(e) => setFilters(prev => ({ ...prev, endDate: e.target.value }))}
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                <Button onClick={handleApplyFilters}>
+                  Apply Filters
+                </Button>
+                {hasActiveFilters && (
+                  <Button
+                    variant="outline"
+                    onClick={handleClearFilters}
+                  >
+                    <X className="mr-2 h-4 w-4" />
+                    Clear Filters
+                  </Button>
+                )}
+              </div>
+            </div>
           )}
         </CardHeader>
         <CardContent>

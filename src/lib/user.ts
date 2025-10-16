@@ -20,8 +20,8 @@ const allPermissions: Permission[] = [
 
 const defaultUser: CurrentUser = {
   role: 'Super Admin',
-  branchId: 'b1',
-  branchName: 'Downtown Clinic',
+  branchId: '',
+  branchName: '',
   email: 'lisa.cuddy@example.com',
   name: 'Dr. Lisa Cuddy',
   avatar: 'https://picsum.photos/seed/emp1/200/200',

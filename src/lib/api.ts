@@ -346,24 +346,119 @@ export const getAttendance = async (branchId?: string | number): Promise<Attenda
     return JSON.parse(JSON.stringify(localAttendance));
 }
 
-export const getLeaveRequests = async (branchId?: string | number): Promise<LeaveRequest[]> => {
-    console.log('API CALL: getLeaveRequests', { branchId });
-    await delay(150);
-    let localLeaveRequests = allLeaveRequests;
-    if (branchId) {
-        localLeaveRequests = localLeaveRequests.filter(l => String(l.branchId) === String(branchId));
+type GetLeaveRequestsFilters = {
+    branchId?: number;
+    status?: string;
+    startDate?: string;
+    endDate?: string;
+};
+
+export const getLeaveRequests = async (filters?: number | GetLeaveRequestsFilters): Promise<LeaveRequest[]> => {
+    console.log('API CALL: getLeaveRequests', { filters });
+    try {
+        const params: { branch_id?: number; status?: string; start_date?: string; end_date?: string } = {};
+
+        // Handle backward compatibility - if filters is a number, treat it as branchId
+        if (typeof filters === 'number') {
+            params.branch_id = filters;
+        } else if (filters) {
+            if (filters.branchId) {
+                params.branch_id = filters.branchId;
+            }
+            if (filters.status) {
+                params.status = filters.status;
+            }
+            if (filters.startDate) {
+                params.start_date = filters.startDate;
+            }
+            if (filters.endDate) {
+                params.end_date = filters.endDate;
+            }
+        }
+
+        const response = await customAxios.get('/management/get-leave-requests', { params });
+
+        // Handle both response.data and response.data.data formats
+        const dataArray = Array.isArray(response.data) ? response.data : response.data.data;
+
+        // Map API response to frontend type
+        return dataArray.map((item: any) => ({
+            id: item.id,
+            employeeId: String(item.employee_id),
+            employeeName: item.employee_name,
+            leaveType: item.leave_type,
+            startDate: item.start_date ? item.start_date.split('T')[0] : item.start_date,
+            endDate: item.end_date ? item.end_date.split('T')[0] : item.end_date,
+            reason: item.reason,
+            status: item.status,
+            branchId: item.branch_id,
+        }));
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            console.error('Failed to fetch leave requests:', error.response?.data);
+        } else {
+            console.error("An unexpected error occurred while fetching leave requests:", error);
+        }
+        return [];
     }
-    return JSON.parse(JSON.stringify(localLeaveRequests));
 }
 
-export const getStaffAdvances = async (branchId?: string | number): Promise<StaffAdvance[]> => {
-    console.log('API CALL: getStaffAdvances', { branchId });
-    await delay(150);
-    let localAdvances = allStaffAdvances;
-    if (branchId) {
-        localAdvances = localAdvances.filter(s => String(s.branchId) === String(branchId));
+type GetStaffAdvancesFilters = {
+    branchId?: number;
+    status?: string;
+    startDate?: string;
+    endDate?: string;
+};
+
+export const getStaffAdvances = async (filters?: number | string | GetStaffAdvancesFilters): Promise<StaffAdvance[]> => {
+    console.log('API CALL: getStaffAdvances', { filters });
+    try {
+        const params: { branch_id?: number; status?: string; start_date?: string; end_date?: string } = {};
+
+        // Handle backward compatibility - if filters is a number or string, treat it as branchId
+        if (typeof filters === 'number') {
+            params.branch_id = filters;
+        } else if (typeof filters === 'string') {
+            params.branch_id = parseInt(filters, 10);
+        } else if (filters) {
+            if (filters.branchId) {
+                params.branch_id = filters.branchId;
+            }
+            if (filters.status) {
+                params.status = filters.status;
+            }
+            if (filters.startDate) {
+                params.start_date = filters.startDate;
+            }
+            if (filters.endDate) {
+                params.end_date = filters.endDate;
+            }
+        }
+
+        const response = await customAxios.get('/management/staff-advances', { params });
+
+        // Handle both response.data and response.data.data formats
+        const dataArray = Array.isArray(response.data) ? response.data : response.data.data;
+
+        // Map API response to frontend type
+        return dataArray.map((item: any) => ({
+            id: item.id,
+            employeeId: String(item.employee_id),
+            employeeName: item.employee_name,
+            amount: parseFloat(item.amount),
+            date: item.date ? item.date.split('T')[0] : item.date,
+            reason: item.reason,
+            status: item.status,
+            branchId: item.branch_id,
+        }));
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            console.error('Failed to fetch staff advances:', error.response?.data);
+        } else {
+            console.error("An unexpected error occurred while fetching staff advances:", error);
+        }
+        return [];
     }
-    return JSON.parse(JSON.stringify(localAdvances));
 }
 
 export const getExpenses = async (branchId?: string | number): Promise<Expense[]> => {
@@ -1067,29 +1162,72 @@ export const createPayroll = async (data: Omit<Payroll, 'id'>): Promise<Payroll>
 }
 
 
-// Attendance
-export const markAttendance = async(data: Omit<AttendanceRecord, 'id' | 'employeeName'>): Promise<AttendanceRecord> => {
+// Attendance - Single or Multiple employees
+export const markAttendance = async(data: {
+    employeeId: (string | number) | (string | number)[];
+    date: string;
+    status: AttendanceRecord['status'];
+    checkIn?: string;
+    checkOut?: string;
+    branchId: string | number;
+    employeeName?: string;
+}): Promise<AttendanceRecord[]> => {
     console.log('API CALL: markAttendance', { data });
-    await delay(200);
-    const employee = allEmployees.find(e => String(e.id) === String(data.employeeId));
-    if (!employee) throw new Error("Employee not found");
 
-    const existingIndex = allAttendance.findIndex(
-        att => att.employeeId === data.employeeId && att.date === data.date
-    );
+    // Convert employeeId to array format for API
+    const employeeIds = Array.isArray(data.employeeId) ? data.employeeId : [data.employeeId];
 
-    if (existingIndex > -1) {
-        const updatedRecord = { ...allAttendance[existingIndex], ...data, employeeName: employee.name };
-        allAttendance[existingIndex] = updatedRecord;
-        return updatedRecord;
-    } else {
-        const newRecord: AttendanceRecord = {
-            ...data,
-            id: `att${allAttendance.length + 1}`,
-            employeeName: employee.name,
-        };
-        allAttendance.push(newRecord);
-        return newRecord;
+    const requestBody = {
+        employee_id: employeeIds.length === 1
+            ? parseInt(String(employeeIds[0]), 10)
+            : employeeIds.map(id => parseInt(String(id), 10)),
+        employee_name: data.employeeName || undefined,
+        date: data.date,
+        status: data.status,
+        check_in: data.checkIn || undefined,
+        check_out: data.checkOut || undefined,
+        branch_id: parseInt(String(data.branchId), 10),
+    };
+
+    try {
+        const response = await customAxios.post('/management/attendance', requestBody);
+
+        // API returns array of attendance records
+        const attendanceDataArray = Array.isArray(response.data) ? response.data : [response.data];
+
+        const feAttendanceRecords: AttendanceRecord[] = attendanceDataArray.map((attendanceData: any) => ({
+            id: attendanceData.id,
+            employeeId: String(attendanceData.employee_id),
+            employeeName: attendanceData.employee_name,
+            date: attendanceData.date,
+            status: attendanceData.status,
+            checkIn: attendanceData.check_in,
+            checkOut: attendanceData.check_out,
+            branchId: attendanceData.branch_id,
+        }));
+
+        // Update local cache for all records
+        feAttendanceRecords.forEach(feAttendance => {
+            const existingIndex = allAttendance.findIndex(
+                att => String(att.employeeId) === String(feAttendance.employeeId) && att.date === feAttendance.date
+            );
+
+            if (existingIndex > -1) {
+                allAttendance[existingIndex] = feAttendance;
+            } else {
+                allAttendance.push(feAttendance);
+            }
+        });
+
+        return feAttendanceRecords;
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            console.error('Failed to mark attendance:', error.response?.data);
+            throw new Error(error.response?.data?.message || "Failed to mark attendance");
+        } else {
+            console.error("An unexpected error occurred during attendance marking:", error);
+            throw error;
+        }
     }
 }
 
@@ -1149,29 +1287,85 @@ export const updateLeaveRequestStatus = async (id: string | number, status: Leav
 // Staff Advances
 export const createStaffAdvance = async (data: Omit<StaffAdvance, 'id' | 'employeeName' | 'status'>): Promise<StaffAdvance> => {
     console.log('API CALL: createStaffAdvance', { data });
-    await delay(200);
-    const employee = allEmployees.find(e => String(e.id) === String(data.employeeId));
-    if (!employee) throw new Error("Employee not found");
 
-    const newAdvance: StaffAdvance = {
-        ...data,
-        id: `adv${allStaffAdvances.length + 1}`,
-        employeeName: employee.name,
-        status: 'Pending',
+    const requestBody = {
+        employeeId: parseInt(String(data.employeeId), 10),
+        amount: data.amount,
+        reason: data.reason,
+        branchId: parseInt(String(data.branchId), 10),
+        date: data.date,
     };
-    allStaffAdvances.push(newAdvance);
-    return newAdvance;
+
+    try {
+        const response = await customAxios.post('/management/staff-advances', requestBody);
+        const newAdvanceData = response.data;
+
+        const feAdvance: StaffAdvance = {
+            id: newAdvanceData.id,
+            employeeId: String(newAdvanceData.employee_id),
+            employeeName: newAdvanceData.employee_name,
+            amount: parseFloat(newAdvanceData.amount),
+            date: newAdvanceData.date ? newAdvanceData.date.split('T')[0] : newAdvanceData.date,
+            reason: newAdvanceData.reason,
+            status: newAdvanceData.status,
+            branchId: newAdvanceData.branch_id,
+        };
+
+        allStaffAdvances.push(feAdvance);
+        return feAdvance;
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            console.error('Failed to create staff advance:', error.response?.data);
+            throw new Error(error.response?.data?.message || "Failed to create staff advance");
+        } else {
+            console.error("An unexpected error occurred during staff advance creation:", error);
+            throw error;
+        }
+    }
 }
 
 export const updateStaffAdvanceStatus = async (id: string | number, status: StaffAdvanceStatus): Promise<StaffAdvance | undefined> => {
     console.log('API CALL: updateStaffAdvanceStatus', { id, status });
-    await delay(200);
-    const advanceIndex = allStaffAdvances.findIndex(adv => String(adv.id) === String(id));
-    if (advanceIndex > -1) {
-        allStaffAdvances[advanceIndex] = { ...allStaffAdvances[advanceIndex], status };
-        return allStaffAdvances[advanceIndex];
+
+    const requestBody = {
+        status: status,
+    };
+
+    try {
+        const response = await customAxios.patch(`/management/staff-advances/${id}`, requestBody);
+        const updatedAdvanceData = response.data;
+
+        const feAdvance: StaffAdvance = {
+            id: updatedAdvanceData.id,
+            employeeId: String(updatedAdvanceData.employee_id),
+            employeeName: updatedAdvanceData.employee_name,
+            amount: parseFloat(updatedAdvanceData.amount),
+            date: updatedAdvanceData.date ? updatedAdvanceData.date.split('T')[0] : updatedAdvanceData.date,
+            reason: updatedAdvanceData.reason,
+            status: updatedAdvanceData.status,
+            branchId: updatedAdvanceData.branch_id,
+        };
+
+        // Update local cache
+        const advanceIndex = allStaffAdvances.findIndex(adv => String(adv.id) === String(id));
+        if (advanceIndex > -1) {
+            allStaffAdvances[advanceIndex] = feAdvance;
+        }
+
+        return feAdvance;
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            if (error.response?.status === 404) {
+                console.error(`Staff advance ${id} not found:`, error.response?.data);
+                return undefined;
+            }
+            console.error('Failed to update staff advance status:', error.response?.data);
+            throw new Error(error.response?.data?.error || "Failed to update staff advance status");
+        } else {
+            console.error("An unexpected error occurred during staff advance status update:", error);
+            throw error;
+        }
     }
-    return undefined;
 }
 
 // Expenses
