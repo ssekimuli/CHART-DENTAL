@@ -9,7 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { PlusCircle } from "lucide-react";
+import { PlusCircle, Search, X } from "lucide-react";
 import { PatientsTable } from "./components/patients-table";
 import { useBranch } from "@/context/branch-context";
 import { useState, useMemo, useEffect } from "react";
@@ -29,6 +29,15 @@ import {
   } from "@/components/ui/alert-dialog";
 import { createPatient, deletePatient, getPatients, updatePatient } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { getPatientFullName } from "@/lib/utils";
 
 export default function PatientsPage() {
   const router = useRouter();
@@ -39,22 +48,57 @@ export default function PatientsPage() {
   const [selectedPatient, setSelectedPatient] = useState<Patient | undefined>(undefined);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
 
+  // Filter states
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "Active" | "Inactive">("all");
+  const [genderFilter, setGenderFilter] = useState<"all" | "Male" | "Female" | "Other">("all");
+
   useEffect(() => {
     const fetchData = async () => {
         setIsLoading(true);
-        const data = await getPatients();
+
+        // Build filters object
+        const filters: any = {};
+
+        // Add branch filter
+        if (currentUser.role === 'Super Admin') {
+          filters.branchId = selectedBranch;
+        } else {
+          filters.branchId = currentUser.branchId;
+        }
+
+        // Add status filter
+        if (statusFilter !== "all") {
+          filters.status = statusFilter;
+        }
+
+        // Add gender filter
+        if (genderFilter !== "all") {
+          filters.gender = genderFilter;
+        }
+
+        const data = await getPatients(filters);
         setPatientsData(data);
         setIsLoading(false);
     }
     fetchData();
-  }, [selectedBranch]);
+  }, [selectedBranch, statusFilter, genderFilter]);
 
   const patients = useMemo(() => {
-    if (currentUser.role === 'Super Admin') {
-      return patientsData.filter(p => String(p.branchId) === String(selectedBranch));
+    // If there's a search query, filter on the client side
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      return patientsData.filter(p => {
+        const fullName = getPatientFullName(p).toLowerCase();
+        const email = p.email.toLowerCase();
+        const phone = p.phone?.toLowerCase() || '';
+        const id = String(p.id).toLowerCase();
+        return fullName.includes(query) || email.includes(query) || phone.includes(query) || id.includes(query);
+      });
     }
-    return patientsData.filter(p => String(p.branchId) === String(currentUser.branchId));
-  }, [selectedBranch, patientsData]);
+
+    return patientsData;
+  }, [patientsData, searchQuery]);
   
   const handleOpenForm = (patient?: Patient) => {
     setSelectedPatient(patient);
@@ -101,6 +145,14 @@ export default function PatientsPage() {
     router.push(`/patients/${patientId}`);
   };
 
+  const handleClearFilters = () => {
+    setSearchQuery("");
+    setStatusFilter("all");
+    setGenderFilter("all");
+  };
+
+  const hasActiveFilters = searchQuery || statusFilter !== "all" || genderFilter !== "all";
+
   return (
     <>
     <Card>
@@ -118,7 +170,66 @@ export default function PatientsPage() {
           </Button>
         )}
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-4">
+        {/* Filters */}
+        <div className="flex flex-col gap-4 md:flex-row md:items-end">
+          <div className="flex-1">
+            <label className="text-sm font-medium mb-2 block">Search</label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Search by name, email, phone, or ID..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+          </div>
+          <div className="w-full md:w-[180px]">
+            <label className="text-sm font-medium mb-2 block">Status</label>
+            <Select value={statusFilter} onValueChange={(value: any) => setStatusFilter(value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="All Statuses" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="Active">Active</SelectItem>
+                <SelectItem value="Inactive">Inactive</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="w-full md:w-[180px]">
+            <label className="text-sm font-medium mb-2 block">Gender</label>
+            <Select value={genderFilter} onValueChange={(value: any) => setGenderFilter(value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="All Genders" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Genders</SelectItem>
+                <SelectItem value="Male">Male</SelectItem>
+                <SelectItem value="Female">Female</SelectItem>
+                <SelectItem value="Other">Other</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          {hasActiveFilters && (
+            <Button variant="outline" onClick={handleClearFilters} className="w-full md:w-auto">
+              <X className="mr-2 h-4 w-4" />
+              Clear Filters
+            </Button>
+          )}
+        </div>
+
+        {/* Results count */}
+        <div className="text-sm text-muted-foreground">
+          {searchQuery ? (
+            <>Showing {patients.length} of {patientsData.length} patients</>
+          ) : (
+            <>Showing {patients.length} patients</>
+          )}
+        </div>
+
+        {/* Table */}
         {isLoading ? (
              <div className="space-y-4">
                 <Skeleton className="h-12 w-full" />
