@@ -23,7 +23,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { useEffect, useState } from "react";
+import { useEffect, useState, use } from "react";
 import type { Patient, Treatment, BasePatient, PatientImage, DentalCondition } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, Trash, Pencil, FileText, Loader2, Upload, MoreHorizontal } from "lucide-react";
@@ -49,12 +49,14 @@ import {
 import { deletePatient, getPatientById, updatePatient, addTreatment, updateTreatment, deleteTreatment, addImageToPatient } from "@/lib/api";
 import { ImageUploadForm } from "./components/image-upload-form";
 import { hasPermission, getCurrentUser } from "@/lib/user";
+import { getPatientFullName } from "@/lib/utils";
 
 export default function PatientDetailPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
+  const { id } = use(params);
   const router = useRouter();
   const [patient, setPatient] = useState<Patient | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(true);
@@ -72,18 +74,18 @@ export default function PatientDetailPage({
   const isReceptionist = currentUser?.role === 'Receptionist';
 
   useEffect(() => {
-    if (typeof params.id !== "string") return;
+    if (typeof id !== "string") return;
     const fetchData = async () => {
         setIsLoading(true);
-        const patientData = await getPatientById(params.id);
+        const patientData = await getPatientById(id);
         setPatient(patientData);
-        if (patientData && !isReceptionist) {
+        if (patientData && !isReceptionist && patientData.history) {
             summarizePatientHistory({ patientHistory: patientData.history }).then(setHistorySummary);
         }
         setIsLoading(false);
     }
     fetchData();
-  }, [params.id, isReceptionist]);
+  }, [id, isReceptionist]);
 
 
   if (isLoading) {
@@ -116,7 +118,7 @@ export default function PatientDetailPage({
   }
 
   const handleDeletePatient = async () => {
-    await deletePatient(params.id as string);
+    await deletePatient(id);
     router.push('/patients');
     setIsDeleteAlertOpen(false);
   }
@@ -169,10 +171,10 @@ export default function PatientDetailPage({
         <CardHeader className="flex flex-row items-start gap-4">
           <Avatar className="h-20 w-20 border">
             <AvatarImage src={patient.avatar} />
-            <AvatarFallback>{patient.name.charAt(0)}</AvatarFallback>
+            <AvatarFallback>{patient.first_name.charAt(0)}</AvatarFallback>
           </Avatar>
           <div className="flex-1">
-            <CardTitle className="text-3xl">{patient.name}</CardTitle>
+            <CardTitle className="text-3xl">{getPatientFullName(patient)}</CardTitle>
             <CardDescription className="text-base">
               {patient.email}
             </CardDescription>
@@ -215,7 +217,7 @@ export default function PatientDetailPage({
           <TabsContent value="treatment">
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
               <AITreatmentPlan
-                patientHistory={patient.history}
+                patientHistory={patient.history || ''}
                 dentalRecords={patient.dentalRecords}
               />
               <Card>

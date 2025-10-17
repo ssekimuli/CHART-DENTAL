@@ -51,9 +51,9 @@ export default function PatientsPage() {
 
   const patients = useMemo(() => {
     if (currentUser.role === 'Super Admin') {
-      return patientsData.filter(p => p.branchId === selectedBranch);
+      return patientsData.filter(p => String(p.branchId) === String(selectedBranch));
     }
-    return patientsData.filter(p => p.branchId === currentUser.branchId);
+    return patientsData.filter(p => String(p.branchId) === String(currentUser.branchId));
   }, [selectedBranch, patientsData]);
   
   const handleOpenForm = (patient?: Patient) => {

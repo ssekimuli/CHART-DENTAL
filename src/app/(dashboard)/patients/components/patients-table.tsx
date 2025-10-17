@@ -24,6 +24,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { hasPermission } from "@/lib/user";
+import { getPatientFullName } from "@/lib/utils";
 
 type PatientsTableProps = {
     data: Patient[];
@@ -57,9 +58,9 @@ export function PatientsTable({ data, onView, onEdit, onDelete }: PatientsTableP
                 <div className="flex items-center gap-3">
                   <Avatar className="h-9 w-9">
                     <AvatarImage src={patient.avatar} alt="Avatar" />
-                    <AvatarFallback>{patient.name.charAt(0)}</AvatarFallback>
+                    <AvatarFallback>{patient.first_name.charAt(0)}{patient.last_name.charAt(0)}</AvatarFallback>
                   </Avatar>
-                  <div className="font-medium">{patient.name}</div>
+                  <div className="font-medium">{getPatientFullName(patient)}</div>
                   <div className="text-sm text-muted-foreground">{patient.email}</div>
                 </div>
               </TableCell>

@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/command"
 import { getPatients } from "@/lib/api"
 import type { Patient } from "@/lib/types"
+import { getPatientFullName } from "@/lib/utils"
 
 export function PatientSearch() {
   const router = useRouter()
@@ -68,15 +69,15 @@ export function PatientSearch() {
             {patients.map((patient) => (
               <CommandItem
                 key={patient.id}
-                value={`${patient.name} ${patient.email} ${patient.id}`}
-                onSelect={() => handleSelect(patient.id)}
+                value={`${getPatientFullName(patient)} ${patient.email} ${patient.id}`}
+                onSelect={() => handleSelect(patient.id.toString())}
                 className="flex items-start gap-2"
               >
                 <div className="mt-1">
                   <User className="h-4 w-4" />
                 </div>
                 <div className="flex flex-col">
-                  <span>{patient.name}</span>
+                  <span>{getPatientFullName(patient)}</span>
                   <span className="text-xs text-muted-foreground">{patient.email}</span>
                   <span className="text-xs text-muted-foreground font-mono">ID: {patient.id}</span>
                 </div>

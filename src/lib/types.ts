@@ -13,16 +13,20 @@ export type Expense = {
 
 export type Patient = {
   id: string | number;
-  name: string;
-  avatar: string;
+  first_name: string;
+  last_name: string;
+  avatar?: string;
   email: string;
+  phone?: string;
+  address?: string;
+  gender?: 'Male' | 'Female' | 'Other';
   dateOfBirth: string;
-  lastVisit: string;
+  lastVisit?: string;
   status: 'Active' | 'Inactive';
   dentalRecords: DentalRecord[];
   treatmentPlans: Treatment[];
   imaging: PatientImage[];
-  history: string;
+  history?: string;
   branchId: string | number;
   periodontalRecords: PeriodontalRecord;
   occlusalRecords: OcclusalRecord;
@@ -199,7 +203,7 @@ export type LaboratoryOrder = {
   branchId: string | number;
 };
 
-export type BasePatient = Omit<Patient, 'id' | 'dentalRecords' | 'treatmentPlans' | 'imaging' | 'lastVisit' | 'branchId' | 'periodontalRecords' | 'occlusalRecords' | 'softTissueRecords' | 'orthodonticRecords'>;
+export type BasePatient = Omit<Patient, 'id' | 'dentalRecords' | 'treatmentPlans' | 'imaging' | 'periodontalRecords' | 'occlusalRecords' | 'softTissueRecords' | 'orthodonticRecords'>;
 
 export type BaseInvoice = Omit<Invoice, 'id' | 'patientName' | 'branchId'>;
 

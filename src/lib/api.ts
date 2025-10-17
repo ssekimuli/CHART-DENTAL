@@ -126,20 +126,129 @@ export const getBranches = async (): Promise<Branch[]> => {
     }
 }
 
-export const getPatients = async (branchId?: string | number): Promise<Patient[]> => {
-    console.log('API CALL: getPatients', { branchId });
-    await delay(100);
-    let localPatients = allPatients;
-    if (branchId) {
-        localPatients = localPatients.filter(p => String(p.branchId) === String(branchId));
+type GetPatientsFilters = {
+    branchId?: string | number;
+    status?: 'Active' | 'Inactive';
+    gender?: 'Male' | 'Female' | 'Other';
+};
+
+export const getPatients = async (filters?: string | number | GetPatientsFilters): Promise<Patient[]> => {
+    console.log('API CALL: getPatients', { filters });
+
+    try {
+        const params: { branch_id?: number; status?: string; gender?: string } = {};
+
+        // Handle backward compatibility - if filters is a string or number, treat it as branchId
+        if (typeof filters === 'number' || typeof filters === 'string') {
+            params.branch_id = parseInt(String(filters), 10);
+        } else if (filters) {
+            if (filters.branchId) {
+                params.branch_id = parseInt(String(filters.branchId), 10);
+            }
+            if (filters.status) {
+                params.status = filters.status;
+            }
+            if (filters.gender) {
+                params.gender = filters.gender;
+            }
+        }
+
+        const response = await customAxios.get('/patients', { params });
+
+        // Handle both response.data and response.data.data formats
+        const dataArray = Array.isArray(response.data) ? response.data : (response.data.data || []);
+
+        // Map API response to frontend type
+        return dataArray.map((patient: any) => ({
+            id: String(patient.id),
+            first_name: patient.first_name,
+            last_name: patient.last_name,
+            avatar: patient.avatar || '',
+            email: patient.email,
+            phone: patient.phone,
+            address: patient.address,
+            gender: patient.gender,
+            dateOfBirth: patient.date_of_birth ? patient.date_of_birth.split('T')[0] : patient.date_of_birth,
+            lastVisit: patient.last_visit ? patient.last_visit.split('T')[0] : patient.last_visit,
+            status: patient.status,
+            history: patient.history || '',
+            branchId: String(patient.branch_id),
+            dentalRecords: patient.dental_records || [],
+            treatmentPlans: patient.treatment_plans || [],
+            imaging: patient.images || patient.imaging || [], // Backend returns 'images', not 'imaging'
+            periodontalRecords: patient.periodontal_records || [],
+            occlusalRecords: typeof patient.occlusal_records === 'string'
+                ? JSON.parse(patient.occlusal_records)
+                : (patient.occlusal_records || { overbite: 0, overjet: 0, crossbite: 'None', openbite: 'None', malocclusion: 'Class I' }),
+            softTissueRecords: patient.soft_tissue_records || [],
+            orthodonticRecords: patient.orthodontic_records || [],
+        }));
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            console.error('Failed to fetch patients:', error.response?.data);
+        } else {
+            console.error("An unexpected error occurred while fetching patients:", error);
+        }
+        return [];
     }
-    return JSON.parse(JSON.stringify(localPatients));
 }
 
 export const getPatientById = async (id: string | number): Promise<Patient | undefined> => {
     console.log('API CALL: getPatientById', { id });
-    await delay(100);
-    return JSON.parse(JSON.stringify(allPatients.find(p => String(p.id) === String(id))));
+
+    try {
+        const response = await customAxios.get(`/patients/${id}`);
+        const patient = response.data;
+
+        // Map API response to frontend type
+        return {
+            id: String(patient.id),
+            first_name: patient.first_name,
+            last_name: patient.last_name,
+            avatar: patient.avatar || '',
+            email: patient.email,
+            phone: patient.phone,
+            address: patient.address,
+            gender: patient.gender,
+            dateOfBirth: patient.date_of_birth ? patient.date_of_birth.split('T')[0] : patient.date_of_birth,
+            lastVisit: patient.last_visit ? patient.last_visit.split('T')[0] : patient.last_visit,
+            status: patient.status,
+            history: patient.history || '',
+            branchId: String(patient.branch_id),
+            dentalRecords: (patient.dental_records || []).map((record: any) => ({
+                toothId: record.tooth_id,
+                condition: record.condition,
+                notes: record.notes || '',
+            })),
+            treatmentPlans: (patient.treatment_plans || []).map((plan: any) => ({
+                id: String(plan.id),
+                procedure: plan.procedure,
+                tooth: plan.tooth,
+                status: plan.status,
+                cost: parseFloat(plan.cost),
+                date: plan.date,
+                invoiceId: plan.invoice_id,
+            })),
+            imaging: patient.images || patient.imaging || [], // Backend returns 'images', not 'imaging'
+            periodontalRecords: patient.periodontal_records || [],
+            occlusalRecords: typeof patient.occlusal_records === 'string'
+                ? JSON.parse(patient.occlusal_records)
+                : (patient.occlusal_records || { overbite: 0, overjet: 0, crossbite: 'None', openbite: 'None', malocclusion: 'Class I' }),
+            softTissueRecords: patient.soft_tissue_records || [],
+            orthodonticRecords: patient.orthodontic_records || [],
+        };
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            if (error.response?.status === 404) {
+                console.error(`Patient ${id} not found`);
+                return undefined;
+            }
+            console.error(`Failed to fetch patient ${id}:`, error.response?.data);
+        } else {
+            console.error("An unexpected error occurred while fetching patient:", error);
+        }
+        return undefined;
+    }
 }
 
 export const getAppointments = async (): Promise<Appointment[]> => {
@@ -511,13 +620,13 @@ export const getFinancialSummary = async (branchId: string | number): Promise<Fi
     await delay(300);
 
     const branchInvoices = allInvoices.filter(i => String(i.branchId) === String(branchId));
-    const branchPayrolls = mockPayrolls.filter(p => String(p.branch_id) === String(branchId));
+    const branchPayrolls = mockPayrolls.filter(p => String(p.branchId) === String(branchId));
     const branchExpenses = allExpenses.filter(e => String(e.branchId) === String(branchId));
-    
+
     const paidInvoices = branchInvoices.filter(i => i.status === 'Paid');
     const totalIncome = paidInvoices.reduce((sum, i) => sum + i.amount, 0);
 
-    const payrollExpenses = branchPayrolls.reduce((sum, p) => sum + Number(p.gross_pay), 0);
+    const payrollExpenses = branchPayrolls.reduce((sum, p) => sum + Number(p.grossPay), 0);
     const otherExpenses = branchExpenses.reduce((sum, e) => sum + e.amount, 0);
     const totalExpenses = payrollExpenses + otherExpenses;
 
@@ -532,10 +641,10 @@ export const getFinancialSummary = async (branchId: string | number): Promise<Fi
     });
 
     branchPayrolls.forEach(payroll => {
-        const payDate = payroll.pay_date.split('T')[0];
+        const payDate = payroll.payDate.split('T')[0];
         const monthKey = format(new Date(payDate), "yyyy-MM");
         if (!financialsByMonth[monthKey]) financialsByMonth[monthKey] = { income: 0, expense: 0 };
-        financialsByMonth[monthKey].expense += Number(payroll.gross_pay);
+        financialsByMonth[monthKey].expense += Number(payroll.grossPay);
     });
 
     branchExpenses.forEach(expense => {
@@ -588,21 +697,62 @@ export const getTodaysQueue = async (filters: { branchId: string | number; docto
 // Patients
 export const createPatient = async (data: BasePatient & { branchId: string | number }): Promise<Patient> => {
     console.log('API CALL: createPatient', { data });
-    await delay(200);
-    const newPatient: Patient = {
-        ...data,
-        id: `p${allPatients.length + 1}`,
-        dentalRecords: [],
-        treatmentPlans: [],
-        imaging: [],
-        lastVisit: new Date().toISOString().split('T')[0],
-        periodontalRecords: [],
-        occlusalRecords: { overbite: 0, overjet: 0, crossbite: 'None', openbite: 'None', malocclusion: 'Class I' },
-        softTissueRecords: [],
-        orthodonticRecords: [],
+
+    const requestBody = {
+        first_name: data.first_name,
+        last_name: data.last_name,
+        avatar: data.avatar || undefined,
+        email: data.email,
+        phone: data.phone || undefined,
+        address: data.address || undefined,
+        gender: data.gender || undefined,
+        date_of_birth: data.dateOfBirth,
+        last_visit: data.lastVisit || undefined,
+        status: data.status,
+        branch_id: parseInt(String(data.branchId), 10),
+        history: data.history || undefined,
     };
-    allPatients.push(newPatient);
-    return newPatient;
+
+    try {
+        const response = await customAxios.post('/patients', requestBody);
+        const newPatient = response.data.data || response.data;
+
+        const fePatient: Patient = {
+            id: String(newPatient.id),
+            first_name: newPatient.first_name,
+            last_name: newPatient.last_name,
+            avatar: newPatient.avatar || '',
+            email: newPatient.email,
+            phone: newPatient.phone,
+            address: newPatient.address,
+            gender: newPatient.gender,
+            dateOfBirth: newPatient.date_of_birth ? newPatient.date_of_birth.split('T')[0] : newPatient.date_of_birth,
+            lastVisit: newPatient.last_visit ? newPatient.last_visit.split('T')[0] : newPatient.last_visit,
+            status: newPatient.status,
+            history: newPatient.history || '',
+            branchId: String(newPatient.branch_id),
+            dentalRecords: newPatient.dental_records || [],
+            treatmentPlans: newPatient.treatment_plans || [],
+            imaging: newPatient.images || newPatient.imaging || [], // Backend returns 'images', not 'imaging'
+            periodontalRecords: newPatient.periodontal_records || [],
+            occlusalRecords: typeof newPatient.occlusal_records === 'string'
+                ? JSON.parse(newPatient.occlusal_records)
+                : (newPatient.occlusal_records || { overbite: 0, overjet: 0, crossbite: 'None', openbite: 'None', malocclusion: 'Class I' }),
+            softTissueRecords: newPatient.soft_tissue_records || [],
+            orthodonticRecords: newPatient.orthodontic_records || [],
+        };
+
+        allPatients.push(fePatient);
+        return fePatient;
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            console.error('Failed to create patient:', error.response?.data);
+            throw new Error(error.response?.data?.message || "Failed to create patient");
+        } else {
+            console.error("An unexpected error occurred during patient creation:", error);
+            throw error;
+        }
+    }
 }
 
 export const updatePatient = async (id: string | number, data: Partial<Patient>): Promise<Patient | undefined> => {
@@ -875,7 +1025,7 @@ export const createInvoice = async (data: Omit<Invoice, 'id' | 'amount' | 'paidA
     const newInvoice: Invoice = {
         ...data,
         id: `inv${allInvoices.length + 1}`,
-        patientName: patient.name,
+        patientName: `${patient.first_name} ${patient.last_name}`,
         amount,
         paidAmount: 0,
         transactions: [],
@@ -931,11 +1081,11 @@ export const processPayment = async (invoiceId: string | number, paymentAmount: 
 
         const updatedTransactions = [...(originalInvoice.transactions || []), newTransaction];
 
-        const updatedInvoice = { 
-            ...originalInvoice, 
+        const updatedInvoice: Invoice = {
+            ...originalInvoice,
             paidAmount: newPaidAmount,
-            status: newStatus,
-            paymentMethod: method as any,
+            status: newStatus as Invoice['status'],
+            paymentMethod: method as PaymentMethod,
             transactions: updatedTransactions
         };
         allInvoices[invoiceIndex] = updatedInvoice;

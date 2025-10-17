@@ -12,7 +12,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DentalChart } from "../components/dental-chart";
-import { useState, useEffect } from "react";
+import { useState, useEffect, use } from "react";
 import type { Patient, DentalRecord, Treatment, PeriodontalRecord, OcclusalRecord, OrthodonticRecord, SoftTissueRecord, DentalCondition } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Loader2 } from "lucide-react";
@@ -24,19 +24,21 @@ import { OrthodonticChart } from "./components/orthodontic-chart";
 import { ConditionLogger } from "../components/condition-logger";
 import { getPatientById, addTreatment, saveDentalRecord, savePeriodontalRecord, saveOcclusalRecord, saveOrthodonticRecord, updateOrthodonticRecord, deleteOrthodonticRecord, saveSoftTissueRecord, updateSoftTissueRecord, deleteSoftTissueRecord } from "@/lib/api";
 import { getCurrentUser } from "@/lib/user";
+import { getPatientFullName } from "@/lib/utils";
 
 export default function PatientChartingPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
+  const { id } = use(params);
   const router = useRouter();
   const [patient, setPatient] = useState<Patient | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(true);
 
   const [isTreatmentFormOpen, setIsTreatmentFormOpen] = useState(false);
   const [selectedToothForTreatment, setSelectedToothForTreatment] = useState<number | undefined>(undefined);
-  
+
   const [isConditionLoggerOpen, setIsConditionLoggerOpen] = useState(false);
   const [selectedToothForCondition, setSelectedToothForCondition] = useState<number | undefined>(undefined);
 
@@ -48,15 +50,15 @@ export default function PatientChartingPage({
         return;
     }
 
-    if (typeof params.id !== 'string') return;
+    if (typeof id !== 'string') return;
     const fetchData = async () => {
         setIsLoading(true);
-        const patientData = await getPatientById(params.id);
+        const patientData = await getPatientById(id);
         setPatient(patientData);
         setIsLoading(false);
     }
     fetchData();
-  }, [params.id, router]);
+  }, [id, router]);
 
 
   if (isLoading) {
@@ -196,10 +198,10 @@ export default function PatientChartingPage({
         </Button>
         <Avatar className="h-9 w-9 border">
             <AvatarImage src={patient.avatar} />
-            <AvatarFallback>{patient.name.charAt(0)}</AvatarFallback>
+            <AvatarFallback>{patient.first_name.charAt(0)}</AvatarFallback>
         </Avatar>
         <h1 className="flex-1 shrink-0 whitespace-nowrap text-xl font-semibold tracking-tight sm:grow-0">
-          {patient.name} - Charting
+          {getPatientFullName(patient)} - Charting
         </h1>
       </div>
       <Tabs defaultValue="odontogram">

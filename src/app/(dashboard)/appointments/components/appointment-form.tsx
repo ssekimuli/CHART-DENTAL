@@ -36,7 +36,7 @@ import {
 } from "@/components/ui/dialog";
 import type { Appointment, Employee, Patient, AppointmentStatus, SystemTreatment } from "@/lib/types";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
+import { cn, getPatientFullName } from "@/lib/utils";
 import { CalendarIcon, RefreshCw } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Combobox } from "@/components/ui/combobox";
@@ -144,7 +144,7 @@ export function AppointmentForm({ appointment, patients, doctors, appointments, 
 
     onSave({
         ...values,
-        patientName: patient.name,
+        patientName: getPatientFullName(patient),
         doctorName: doctor.name,
         date: format(values.date, "yyyy-MM-dd"),
     });
@@ -158,7 +158,7 @@ export function AppointmentForm({ appointment, patients, doctors, appointments, 
     const doctor = doctors.find(d => d.id === doctorId);
 
     if (patient && doctor) {
-        const token = generateToken(patient.name, doctor.name);
+        const token = generateToken(getPatientFullName(patient), doctor.name);
         form.setValue("tokenNumber", token, { shouldValidate: true });
     } else {
         form.setError("tokenNumber", { type: "manual", message: "Select patient & doctor first."})
@@ -187,7 +187,7 @@ export function AppointmentForm({ appointment, patients, doctors, appointments, 
                             <FormLabel>Patient</FormLabel>
                             <FormControl>
                                 <Combobox
-                                    options={patients.map(p => ({ value: p.id, label: p.name }))}
+                                    options={patients.map(p => ({ value: String(p.id), label: getPatientFullName(p) }))}
                                     value={field.value}
                                     onChange={(value) => {
                                         field.onChange(value);

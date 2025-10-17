@@ -39,8 +39,12 @@ import { Calendar } from "@/components/ui/calendar";
 import { Textarea } from "@/components/ui/textarea";
 
 const formSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters."),
+  first_name: z.string().min(2, "First name must be at least 2 characters."),
+  last_name: z.string().min(2, "Last name must be at least 2 characters."),
   email: z.string().email("Please enter a valid email."),
+  phone: z.string().optional(),
+  address: z.string().optional(),
+  gender: z.enum(['Male', 'Female', 'Other']).optional(),
   dateOfBirth: z.date({ required_error: "A date of birth is required." }),
   status: z.enum(['Active', 'Inactive']),
   history: z.string().optional(),
@@ -57,8 +61,12 @@ export function PatientForm({ patient, onSave, onOpenChange }: PatientFormProps)
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-        name: patient?.name ?? "",
+        first_name: patient?.first_name ?? "",
+        last_name: patient?.last_name ?? "",
         email: patient?.email ?? "",
+        phone: patient?.phone ?? "",
+        address: patient?.address ?? "",
+        gender: patient?.gender,
         dateOfBirth: patient?.dateOfBirth ? parseISO(patient.dateOfBirth) : undefined,
         status: patient?.status ?? 'Active',
         history: patient?.history ?? "",
@@ -68,9 +76,12 @@ export function PatientForm({ patient, onSave, onOpenChange }: PatientFormProps)
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     onSave({
-        ...values,
-        name: values.name,
+        first_name: values.first_name,
+        last_name: values.last_name,
         email: values.email,
+        phone: values.phone,
+        address: values.address,
+        gender: values.gender,
         status: values.status,
         dateOfBirth: format(values.dateOfBirth, "yyyy-MM-dd"),
         history: values.history,
@@ -92,17 +103,32 @@ export function PatientForm({ patient, onSave, onOpenChange }: PatientFormProps)
                     <div className="grid grid-cols-2 gap-4">
                         <FormField
                             control={form.control}
-                            name="name"
+                            name="first_name"
                             render={({ field }) => (
                                 <FormItem>
-                                <FormLabel>Full Name</FormLabel>
+                                <FormLabel>First Name</FormLabel>
                                 <FormControl>
-                                    <Input placeholder="e.g., John Doe" {...field} />
+                                    <Input placeholder="e.g., John" {...field} />
                                 </FormControl>
                                 <FormMessage />
                                 </FormItem>
                             )}
                         />
+                        <FormField
+                            control={form.control}
+                            name="last_name"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Last Name</FormLabel>
+                                <FormControl>
+                                    <Input placeholder="e.g., Doe" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
                         <FormField
                             control={form.control}
                             name="email"
@@ -116,8 +142,34 @@ export function PatientForm({ patient, onSave, onOpenChange }: PatientFormProps)
                                 </FormItem>
                             )}
                         />
+                        <FormField
+                            control={form.control}
+                            name="phone"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Phone</FormLabel>
+                                <FormControl>
+                                    <Input placeholder="e.g., +256700123456" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
                     </div>
-                     <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                        control={form.control}
+                        name="address"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Address</FormLabel>
+                            <FormControl>
+                                <Input placeholder="e.g., Kampala, Uganda" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                     <div className="grid grid-cols-3 gap-4">
                         <FormField
                             control={form.control}
                             name="dateOfBirth"
@@ -155,6 +207,28 @@ export function PatientForm({ patient, onSave, onOpenChange }: PatientFormProps)
                                     />
                                     </PopoverContent>
                                 </Popover>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="gender"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Gender</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <FormControl>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select gender" />
+                                    </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                        <SelectItem value="Male">Male</SelectItem>
+                                        <SelectItem value="Female">Female</SelectItem>
+                                        <SelectItem value="Other">Other</SelectItem>
+                                    </SelectContent>
+                                </Select>
                                 <FormMessage />
                                 </FormItem>
                             )}
