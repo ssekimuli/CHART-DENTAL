@@ -321,6 +321,7 @@ export const getEmployees = async (branchId?: string | number): Promise<Employee
             status: emp.status,
             salary: parseFloat(emp.salary),
             hire_date: emp.hire_date ? emp.hire_date.split('T')[0] : '', // Format date to YYYY-MM-DD
+            gender: emp.gender,
             branchId: String(emp.branch_id)
         }));
     } catch (error) {
@@ -757,23 +758,103 @@ export const createPatient = async (data: BasePatient & { branchId: string | num
 
 export const updatePatient = async (id: string | number, data: Partial<Patient>): Promise<Patient | undefined> => {
     console.log('API CALL: updatePatient', { id, data });
-    await delay(200);
-    const patientIndex = allPatients.findIndex(p => String(p.id) === String(id));
-    if (patientIndex > -1) {
-        allPatients[patientIndex] = { ...allPatients[patientIndex], ...data };
-        return allPatients[patientIndex];
+
+    // Build request body - only include fields that are provided
+    const requestBody: any = {};
+
+    if (data.first_name !== undefined) requestBody.first_name = data.first_name;
+    if (data.last_name !== undefined) requestBody.last_name = data.last_name;
+    if (data.avatar !== undefined) requestBody.avatar = data.avatar;
+    if (data.email !== undefined) requestBody.email = data.email;
+    if (data.phone !== undefined) requestBody.phone = data.phone;
+    if (data.address !== undefined) requestBody.address = data.address;
+    if (data.gender !== undefined) requestBody.gender = data.gender;
+    if (data.dateOfBirth !== undefined) requestBody.date_of_birth = data.dateOfBirth;
+    if (data.lastVisit !== undefined) requestBody.last_visit = data.lastVisit;
+    if (data.status !== undefined) requestBody.status = data.status;
+    if (data.branchId !== undefined) requestBody.branch_id = parseInt(String(data.branchId), 10);
+    if (data.history !== undefined) requestBody.history = data.history;
+    if (data.occlusalRecords !== undefined) {
+        requestBody.occlusal_records = typeof data.occlusalRecords === 'string'
+            ? data.occlusalRecords
+            : JSON.stringify(data.occlusalRecords);
     }
-    return undefined;
+
+    try {
+        const response = await customAxios.put(`/patients/${id}`, requestBody);
+        const updatedPatient = response.data.data || response.data;
+
+        const fePatient: Patient = {
+            id: String(updatedPatient.id),
+            first_name: updatedPatient.first_name,
+            last_name: updatedPatient.last_name,
+            avatar: updatedPatient.avatar || '',
+            email: updatedPatient.email,
+            phone: updatedPatient.phone,
+            address: updatedPatient.address,
+            gender: updatedPatient.gender,
+            dateOfBirth: updatedPatient.date_of_birth ? updatedPatient.date_of_birth.split('T')[0] : updatedPatient.date_of_birth,
+            lastVisit: updatedPatient.last_visit ? updatedPatient.last_visit.split('T')[0] : updatedPatient.last_visit,
+            status: updatedPatient.status,
+            history: updatedPatient.history || '',
+            branchId: String(updatedPatient.branch_id),
+            dentalRecords: updatedPatient.dental_records || [],
+            treatmentPlans: updatedPatient.treatment_plans || [],
+            imaging: updatedPatient.images || updatedPatient.imaging || [],
+            periodontalRecords: updatedPatient.periodontal_records || [],
+            occlusalRecords: typeof updatedPatient.occlusal_records === 'string'
+                ? JSON.parse(updatedPatient.occlusal_records)
+                : (updatedPatient.occlusal_records || { overbite: 0, overjet: 0, crossbite: 'None', openbite: 'None', malocclusion: 'Class I' }),
+            softTissueRecords: updatedPatient.soft_tissue_records || [],
+            orthodonticRecords: updatedPatient.orthodontic_records || [],
+        };
+
+        // Update local cache
+        const patientIndex = allPatients.findIndex(p => String(p.id) === String(id));
+        if (patientIndex > -1) {
+            allPatients[patientIndex] = fePatient;
+        }
+
+        return fePatient;
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            console.error('Failed to update patient:', error.response?.data);
+            if (error.response?.status === 404) {
+                throw new Error("Patient not found");
+            }
+            throw new Error(error.response?.data?.message || "Failed to update patient");
+        } else {
+            console.error("An unexpected error occurred during patient update:", error);
+            throw error;
+        }
+    }
 }
 
 export const deletePatient = async (id: string | number): Promise<{ success: boolean }> => {
     console.log('API CALL: deletePatient', { id });
-    await delay(200);
-    const initialLength = allPatients.length;
-    const newPatients = allPatients.filter(p => String(p.id) !== String(id));
-    allPatients.length = 0;
-    Array.prototype.push.apply(allPatients, newPatients);
-    return { success: allPatients.length < initialLength };
+
+    try {
+        await customAxios.delete(`/patients/${id}`);
+
+        // Update local cache - remove the deleted patient
+        const patientIndex = allPatients.findIndex(p => String(p.id) === String(id));
+        if (patientIndex > -1) {
+            allPatients.splice(patientIndex, 1);
+        }
+
+        return { success: true };
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            console.error('Failed to delete patient:', error.response?.data);
+            if (error.response?.status === 404) {
+                throw new Error("Patient not found");
+            }
+            throw new Error(error.response?.data?.message || "Failed to delete patient");
+        } else {
+            console.error("An unexpected error occurred during patient deletion:", error);
+            throw error;
+        }
+    }
 }
 
 export const addImageToPatient = async (patientId: string | number, image: Omit<PatientImage, 'date'>): Promise<Patient | undefined> => {
@@ -792,23 +873,82 @@ export const addImageToPatient = async (patientId: string | number, image: Omit<
     return undefined;
 }
 
-export const saveDentalRecord = async (patientId: string | number, record: DentalRecord): Promise<Patient | undefined> => {
-    console.log('API CALL: saveDentalRecord. Request Body:', { patientId, record });
-    await delay(150);
-    const patientIndex = allPatients.findIndex(p => String(p.id) === String(patientId));
-    if (patientIndex > -1) {
-        const patient = allPatients[patientIndex];
-        const recordIndex = patient.dentalRecords.findIndex(r => r.toothId === record.toothId);
-        const newRecords = [...patient.dentalRecords];
-        if (recordIndex > -1) {
-            newRecords[recordIndex] = record;
+export const getOdontogramRecords = async (patientId: string | number): Promise<DentalRecord[]> => {
+    console.log('API CALL: getOdontogramRecords', { patientId });
+
+    try {
+        const response = await customAxios.get(`/patients/${patientId}/odontogram-records`);
+        const records = response.data;
+
+        // Map API response to frontend type
+        return (records || []).map((record: any) => ({
+            toothId: record.tooth_id,
+            condition: record.condition,
+            notes: record.notes || '',
+        }));
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            console.error('Failed to fetch odontogram records:', error.response?.data);
+            if (error.response?.status === 404) {
+                console.error(`Patient ${patientId} not found`);
+                return [];
+            }
         } else {
-            newRecords.push(record);
+            console.error("An unexpected error occurred while fetching odontogram records:", error);
         }
-        allPatients[patientIndex] = { ...patient, dentalRecords: newRecords };
-        return allPatients[patientIndex];
+        return [];
     }
-    return undefined;
+};
+
+export const saveDentalRecord = async (patientId: string | number, record: DentalRecord): Promise<DentalRecord> => {
+    console.log('API CALL: saveDentalRecord. Request Body:', { patientId, record });
+
+    // Build request body - convert camelCase to snake_case
+    const requestBody = {
+        tooth_id: record.toothId,
+        condition: record.condition,
+        notes: record.notes || undefined,
+    };
+
+    try {
+        const response = await customAxios.post(`/patients/${patientId}/odontogram-records`, requestBody);
+        const savedRecord = response.data.data || response.data;
+
+        // Map API response back to frontend type
+        const feRecord: DentalRecord = {
+            toothId: savedRecord.tooth_id,
+            condition: savedRecord.condition,
+            notes: savedRecord.notes || '',
+        };
+
+        // Update local cache - find the patient and update their dental records
+        const patientIndex = allPatients.findIndex(p => String(p.id) === String(patientId));
+        if (patientIndex > -1) {
+            const patient = allPatients[patientIndex];
+            const recordIndex = patient.dentalRecords.findIndex(r => r.toothId === feRecord.toothId);
+
+            if (recordIndex > -1) {
+                // Update existing record
+                patient.dentalRecords[recordIndex] = feRecord;
+            } else {
+                // Add new record
+                patient.dentalRecords.push(feRecord);
+            }
+        }
+
+        return feRecord;
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            console.error('Failed to save dental record:', error.response?.data);
+            if (error.response?.status === 404) {
+                throw new Error("Patient not found");
+            }
+            throw new Error(error.response?.data?.message || "Failed to save dental record");
+        } else {
+            console.error("An unexpected error occurred during dental record save:", error);
+            throw error;
+        }
+    }
 }
 
 export const savePeriodontalRecord = async (patientId: string | number, records: PeriodontalRecord): Promise<Patient | undefined> => {
@@ -833,31 +973,76 @@ export const saveOcclusalRecord = async (patientId: string | number, record: Occ
     return undefined;
 };
 
-export const addTreatment = async (patientId: string | number, treatmentData: Omit<Treatment, 'id' | 'date'>, condition?: DentalCondition): Promise<Patient | undefined> => {
+export const addTreatment = async (patientId: string | number, treatmentData: Omit<Treatment, 'id' | 'date'>, condition?: DentalCondition): Promise<Treatment> => {
     console.log('API CALL: addTreatment', { patientId, treatmentData, condition });
-    await delay(200);
-    const patientIndex = allPatients.findIndex(p => String(p.id) === String(patientId));
-    if (patientIndex > -1) {
-        const patient = allPatients[patientIndex];
-        const newPlan: Treatment = {
-            ...treatmentData,
-            id: `t${Date.now()}`,
+
+    // Build request body - convert camelCase to snake_case
+    const requestBody = {
+        procedure_id: treatmentData.procedureId,
+        procedure: treatmentData.procedure,
+        tooth: treatmentData.tooth || undefined,
+        tooth_id: treatmentData.tooth || undefined,
+        status: treatmentData.status,
+        cost: treatmentData.cost,
+        invoice_id: treatmentData.invoiceId || undefined,
+        condition: condition || undefined,
+    };
+
+    try {
+        // The odontogram-records endpoint creates/updates dental records
+        const response = await customAxios.post(`/patients/${patientId}/odontogram-records`, requestBody);
+        const savedRecord = response.data.data || response.data;
+
+        // Create a treatment object with generated ID and current date
+        // The API returns dental record data, not treatment data
+        const feTreatment: Treatment = {
+            id: `t${Date.now()}`, // Generate temporary ID
+            procedureId: treatmentData.procedureId,
+            procedure: treatmentData.procedure,
+            tooth: treatmentData.tooth,
+            status: treatmentData.status,
+            cost: treatmentData.cost,
             date: new Date().toISOString().split('T')[0],
+            invoiceId: treatmentData.invoiceId,
         };
 
-        if (condition && treatmentData.tooth) {
-            const newRecord: DentalRecord = { toothId: treatmentData.tooth, condition: condition, notes: `Condition related to treatment: ${treatmentData.procedure}` };
-            const recordIndex = patient.dentalRecords.findIndex(r => r.toothId === treatmentData.tooth);
-            if (recordIndex > -1) {
-                patient.dentalRecords[recordIndex] = newRecord;
-            } else {
-                patient.dentalRecords.push(newRecord);
+        // Update local cache - find the patient and update both treatment plans and dental records
+        const patientIndex = allPatients.findIndex(p => String(p.id) === String(patientId));
+        if (patientIndex > -1) {
+            const patient = allPatients[patientIndex];
+
+            // Add treatment to treatment plans
+            patient.treatmentPlans.push(feTreatment);
+
+            // Update dental record from API response
+            if (savedRecord.tooth_id) {
+                const newRecord: DentalRecord = {
+                    toothId: savedRecord.tooth_id,
+                    condition: savedRecord.condition,
+                    notes: savedRecord.notes || ''
+                };
+                const recordIndex = patient.dentalRecords.findIndex(r => r.toothId === savedRecord.tooth_id);
+                if (recordIndex > -1) {
+                    patient.dentalRecords[recordIndex] = newRecord;
+                } else {
+                    patient.dentalRecords.push(newRecord);
+                }
             }
         }
-        patient.treatmentPlans.push(newPlan);
-        return patient;
+
+        return feTreatment;
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            console.error('Failed to add treatment:', error.response?.data);
+            if (error.response?.status === 404) {
+                throw new Error("Patient not found");
+            }
+            throw new Error(error.response?.data?.message || "Failed to add treatment");
+        } else {
+            console.error("An unexpected error occurred during treatment addition:", error);
+            throw error;
+        }
     }
-    return undefined;
 }
 
 export const updateTreatment = async (patientId: string | number, treatment: Treatment): Promise<Patient | undefined> => {
@@ -1115,6 +1300,7 @@ export const createEmployee = async (data: Omit<Employee, 'id'>): Promise<Employ
         role_id: parseInt(data.role as string, 10),
         salary: data.salary,
         hire_date: data.hire_date,
+        gender: data.gender,
         branch_id: parseInt(String(data.branchId), 10),
     };
     try {
@@ -1130,6 +1316,7 @@ export const createEmployee = async (data: Omit<Employee, 'id'>): Promise<Employ
             status: newEmployee.status,
             salary: parseFloat(newEmployee.salary),
             hire_date: newEmployee.hire_date.split('T')[0],
+            gender: newEmployee.gender,
             branchId: String(newEmployee.branch_id),
         };
         
@@ -1182,6 +1369,7 @@ export const updateEmployee = async (id: string | number, data: Partial<Employee
             status: updatedEmployeeData.status,
             salary: parseFloat(updatedEmployeeData.salary),
             hire_date: updatedEmployeeData.hire_date ? updatedEmployeeData.hire_date.split('T')[0] : '',
+            gender: updatedEmployeeData.gender,
             branchId: String(updatedEmployeeData.branch_id),
         };
 

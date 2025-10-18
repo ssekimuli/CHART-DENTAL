@@ -52,6 +52,7 @@ const formSchema = z.object({
   hire_date: z.date({
     required_error: "A hire date is required.",
   }),
+  gender: z.enum(['Male', 'Female', 'Other']).optional(),
   avatar: z.string().url().optional().or(z.literal('')),
   branchId: z.string({ required_error: "Branch is required."}),
 });
@@ -77,6 +78,7 @@ export function EmployeeForm({ employee, onSave, onOpenChange }: EmployeeFormPro
         salary: Number(employee?.salary),
         monthlySalary: employee ? Number(employee.salary) / 12 : undefined,
         hire_date: employee ? parseISO(employee.hire_date) : undefined,
+        gender: employee?.gender,
         avatar: employee?.avatar ?? "",
         branchId: employee ? String(employee.branchId) : selectedBranch,
     },
@@ -188,7 +190,31 @@ export function EmployeeForm({ employee, onSave, onOpenChange }: EmployeeFormPro
                                 </FormItem>
                             )}
                         />
-                         <FormField
+                        <FormField
+                            control={form.control}
+                            name="gender"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Gender</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <FormControl>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select gender" />
+                                    </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                        <SelectItem value="Male">Male</SelectItem>
+                                        <SelectItem value="Female">Female</SelectItem>
+                                        <SelectItem value="Other">Other</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    </div>
+                     <div className="grid grid-cols-2 gap-4">
+                        <FormField
                             control={form.control}
                             name="branchId"
                             render={({ field }) => (

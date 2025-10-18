@@ -125,16 +125,23 @@ export default function PatientDetailPage({
 
   const handleSaveTreatment = async (treatmentData: Omit<Treatment, 'id' | 'date'>) => {
     if (!patient) return;
-    let updatedPatient;
+
     if (selectedTreatment) {
-        updatedPatient = await updateTreatment(patient.id, { ...selectedTreatment, ...treatmentData });
+        const updatedPatient = await updateTreatment(patient.id, { ...selectedTreatment, ...treatmentData });
+        if (updatedPatient) {
+            setPatient(updatedPatient);
+        }
     } else {
-        updatedPatient = await addTreatment(patient.id, treatmentData);
+        const savedTreatment = await addTreatment(patient.id, treatmentData);
+        if (savedTreatment) {
+            // Update the patient's treatment plans with the saved treatment
+            setPatient({
+                ...patient,
+                treatmentPlans: [...patient.treatmentPlans, savedTreatment]
+            });
+        }
     }
 
-    if (updatedPatient) {
-        setPatient(updatedPatient);
-    }
     handleCloseTreatmentForm();
   }
   

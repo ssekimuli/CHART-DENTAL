@@ -134,6 +134,7 @@ export type Employee = {
   status: 'Active' | 'On Leave';
   salary: number;
   hire_date: string;
+  gender?: 'Male' | 'Female' | 'Other';
   branchId: string | number;
   branch?: {
     id: number;

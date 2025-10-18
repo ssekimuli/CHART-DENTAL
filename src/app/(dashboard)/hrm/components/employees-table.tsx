@@ -40,6 +40,7 @@ export function EmployeesTable({ data, onView, onEdit, onDelete }: EmployeesTabl
           <TableRow>
             <TableHead>Name</TableHead>
             <TableHead>Role</TableHead>
+            <TableHead>Gender</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Hire Date</TableHead>
             <TableHead className="text-right">Salary</TableHead>
@@ -62,6 +63,7 @@ export function EmployeesTable({ data, onView, onEdit, onDelete }: EmployeesTabl
                 </div>
               </TableCell>
               <TableCell>{employee.role}</TableCell>
+              <TableCell>{employee.gender || '-'}</TableCell>
               <TableCell>
                 <Badge
                   variant={employee.status === "Active" ? "secondary" : "outline"}
@@ -102,7 +104,7 @@ export function EmployeesTable({ data, onView, onEdit, onDelete }: EmployeesTabl
           ))}
           {data.length === 0 && (
             <TableRow>
-                <TableCell colSpan={6} className="h-24 text-center">
+                <TableCell colSpan={7} className="h-24 text-center">
                     No employees found for this branch.
                 </TableCell>
             </TableRow>

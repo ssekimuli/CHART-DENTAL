@@ -37,6 +37,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getPatientFullName } from "@/lib/utils";
 
 export default function PatientsPage() {
@@ -147,11 +148,10 @@ export default function PatientsPage() {
 
   const handleClearFilters = () => {
     setSearchQuery("");
-    setStatusFilter("all");
     setGenderFilter("all");
   };
 
-  const hasActiveFilters = searchQuery || statusFilter !== "all" || genderFilter !== "all";
+  const hasActiveFilters = searchQuery || genderFilter !== "all";
 
   return (
     <>
@@ -186,19 +186,6 @@ export default function PatientsPage() {
             </div>
           </div>
           <div className="w-full md:w-[180px]">
-            <label className="text-sm font-medium mb-2 block">Status</label>
-            <Select value={statusFilter} onValueChange={(value: any) => setStatusFilter(value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="All Statuses" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Statuses</SelectItem>
-                <SelectItem value="Active">Active</SelectItem>
-                <SelectItem value="Inactive">Inactive</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="w-full md:w-[180px]">
             <label className="text-sm font-medium mb-2 block">Gender</label>
             <Select value={genderFilter} onValueChange={(value: any) => setGenderFilter(value)}>
               <SelectTrigger>
@@ -220,31 +207,98 @@ export default function PatientsPage() {
           )}
         </div>
 
-        {/* Results count */}
-        <div className="text-sm text-muted-foreground">
-          {searchQuery ? (
-            <>Showing {patients.length} of {patientsData.length} patients</>
-          ) : (
-            <>Showing {patients.length} patients</>
-          )}
-        </div>
+        {/* Tabs for Status */}
+        <Tabs value={statusFilter} onValueChange={(value: any) => setStatusFilter(value)} className="w-full">
+          <TabsList>
+            <TabsTrigger value="all">All Patients</TabsTrigger>
+            <TabsTrigger value="Active">Active</TabsTrigger>
+            <TabsTrigger value="Inactive">Inactive</TabsTrigger>
+          </TabsList>
 
-        {/* Table */}
-        {isLoading ? (
-             <div className="space-y-4">
+          <TabsContent value="all" className="space-y-4">
+            {/* Results count */}
+            <div className="text-sm text-muted-foreground">
+              {searchQuery ? (
+                <>Showing {patients.length} of {patientsData.length} patients</>
+              ) : (
+                <>Showing {patients.length} patients</>
+              )}
+            </div>
+
+            {/* Table */}
+            {isLoading ? (
+              <div className="space-y-4">
                 <Skeleton className="h-12 w-full" />
                 <Skeleton className="h-12 w-full" />
                 <Skeleton className="h-12 w-full" />
                 <Skeleton className="h-12 w-full" />
-             </div>
-        ) : (
-            <PatientsTable 
-                data={patients} 
+              </div>
+            ) : (
+              <PatientsTable
+                data={patients}
                 onEdit={handleOpenForm}
                 onDelete={openDeleteDialog}
                 onView={handleViewPatient}
-            />
-        )}
+              />
+            )}
+          </TabsContent>
+
+          <TabsContent value="Active" className="space-y-4">
+            {/* Results count */}
+            <div className="text-sm text-muted-foreground">
+              {searchQuery ? (
+                <>Showing {patients.length} of {patientsData.length} active patients</>
+              ) : (
+                <>Showing {patients.length} active patients</>
+              )}
+            </div>
+
+            {/* Table */}
+            {isLoading ? (
+              <div className="space-y-4">
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+              </div>
+            ) : (
+              <PatientsTable
+                data={patients}
+                onEdit={handleOpenForm}
+                onDelete={openDeleteDialog}
+                onView={handleViewPatient}
+              />
+            )}
+          </TabsContent>
+
+          <TabsContent value="Inactive" className="space-y-4">
+            {/* Results count */}
+            <div className="text-sm text-muted-foreground">
+              {searchQuery ? (
+                <>Showing {patients.length} of {patientsData.length} inactive patients</>
+              ) : (
+                <>Showing {patients.length} inactive patients</>
+              )}
+            </div>
+
+            {/* Table */}
+            {isLoading ? (
+              <div className="space-y-4">
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+              </div>
+            ) : (
+              <PatientsTable
+                data={patients}
+                onEdit={handleOpenForm}
+                onDelete={openDeleteDialog}
+                onView={handleViewPatient}
+              />
+            )}
+          </TabsContent>
+        </Tabs>
       </CardContent>
     </Card>
     {isFormOpen && (

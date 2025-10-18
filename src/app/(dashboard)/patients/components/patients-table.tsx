@@ -43,6 +43,7 @@ export function PatientsTable({ data, onView, onEdit, onDelete }: PatientsTableP
         <TableHeader>
           <TableRow>
             <TableHead>Name</TableHead>
+            <TableHead>Gender</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Last Visit</TableHead>
             <TableHead>Date of Birth</TableHead>
@@ -64,6 +65,7 @@ export function PatientsTable({ data, onView, onEdit, onDelete }: PatientsTableP
                   <div className="text-sm text-muted-foreground">{patient.email}</div>
                 </div>
               </TableCell>
+              <TableCell>{patient.gender || '-'}</TableCell>
               <TableCell>
                 <Badge
                   variant={patient.status === "Active" ? "secondary" : "outline"}
@@ -110,7 +112,7 @@ export function PatientsTable({ data, onView, onEdit, onDelete }: PatientsTableP
           ))}
           {data.length === 0 && (
             <TableRow>
-                <TableCell colSpan={5} className="h-24 text-center">
+                <TableCell colSpan={6} className="h-24 text-center">
                     No patients found for this branch.
                 </TableCell>
             </TableRow>

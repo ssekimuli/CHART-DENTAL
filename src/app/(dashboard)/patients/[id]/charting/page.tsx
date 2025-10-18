@@ -91,9 +91,32 @@ export default function PatientChartingPage({
   }
 
   const handleAddTreatment = async (newTreatment: Omit<Treatment, 'id' | 'date'>, condition?: DentalCondition) => {
-    const updatedPatient = await addTreatment(patient.id, newTreatment, condition);
-    if (updatedPatient) {
-      setPatient(updatedPatient);
+    const savedTreatment = await addTreatment(patient.id, newTreatment, condition);
+    if (savedTreatment) {
+      // Update the patient's treatment plans and dental records
+      const updatedDentalRecords = [...patient.dentalRecords];
+
+      // If a tooth is specified and condition is provided, update the dental record
+      if (newTreatment.tooth && condition) {
+        const recordIndex = updatedDentalRecords.findIndex(r => r.toothId === newTreatment.tooth);
+        const newRecord: DentalRecord = {
+          toothId: newTreatment.tooth,
+          condition: condition,
+          notes: savedTreatment.procedure || ''
+        };
+
+        if (recordIndex > -1) {
+          updatedDentalRecords[recordIndex] = newRecord;
+        } else {
+          updatedDentalRecords.push(newRecord);
+        }
+      }
+
+      setPatient({
+        ...patient,
+        treatmentPlans: [...patient.treatmentPlans, savedTreatment],
+        dentalRecords: updatedDentalRecords
+      });
     }
     setIsTreatmentFormOpen(false);
     setSelectedToothForTreatment(undefined);
@@ -101,9 +124,19 @@ export default function PatientChartingPage({
 
   const handleSaveDentalRecord = async (record: DentalRecord) => {
     if (!patient) return;
-    const updatedPatient = await saveDentalRecord(patient.id, record);
-    if (updatedPatient) {
-        setPatient(updatedPatient);
+    const savedRecord = await saveDentalRecord(patient.id, record);
+    if (savedRecord) {
+        // Update the patient's dental records with the saved record
+        const recordIndex = patient.dentalRecords.findIndex(r => r.toothId === savedRecord.toothId);
+        const newRecords = [...patient.dentalRecords];
+
+        if (recordIndex > -1) {
+            newRecords[recordIndex] = savedRecord;
+        } else {
+            newRecords.push(savedRecord);
+        }
+
+        setPatient({ ...patient, dentalRecords: newRecords });
     }
     setIsConditionLoggerOpen(false);
     setSelectedToothForCondition(undefined);
