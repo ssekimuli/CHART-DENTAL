@@ -80,12 +80,24 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
     fetchTreatments();
   }, [])
   
+  const parseDateSafe = (value?: string | Date) => {
+    if (value instanceof Date) return value;
+    if (typeof value === 'string' && value.trim() !== '') {
+      try {
+        return parseISO(value);
+      } catch {
+        return new Date();
+      }
+    }
+    return new Date();
+  };
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-        patientId: invoice?.patientId ?? "",
-        issueDate: invoice ? parseISO(invoice.issueDate) : new Date(),
-        dueDate: invoice ? parseISO(invoice.dueDate) : undefined,
+        patientId: invoice?.patientId != null ? String(invoice.patientId) : "",
+        issueDate: invoice ? parseDateSafe(invoice.issueDate) : new Date(),
+        dueDate: invoice ? parseDateSafe(invoice.dueDate) : new Date(),
         status: invoice?.status ?? 'Pending',
         paymentMethod: invoice?.paymentMethod,
         otherCharges: invoice?.otherCharges ?? [],
@@ -102,7 +114,12 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
   
   useEffect(() => {
     if (invoice) {
-        setSelectedTreatments(invoice.treatments);
+        setSelectedTreatments(invoice.treatments.map(t => ({
+          procedureId: t.procedureId || t.id || Math.random(),
+          procedure: t.procedure,
+          cost: Number(t.cost) || 0,
+          tooth: t.tooth,
+        })));
     } else if (patientId) {
         // When creating a new invoice for a patient, auto-select their unbilled treatments.
         const fetchPatientTreatments = async () => {
@@ -110,7 +127,7 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
             if (patientData) {
                 const unbilled = patientData.treatmentPlans
                     .filter(t => t.status === 'Completed' && !t.invoiceId)
-                    .map(t => ({ procedureId: t.procedureId, procedure: t.procedure, cost: t.cost, tooth: t.tooth }));
+                    .map(t => ({ procedureId: t.procedureId, procedure: t.procedure, cost: Number(t.cost) || 0, tooth: t.tooth }));
                 setSelectedTreatments(unbilled);
             }
         };
@@ -132,17 +149,17 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
 
   const handleTreatmentToggle = (treatment: InvoiceTreatment) => {
     setSelectedTreatments(prev => 
-        prev.some(t => t.procedureId === treatment.procedureId)
-            ? prev.filter(t => t.procedureId !== treatment.procedureId)
+        prev.some(t => Number(t.procedureId) === Number(treatment.procedureId))
+            ? prev.filter(t => Number(t.procedureId) !== Number(treatment.procedureId))
             : [...prev, treatment]
     );
   }
   
   // This function is for the CommandItem onSelect
-  const handleTreatmentSelect = (procedureId: string) => {
-    const treatment = availableTreatments.find(t => t.id === procedureId);
+  const handleTreatmentSelect = (procedureId: string | number) => {
+    const treatment = availableTreatments.find(t => Number(t.id) === Number(procedureId));
     if (treatment) {
-        handleTreatmentToggle({ procedureId: treatment.id, procedure: treatment.procedure, cost: treatment.cost });
+        handleTreatmentToggle({ procedureId: Number(treatment.id), procedure: treatment.procedure, cost: treatment.cost });
     }
   }
 
@@ -180,7 +197,7 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
                                 <FormLabel>Patient</FormLabel>
                                 <FormControl>
                                     <Combobox
-                                        options={patients.map(p => ({ value: p.id, label: p.name }))}
+                                        options={patients.map(p => ({ value: String(p.id), label: p.first_name + ' ' + p.last_name }))}
                                         value={field.value}
                                         onChange={(value) => {
                                             field.onChange(value);
@@ -216,8 +233,8 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
                                                             <span>{treatment.procedure}</span>
                                                     </div>
                                                     <div className="flex items-center gap-2">
-                                                            <span className="font-mono">${treatment.cost.toFixed(2)}</span>
-                                                            {selectedTreatments.some(t => t.procedureId === treatment.id) && <Check className="h-4 w-4 text-primary" />}
+                                                            <span className="font-mono">${Number(treatment.cost).toFixed(2)}</span>
+                                                            {selectedTreatments.some(t => Number(t.procedureId) === Number(treatment.id)) && <Check className="h-4 w-4 text-primary" />}
                                                     </div>
                                                     </CommandItem>
                                                 ))}
@@ -245,13 +262,13 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                    {selectedTreatments.map((treatment, index) => (
-                                        <TableRow key={`${treatment.procedureId}-${index}`}>
+                                    {selectedTreatments.map((treatment) => (
+                                        <TableRow key={String(treatment.procedureId)}>
                                             <TableCell>{treatment.procedure} {treatment.tooth ? `(#${treatment.tooth})` : ''}</TableCell>
-                                            <TableCell className="text-right">${treatment.cost.toFixed(2)}</TableCell>
+                                            <TableCell className="text-right">${Number(treatment.cost).toFixed(2)}</TableCell>
                                             <TableCell>
-                                                <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleTreatmentToggle(treatment)}>
-                                                    <X className="h-4 w-4 text-muted-foreground" />
+                                                <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleTreatmentToggle(treatment)} title="Remove treatment">
+                                                    <X className="h-4 w-4 text-muted-foreground hover:text-destructive" />
                                                 </Button>
                                             </TableCell>
                                         </TableRow>
@@ -449,7 +466,7 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
                         </div>
                         <DialogFooter className="sticky bottom-0 bg-background pt-4 -mx-6 px-6 pb-6 border-t">
                             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-                            <Button type="submit" disabled={selectedTreatments.length === 0 && otherChargesTotal <= 0}>{invoice ? 'Save Changes' : 'Create Invoice'}</Button>
+                            <Button type="submit" disabled={selectedTreatments.length === 0 && otherChargesTotal <= 0 && !invoice}>{invoice ? 'Save Changes' : 'Create Invoice'}</Button>
                         </DialogFooter>
                     </form>
                 </Form>

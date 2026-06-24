@@ -9,7 +9,6 @@ import {
     branches as mockBranches,
     inventory,
     labOrders as allLabOrders,
-    treatments as allTreatments,
     attendance as allAttendance,
     leaveRequests as allLeaveRequests,
     staffAdvances as allStaffAdvances,
@@ -193,6 +192,68 @@ export const getPatients = async (filters?: string | number | GetPatientsFilters
     }
 }
 
+export const getPatientList = async (filters?: string | number | GetPatientsFilters): Promise<BasePatient[]> => {
+    console.log('API CALL: getPatientList', { filters });
+    
+    try {
+        const params: { branch_id?: number; status?: string; gender?: string } = {};
+
+        // Handle backward compatibility - if filters is a string or number, treat it as branchId
+        if (typeof filters === 'number' || typeof filters === 'string') {
+            params.branch_id = parseInt(String(filters), 10);
+        } else if (filters) {
+            if (filters.branchId) {
+                params.branch_id = parseInt(String(filters.branchId), 10);
+            }
+            if (filters.status) {
+                params.status = filters.status;
+            }
+            if (filters.gender) {
+                params.gender = filters.gender;
+            }
+        }
+
+        // ✅ ACTUAL API CALL
+        const response = await customAxios.get('/patients-list', { params });
+        
+        // Handle different response formats
+        let patientData = response.data;
+        if (patientData?.data && Array.isArray(patientData.data)) {
+            patientData = patientData.data;
+        } else if (!Array.isArray(patientData)) {
+            console.error('Unexpected response format:', patientData);
+            return [];
+        }
+
+        // ✅ Map the response to BasePatient type
+        const patients: BasePatient[] = patientData.map((patient: any) => ({
+            id: patient.id || patient.patient_id,
+            name: patient.name || patient.patient_name || 'Unknown',
+            email: patient.email || '',
+            phone: patient.phone || patient.phone_number || '',
+            gender: patient.gender || '',
+            dateOfBirth: patient.date_of_birth || patient.dob || patient.dateOfBirth || '',
+            status: patient.status || 'Active',
+            branchId: patient.branch_id || patient.branchId,
+            // Keep any additional fields
+            ...patient,
+        }));
+
+        console.log('Fetched patients:', patients);
+        return patients;
+
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            console.error('Failed to fetch patient list:', error.response?.data);
+        } else {
+            console.error("An unexpected error occurred while fetching patient list:", error);
+        }
+        return [];
+    }
+};
+
+
+
 export const getPatientById = async (id: string | number): Promise<Patient | undefined> => {
     console.log('API CALL: getPatientById', { id });
 
@@ -257,51 +318,111 @@ export const getAppointments = async (): Promise<Appointment[]> => {
     return JSON.parse(JSON.stringify(allAppointments));
 }
 
-type GetInvoicesFilters = {
-    branchId?: string | number;
-    searchQuery?: string;
-    dateRange?: DateRange;
-};
-
-export const getInvoices = async (filters?: GetInvoicesFilters): Promise<Invoice[]> => {
+export const getInvoices = async (filters?: any) => {
     console.log('API CALL: getInvoices', { filters });
-    await delay(200);
-    let localInvoices = allInvoices;
 
-    if (filters?.branchId) {
-        localInvoices = localInvoices.filter(i => String(i.branchId) === String(filters.branchId));
-    }
-    
-    if (filters?.searchQuery) {
-        const query = filters.searchQuery.toLowerCase();
-        localInvoices = localInvoices.filter(invoice => 
-            invoice.patientName.toLowerCase().includes(query) ||
-            String(invoice.id).toLowerCase().includes(query)
-        );
-    }
+    // ✅ Build params exactly as backend expects
+    const params: any = {};
 
-    if (filters?.dateRange?.from) {
-        localInvoices = localInvoices.filter(invoice => {
-            const issueDate = new Date(invoice.issueDate);
-            return issueDate >= filters.dateRange!.from!;
-        });
-    }
-     if (filters?.dateRange?.to) {
-        localInvoices = localInvoices.filter(invoice => {
-            const issueDate = new Date(invoice.issueDate);
-            return issueDate <= filters.dateRange!.to!;
-        });
-    }
+    if (filters?.branchId) params.branch_id = filters.branchId;
+    if (filters?.status) params.status = filters.status;
 
+    try {
+        // ✅ API CALL
+        const response = await customAxios.get('/invoices', { params });
 
-    return JSON.parse(JSON.stringify(localInvoices));
-}
+        let invoices = response.data.map((inv: any) => ({
+            ...inv,
+
+            // ✅ FIX TYPES
+            amount: Number(inv.amount),
+            paidAmount: Number(inv.paid_amount),
+
+            // ✅ FIX FIELD NAMES (VERY IMPORTANT)
+            patientName: inv.patient_name,
+            patientId: inv.patient_id ?? inv.patientId,
+            issueDate: inv.issue_date,
+            branchId: inv.branch_id,
+        }));
+
+        console.log('Fetched invoices from API:', invoices);
+
+        // ✅ Frontend filters (search + date)
+        if (filters?.searchQuery) {
+            const query = filters.searchQuery.toLowerCase();
+            invoices = invoices.filter((inv: any) =>
+                inv.patient_name.toLowerCase().includes(query) ||
+                String(inv.id).toLowerCase().includes(query)
+            );
+        }
+
+        if (filters?.dateRange?.from) {
+            invoices = invoices.filter((inv: any) =>
+                new Date(inv.issue_date) >= filters.dateRange.from
+            );
+        }
+
+        if (filters?.dateRange?.to) {
+            invoices = invoices.filter((inv: any) =>
+                new Date(inv.issue_date) <= filters.dateRange.to
+            );
+        }
+
+        return invoices;
+
+    } catch (error) {
+        console.error('Error fetching invoices:', error);
+        return [];
+    }
+};
 
 export const getInvoiceById = async (id: string | number): Promise<Invoice | undefined> => {
     console.log('API CALL: getInvoiceById', { id });
-    await delay(100);
-    return JSON.parse(JSON.stringify(allInvoices.find(i => String(i.id) === String(id))));
-}
+    
+    try {
+        const response = await customAxios.get(`/invoices/${id}`);
+        let invoiceData = response.data;
+        
+        console.log('Fetched invoice data from API:', invoiceData);
+        
+        // Handle different response formats (if your API wraps data in a data property)
+        if (invoiceData?.data) {
+            invoiceData = invoiceData.data;
+        }
+        
+        if (!invoiceData) {
+            console.error('No invoice found with ID:', id);
+            return undefined;
+        }
+
+        // ✅ Map the API response to match your Invoice type
+        const invoice: Invoice = {
+            ...invoiceData,
+            // Convert string amounts to numbers
+            amount: Number(invoiceData.amount) || 0,
+            paidAmount: Number(invoiceData.paid_amount) || 0,
+            // Map field names from API to your component expectations
+            patientName: invoiceData.patient_name || invoiceData.patientName || 'Unknown',
+            patientId: invoiceData.patient_id ?? invoiceData.patientId ?? '',
+            issueDate: invoiceData.issue_date || invoiceData.issueDate || new Date().toISOString(),
+            branchId: invoiceData.branch_id || invoiceData.branchId,
+            // Keep original fields for reference (optional)
+            patient_name: invoiceData.patient_name,
+            patient_id: invoiceData.patient_id,
+            issue_date: invoiceData.issue_date,
+            paid_amount: invoiceData.paid_amount,
+            branch_id: invoiceData.branch_id,
+        };
+        
+        console.log('Mapped invoice:', invoice);
+        return invoice;
+        
+    } catch (error) {
+        console.error('Error fetching invoice by ID:', error);
+        return undefined;
+    }
+};
+
 
 export const getEmployees = async (branchId?: string | number): Promise<Employee[]> => {
     console.log('API CALL: getEmployees', { branchId });
@@ -442,8 +563,29 @@ export const getChartData = async (): Promise<ChartData[]> => {
 
 export const getTreatments = async (): Promise<SystemTreatment[]> => {
     console.log('API CALL: getTreatments');
-    await delay(50);
-    return JSON.parse(JSON.stringify(allTreatments));
+    try {
+        const response = await customAxios.get('/procedures');
+        
+        // Handle both array and wrapped response formats
+        const treatmentData = Array.isArray(response.data) ? response.data : (response.data.data || []);
+        
+        // Map API response to SystemTreatment type
+        return treatmentData.map((treatment: any) => ({
+            id: treatment.id,
+            procedure: treatment.procedure || treatment.name || '',
+            cost: parseFloat(treatment.cost || treatment.price || '0'),
+            description: treatment.description || '',
+            category: treatment.category || '',
+        }));
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            console.error('Failed to fetch treatments:', error.response?.data);
+        } else {
+            console.error("An unexpected error occurred while fetching treatments:", error);
+        }
+        // Fallback to mock data on error
+        return [];
+    }
 }
 
 export const getAttendance = async (branchId?: string | number): Promise<AttendanceRecord[]> => {
@@ -1197,97 +1339,348 @@ export const deleteAppointment = async (id: string | number): Promise<{ success:
 }
 
 // Invoices
-export const createInvoice = async (data: Omit<Invoice, 'id' | 'amount' | 'paidAmount' | 'patientName'> & { branchId: string | number, treatments: InvoiceTreatment[] }): Promise<Invoice> => {
+export const createNewInvoice = async (data: Omit<Invoice, 'id' | 'amount' | 'paidAmount'> & { branchId: string | number; treatments: InvoiceTreatment[]; notes?: string }): Promise<Invoice> => {
     console.log('API CALL: createInvoice', { data });
-    await delay(200);
-    const patient = allPatients.find(p => String(p.id) === String(data.patientId));
-    if (!patient) throw new Error("Patient not found");
-
-    const treatmentsTotal = data.treatments.reduce((sum, t) => sum + t.cost, 0);
-    const otherChargesTotal = (data.otherCharges || []).reduce((sum, charge) => sum + charge.amount, 0);
-    const amount = treatmentsTotal + otherChargesTotal;
-
-    const newInvoice: Invoice = {
-        ...data,
-        id: `inv${allInvoices.length + 1}`,
-        patientName: `${patient.first_name} ${patient.last_name}`,
-        amount,
-        paidAmount: 0,
-        transactions: [],
-    };
-    allInvoices.unshift(newInvoice);
-
-    // Mark treatments in patient's plan as billed
-    patient.treatmentPlans.forEach(tp => {
-        if (data.treatments.some(it => it.procedure === tp.procedure && !tp.invoiceId)) {
-            tp.invoiceId = newInvoice.id;
-        }
-    });
-
-    return newInvoice;
-}
-
-export const updateInvoice = async (id: string | number, data: Partial<Omit<Invoice, 'amount' | 'id'>>): Promise<Invoice | undefined> => {
-    console.log('API CALL: updateInvoice', { id, data });
-    await delay(200);
-    const invoiceIndex = allInvoices.findIndex(i => String(i.id) === String(id));
-
-    if (invoiceIndex > -1) {
-        const originalInvoice = allInvoices[invoiceIndex];
-        const treatments = data.treatments || originalInvoice.treatments;
-        const treatmentsTotal = treatments.reduce((sum, t) => sum + t.cost, 0);
-        
-        const otherCharges = data.otherCharges ?? originalInvoice.otherCharges ?? [];
-        const otherChargesTotal = otherCharges.reduce((sum, charge) => sum + charge.amount, 0);
+    
+    try {
+        // ✅ Calculate totals
+        const treatmentsTotal = data.treatments.reduce((sum, t) => sum + (Number(t.cost) || 0), 0);
+        const otherChargesTotal = (data.otherCharges || []).reduce((sum, charge) => sum + (Number(charge.amount) || 0), 0);
         const amount = treatmentsTotal + otherChargesTotal;
 
-        const updatedInvoice = { ...originalInvoice, ...data, amount, treatments, otherCharges };
-        allInvoices[invoiceIndex] = updatedInvoice;
-        return updatedInvoice;
-    }
-    return undefined;
-}
+        // ✅ Prepare payload for API
+        const payload = {
+            patient_id: data.patientId,
+            patient_name: data.patientName,
+            amount: amount,
+            issue_date: data.issueDate,
+            due_date: data.dueDate,
+            status: data.status || 'Pending',
+            branch_id: data.branchId,
+            treatments: data.treatments.map(t => {
+                const notes = (t as any).notes;
+                const tooth = (t as any).tooth;
+                const payload: any = {
+                    procedure_id: t.procedureId,
+                    procedure: t.procedure,
+                    cost: Number(t.cost) || 0,
+                };
+                if (tooth !== undefined) {
+                    payload.tooth = tooth;
+                }
+                if (notes) {
+                    payload.notes = notes;
+                }
+                return payload;
+            }),
+            other_charges: (data.otherCharges || []).map(charge => ({
+                description: charge.description,
+                amount: Number(charge.amount) || 0
+            })),
+            notes: data.notes || '',
+            payment_method: data.paymentMethod || null,
+        };
 
-export const processPayment = async (invoiceId: string | number, paymentAmount: number, method: string): Promise<Invoice | undefined> => {
-    console.log('API CALL: processPayment', { invoiceId, paymentAmount, method });
-    await delay(300);
-    const invoiceIndex = allInvoices.findIndex(i => String(i.id) === String(invoiceId));
-    if (invoiceIndex > -1) {
-        const originalInvoice = allInvoices[invoiceIndex];
-        const newPaidAmount = originalInvoice.paidAmount + paymentAmount;
-        const newStatus = newPaidAmount >= originalInvoice.amount ? 'Paid' : 'Pending';
+        // ✅ Make API call
+        const response = await customAxios.post('/invoices', payload);
         
-        const newTransaction: PaymentTransaction = {
-            id: `txn_${(originalInvoice.transactions?.length || 0) + 1}_${originalInvoice.id}`,
-            date: new Date().toISOString().split('T')[0],
-            amount: paymentAmount,
-            method: method as PaymentMethod
+        // Handle different response formats
+        let invoiceData = response.data;
+        if (invoiceData?.data) {
+            invoiceData = invoiceData.data;
+        }
+        
+        if (!invoiceData) {
+            throw new Error('No invoice data returned from API');
+        }
+
+        // ✅ Map response to Invoice type
+        const invoice = {
+            id: invoiceData.id || invoiceData.invoice_id,
+            patientId: invoiceData.patient_id || invoiceData.patientId || data.patientId,
+            patientName: invoiceData.patient_name || invoiceData.patientName || '',
+            issueDate: invoiceData.issue_date || invoiceData.issueDate || data.issueDate,
+            dueDate: invoiceData.due_date || invoiceData.dueDate || data.dueDate,
+            status: invoiceData.status || data.status || 'Pending',
+            amount: Number(invoiceData.amount) || amount,
+            paidAmount: Number(invoiceData.paid_amount) || 0,
+            branchId: invoiceData.branch_id || invoiceData.branchId || data.branchId,
+            treatments: (invoiceData.treatments || data.treatments || []).map((t: any) => ({
+                procedure: t.procedure || t.procedure_name,
+                cost: Number(t.cost) || 0,
+                notes: t.notes || '',
+            })),
+            otherCharges: (invoiceData.other_charges || invoiceData.otherCharges || data.otherCharges || []).map((c: any) => ({
+                description: c.description || c.name,
+                amount: Number(c.amount) || 0,
+            })),
+            transactions: invoiceData.transactions || [],
+            paymentMethod: invoiceData.payment_method || invoiceData.paymentMethod || data.paymentMethod,
+            notes: invoiceData.notes || data.notes || '',
         };
 
-        const updatedTransactions = [...(originalInvoice.transactions || []), newTransaction];
+        console.log('Created invoice:', invoice);
+        return invoice;
 
-        const updatedInvoice: Invoice = {
-            ...originalInvoice,
-            paidAmount: newPaidAmount,
-            status: newStatus as Invoice['status'],
-            paymentMethod: method as PaymentMethod,
-            transactions: updatedTransactions
-        };
-        allInvoices[invoiceIndex] = updatedInvoice;
-        return updatedInvoice;
+    } catch (error) {
+        console.error('Error creating invoice:', error);
+        if (axios.isAxiosError(error)) {
+            throw new Error(error.response?.data?.message || 'Failed to create invoice');
+        }
+        throw error;
     }
-    return undefined;
-}
+};
+type InvoiceUpdateData = Partial<Omit<Invoice, 'amount' | 'id'>> & { notes?: string };
+type InvoiceWithNotes = Invoice & { notes?: string };
+
+export const updateInvoice = async (id: string | number, data: InvoiceUpdateData): Promise<Invoice | undefined> => {
+    console.log('API CALL: updateInvoice', { id, data });
+    
+    try {
+        // ✅ Calculate totals if treatments or otherCharges are being updated
+        const treatments = data.treatments || [];
+        const treatmentsTotal = treatments.reduce((sum, t) => sum + (Number(t.cost) || 0), 0);
+        
+        const otherCharges = data.otherCharges || [];
+        const otherChargesTotal = otherCharges.reduce((sum, charge) => sum + (Number(charge.amount) || 0), 0);
+        const amount = treatmentsTotal + otherChargesTotal;
+
+        // ✅ Prepare payload for API
+        const payload: any = {};
+        
+        // Only include fields that are being updated
+        if (data.patientId !== undefined) payload.patient_id = data.patientId;
+        if (data.issueDate !== undefined) payload.issue_date = data.issueDate;
+        if (data.dueDate !== undefined) payload.due_date = data.dueDate;
+        if (data.status !== undefined) payload.status = data.status;
+        if (data.branchId !== undefined) payload.branch_id = data.branchId;
+        if (data.paymentMethod !== undefined) payload.payment_method = data.paymentMethod;
+        if (data.notes !== undefined) payload.notes = data.notes;
+        
+        // Handle treatments
+        if (data.treatments !== undefined) {
+            payload.treatments = data.treatments.map(t => {
+                const treatmentPayload: any = {
+                    procedure_id: t.procedureId,
+                    procedure: t.procedure,
+                    cost: Number(t.cost) || 0,
+                };
+                if (t.tooth !== undefined) {
+                    treatmentPayload.tooth = t.tooth;
+                }
+                const notes = (t as any).notes;
+                if (notes !== undefined) {
+                    treatmentPayload.notes = notes;
+                }
+                return treatmentPayload;
+            });
+        }
+        
+        // Handle other charges
+        if (data.otherCharges !== undefined) {
+            payload.other_charges = data.otherCharges.map(charge => ({
+                description: charge.description,
+                amount: Number(charge.amount) || 0
+            }));
+        }
+
+        // ✅ If amount was calculated, include it
+        if (data.treatments !== undefined || data.otherCharges !== undefined) {
+            payload.amount = amount;
+        }
+
+        // ✅ Make API call
+        const response = await customAxios.put(`/invoices/${id}`, payload);
+        
+        // Handle different response formats
+        let invoiceData = response.data;
+        if (invoiceData?.data) {
+            invoiceData = invoiceData.data;
+        }
+        
+        if (!invoiceData) {
+            console.error('No invoice data returned from API');
+            return undefined;
+        }
+
+        // ✅ Map response to Invoice type
+        const invoice: InvoiceWithNotes = {
+            id: invoiceData.id || invoiceData.invoice_id || String(id),
+            patientId: invoiceData.patient_id || invoiceData.patientId || data.patientId || '',
+            patientName: invoiceData.patient_name || invoiceData.patientName || '',
+            issueDate: invoiceData.issue_date || invoiceData.issueDate || data.issueDate || new Date().toISOString(),
+            dueDate: invoiceData.due_date || invoiceData.dueDate || data.dueDate || new Date().toISOString(),
+            status: invoiceData.status || data.status || 'Pending',
+            amount: Number(invoiceData.amount) || amount || 0,
+            paidAmount: Number(invoiceData.paid_amount) || 0,
+            branchId: invoiceData.branch_id || invoiceData.branchId || data.branchId || '',
+            treatments: (invoiceData.treatments || data.treatments || []).map((t: any) => ({
+                procedure: t.procedure || t.procedure_name,
+                cost: Number(t.cost) || 0,
+                notes: t.notes || '',
+            })),
+            otherCharges: (invoiceData.other_charges || invoiceData.otherCharges || data.otherCharges || []).map((c: any) => ({
+                description: c.description || c.name,
+                amount: Number(c.amount) || 0,
+            })),
+            transactions: invoiceData.transactions || [],
+            paymentMethod: invoiceData.payment_method || invoiceData.paymentMethod || data.paymentMethod,
+            notes: invoiceData.notes || data.notes || '',
+        };
+
+        console.log('Updated invoice:', invoice);
+        return invoice;
+
+    } catch (error) {
+        console.error('Error updating invoice:', error);
+        if (axios.isAxiosError(error)) {
+            console.error('API Error:', error.response?.data);
+        }
+        return undefined;
+    }
+};
+
+export const processPayment = async (invoiceId: string | number, paymentAmount: number, method: string): Promise<(Invoice & { notes?: string }) | undefined> => {
+    console.log('API CALL: processPayment', { invoiceId, paymentAmount, method });
+    
+    try {
+        // ✅ Validate payment amount
+        if (paymentAmount <= 0) {
+            throw new Error('Payment amount must be greater than 0');
+        }
+
+        // ✅ Validate payment method
+        const validMethods = ['Cash', 'Credit Card', 'Debit Card', 'Bank Transfer', 'Insurance', 'Other'];
+        if (!validMethods.includes(method)) {
+            console.warn(`Unknown payment method: ${method}, using 'Other'`);
+            // You might want to use a default or throw an error
+        }
+
+        // ✅ Prepare payload for API
+        const payload = {
+            amount: Number(paymentAmount),
+            method: method,
+            payment_date: new Date().toISOString(),
+            // Optional additional fields
+            notes: `Payment of ${paymentAmount} via ${method}`,
+        };
+
+        // ✅ Make API call to process payment
+        const response = await customAxios.post(`/invoices/${invoiceId}/payments`, payload);
+        
+        // Handle different response formats
+        let invoiceData = response.data;
+        if (invoiceData?.data) {
+            invoiceData = invoiceData.data;
+        }
+        
+        if (!invoiceData) {
+            throw new Error('No invoice data returned from payment API');
+        }
+
+        // ✅ Map response to Invoice type
+        const invoice: Invoice & { notes?: string } = {
+            id: invoiceData.id || invoiceData.invoice_id || String(invoiceId),
+            patientId: invoiceData.patient_id || invoiceData.patientId || '',
+            patientName: invoiceData.patient_name || invoiceData.patientName || '',
+            issueDate: invoiceData.issue_date || invoiceData.issueDate || new Date().toISOString(),
+            dueDate: invoiceData.due_date || invoiceData.dueDate || new Date().toISOString(),
+            status: invoiceData.status || 'Pending',
+            amount: Number(invoiceData.amount) || 0,
+            paidAmount: Number(invoiceData.paid_amount) || 0,
+            branchId: invoiceData.branch_id || invoiceData.branchId || '',
+            treatments: (invoiceData.treatments || []).map((t: any) => ({
+                procedureId: t.procedure_id || t.procedureId,
+                procedure: t.procedure || t.procedure_name,
+                cost: Number(t.cost) || 0,
+                notes: t.notes || '',
+            })),
+            otherCharges: (invoiceData.other_charges || invoiceData.otherCharges || []).map((c: any) => ({
+                description: c.description || c.name,
+                amount: Number(c.amount) || 0,
+            })),
+            transactions: (invoiceData.transactions || []).map((t: any) => ({
+                id: t.id || t.transaction_id || `txn_${Date.now()}`,
+                date: t.date || t.payment_date || new Date().toISOString().split('T')[0],
+                amount: Number(t.amount) || 0,
+                method: t.method || t.payment_method || method,
+            })),
+            paymentMethod: invoiceData.payment_method || invoiceData.paymentMethod || method,
+            notes: invoiceData.notes || '',
+        };
+
+        console.log('Payment processed successfully:', invoice);
+        return invoice;
+
+    } catch (error) {
+        console.error('Error processing payment:', error);
+        
+        if (axios.isAxiosError(error)) {
+            const status = error.response?.status;
+            const message = error.response?.data?.message || error.message;
+            
+            console.error(`API Error (${status}):`, message);
+            
+            // Handle specific error cases
+            switch (status) {
+                case 404:
+                    console.error(`Invoice ${invoiceId} not found`);
+                    break;
+                case 400:
+                    console.error('Invalid payment request:', message);
+                    break;
+                case 409:
+                    console.error('Payment conflict:', message);
+                    break;
+                case 422:
+                    console.error('Validation error:', message);
+                    break;
+                default:
+                    console.error('Unexpected error:', message);
+            }
+        }
+        
+        
+        return undefined;
+    }
+};
 
 export const deleteInvoice = async (id: string | number): Promise<{ success: boolean }> => {
     console.log('API CALL: deleteInvoice', { id });
-    await delay(200);
-    const initialLength = allInvoices.length;
-    const newInvoices = allInvoices.filter(i => String(i.id) !== String(id));
-    allInvoices.length = 0;
-    Array.prototype.push.apply(allInvoices, newInvoices);
-    return { success: allInvoices.length < initialLength };
-}
+    
+    try {
+        // ✅ Make API call
+        const response = await customAxios.delete(`/invoices/${id}`);
+        
+        // Check if deletion was successful
+        if (response.status === 200 || response.status === 204) {
+            console.log(`Invoice ${id} deleted successfully`);
+            return { success: true };
+        }
+        
+        console.error('Unexpected response status:', response.status);
+        return { success: false };
+        
+    } catch (error) {
+        console.error('Error deleting invoice:', error);
+        
+        if (axios.isAxiosError(error)) {
+            console.error('API Error:', error.response?.data);
+            
+            // Handle specific error cases
+            if (error.response?.status === 404) {
+                console.error(`Invoice ${id} not found`);
+                return { success: false };
+            }
+            if (error.response?.status === 403) {
+                console.error('Permission denied to delete invoice');
+                return { success: false };
+            }
+        }
+        
+        return { success: false };
+    }
+};
 
 
 // Employees
@@ -1781,4 +2174,3 @@ export const announcePatientInQueue = async (appointmentId: string | number): Pr
 
     return { audio_url: audio.media };
 }
-

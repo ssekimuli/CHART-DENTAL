@@ -43,7 +43,8 @@ export function getCurrentUser(): CurrentUser | null {
     return null;
 }
 
-export function setCurrentUser(user: CurrentUser, token: string): void {
+export function 
+setCurrentUser(user: CurrentUser, token: string): void {
     if (typeof window !== 'undefined') {
         localStorage.setItem('currentUser', JSON.stringify(user));
         localStorage.setItem('authToken', token);

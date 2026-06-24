@@ -1,8 +1,8 @@
-
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import moment from "moment";
 import {
   Card,
   CardContent,
@@ -44,7 +44,7 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
   } from "@/components/ui/alert-dialog";
-import { createInvoice, deleteInvoice, getInvoices, getPatients, processPayment, updateInvoice, updatePatient } from "@/lib/api";
+import { createNewInvoice, deleteInvoice, getInvoices, getPatientList, processPayment, updateInvoice, updatePatient } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PaymentForm } from "./components/payment-form";
 import { DateRange } from "react-day-picker";
@@ -60,7 +60,7 @@ import { Pagination, PaginationContent, PaginationItem, PaginationPrevious, Pagi
 export default function BillingPage() {
   const router = useRouter();
   const { selectedBranch } = useBranch();
-  const [allInvoices, setAllInvoices] = useState<Invoice[]>([]);
+  const [allInvoices, setAllInvoices] = useState<Invoice[]>([]); // Keep as Invoice[]
   const [allPatients, setAllPatients] = useState<Patient[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -76,6 +76,14 @@ export default function BillingPage() {
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [pageInput, setPageInput] = useState("1");
 
+  // Memoize date range to prevent unnecessary re-renders
+  const dateRangeString = useMemo(() => {
+    if (!dateRange?.from) return undefined;
+    return JSON.stringify({
+      from: dateRange.from.toISOString(),
+      to: dateRange.to?.toISOString()
+    });
+  }, [dateRange]);
 
   useEffect(() => {
     if (!hasPermission('billing:read')) {
@@ -84,17 +92,24 @@ export default function BillingPage() {
     }
     const fetchData = async () => {
       setIsLoading(true);
-      const [invoicesData, patientsData] = await Promise.all([
+      try {
+        const [invoicesData, patientsData] = await Promise.all([
           getInvoices({
-              branchId: selectedBranch,
-              searchQuery,
-              dateRange,
-          }), 
-          getPatients()
-      ]);
-      setAllInvoices(invoicesData);
-      setAllPatients(patientsData);
-      setIsLoading(false);
+            branchId: selectedBranch,
+            searchQuery,
+            dateRange,
+          }),
+          getPatientList()
+        ]);
+        setAllInvoices(invoicesData);
+        // patientsData may be typed as BasePatient[] from the API; cast to Patient[] to satisfy state typing
+        setAllPatients(patientsData as unknown as Patient[]);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        // Optionally show error toast here
+      } finally {
+        setIsLoading(false);
+      }
     };
     fetchData();
   }, [selectedBranch, searchQuery, dateRange, router]);
@@ -111,7 +126,7 @@ export default function BillingPage() {
   };
   
   const filteredPatients = useMemo(() => {
-     if (currentUser.role === 'Super Admin') {
+    if (currentUser.role === 'Super Admin') {
       return allPatients.filter(p => p.branchId === selectedBranch);
     }
     return allPatients.filter(p => p.branchId === currentUser.branchId);
@@ -119,7 +134,7 @@ export default function BillingPage() {
 
   const filteredInvoices = allInvoices;
   
-  const totalPages = Math.ceil(filteredInvoices.length / itemsPerPage);
+  const totalPages = Math.max(1, Math.ceil(filteredInvoices.length / itemsPerPage));
   
   const paginatedInvoices = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
@@ -148,7 +163,6 @@ export default function BillingPage() {
     }
   }
 
-
   const handleOpenForm = (invoice?: Invoice) => {
     setSelectedInvoice(invoice);
     setIsFormOpen(true);
@@ -170,38 +184,67 @@ export default function BillingPage() {
   }
 
   const handleSaveInvoice = async (data: Omit<Invoice, 'id' | 'paidAmount' | 'patientName' | 'branchId' | 'amount'>, treatments: InvoiceTreatment[]) => {
-    const patient = filteredPatients.find(p => p.id === data.patientId);
-    if (!patient) return;
-
-    if (selectedInvoice) {
-        // Update
-        const updated = await updateInvoice(selectedInvoice.id, { ...data, patientName: patient.name });
-        if(updated) {
-            setAllInvoices(prev => prev.map(i => i.id === updated.id ? updated : i));
-        }
-    } else {
-        // Create
-        const newInvoice = await createInvoice({ ...data, patientName: patient.name, branchId: selectedBranch });
-        if (newInvoice) {
-            setAllInvoices(prev => [newInvoice, ...prev]);
-        }
+    const patient = filteredPatients.find(p => String(p.id) === String(data.patientId));
+    const branchId = selectedBranch || currentUser.branchId;
+    if (!patient || !branchId) {
+      console.error('Cannot save invoice: missing patient or branch', { patient, selectedBranch, branchId, data });
+      return;
     }
-    
-    handleCloseForm();
+
+    console.log('Saving invoice', { data, treatments, branchId, selectedInvoice });
+
+    try {
+      if (selectedInvoice) {
+        // Update existing invoice
+        const updated = await updateInvoice(selectedInvoice.id, {
+          ...data,
+          patientName: patient.first_name + ' ' + patient.last_name,
+          treatments,
+        });
+        if (updated) {
+          setAllInvoices(prev => prev.map(i => i.id === updated.id ? updated : i));
+        }
+      } else {
+        // Create new invoice using new API helper
+        const newInvoice = await createNewInvoice({
+          ...data,
+          patientName: `${patient.first_name} ${patient.last_name}`,
+          branchId,
+          treatments,
+        });
+        if (newInvoice) {
+          setAllInvoices(prev => [newInvoice, ...prev]);
+        }
+      }
+      handleCloseForm();
+    } catch (error) {
+      console.error('Error saving invoice:', error);
+      // Optionally show error toast here
+    }
   };
 
   const handleProcessPayment = async (invoiceId: string, amount: number, method: string) => {
-    const updated = await processPayment(invoiceId, amount, method);
-    if (updated) {
+    try {
+      const updated = await processPayment(invoiceId, amount, method);
+      if (updated) {
         setAllInvoices(prev => prev.map(i => i.id === updated.id ? updated : i));
+      }
+      handleClosePaymentForm();
+    } catch (error) {
+      console.error('Error processing payment:', error);
+      // Optionally show error toast here
     }
-    handleClosePaymentForm();
   }
 
   const handleDeleteInvoice = async () => {
     if (selectedInvoice) {
+      try {
         await deleteInvoice(selectedInvoice.id);
         setAllInvoices(prev => prev.filter(i => i.id !== selectedInvoice.id));
+      } catch (error) {
+        console.error('Error deleting invoice:', error);
+        // Optionally show error toast here
+      }
     }
     setIsDeleteAlertOpen(false);
     setSelectedInvoice(undefined);
@@ -212,8 +255,13 @@ export default function BillingPage() {
     setIsDeleteAlertOpen(true);
   }
 
-  const handleViewInvoice = (invoiceId: string) => {
+  const handleViewInvoice = (invoiceId: string | number) => {
     router.push(`/billing/${invoiceId}`);
+  };
+
+  // ADD THIS: Function to format date
+  const formatDate = (date: string) => {
+    return moment(date).format("MMM DD, YYYY");
   };
 
   return (
@@ -276,7 +324,9 @@ export default function BillingPage() {
                       {invoice.status}
                     </Badge>
                   </TableCell>
-                  <TableCell>{invoice.issueDate}</TableCell>
+                  <TableCell>
+                    {formatDate(invoice.issueDate)}
+                  </TableCell>
                   <TableCell>${invoice.amount.toFixed(2)}</TableCell>
                   <TableCell>${invoice.paidAmount.toFixed(2)}</TableCell>
                   <TableCell>${(invoice.amount - invoice.paidAmount).toFixed(2)}</TableCell>
