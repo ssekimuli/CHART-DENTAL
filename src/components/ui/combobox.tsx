@@ -20,16 +20,21 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 
-type ComboboxProps = {
-    options: { label: string; value: string }[];
-    value?: string;
-    onChange: (value: string) => void;
+type ComboboxOption<T> = {
+    label: string;
+    value: T;
+}
+
+type ComboboxProps<T> = {
+    options: ComboboxOption<T>[];
+    value?: T;
+    onChange: (value: T) => void;
     placeholder?: string;
     searchPlaceholder?: string;
     emptyMessage?: string;
 }
 
-export function Combobox({ options, value, onChange, placeholder, searchPlaceholder, emptyMessage }: ComboboxProps) {
+export function Combobox<T extends string | number>({ options, value, onChange, placeholder, searchPlaceholder, emptyMessage }: ComboboxProps<T>) {
   const [open, setOpen] = React.useState(false)
 
   return (
@@ -41,8 +46,8 @@ export function Combobox({ options, value, onChange, placeholder, searchPlacehol
           aria-expanded={open}
           className="w-full justify-between"
         >
-          {value
-            ? options.find((option) => option.value === value)?.label
+          {value !== undefined && value !== null
+            ? options.find((option) => String(option.value) === String(value))?.label
             : placeholder ?? "Select option..."}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
@@ -55,7 +60,7 @@ export function Combobox({ options, value, onChange, placeholder, searchPlacehol
             <CommandGroup>
               {options.map((option) => (
                 <CommandItem
-                  key={option.value}
+                  key={String(option.value)}
                   value={option.label}
                   onSelect={() => {
                     onChange(option.value)
@@ -65,7 +70,7 @@ export function Combobox({ options, value, onChange, placeholder, searchPlacehol
                   <Check
                     className={cn(
                       "mr-2 h-4 w-4",
-                      value === option.value ? "opacity-100" : "opacity-0"
+                      String(value) === String(option.value) ? "opacity-100" : "opacity-0"
                     )}
                   />
                   {option.label}

@@ -23,8 +23,6 @@ import {
   DollarSign,
   Users,
   Send,
-  LineChart,
-  Users2,
 } from "lucide-react";
 import {
   ChartContainer,
@@ -35,12 +33,13 @@ import { Button } from "@/components/ui/button";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useBranch } from "@/context/branch-context";
+import moment from "moment";
 import { useMemo, useState, useEffect } from "react";
-import type { Patient, Appointment, ChartData, AppointmentStatus } from "@/lib/types";
-import { getPatients, getAppointments, getChartData, updateAppointment } from "@/lib/api";
+import { useRouter } from "next/navigation";
+import type { Patient, Appointment, ChartData, AppointmentStatus, DashboardSummary, DashboardUpcomingAppointment, DashboardRecentPatient, PracticeTrendPoint } from "@/lib/types";
+import { getPatients, getAppointments, getChartData, getDashboardSummary, getPracticeTrends, updateAppointment } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
 import { hasPermission } from "@/lib/user";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const chartConfig = {
   revenue: {
@@ -59,49 +58,54 @@ const chartConfig = {
   },
 };
 
+type DashboardAppointmentRow = Appointment | DashboardUpcomingAppointment;
+type DashboardPatientRow = Patient | DashboardRecentPatient;
+
 export default function DashboardPage() {
   const { selectedBranch } = useBranch();
   const [allAppointments, setAllAppointments] = useState<Appointment[]>([]);
   const [allRecentPatients, setAllRecentPatients] = useState<Patient[]>([]);
   const [allChartData, setAllChartData] = useState<ChartData[]>([]);
+  const [practiceTrends, setPracticeTrends] = useState<PracticeTrendPoint[]>([]);
+  const [dashboardSummary, setDashboardSummary] = useState<DashboardSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
-      const [appointmentsData, patientsData, chartDataResult] = await Promise.all([
+      const [appointmentsData, patientsData, chartDataResult, trendData, summaryData] = await Promise.all([
         getAppointments(),
-        getPatients(), 
-        getChartData()
+        getPatients(),
+        getChartData(),
+        getPracticeTrends(selectedBranch),
+        getDashboardSummary(selectedBranch)
       ]);
       setAllAppointments(appointmentsData);
       setAllRecentPatients(patientsData);
       setAllChartData(chartDataResult);
+      setPracticeTrends(trendData);
+      setDashboardSummary(summaryData);
       setIsLoading(false);
     };
     fetchData();
   }, [selectedBranch]);
 
   const { recentPatients, appointments, chartData, totalRevenue, activePatients, newAppointments, newPatients } = useMemo(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const filteredAppointments = allAppointments.filter(a => a.branchId === selectedBranch && new Date(a.date) >= today).sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-    const filteredPatients = allRecentPatients.filter(p => p.branchId === selectedBranch);
     const filteredChartData = allChartData.filter(c => c.branchId === selectedBranch);
-    
     const totalRevenue = filteredChartData.reduce((acc, item) => acc + item.revenue, 0);
 
     return {
-      recentPatients: filteredPatients.sort((a,b) => new Date(b.lastVisit).getTime() - new Date(a.lastVisit).getTime()).slice(0, 5),
-      appointments: filteredAppointments,
+      recentPatients: dashboardSummary?.recentPatients ?? allRecentPatients.filter(p => p.branchId === selectedBranch).sort((a,b) => new Date(b.lastVisit).getTime() - new Date(a.lastVisit).getTime()).slice(0, 5),
+      appointments: dashboardSummary?.upcomingAppointments ?? allAppointments.filter(a => a.branchId === selectedBranch),
       chartData: filteredChartData,
-      totalRevenue: totalRevenue,
-      activePatients: filteredPatients.filter(p => p.status === 'Active').length,
-      newAppointments: filteredAppointments.filter(a => new Date(a.date) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)).length,
-      newPatients: filteredPatients.filter(p => new Date(p.lastVisit) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)).length,
+      totalRevenue: dashboardSummary?.totalRevenue ?? totalRevenue,
+      activePatients: dashboardSummary?.activePatients ?? allRecentPatients.filter(p => p.branchId === selectedBranch && p.status === 'Active').length,
+      newAppointments: dashboardSummary?.appointmentsLast30Days ?? allAppointments.filter(a => a.branchId === selectedBranch && new Date(a.date) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)).length,
+      newPatients: dashboardSummary?.newPatientsLast30Days ?? allRecentPatients.filter(p => p.branchId === selectedBranch && new Date(p.lastVisit) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)).length,
     }
-  }, [selectedBranch, allAppointments, allRecentPatients, allChartData]);
+  }, [selectedBranch, allAppointments, allRecentPatients, allChartData, dashboardSummary]);
+
+  const practiceTrendData = practiceTrends;
 
   const handleSendToQueue = async (appointment: Appointment) => {
     const updated = await updateAppointment(appointment.id, { status: "Waiting" });
@@ -125,6 +129,7 @@ export default function DashboardPage() {
     }
   };
 
+  const router = useRouter();
   const canReadAccounting = hasPermission('accounting:read');
 
   return (
@@ -192,58 +197,37 @@ export default function DashboardPage() {
         )}
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+      <div className="grid gap-4 lg:grid-cols-7">
         <Card className="lg:col-span-4">
-            <Tabs defaultValue={canReadAccounting ? "financial" : "activity"}>
-                <CardHeader>
-                    <div className="flex items-center justify-between">
-                         <div>
-                            <CardTitle>Practice Overview</CardTitle>
-                            <CardDescription>A summary of your practice's performance.</CardDescription>
-                        </div>
-                        {canReadAccounting && (
-                        <TabsList>
-                            <TabsTrigger value="financial"><LineChart className="mr-2 h-4 w-4" />Financial</TabsTrigger>
-                            <TabsTrigger value="activity"><Users2 className="mr-2 h-4 w-4" />Activity</TabsTrigger>
-                        </TabsList>
-                        )}
-                    </div>
-                </CardHeader>
-                 {canReadAccounting && (
-                    <TabsContent value="financial" className="pl-2">
-                        <CardContent>
-                        {isLoading ? <Skeleton className="h-[300px] w-full" /> : (
-                            <ChartContainer config={chartConfig} className="h-[300px] w-full">
-                                <BarChart accessibilityLayer data={chartData}>
-                                    <CartesianGrid vertical={false} />
-                                    <XAxis dataKey="month" tickLine={false} tickMargin={10} axisLine={false} tickFormatter={(value) => value.slice(0, 3)} />
-                                    <YAxis tickLine={false} axisLine={false} tickMargin={10} tickFormatter={(value) => `$${value / 1000}K`} />
-                                    <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
-                                    <Bar dataKey="revenue" fill="var(--color-revenue)" radius={8} />
-                                </BarChart>
-                            </ChartContainer>
-                        )}
-                        </CardContent>
-                    </TabsContent>
-                 )}
-                 <TabsContent value="activity" className="pl-2">
-                    <CardContent>
-                        {isLoading ? <Skeleton className="h-[300px] w-full" /> : (
-                            <ChartContainer config={chartConfig} className="h-[300px] w-full">
-                                <BarChart accessibilityLayer data={chartData}>
-                                    <CartesianGrid vertical={false} />
-                                    <XAxis dataKey="month" tickLine={false} tickMargin={10} axisLine={false} tickFormatter={(value) => value.slice(0, 3)} />
-                                    <YAxis yAxisId="left" orientation="left" stroke="hsl(var(--chart-1))" tickLine={false} axisLine={false} tickMargin={10} />
-                                    <YAxis yAxisId="right" orientation="right" stroke="hsl(var(--chart-2))" tickLine={false} axisLine={false} tickMargin={10} />
-                                    <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
-                                    <Bar yAxisId="left" dataKey="newPatients" fill="var(--color-newPatients)" radius={8} />
-                                    <Bar yAxisId="right" dataKey="newAppointments" fill="var(--color-newAppointments)" radius={8} />
-                                </BarChart>
-                            </ChartContainer>
-                        )}
-                    </CardContent>
-                </TabsContent>
-            </Tabs>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Practice Trends</CardTitle>
+                <CardDescription>
+                  Revenue and activity trends for the selected branch.
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <Skeleton className="h-[320px] w-full" />
+            ) : practiceTrendData.length === 0 ? (
+              <div className="h-[320px] flex items-center justify-center text-muted-foreground">No trend data available.</div>
+            ) : (
+              <ChartContainer config={chartConfig} className="h-[320px] w-full">
+                <BarChart data={practiceTrendData} barGap={8} barCategoryGap="20%">
+                  <CartesianGrid vertical={false} />
+                  <XAxis dataKey="date" tickLine={false} tickMargin={10} axisLine={false} tickFormatter={(value) => moment(value).format('MMM D')} />
+                  <YAxis tickLine={false} axisLine={false} tickMargin={10} />
+                  <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+                  <Bar dataKey="revenue" fill="var(--color-revenue)" radius={8} barSize={28} />
+                  <Bar dataKey="appointments" fill="var(--color-newPatients)" radius={8} barSize={28} />
+                  <Bar dataKey="newPatients" fill="var(--color-newAppointments)" radius={8} barSize={28} />
+                </BarChart>
+              </ChartContainer>
+            )}
+          </CardContent>
         </Card>
 
         {hasPermission('appointments:read') && (
@@ -271,7 +255,7 @@ export default function DashboardPage() {
                         <TableCell>{appointment.time}</TableCell>
                         <TableCell>
                             <div className="font-medium">{appointment.patientName}</div>
-                            <div className="text-sm text-muted-foreground">{appointment.treatment}</div>
+                            <div className="text-sm text-muted-foreground">{appointment.treatment ?? appointment.doctorName}</div>
                         </TableCell>
                         <TableCell>
                             <Badge variant={getStatusVariant(appointment.status)}>{appointment.status}</Badge>
@@ -320,23 +304,39 @@ export default function DashboardPage() {
                     <Skeleton className="h-10 w-full" />
                     <Skeleton className="h-10 w-full" />
                     </>
-                ) : recentPatients.map((patient) => (
-                    <div className="flex items-center" key={patient.id}>
-                    <Avatar className="h-9 w-9">
-                        <AvatarImage src={patient.avatar} alt="Avatar" />
-                        <AvatarFallback>{patient.name.charAt(0)}</AvatarFallback>
-                    </Avatar>
-                    <div className="ml-4 space-y-1">
-                        <p className="text-sm font-medium leading-none">
-                        {patient.name}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                        {patient.email}
-                        </p>
-                    </div>
-                    <div className="ml-auto font-medium">{patient.lastVisit}</div>
-                    </div>
-                ))}
+                ) : recentPatients.map((patient) => {
+                    const isSummaryPatient = 'firstName' in patient && 'lastName' in patient;
+                    const fullName = isSummaryPatient ? `${patient.firstName} ${patient.lastName}` : `${patient.first_name} ${patient.last_name}`;
+
+                    return (
+                        <div className="flex items-center" key={patient.id}>
+                            {isSummaryPatient ? (
+                                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-sm font-semibold text-white">
+                                    {patient.firstName.charAt(0)}
+                                </div>
+                            ) : (
+                                <Avatar className="h-9 w-9">
+                                    <AvatarImage src={patient.avatar} alt="Avatar" />
+                                    <AvatarFallback>{patient.first_name.charAt(0)}</AvatarFallback>
+                                </Avatar>
+                            )}
+                            <div className="ml-4 space-y-1">
+                                <p className="text-sm font-medium leading-none">
+                                    {fullName}
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                    {isSummaryPatient ? `Last Visit: ${patient.lastVisit ? moment(patient.lastVisit).format('ll') : 'No visit yet'}` : patient.email}
+                                </p>
+                            </div>
+                            <div className="ml-auto flex items-center gap-2">
+                                <div className="font-medium">{patient.lastVisit ? moment(patient.lastVisit).format('ll') : 'N/A'}</div>
+                                <Button variant="outline" size="sm" onClick={() => router.push(`/patients/${patient.id}`)}>
+                                    View
+                                </Button>
+                            </div>
+                        </div>
+                    );
+                })}
                 {recentPatients.length === 0 && !isLoading && (
                     <p className="text-sm text-muted-foreground text-center">No recent patients in this branch.</p>
                     )}

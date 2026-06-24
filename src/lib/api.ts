@@ -15,11 +15,10 @@ import {
     expenses as allExpenses,
     roles as mockRoles
 } from '@/lib/data';
-import type { Patient, Appointment, Invoice, ChartData, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, BasePatient, InvoiceTreatment, OtherCharge, SystemTreatment, PaymentMethod, PaymentTransaction, AttendanceRecord, LeaveRequest, StaffAdvance, StaffAdvanceStatus, Expense, ExpenseCategory, RolePermissions, Permission, DentalRecord, PeriodontalRecord, OcclusalRecord, SoftTissueRecord, OrthodonticRecord, Treatment, DentalCondition, PatientImage, FinancialSummary, CurrentUser, ProfileData, AppointmentStatus, EmployeeRole } from '@/lib/types';
-import type { DateRange } from 'react-day-picker';
+import type { Patient, Appointment, Invoice, ChartData, PracticeTrendPoint, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, BasePatient, InvoiceTreatment, OtherCharge, SystemTreatment, PaymentMethod, PaymentTransaction, AttendanceRecord, LeaveRequest, StaffAdvance, StaffAdvanceStatus, Expense, ExpenseCategory, ExpenseSummary, IncomeRecord, RolePermissions, Permission, DentalRecord, PeriodontalRecord, OcclusalRecord, SoftTissueRecord, OrthodonticRecord, Treatment, DentalCondition, PatientImage, FinancialSummary, CurrentUser, ProfileData, AppointmentStatus, DashboardSummary, EmployeeRole } from '@/lib/types';
 import { format, parse } from "date-fns";
 import { speak } from '@/ai/flows/speak';
-import { clearCurrentUser, getAuthToken, setCurrentUser, currentUser as userDetails } from './user';
+import { clearCurrentUser, setCurrentUser, currentUser as userDetails } from './user';
 import customAxios from './axios';
 import axios from 'axios';
 
@@ -312,11 +311,209 @@ export const getPatientById = async (id: string | number): Promise<Patient | und
     }
 }
 
-export const getAppointments = async (): Promise<Appointment[]> => {
-    console.log('API CALL: getAppointments');
-    await delay(150);
-    return JSON.parse(JSON.stringify(allAppointments));
-}
+export const getDoctors = async (branchId?: string | number): Promise<Employee[]> => {
+    console.log('API CALL: getDoctors', { branchId });
+    try {
+        const params: { branch_id?: string | number } = {}; 
+        if (branchId) {
+            params.branch_id = branchId;
+        }
+
+        const response = await customAxios.get('/doctors', { params });
+        const doctorData = Array.isArray(response.data)
+            ? response.data
+            : (response.data?.data ?? []);
+
+        return doctorData.map((emp: any) => ({
+            id: emp.id,
+            name: emp.name,
+            avatar: emp.avatar || '',
+            email: emp.email || '',
+            role: emp.role,
+            status: emp.status || 'Active',
+            branchId: String(emp.branch_id ?? emp.branch?.id ?? ''),
+            branch: emp.branch ? {
+                id: emp.branch.id,
+                name: emp.branch.name,
+                address: emp.branch.address,
+            } : undefined,
+        }));
+    } catch (error) {
+        console.error('Error fetching doctors:', error);
+        return [];
+    }
+};
+
+export const getAppointments = async (filters?: {
+    patient_id?: string | number;
+    doctor_id?: string | number;
+    branch_id?: string | number;
+    status?: string;
+    date?: string; // YYYY-MM-DD
+    date_from?: string; // YYYY-MM-DD
+    date_to?: string; // YYYY-MM-DD
+    search?: string;
+}): Promise<Appointment[]> => {
+    console.log('API CALL: getAppointments', { filters });
+    
+    try {
+        // ✅ Build query parameters
+        const params: any = {};
+        
+        if (filters?.patient_id) params.patient_id = filters.patient_id;
+        if (filters?.doctor_id) params.doctor_id = filters.doctor_id;
+        if (filters?.branch_id) params.branch_id = filters.branch_id;
+        if (filters?.status) params.status = filters.status;
+        if (filters?.date) params.date = filters.date;
+        if (filters?.date_from) params.date_from = filters.date_from;
+        if (filters?.date_to) params.date_to = filters.date_to;
+        if (filters?.search) params.search = filters.search;
+
+        // ✅ Make API call
+        const response = await customAxios.get('/appointments', { params });
+        
+        // Handle different response formats
+        let appointmentData = response.data;
+        if (appointmentData?.data && Array.isArray(appointmentData.data)) {
+            appointmentData = appointmentData.data;
+        } else if (!Array.isArray(appointmentData)) {
+            console.error('Unexpected response format:', appointmentData);
+            return [];
+        }
+
+        console.log(`Fetched ${appointmentData.length} appointments`);
+
+        // Normalize to frontend Appointment type
+        const mapped: Appointment[] = appointmentData.map((a: any) => ({
+            id: a.id,
+            patientName: a.patient_name ?? a.patientName ?? (a.patient && (a.patient.first_name + ' ' + (a.patient.last_name || '')) ) ?? '',
+            patientId: a.patient_id ?? a.patientId ?? (a.patient && a.patient.id) ?? '',
+            doctorName: a.doctor_name ?? a.doctorName ?? (a.doctor && a.doctor.name) ?? '',
+            doctorId: a.doctor_id ?? a.doctorId ?? (a.doctor && a.doctor.id) ?? '',
+            treatment: a.treatment ?? a.procedure ?? '',
+            status: a.status ?? 'Scheduled',
+            // API returns date as ISO string (e.g. 2024-07-20T00:00:00.000000Z)
+            // Normalize to YYYY-MM-DD so frontend date filters match
+            date: (() => {
+                const raw = a.date ?? a.appointment_date ?? '';
+                if (typeof raw === 'string' && raw.includes('T')) return raw.split('T')[0];
+                return raw;
+            })(),
+            time: a.time ?? a.appointment_time ?? '',
+            branchId: a.branch_id ?? a.branchId ?? (a.branch && a.branch.id) ?? '',
+            tokenNumber: a.token_number ?? a.tokenNumber ?? '',
+        }));
+
+        return mapped;
+
+    } catch (error) {
+        console.error('Error fetching appointments:', error);
+        
+        if (axios.isAxiosError(error)) {
+            console.error('API Error:', error.response?.data);
+            
+            if (error.response?.status === 403) {
+                console.error('Permission denied to fetch appointments');
+                return [];
+            }
+            if (error.response?.status === 404) {
+                console.warn('Appointments endpoint not found');
+                return [];
+            }
+        }
+        
+        return [];
+    }
+};
+
+type CreateAppointmentPayload = {
+    patient_name: string;
+    patient_id: string | number;
+    doctor_name: string;
+    doctor_id: string | number;
+    treatment: string;
+    date: string; // YYYY-MM-DD
+    time: string; // e.g., "10:00 AM"
+    branch_id: string | number;
+};
+
+export const createAppointment = async (appointment: CreateAppointmentPayload): Promise<Appointment> => {
+    console.log('API CALL: createAppointment', { appointment });
+    
+    try {
+        // ✅ Validate required fields
+        const requiredFields = ['patient_name', 'patient_id', 'doctor_name', 'doctor_id', 'treatment', 'date', 'time', 'branch_id'];
+        for (const field of requiredFields) {
+            if (!appointment[field as keyof CreateAppointmentPayload]) {
+                throw new Error(`Field "${field}" is required`);
+            }
+        }
+
+        // ✅ Make API call with the exact payload structure expected by backend
+        const response = await customAxios.post('/appointments', {
+            patient_name: appointment.patient_name,
+            patient_id: appointment.patient_id,
+            doctor_name: appointment.doctor_name,
+            doctor_id: appointment.doctor_id,
+            treatment: appointment.treatment,
+            date: appointment.date,
+            time: appointment.time,
+            branch_id: appointment.branch_id,
+        });
+        
+        // Handle response
+        let appointmentData: any = response.data;
+        if (appointmentData?.data) {
+            appointmentData = appointmentData.data;
+        }
+        
+        if (!appointmentData) {
+            throw new Error('No appointment data returned from API');
+        }
+
+        const mappedAppointment: Appointment = {
+            id: appointmentData.id,
+            patientName: appointmentData.patient_name ?? appointmentData.patientName ?? appointment.patient_name,
+            patientId: appointmentData.patient_id ?? appointmentData.patientId ?? appointment.patient_id,
+            doctorName: appointmentData.doctor_name ?? appointmentData.doctorName ?? appointment.doctor_name,
+            doctorId: appointmentData.doctor_id ?? appointmentData.doctorId ?? appointment.doctor_id,
+            treatment: appointmentData.treatment ?? appointment.treatment,
+            status: appointmentData.status ?? 'Scheduled',
+            date: (() => {
+                const raw = appointmentData.date ?? appointment.date ?? '';
+                if (typeof raw === 'string' && raw.includes('T')) return raw.split('T')[0];
+                return raw;
+            })(),
+            time: appointmentData.time ?? appointment.time,
+            branchId: appointmentData.branch_id ?? appointmentData.branchId ?? appointment.branch_id,
+            tokenNumber: appointmentData.token_number ?? appointmentData.tokenNumber ?? '',
+        };
+
+        console.log('Created appointment:', mappedAppointment);
+        return mappedAppointment;
+
+    } catch (error) {
+        console.error('Error creating appointment:', error);
+        
+        if (axios.isAxiosError(error)) {
+            // Handle validation errors (422)
+            if (error.response?.status === 422) {
+                const errors = error.response?.data?.errors;
+                if (errors) {
+                    const errorMessages = Object.values(errors).flat().join(', ');
+                    throw new Error(`Validation failed: ${errorMessages}`);
+                }
+                throw new Error('Validation failed. Please check your input.');
+            }
+            
+            // Handle other errors
+            throw new Error(error.response?.data?.message || 'Failed to create appointment');
+        }
+        
+        throw error;
+    }
+};
+
 
 export const getInvoices = async (filters?: any) => {
     console.log('API CALL: getInvoices', { filters });
@@ -561,6 +758,90 @@ export const getChartData = async (): Promise<ChartData[]> => {
     return JSON.parse(JSON.stringify(chartData));
 }
 
+export const getPracticeTrends = async (branchId?: string | number): Promise<PracticeTrendPoint[]> => {
+    console.log('API CALL: getPracticeTrends', { branchId });
+    try {
+        const params: Record<string, string | number> = {};
+        if (branchId !== undefined && branchId !== null) {
+            params.branch_id = branchId;
+        }
+
+        const response = await customAxios.get('/practice-trends', { params });
+        let data: any = response.data;
+        if (data?.data) {
+            data = data.data;
+        }
+        if (!data?.trend || !Array.isArray(data.trend)) {
+            console.warn('Unexpected practice trends response', data);
+            return [];
+        }
+
+        return data.trend.map((point: any) => ({
+            date: point.date,
+            revenue: Number(point.revenue) || 0,
+            appointments: Number(point.appointments) || 0,
+            newPatients: Number(point.new_patients) || 0,
+        }));
+    } catch (error) {
+        console.error('Failed to fetch practice trends:', error);
+        return [];
+    }
+};
+
+export const getDashboardSummary = async (branchId?: string | number): Promise<DashboardSummary | null> => {
+    console.log('API CALL: getDashboardSummary', { branchId });
+
+    try {
+        const params: any = {};
+        if (branchId) params.branch_id = branchId;
+
+        const response = await customAxios.get('/dashboard-summary', { params });
+        let data: any = response.data;
+        if (data?.data) {
+            data = data.data;
+        }
+
+        if (!data) {
+            console.error('Dashboard summary API returned no data');
+            return null;
+        }
+
+        return {
+            totalRevenue: Number(data.total_revenue) || 0,
+            activePatients: Number(data.active_patients) || 0,
+            appointmentsLast30Days: Number(data.appointments_last_30_days) || 0,
+            newPatientsLast30Days: Number(data.new_patients_last_30_days) || 0,
+            practiceOverview: data.practice_overview || '',
+            upcomingAppointments: Array.isArray(data.upcoming_appointments)
+                ? data.upcoming_appointments.map((item: any) => ({
+                    id: item.id,
+                    patientName: item.patient_name,
+                    doctorName: item.doctor_name,
+                    date: item.date,
+                    time: item.time,
+                    status: item.status,
+                    treatment: item.treatment ?? item.procedure ?? undefined,
+                    tokenNumber: item.token_number ?? item.tokenNumber ?? undefined,
+                }))
+                : [],
+            recentPatients: Array.isArray(data.recent_patients)
+                ? data.recent_patients.map((item: any) => ({
+                    id: item.id,
+                    firstName: item.first_name,
+                    lastName: item.last_name,
+                    lastVisit: item.last_visit,
+                }))
+                : [],
+        };
+    } catch (error) {
+        console.error('Error fetching dashboard summary:', error);
+        if (axios.isAxiosError(error)) {
+            console.error('API Error:', error.response?.data);
+        }
+        return null;
+    }
+};
+
 export const getTreatments = async (): Promise<SystemTreatment[]> => {
     console.log('API CALL: getTreatments');
     try {
@@ -713,15 +994,6 @@ export const getStaffAdvances = async (filters?: number | string | GetStaffAdvan
     }
 }
 
-export const getExpenses = async (branchId?: string | number): Promise<Expense[]> => {
-    console.log('API CALL: getExpenses', { branchId });
-    await delay(150);
-    let localExpenses = allExpenses;
-    if (branchId) {
-        localExpenses = localExpenses.filter(e => String(e.branchId) === String(branchId));
-    }
-    return JSON.parse(JSON.stringify(localExpenses));
-}
 
 export const getRoles = async (): Promise<RolePermissions[]> => {
     console.log('API CALL: getRoles');
@@ -760,78 +1032,407 @@ export const getRolesList = async (): Promise<{id: string, name: string}[]> => {
 
 export const getFinancialSummary = async (branchId: string | number): Promise<FinancialSummary> => {
     console.log('API CALL: getFinancialSummary', { branchId });
-    await delay(300);
 
-    const branchInvoices = allInvoices.filter(i => String(i.branchId) === String(branchId));
-    const branchPayrolls = mockPayrolls.filter(p => String(p.branchId) === String(branchId));
-    const branchExpenses = allExpenses.filter(e => String(e.branchId) === String(branchId));
+    try {
+        const params: Record<string, string | number> = {};
+        if (branchId !== undefined && branchId !== null) {
+            params.branch_id = branchId;
+        }
 
-    const paidInvoices = branchInvoices.filter(i => i.status === 'Paid');
-    const totalIncome = paidInvoices.reduce((sum, i) => sum + i.amount, 0);
+        const response = await customAxios.get('/financial-summary', { params });
+        let data: any = response.data;
+        if (data?.data) {
+            data = data.data;
+        }
 
-    const payrollExpenses = branchPayrolls.reduce((sum, p) => sum + Number(p.grossPay), 0);
-    const otherExpenses = branchExpenses.reduce((sum, e) => sum + e.amount, 0);
-    const totalExpenses = payrollExpenses + otherExpenses;
+        const monthlyFinancials = Array.isArray(data.financial_summary)
+            ? data.financial_summary.map((item: any) => ({
+                month: item.month,
+                income: Number(item.income) || 0,
+                expense: Number(item.expenses ?? item.expense) || 0,
+                netProfit: Number(item.net_profit) || 0,
+            }))
+            : [];
 
-    const netProfit = totalIncome - totalExpenses;
+        return {
+            branchId: data.branch_id,
+            from: data.from,
+            to: data.to,
+            totalIncome: Number(data.total_income) || 0,
+            totalExpenses: Number(data.total_expenses) || 0,
+            netProfit: Number(data.net_profit) || 0,
+            monthlyFinancials,
+        };
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            console.error('Failed to fetch financial summary:', error.response?.data);
+        } else {
+            console.error('An unexpected error occurred while fetching financial summary:', error);
+        }
 
-    const financialsByMonth: Record<string, { income: number, expense: number }> = {};
+        // Fallback to mocked summary if the real API call fails.
+        await delay(300);
 
-    paidInvoices.forEach(invoice => {
-        const monthKey = format(new Date(invoice.issueDate), "yyyy-MM");
-        if (!financialsByMonth[monthKey]) financialsByMonth[monthKey] = { income: 0, expense: 0 };
-        financialsByMonth[monthKey].income += invoice.amount;
-    });
+        const branchInvoices = allInvoices.filter(i => String(i.branchId) === String(branchId));
+        const branchPayrolls = mockPayrolls.filter(p => String(p.branchId) === String(branchId));
+        const branchExpenses = allExpenses.filter(e => String(e.branchId) === String(branchId));
 
-    branchPayrolls.forEach(payroll => {
-        const payDate = payroll.payDate.split('T')[0];
-        const monthKey = format(new Date(payDate), "yyyy-MM");
-        if (!financialsByMonth[monthKey]) financialsByMonth[monthKey] = { income: 0, expense: 0 };
-        financialsByMonth[monthKey].expense += Number(payroll.grossPay);
-    });
+        const paidInvoices = branchInvoices.filter(i => i.status === 'Paid');
+        const totalIncome = paidInvoices.reduce((sum, i) => sum + i.amount, 0);
 
-    branchExpenses.forEach(expense => {
-        const monthKey = format(new Date(expense.date), "yyyy-MM");
-        if (!financialsByMonth[monthKey]) financialsByMonth[monthKey] = { income: 0, expense: 0 };
-        financialsByMonth[monthKey].expense += expense.amount;
-    });
+        const payrollExpenses = branchPayrolls.reduce((sum, p) => sum + Number(p.grossPay), 0);
+        const otherExpenses = branchExpenses.reduce((sum, e) => sum + e.amount, 0);
+        const totalExpenses = payrollExpenses + otherExpenses;
+        const netProfit = totalIncome - totalExpenses;
 
-    const monthlyFinancials = Object.keys(financialsByMonth)
-        .sort()
-        .slice(-6)
-        .map(monthKey => ({
-            month: format(parse(monthKey, 'yyyy-MM', new Date()), 'MMM'),
-            income: financialsByMonth[monthKey].income,
-            expense: financialsByMonth[monthKey].expense,
-        }));
+        const financialsByMonth: Record<string, { income: number; expense: number; netProfit: number }> = {};
 
-    return { totalIncome, totalExpenses, netProfit, monthlyFinancials };
+        paidInvoices.forEach(invoice => {
+            const monthKey = format(new Date(invoice.issueDate), 'yyyy-MM');
+            if (!financialsByMonth[monthKey]) financialsByMonth[monthKey] = { income: 0, expense: 0, netProfit: 0 };
+            financialsByMonth[monthKey].income += invoice.amount;
+            financialsByMonth[monthKey].netProfit += invoice.amount;
+        });
+
+        branchPayrolls.forEach(payroll => {
+            const payDate = payroll.payDate.split('T')[0];
+            const monthKey = format(new Date(payDate), 'yyyy-MM');
+            if (!financialsByMonth[monthKey]) financialsByMonth[monthKey] = { income: 0, expense: 0, netProfit: 0 };
+            financialsByMonth[monthKey].expense += Number(payroll.grossPay);
+            financialsByMonth[monthKey].netProfit -= Number(payroll.grossPay);
+        });
+
+        branchExpenses.forEach(expense => {
+            const monthKey = format(new Date(expense.date), 'yyyy-MM');
+            if (!financialsByMonth[monthKey]) financialsByMonth[monthKey] = { income: 0, expense: 0, netProfit: 0 };
+            financialsByMonth[monthKey].expense += expense.amount;
+            financialsByMonth[monthKey].netProfit -= expense.amount;
+        });
+
+        const monthlyFinancials = Object.keys(financialsByMonth)
+            .sort()
+            .slice(-6)
+            .map(monthKey => ({
+                month: format(parse(monthKey, 'yyyy-MM', new Date()), 'MMM'),
+                income: financialsByMonth[monthKey].income,
+                expense: financialsByMonth[monthKey].expense,
+                netProfit: financialsByMonth[monthKey].netProfit,
+            }));
+
+        return { branchId, from: undefined, to: undefined, totalIncome, totalExpenses, netProfit, monthlyFinancials };
+    }
 }
 
-export const getTodaysQueue = async (filters: { branchId: string | number; doctorId?: string | number }): Promise<Appointment[]> => {
-    console.log('API CALL: getTodaysQueue', { filters });
-    await delay(150);
-    const today = format(new Date(), "yyyy-MM-dd");
-    let filtered = allAppointments.filter(
-      (a) =>
-        String(a.branchId) === String(filters.branchId) &&
-        a.date === today &&
-        a.status !== 'Cancelled' &&
-        a.status !== 'Scheduled'
-    );
-  
-    if (filters.doctorId) {
-      filtered = filtered.filter((a) => String(a.doctorId) === String(filters.doctorId));
+export const getExpenses = async (filters?: string | number | {
+    branchId?: string | number;
+    category?: string;
+    status?: string;
+    dateFrom?: string; // YYYY-MM-DD
+    dateTo?: string; // YYYY-MM-DD
+    search?: string;
+    minAmount?: number;
+    maxAmount?: number;
+}): Promise<Expense[]> => {
+    console.log('API CALL: getExpenses', { filters });
+    
+    try {
+        // ✅ Build query parameters
+        const params: any = {};
+        
+        if (typeof filters === 'string' || typeof filters === 'number') {
+            params.branch_id = filters;
+        } else if (filters) {
+            if (filters.branchId) params.branch_id = filters.branchId;
+            if (filters.category) params.category = filters.category;
+            if (filters.status) params.status = filters.status;
+            if (filters.dateFrom) params.date_from = filters.dateFrom;
+            if (filters.dateTo) params.date_to = filters.dateTo;
+            if (filters.search) params.search = filters.search;
+            if (filters.minAmount) params.min_amount = filters.minAmount;
+            if (filters.maxAmount) params.max_amount = filters.maxAmount;
+        }
+
+        // ✅ Make API call to /expense-records
+        const response = await customAxios.get('/expense-records', { params });
+        
+        // Handle different response formats
+        let expenseData = response.data;
+        if (expenseData?.data && Array.isArray(expenseData.data)) {
+            expenseData = expenseData.data;
+        }
+
+        if (expenseData && Array.isArray(expenseData.records)) {
+            expenseData = expenseData.records;
+        }
+
+        if (!Array.isArray(expenseData)) {
+            console.error('Unexpected response format:', response.data);
+            return [];
+        }
+
+        const expenses: Expense[] = expenseData.map((expense: any) => {
+            if (expense.type === 'payroll') {
+                return {
+                    id: expense.id || expense.employee_id,
+                    branchId: expense.branch_id || expense.branchId,
+                    date: expense.pay_date || expense.date || new Date().toISOString().split('T')[0],
+                    category: 'Payroll',
+                    description: expense.employee_name ? `Payroll for ${expense.employee_name}` : expense.pay_period || 'Payroll',
+                    amount: Number(expense.net_pay) || Number(expense.amount) || 0,
+                    type: 'payroll',
+                    employeeName: expense.employee_name,
+                    payPeriod: expense.pay_period,
+                    netPay: Number(expense.net_pay) || 0,
+                    deductions: Number(expense.deductions) || 0,
+                };
+            }
+
+            return {
+                id: expense.id || expense.expense_id,
+                branchId: expense.branch_id || expense.branchId,
+                date: expense.date || expense.expense_date || new Date().toISOString().split('T')[0],
+                category: expense.category || 'Other',
+                description: expense.description || '',
+                amount: Number(expense.amount) || 0,
+                type: 'operation',
+            };
+        });
+
+        console.log(`Fetched ${expenses.length} expenses`);
+        return expenses;
+
+    } catch (error) {
+        console.error('Error fetching expenses:', error);
+        
+        if (axios.isAxiosError(error)) {
+            console.error('API Error:', error.response?.data);
+            
+            if (error.response?.status === 403) {
+                console.error('Permission denied to fetch expenses');
+                return [];
+            }
+            if (error.response?.status === 404) {
+                console.warn('Expenses endpoint not found');
+                return [];
+            }
+        }
+        
+        return [];
     }
-  
-    // sort by token number's numeric part
-    const sorted = filtered.sort((a, b) => {
-      const numA = parseInt(a.tokenNumber.replace(/\D/g, ''), 10);
-      const numB = parseInt(b.tokenNumber.replace(/\D/g, ''), 10);
-      return numA - numB;
-    });
-  
-    return JSON.parse(JSON.stringify(sorted));
+};
+
+export const getExpenseSummary = async (branchId?: string | number): Promise<ExpenseSummary | null> => {
+    console.log('API CALL: getExpenseSummary', { branchId });
+
+    try {
+        const params: Record<string, string | number> = {};
+        if (branchId !== undefined && branchId !== null) {
+            params.branch_id = branchId;
+        }
+
+        const response = await customAxios.get('/expense-records', { params });
+        let data: any = response.data;
+        if (data?.data) {
+            data = data.data;
+        }
+
+        if (!data) {
+            console.error('Expense summary API returned no data');
+            return null;
+        }
+
+        const records = Array.isArray(data.records) ? data.records : [];
+
+        return {
+            branch: data.branch ?? null,
+            total: Number(data.total) || 0,
+            totalPayroll: Number(data.total_payroll) || 0,
+            totalOperationalExpenses: Number(data.total_operational_expenses) || 0,
+            records: records.map((expense: any) => {
+                if (expense.type === 'payroll') {
+                    return {
+                        id: expense.id,
+                        branchId: expense.branch_id || expense.branchId,
+                        date: expense.pay_date || expense.date || '',
+                        category: 'Payroll',
+                        description: expense.pay_period || `Payroll for ${expense.employee_name}`,
+                        amount: Number(expense.net_pay) || Number(expense.amount) || 0,
+                        type: 'payroll',
+                        employeeName: expense.employee_name,
+                        payPeriod: expense.pay_period,
+                        netPay: Number(expense.net_pay) || 0,
+                        deductions: Number(expense.deductions) || 0,
+                        branch: expense.branch ? {
+                            id: expense.branch.id,
+                            name: expense.branch.name,
+                            address: expense.branch.address || '',
+                        } : undefined,
+                    };
+                }
+
+                return {
+                    id: expense.id,
+                    branchId: expense.branch_id || expense.branchId,
+                    date: expense.date || expense.expense_date || '',
+                    category: expense.category || 'Other',
+                    description: expense.description || '',
+                    amount: Number(expense.amount) || 0,
+                    type: 'operation',
+                    branch: expense.branch ? {
+                        id: expense.branch.id,
+                        name: expense.branch.name,
+                        address: expense.branch.address || '',
+                    } : undefined,
+                };
+            }),
+        };
+    } catch (error) {
+        console.error('Failed to fetch expense summary:', error);
+        return null;
+    }
+};
+
+export const getIncomeRecords = async (filters?: { branchId?: string | number; dateFrom?: string; dateTo?: string; search?: string }): Promise<IncomeRecord[]> => {
+    console.log('API CALL: getIncomeRecords', { filters }); 
+    try {
+        const params: any = {};
+        if (filters?.branchId) params.branch_id = filters.branchId;
+        if (filters?.dateFrom) params.date_from = filters.dateFrom;
+        if (filters?.dateTo) params.date_to = filters.dateTo;
+        if (filters?.search) params.search = filters.search;
+        
+        const response = await customAxios.get('/income-records', { params });
+
+        let incomeData = response.data;
+        if (incomeData?.data && Array.isArray(incomeData.data)) {
+            incomeData = incomeData.data;
+        }
+        if (incomeData?.records && Array.isArray(incomeData.records)) {
+            incomeData = incomeData.records;
+        }
+        if (!Array.isArray(incomeData)) {
+            console.error('Unexpected response format:', incomeData);
+            return [];
+        }
+
+        return incomeData.map((item: any) => ({
+            id: item.id,
+            branchId: item.branch_id || item.branchId || item.branch?.id,
+            date: item.issue_date ? String(item.issue_date).split('T')[0] : item.date || item.invoice_date || '',
+            patientName: item.patient_name || item.patientName || [item.patient?.first_name, item.patient?.last_name].filter(Boolean).join(' ') || '',
+            amount: Number(item.paid_amount || item.amount || item.total) || 0,
+            status: item.status || item.payment_status || 'Paid',
+            invoiceNumber: item.invoice_number || item.invoiceNo || item.number || '',
+        }));
+    } catch (error) {
+        console.error('Error fetching income records:', error);
+        return [];
+    }
+};
+
+export const getTodaysQueue = async (filters: { 
+    branchId: string | number; 
+    doctorId?: string | number;
+    status?: string;
+}): Promise<Appointment[]> => {
+    console.log('API CALL: getTodaysQueue', { filters });
+    
+    try {
+        // ✅ Get today's date in YYYY-MM-DD format
+        const today = new Date().toISOString().split('T')[0];
+        
+        // ✅ Build query parameters for appointments API
+        const params: any = {
+            date: today, // Filter by today's date
+            branch_id: filters.branchId,
+        };
+        
+        if (filters.doctorId) {
+            params.doctor_id = filters.doctorId;
+        }
+        
+        // Handle status filtering only when explicitly requested
+        if (filters.status) {
+            params.status = filters.status;
+        }
+
+        // ✅ Make API call to appointments endpoint with date filter
+        const response = await customAxios.get('/appointments', { params });
+        
+        // Handle different response formats
+        let appointmentsData: any = response.data;
+        if (appointmentsData?.data && Array.isArray(appointmentsData.data)) {
+            appointmentsData = appointmentsData.data;
+        }
+        if (!Array.isArray(appointmentsData)) {
+            console.error('Unexpected response format:', appointmentsData);
+            return [];
+        }
+
+        const normalizeStatus = (status?: string): AppointmentStatus => {
+            if (!status) return 'Scheduled';
+            switch (status) {
+                case 'Confirmed':
+                    return 'Waiting';
+                case 'In Progress':
+                    return 'In Session';
+                case 'No Show':
+                    return 'Cancelled';
+                default:
+                    return status as AppointmentStatus;
+            }
+        };
+
+        const normalizedAppointments: Appointment[] = appointmentsData.map((item: any) => ({
+            id: item.id,
+            patientName: item.patient_name || item.patientName || item.patient?.name || '',
+            patientId: item.patient_id || item.patientId || item.patient?.id || '',
+            doctorName: item.doctor_name || item.doctorName || item.doctor?.name || '',
+            doctorId: item.doctor_id || item.doctorId || item.doctor?.id || '',
+            treatment: item.treatment || item.procedure || item.service || '',
+            status: normalizeStatus(item.status || item.appointment_status || item.state),
+            date: item.date || item.appointment_date || item.appointmentDate || today,
+            time: item.time || item.appointment_time || item.time_of_day || '',
+            branchId: item.branch_id || item.branchId,
+            tokenNumber: item.token_number || item.tokenNumber || '',
+        }));
+
+        // ✅ Filter appointments for today's queue
+        const queueAppointments = normalizedAppointments.filter((appointment) => {
+            if (appointment.status === 'Cancelled') return false;
+            if (!filters.status && appointment.status === 'Scheduled') return false;
+            return true;
+        });
+
+        // ✅ Sort by token number (numeric part)
+        const sorted = queueAppointments.sort((a, b) => {
+            const tokenA = a.tokenNumber || 'T0000';
+            const tokenB = b.tokenNumber || 'T0000';
+            const numA = parseInt(tokenA.replace(/\D/g, ''), 10) || 0;
+            const numB = parseInt(tokenB.replace(/\D/g, ''), 10) || 0;
+            return numA - numB;
+        });
+
+        console.log(`Fetched ${sorted.length} appointments for today's queue (${today})`);
+        return sorted;
+
+    } catch (error) {
+        console.error('Error fetching today\'s queue:', error);
+        
+        if (axios.isAxiosError(error)) {
+            console.error('API Error:', error.response?.data);
+            
+            if (error.response?.status === 403) {
+                console.error('Permission denied to fetch appointments');
+            }
+            if (error.response?.status === 404) {
+                console.warn('Appointments endpoint not found');
+            }
+        }
+        
+        
+        return [];
+    }
 };
 
 
@@ -1305,37 +1906,86 @@ export const deleteSoftTissueRecord = async (patientId: string | number, recordI
 }
 
 
-// Appointments
-export const createAppointment = async (data: Omit<Appointment, 'id'>): Promise<Appointment> => {
-    console.log('API CALL: createAppointment', { data });
-    await delay(200);
-    const newAppointment: Appointment = {
-        ...data,
-        id: `a${allAppointments.length + 1}`,
-    };
-    allAppointments.push(newAppointment);
-    return newAppointment;
-}
 
 export const updateAppointment = async (id: string | number, data: Partial<Appointment>): Promise<Appointment | undefined> => {
     console.log('API CALL: updateAppointment', { id, data });
-    await delay(200);
-    const appointmentIndex = allAppointments.findIndex(a => String(a.id) === String(id));
-    if (appointmentIndex > -1) {
-        allAppointments[appointmentIndex] = { ...allAppointments[appointmentIndex], ...data };
-        return allAppointments[appointmentIndex];
+
+    // Build payload converting frontend fields to backend snake_case where applicable
+    const payload: any = {};
+    if (data.patientName !== undefined) payload.patient_name = data.patientName;
+    if (data.patientId !== undefined) payload.patient_id = data.patientId;
+    if (data.doctorName !== undefined) payload.doctor_name = data.doctorName;
+    if (data.doctorId !== undefined) payload.doctor_id = data.doctorId;
+    if (data.treatment !== undefined) payload.treatment = data.treatment;
+    if (data.status !== undefined) payload.status = data.status;
+    if (data.date !== undefined) payload.date = data.date;
+    if (data.time !== undefined) payload.time = data.time;
+    if (data.branchId !== undefined) payload.branch_id = data.branchId;
+    if (data.tokenNumber !== undefined) payload.token_number = data.tokenNumber;
+
+    try {
+        const response = await customAxios.patch(`/appointments/${id}`, payload);
+        let appointmentData: any = response.data;
+        if (appointmentData?.data) appointmentData = appointmentData.data;
+        if (!appointmentData) return undefined;
+
+        // Normalize response to frontend Appointment type (match getAppointments mapping)
+        const mapped: Appointment = {
+            id: appointmentData.id,
+            patientName: appointmentData.patient_name ?? appointmentData.patientName ?? (appointmentData.patient && (appointmentData.patient.first_name + ' ' + (appointmentData.patient.last_name || ''))) ?? '',
+            patientId: appointmentData.patient_id ?? appointmentData.patientId ?? (appointmentData.patient && appointmentData.patient.id) ?? '',
+            doctorName: appointmentData.doctor_name ?? appointmentData.doctorName ?? (appointmentData.doctor && appointmentData.doctor.name) ?? '',
+            doctorId: appointmentData.doctor_id ?? appointmentData.doctorId ?? (appointmentData.doctor && appointmentData.doctor.id) ?? '',
+            treatment: appointmentData.treatment ?? appointmentData.procedure ?? '',
+            status: appointmentData.status ?? 'Scheduled',
+            date: (() => {
+                const raw = appointmentData.date ?? appointmentData.appointment_date ?? '';
+                if (typeof raw === 'string' && raw.includes('T')) return raw.split('T')[0];
+                return raw;
+            })(),
+            time: appointmentData.time ?? appointmentData.appointment_time ?? '',
+            branchId: appointmentData.branch_id ?? appointmentData.branchId ?? (appointmentData.branch && appointmentData.branch.id) ?? '',
+            tokenNumber: appointmentData.token_number ?? appointmentData.tokenNumber ?? '',
+        };
+
+        // Update local mock cache if present
+        const index = allAppointments.findIndex(a => a.id === id);
+        if (index > -1) allAppointments[index] = mapped;
+
+        return mapped;
+    } catch (error) {
+        console.error('Error updating appointment via API, falling back to local mock:', error);
+        // Fallback to mock behavior for offline/dev mode
+        await delay(200);
+        const appointmentIndex = allAppointments.findIndex(a => a.id === id);
+        if (appointmentIndex > -1) {
+            allAppointments[appointmentIndex] = { ...allAppointments[appointmentIndex], ...data } as any;
+            return allAppointments[appointmentIndex];
+        }
+        return undefined;
     }
-    return undefined;
 }
 
 export const deleteAppointment = async (id: string | number): Promise<{ success: boolean }> => {
     console.log('API CALL: deleteAppointment', { id });
-    await delay(200);
-    const initialLength = allAppointments.length;
-    const newAppointments = allAppointments.filter(a => String(a.id) !== String(id));
-    allAppointments.length = 0;
-    Array.prototype.push.apply(allAppointments, newAppointments);
-    return { success: allAppointments.length < initialLength };
+    try {
+        await customAxios.delete(`/appointments/${id}`);
+        // Also remove from local mock cache if present
+        const initialLength = allAppointments.length;
+        const newAppointments = allAppointments.filter(a => a.id !== id);
+        allAppointments.length = 0;
+        Array.prototype.push.apply(allAppointments, newAppointments);
+        return { success: allAppointments.length < initialLength };
+    } catch (error) {
+        console.error('Error deleting appointment via API, falling back to local mock:', error);
+        // Fallback to mock
+        await delay(200);
+        const initialLength = allAppointments.length;
+        const newAppointments = allAppointments.filter(a => a.id !== id);
+        allAppointments.length = 0;
+        Array.prototype.push.apply(allAppointments, newAppointments);
+        return { success: allAppointments.length < initialLength };
+    }
 }
 
 // Invoices

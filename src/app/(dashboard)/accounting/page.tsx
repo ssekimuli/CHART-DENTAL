@@ -23,8 +23,8 @@ import {
 import { ChartTooltip, ChartTooltipContent, ChartContainer } from "@/components/ui/chart";
 
 import { useBranch } from "@/context/branch-context";
-import { getInvoices, getPayrolls, getExpenses, createExpense, getFinancialSummary } from "@/lib/api";
-import type { Invoice, Payroll, Expense, FinancialSummary } from "@/lib/types";
+import { getIncomeRecords, getExpenseSummary, createExpense, getFinancialSummary } from "@/lib/api";
+import type { IncomeRecord, Expense, ExpenseSummary, FinancialSummary } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ExpenseForm } from "./components/expense-form";
@@ -39,9 +39,8 @@ const chartConfig = {
 export default function AccountingPage() {
     const router = useRouter();
     const { selectedBranch } = useBranch();
-    const [invoices, setInvoices] = useState<Invoice[]>([]);
-    const [payrolls, setPayrolls] = useState<Payroll[]>([]);
-    const [expenses, setExpenses] = useState<Expense[]>([]);
+    const [incomeRecords, setIncomeRecords] = useState<IncomeRecord[]>([]);
+    const [expenseSummary, setExpenseSummary] = useState<ExpenseSummary | null>(null);
     const [financialSummary, setFinancialSummary] = useState<FinancialSummary | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isFormOpen, setIsFormOpen] = useState(false);
@@ -53,33 +52,31 @@ export default function AccountingPage() {
         }
         const fetchData = async () => {
           setIsLoading(true);
-          const [invoicesData, payrollsData, expensesData, summaryData] = await Promise.all([
-            getInvoices({ branchId: selectedBranch }),
-            getPayrolls(selectedBranch),
-            getExpenses(selectedBranch),
+          const [incomeRecordsData, expenseSummaryData, summaryData] = await Promise.all([
+            getIncomeRecords({ branchId: selectedBranch }),
+            getExpenseSummary(selectedBranch),
             getFinancialSummary(selectedBranch),
           ]);
-          setInvoices(invoicesData);
-          setPayrolls(payrollsData);
-          setExpenses(expensesData);
+          setIncomeRecords(incomeRecordsData);
+          setExpenseSummary(expenseSummaryData);
           setFinancialSummary(summaryData);
           setIsLoading(false);
         };
         fetchData();
       }, [selectedBranch, router]);
 
-    const paidInvoices = useMemo(() => {
-        return invoices.filter(i => i.status === 'Paid');
-    }, [invoices]);
+    const paidIncomeRecords = useMemo(() => {
+        return incomeRecords.filter(record => record.status === 'Paid');
+    }, [incomeRecords]);
 
 
       const handleSaveExpense = async (data: Omit<Expense, 'id'>) => {
         const newExpense = await createExpense(data);
         if (newExpense) {
-            setExpenses(prev => [newExpense, ...prev]);
-             // Re-fetch summary data after adding an expense
-            const summaryData = await getFinancialSummary(selectedBranch);
-            setFinancialSummary(summaryData);
+            const summaryData = await getExpenseSummary(selectedBranch);
+            setExpenseSummary(summaryData);
+            const financialData = await getFinancialSummary(selectedBranch);
+            setFinancialSummary(financialData);
         }
         setIsFormOpen(false);
       }
@@ -167,15 +164,15 @@ export default function AccountingPage() {
                         <TableBody>
                             {isLoading ? (
                                 <TableRow><TableCell colSpan={4}><Skeleton className="h-24 w-full"/></TableCell></TableRow>
-                            ) : paidInvoices.map(invoice => (
-                                <TableRow key={invoice.id}>
-                                    <TableCell className="font-mono">{invoice.id}</TableCell>
-                                    <TableCell>{invoice.patientName}</TableCell>
-                                    <TableCell>{invoice.issueDate}</TableCell>
-                                    <TableCell className="text-right">${invoice.amount.toFixed(2)}</TableCell>
+                            ) : paidIncomeRecords.map(record => (
+                                <TableRow key={record.id}>
+                                    <TableCell className="font-mono">{record.id}</TableCell>
+                                    <TableCell>{record.patientName}</TableCell>
+                                    <TableCell>{record.date}</TableCell>
+                                    <TableCell className="text-right">${record.amount.toFixed(2)}</TableCell>
                                 </TableRow>
                             ))}
-                             {paidInvoices.length === 0 && !isLoading && (
+                             {paidIncomeRecords.length === 0 && !isLoading && (
                                 <TableRow><TableCell colSpan={4} className="text-center h-24">No income records found.</TableCell></TableRow>
                             )}
                         </TableBody>
@@ -198,6 +195,26 @@ export default function AccountingPage() {
                     )}
                 </CardHeader>
                 <CardContent>
+                    {expenseSummary && !isLoading ? (
+                        <div className="mb-6 grid gap-4 md:grid-cols-4">
+                            <div className="rounded-lg border bg-muted p-4">
+                                <p className="text-xs uppercase text-muted-foreground">Branch</p>
+                                <p className="mt-1 text-lg font-semibold">{expenseSummary.branch?.name || 'All branches'}</p>
+                            </div>
+                            <div className="rounded-lg border bg-muted p-4">
+                                <p className="text-xs uppercase text-muted-foreground">Total</p>
+                                <p className="mt-1 text-lg font-semibold">${Number(expenseSummary.total).toLocaleString()}</p>
+                            </div>
+                            <div className="rounded-lg border bg-muted p-4">
+                                <p className="text-xs uppercase text-muted-foreground">Payroll</p>
+                                <p className="mt-1 text-lg font-semibold">${Number(expenseSummary.totalPayroll).toLocaleString()}</p>
+                            </div>
+                            <div className="rounded-lg border bg-muted p-4">
+                                <p className="text-xs uppercase text-muted-foreground">Operational</p>
+                                <p className="mt-1 text-lg font-semibold">${Number(expenseSummary.totalOperationalExpenses).toLocaleString()}</p>
+                            </div>
+                        </div>
+                    ) : null}
                     <Table>
                          <TableHeader>
                             <TableRow>
@@ -210,14 +227,8 @@ export default function AccountingPage() {
                         <TableBody>
                              {isLoading ? (
                                 <TableRow><TableCell colSpan={4}><Skeleton className="h-24 w-full"/></TableCell></TableRow>
-                            ) : [...expenses, ...payrolls.map(p => ({
-                                id: p.id,
-                                branchId: p.branchId,
-                                date: p.payDate,
-                                category: 'Salaries' as const,
-                                description: `Payroll for ${p.employeeName} (${p.payPeriod})`,
-                                amount: p.grossPay
-                            }))]
+                            ) : (expenseSummary?.records ?? [])
+                            .slice()
                             .sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime())
                             .map(expense => (
                                 <TableRow key={expense.id}>
@@ -227,7 +238,7 @@ export default function AccountingPage() {
                                     <TableCell className="text-right">${expense.amount.toFixed(2)}</TableCell>
                                 </TableRow>
                             ))}
-                            {expenses.length === 0 && payrolls.length === 0 && !isLoading && (
+                            {(expenseSummary?.records?.length ?? 0) === 0 && !isLoading && (
                                 <TableRow><TableCell colSpan={4} className="text-center h-24">No expense records found.</TableCell></TableRow>
                             )}
                         </TableBody>

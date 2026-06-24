@@ -37,7 +37,7 @@ import { Combobox } from "@/components/ui/combobox";
 import { getTreatments } from "@/lib/api";
 
 const formSchema = z.object({
-  procedureId: z.string().min(1, "Procedure is required."),
+  procedureId: z.preprocess((value) => String(value), z.string().min(1, "Procedure is required.")),
   procedure: z.string().optional(),
   tooth: z.coerce.number().optional(),
   status: z.enum(['Proposed', 'In Progress', 'Completed', 'Cancelled']),
@@ -78,14 +78,15 @@ export function TreatmentPlanForm({ treatment, onSave, onOpenChange, toothId, cu
   const selectedProcedureId = form.watch("procedureId");
   useEffect(() => {
     if (selectedProcedureId) {
-        const matchingTreatment = systemTreatments.find(t => t.id === selectedProcedureId);
-        if (matchingTreatment) {
-            form.setValue('cost', matchingTreatment.cost);
-            form.setValue('procedure', matchingTreatment.procedure);
-        }
+      const matchingTreatment = systemTreatments.find(
+        t => String(t.id) === String(selectedProcedureId)
+      );
+      if (matchingTreatment) {
+        form.setValue('cost', matchingTreatment.cost);
+        form.setValue('procedure', matchingTreatment.procedure);
+      }
     }
   }, [selectedProcedureId, systemTreatments, form])
-
   function onSubmit(values: z.infer<typeof formSchema>) {
     const selectedSystemTreatment = systemTreatments.find(t => t.id === values.procedureId);
     if (!selectedSystemTreatment) return;

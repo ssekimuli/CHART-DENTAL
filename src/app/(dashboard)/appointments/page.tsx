@@ -43,7 +43,7 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
   } from "@/components/ui/alert-dialog";
-  import { getAppointments, getPatients, getEmployees, createAppointment, updateAppointment, deleteAppointment } from "@/lib/api";
+  import { getAppointments, getPatients, getDoctors, createAppointment, updateAppointment, deleteAppointment } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
@@ -69,7 +69,7 @@ export default function AppointmentsPage() {
         const [appointmentsData, patientsData, employeesData] = await Promise.all([
             getAppointments(),
             getPatients(),
-            getEmployees()
+            getDoctors(selectedBranch)
         ]);
         setAllAppointments(appointmentsData);
         setAllPatients(patientsData);
@@ -79,27 +79,34 @@ export default function AppointmentsPage() {
     fetchData();
   }, [selectedBranch]);
 
+  const normalizedSelectedBranch = String(selectedBranch || '');
+  const normalizedUserBranch = currentUser.branchId ? String(currentUser.branchId) : '';
+
   const filteredPatients = useMemo(() => {
      if (currentUser.role === 'Super Admin') {
-      return allPatients.filter(p => p.branchId === selectedBranch);
+      return allPatients.filter(p => String(p.branchId) === normalizedSelectedBranch);
     }
-    return allPatients.filter(p => p.branchId === currentUser.branchId);
-  }, [selectedBranch, allPatients]);
+    return allPatients.filter(p => String(p.branchId) === normalizedUserBranch);
+  }, [normalizedSelectedBranch, normalizedUserBranch, allPatients]);
 
   const filteredDoctors = useMemo(() => {
     const doctors = allEmployees.filter(e => e.role === 'Dentist');
     if (currentUser.role === 'Super Admin') {
-      return doctors.filter(d => d.branchId === selectedBranch);
+      return normalizedSelectedBranch
+        ? doctors.filter(d => String(d.branchId) === normalizedSelectedBranch)
+        : doctors;
     }
-    return doctors.filter(d => d.branchId === currentUser.branchId);
-  }, [selectedBranch, allEmployees]);
+    return normalizedUserBranch
+      ? doctors.filter(d => String(d.branchId) === normalizedUserBranch)
+      : doctors;
+  }, [normalizedSelectedBranch, normalizedUserBranch, allEmployees]);
   
   const branchAppointments = useMemo(() => {
     if (currentUser.role === 'Super Admin') {
-      return allAppointments.filter(a => a.branchId === selectedBranch);
+      return allAppointments.filter(a => String(a.branchId) === normalizedSelectedBranch);
     }
-    return allAppointments.filter(a => a.branchId === currentUser.branchId);
-  }, [selectedBranch, allAppointments]);
+    return allAppointments.filter(a => String(a.branchId) === normalizedUserBranch);
+  }, [normalizedSelectedBranch, normalizedUserBranch, allAppointments]);
 
   const appointmentsForDate = useMemo(() => {
     if (!selectedDate) return [];
@@ -137,7 +144,18 @@ export default function AppointmentsPage() {
         }
     } else {
         // Create
-        const newAppointment = await createAppointment({ ...data, branchId: selectedBranch });
+        const payload = {
+          patient_name: data.patientName,
+          patient_id: data.patientId,
+          doctor_name: data.doctorName,
+          doctor_id: data.doctorId,
+          treatment: data.treatment,
+          date: data.date,
+          time: data.time,
+          branch_id: selectedBranch || currentUser.branchId,
+        };
+
+        const newAppointment = await createAppointment(payload);
         if (newAppointment) {
           setAllAppointments(prev => [...prev, newAppointment]);
         }
@@ -159,8 +177,8 @@ export default function AppointmentsPage() {
     setIsDeleteAlertOpen(true);
   }
 
-  const handleGoToChart = (patientId: string) => {
-    router.push(`/patients/${patientId}/charting`);
+  const handleGoToChart = (patientId: string | number) => {
+    router.push(`/patients/${String(patientId)}/charting`);
   }
 
   const handleSendToQueue = async (appointment: Appointment) => {

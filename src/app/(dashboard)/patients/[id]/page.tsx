@@ -11,7 +11,6 @@ import {
 } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AITreatmentPlan } from "./components/ai-treatment-plan";
 import Image from "next/image";
 import { summarizePatientHistory } from "@/ai/flows/summarize-patient-history";
 import {
@@ -222,28 +221,23 @@ export default function PatientDetailPage({
             <TabsTrigger value="history">History</TabsTrigger>
           </TabsList>
           <TabsContent value="treatment">
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-              <AITreatmentPlan
-                patientHistory={patient.history || ''}
-                dentalRecords={patient.dentalRecords}
-              />
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <div>
-                    <CardTitle>Current Treatment Plan</CardTitle>
-                    <CardDescription>
-                      List of proposed and ongoing treatments.
-                    </CardDescription>
-                  </div>
-                  {canUpdatePatient && (
-                      <Button size="sm" onClick={() => handleOpenTreatmentForm()}>
-                      <PlusCircle className="mr-2 h-4 w-4" />
-                      New Treatment
-                      </Button>
-                  )}
-                </CardHeader>
-                <CardContent>
-                  <Table>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>Current Treatment Plan</CardTitle>
+                  <CardDescription>
+                    List of proposed and ongoing treatments.
+                  </CardDescription>
+                </div>
+                {canUpdatePatient && (
+                    <Button size="sm" onClick={() => handleOpenTreatmentForm()}>
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    New Treatment
+                    </Button>
+                )}
+              </CardHeader>
+              <CardContent className="max-h-[480px] overflow-auto">
+                  <Table className="min-w-full">
                     <TableHeader>
                       <TableRow>
                         <TableHead>Procedure</TableHead>
@@ -302,8 +296,7 @@ export default function PatientDetailPage({
                   </Table>
                 </CardContent>
               </Card>
-            </div>
-          </TabsContent>
+            </TabsContent>
 
           <TabsContent value="imaging">
             <Card>

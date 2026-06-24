@@ -115,7 +115,7 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
   useEffect(() => {
     if (invoice) {
         setSelectedTreatments(invoice.treatments.map(t => ({
-          procedureId: t.procedureId || t.id || Math.random(),
+          procedureId: t.procedureId ?? Math.random(),
           procedure: t.procedure,
           cost: Number(t.cost) || 0,
           tooth: t.tooth,

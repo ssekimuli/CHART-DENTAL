@@ -1,6 +1,6 @@
 
 
-export type ExpenseCategory = 'Supplies' | 'Rent' | 'Utilities' | 'Salaries' | 'Marketing' | 'Maintenance' | 'Other';
+export type ExpenseCategory = 'Supplies' | 'Rent' | 'Utilities' | 'Salaries' | 'Marketing' | 'Maintenance' | 'Other' | 'Payroll';
 
 export type Expense = {
     id: string | number;
@@ -9,6 +9,20 @@ export type Expense = {
     category: ExpenseCategory;
     description: string;
     amount: number;
+    type?: 'payroll' | 'operation';
+    employeeName?: string;
+    payPeriod?: string;
+    netPay?: number;
+    deductions?: number;
+    branch?: Branch;
+};
+
+export type ExpenseSummary = {
+    branch: Branch | null;
+    total: number;
+    totalPayroll: number;
+    totalOperationalExpenses: number;
+    records: Expense[];
 };
 
 export type Patient = {
@@ -71,6 +85,34 @@ export type InvoiceTreatment = {
 
 export type AppointmentStatus = "Scheduled" | "Completed" | "Cancelled" | "Waiting" | "In Session" | "On Hold";
 
+export type DashboardUpcomingAppointment = {
+  id: string | number;
+  patientName: string;
+  doctorName: string;
+  date: string;
+  time: string;
+  status: AppointmentStatus;
+  treatment?: string;
+  tokenNumber?: string;
+};
+
+export type DashboardRecentPatient = {
+  id: string | number;
+  firstName: string;
+  lastName: string;
+  lastVisit: string;
+};
+
+export type DashboardSummary = {
+  totalRevenue: number;
+  activePatients: number;
+  appointmentsLast30Days: number;
+  newPatientsLast30Days: number;
+  practiceOverview: string;
+  upcomingAppointments: DashboardUpcomingAppointment[];
+  recentPatients: DashboardRecentPatient[];
+};
+
 export type Appointment = {
   id: string | number;
   patientName: string;
@@ -123,6 +165,13 @@ export type ChartData = {
   branchId: string;
 };
 
+export type PracticeTrendPoint = {
+  date: string;
+  revenue: number;
+  appointments: number;
+  newPatients: number;
+};
+
 export type EmployeeRole = 'Super Admin' | 'Account' | 'HR' | 'Dentist' | 'Hygienist' | 'Receptionist' | 'Assistant';
 
 export type Employee = {
@@ -158,6 +207,16 @@ export type Payroll = {
   payDate: string;
   status: 'Paid' | 'Pending';
   branchId: string | number;
+};
+
+export type IncomeRecord = {
+  id: string | number;
+  branchId: string | number;
+  date: string;
+  patientName: string;
+  amount: number;
+  status: 'Paid' | 'Pending' | 'Overdue';
+  invoiceNumber: string;
 };
 
 export type AttendanceStatus = 'Present' | 'Absent' | 'On Leave';
@@ -329,10 +388,13 @@ export type RolePermissions = {
 };
 
 export type FinancialSummary = {
+    branchId?: string | number;
+    from?: string;
+    to?: string;
     totalIncome: number;
     totalExpenses: number;
     netProfit: number;
-    monthlyFinancials: { month: string; income: number; expense: number }[];
+    monthlyFinancials: { month: string; income: number; expense: number; netProfit: number }[];
 };
 
 export type ProfileDataStats = {

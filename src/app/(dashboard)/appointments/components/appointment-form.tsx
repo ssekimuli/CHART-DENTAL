@@ -40,12 +40,26 @@ import { cn, getPatientFullName } from "@/lib/utils";
 import { CalendarIcon, RefreshCw } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Combobox } from "@/components/ui/combobox";
-import { getTreatments } from "@/lib/api";
+import { getTreatments, getPatients } from "@/lib/api";
 
 
 const formSchema = z.object({
-  patientId: z.string({ required_error: "Please select a patient."}),
-  doctorId: z.string({ required_error: "Please select a doctor."}),
+  patientId: z.preprocess((value) => {
+    if (typeof value === "string") {
+      if (value.trim() === "") return undefined;
+      const parsed = Number(value);
+      return Number.isNaN(parsed) ? value : parsed;
+    }
+    return value;
+  }, z.number({ required_error: "Please select a patient." })),
+  doctorId: z.preprocess((value) => {
+    if (typeof value === "string") {
+      if (value.trim() === "") return undefined;
+      const parsed = Number(value);
+      return Number.isNaN(parsed) ? value : parsed;
+    }
+    return value;
+  }, z.number({ required_error: "Please select a doctor." })),
   treatment: z.string().min(2, "Treatment must be at least 2 characters."),
   date: z.date({
     required_error: "A date is required.",
@@ -57,7 +71,7 @@ const formSchema = z.object({
 
 type AppointmentFormProps = {
     appointment?: Appointment;
-    patients: Patient[];
+    patients?: Patient[];
     doctors: Employee[];
     appointments: Appointment[];
     onSave: (data: Omit<Appointment, 'id' | 'branchId'>) => void;
@@ -93,14 +107,17 @@ const generateToken = (patientName: string, doctorName: string) => {
     return `${patientInitials}${doctorInitials}${randomNumber}`;
 }
 
-export function AppointmentForm({ appointment, patients, doctors, appointments, onSave, onOpenChange }: AppointmentFormProps) {
+export function AppointmentForm({ appointment, patients: initialPatients, doctors, appointments, onSave, onOpenChange }: AppointmentFormProps) {
   const [treatments, setTreatments] = useState<SystemTreatment[]>([]);
+  const [patients, setPatients] = useState<Patient[]>(initialPatients || []);
+  const toNumberId = (value: string | number | undefined) =>
+    typeof value === "string" ? Number(value) : value;
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-        patientId: appointment?.patientId ?? "",
-        doctorId: appointment?.doctorId ?? "",
+        patientId: toNumberId(appointment?.patientId),
+        doctorId: toNumberId(appointment?.doctorId),
         treatment: appointment?.treatment ?? "",
         date: appointment ? parse(appointment.date, "yyyy-MM-dd", new Date()) : new Date(),
         time: appointment?.time ?? "",
@@ -110,11 +127,15 @@ export function AppointmentForm({ appointment, patients, doctors, appointments, 
   });
 
   useEffect(() => {
-    const fetchTreatments = async () => {
-        const data = await getTreatments();
-        setTreatments(data);
+    const fetchData = async () => {
+        const [treatmentsData, patientsData] = await Promise.all([
+            getTreatments(),
+            getPatients()
+        ]);
+        setTreatments(treatmentsData);
+        setPatients(patientsData);
     }
-    fetchTreatments();
+    fetchData();
   }, [])
 
   const selectedDoctorId = form.watch("doctorId");
@@ -136,9 +157,9 @@ export function AppointmentForm({ appointment, patients, doctors, appointments, 
 
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    const patient = patients.find(p => p.id === values.patientId);
+    const patient = patients.find(p => String(p.id) === String(values.patientId));
     if (!patient) return;
-    const doctor = doctors.find(d => d.id === values.doctorId);
+    const doctor = doctors.find(d => String(d.id) === String(values.doctorId));
     if (!doctor) return;
 
 
@@ -154,8 +175,8 @@ export function AppointmentForm({ appointment, patients, doctors, appointments, 
     const patientId = form.getValues("patientId");
     const doctorId = form.getValues("doctorId");
 
-    const patient = patients.find(p => p.id === patientId);
-    const doctor = doctors.find(d => d.id === doctorId);
+    const patient = patients.find(p => String(p.id) === String(patientId));
+    const doctor = doctors.find(d => String(d.id) === String(doctorId));
 
     if (patient && doctor) {
         const token = generateToken(getPatientFullName(patient), doctor.name);
@@ -187,7 +208,7 @@ export function AppointmentForm({ appointment, patients, doctors, appointments, 
                             <FormLabel>Patient</FormLabel>
                             <FormControl>
                                 <Combobox
-                                    options={patients.map(p => ({ value: String(p.id), label: getPatientFullName(p) }))}
+                                    options={patients.map(p => ({ value: p.id, label: getPatientFullName(p) }))}
                                     value={field.value}
                                     onChange={(value) => {
                                         field.onChange(value);

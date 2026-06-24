@@ -62,7 +62,7 @@ export function PatientsTable({ data, onView, onEdit, onDelete }: PatientsTableP
                     <AvatarFallback>{patient.first_name.charAt(0)}{patient.last_name.charAt(0)}</AvatarFallback>
                   </Avatar>
                   <div className="font-medium">{getPatientFullName(patient)}</div>
-                  <div className="text-sm text-muted-foreground">{patient.email}</div>
+                  <div className="text-sm text-muted-foreground">{patient.phone}</div>
                 </div>
               </TableCell>
               <TableCell>{patient.gender || '-'}</TableCell>
