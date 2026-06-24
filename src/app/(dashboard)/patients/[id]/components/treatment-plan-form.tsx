@@ -60,9 +60,10 @@ export function TreatmentPlanForm({ treatment, onSave, onOpenChange, toothId, cu
     resolver: zodResolver(formSchema),
     defaultValues: {
       procedureId: treatment?.procedureId ?? "",
+      procedure: treatment?.procedure ?? "",
       status: treatment?.status ?? 'Proposed',
-      tooth: treatment?.tooth ?? toothId,
-      cost: treatment?.cost,
+      tooth: treatment?.tooth ?? toothId ?? undefined,
+      cost: treatment?.cost ?? 0,
       condition: currentCondition,
     },
   });
@@ -88,7 +89,7 @@ export function TreatmentPlanForm({ treatment, onSave, onOpenChange, toothId, cu
     }
   }, [selectedProcedureId, systemTreatments, form])
   function onSubmit(values: z.infer<typeof formSchema>) {
-    const selectedSystemTreatment = systemTreatments.find(t => t.id === values.procedureId);
+    const selectedSystemTreatment = systemTreatments.find(t => String(t.id) === String(values.procedureId));
     if (!selectedSystemTreatment) return;
 
     onSave({

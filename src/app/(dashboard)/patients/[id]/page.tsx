@@ -258,7 +258,7 @@ export default function PatientDetailPage({
                             <Badge variant="outline">{plan.status}</Badge>
                           </TableCell>
                           <TableCell>
-                            ${plan.cost.toFixed(2)}
+                            ${Number(plan.cost).toFixed(2)}
                           </TableCell>
                           {canUpdatePatient && (
                               <TableCell className="text-right">

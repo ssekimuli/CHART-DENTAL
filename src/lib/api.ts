@@ -1644,7 +1644,7 @@ export const getOdontogramRecords = async (patientId: string | number): Promise<
 };
 
 export const saveDentalRecord = async (patientId: string | number, record: DentalRecord): Promise<DentalRecord> => {
-    console.log('API CALL: saveDentalRecord. Request Body:', { patientId, record });
+    console.log('API CALL: saveDentalRecord', { patientId, record });
 
     // Build request body - convert camelCase to snake_case
     const requestBody = {
@@ -1659,32 +1659,25 @@ export const saveDentalRecord = async (patientId: string | number, record: Denta
 
         // Map API response back to frontend type
         const feRecord: DentalRecord = {
-            toothId: savedRecord.tooth_id,
+            toothId: savedRecord.tooth_id || savedRecord.toothId,
             condition: savedRecord.condition,
             notes: savedRecord.notes || '',
+            id: savedRecord.id,
+            createdAt: savedRecord.created_at || savedRecord.createdAt,
+            updatedAt: savedRecord.updated_at || savedRecord.updatedAt,
         };
 
-        // Update local cache - find the patient and update their dental records
-        const patientIndex = allPatients.findIndex(p => String(p.id) === String(patientId));
-        if (patientIndex > -1) {
-            const patient = allPatients[patientIndex];
-            const recordIndex = patient.dentalRecords.findIndex(r => r.toothId === feRecord.toothId);
-
-            if (recordIndex > -1) {
-                // Update existing record
-                patient.dentalRecords[recordIndex] = feRecord;
-            } else {
-                // Add new record
-                patient.dentalRecords.push(feRecord);
-            }
-        }
-
+        console.log('Saved dental record:', feRecord);
         return feRecord;
+
     } catch (error) {
         if (axios.isAxiosError(error)) {
             console.error('Failed to save dental record:', error.response?.data);
             if (error.response?.status === 404) {
                 throw new Error("Patient not found");
+            }
+            if (error.response?.status === 422) {
+                throw new Error(error.response?.data?.message || "Validation failed");
             }
             throw new Error(error.response?.data?.message || "Failed to save dental record");
         } else {
@@ -1692,64 +1685,490 @@ export const saveDentalRecord = async (patientId: string | number, record: Denta
             throw error;
         }
     }
-}
+};
 
-export const savePeriodontalRecord = async (patientId: string | number, records: PeriodontalRecord): Promise<Patient | undefined> => {
+// Get all dental records for a patient
+export const getDentalRecords = async (patientId: string | number): Promise<DentalRecord[]> => {
+    console.log('API CALL: getDentalRecords', { patientId });
+    
+    try {
+        const response = await customAxios.get(`/patients/${patientId}/odontogram-records`);
+        
+        let recordsData = response.data;
+        if (recordsData?.data && Array.isArray(recordsData.data)) {
+            recordsData = recordsData.data;
+        } else if (!Array.isArray(recordsData)) {
+            return [];
+        }
+
+        return recordsData.map((record: any) => ({
+            id: record.id,
+            toothId: record.tooth_id || record.toothId,
+            condition: record.condition,
+            notes: record.notes || '',
+            createdAt: record.created_at || record.createdAt,
+            updatedAt: record.updated_at || record.updatedAt,
+        }));
+
+    } catch (error) {
+        console.error('Error fetching dental records:', error);
+        return [];
+    }
+};
+
+// Update dental record
+export const updateDentalRecord = async (
+    patientId: string | number, 
+    recordId: string | number, 
+    record: Partial<DentalRecord>
+): Promise<DentalRecord | undefined> => {
+    console.log('API CALL: updateDentalRecord', { patientId, recordId, record });
+    
+    try {
+        const requestBody: any = {};
+        if (record.condition !== undefined) requestBody.condition = record.condition;
+        if (record.notes !== undefined) requestBody.notes = record.notes;
+        if (record.toothId !== undefined) requestBody.tooth_id = record.toothId;
+
+        const response = await customAxios.put(`/patients/${patientId}/odontogram-records/${recordId}`, requestBody);
+        
+        const updatedRecord = response.data.data || response.data;
+        
+        return {
+            id: updatedRecord.id || recordId,
+            toothId: updatedRecord.tooth_id || updatedRecord.toothId || record.toothId,
+            condition: updatedRecord.condition || record.condition,
+            notes: updatedRecord.notes || record.notes || '',
+            createdAt: updatedRecord.created_at || updatedRecord.createdAt,
+            updatedAt: updatedRecord.updated_at || updatedRecord.updatedAt,
+        };
+
+    } catch (error) {
+        console.error('Error updating dental record:', error);
+        return undefined;
+    }
+};
+
+// Delete dental record
+export const deleteDentalRecord = async (patientId: string | number, recordId: string | number): Promise<{ success: boolean }> => {
+    console.log('API CALL: deleteDentalRecord', { patientId, recordId });
+    
+    try {
+        await customAxios.delete(`/patients/${patientId}/odontogram-records/${recordId}`);
+        return { success: true };
+    } catch (error) {
+        console.error('Error deleting dental record:', error);
+        return { success: false };
+    }
+};
+
+export const savePeriodontalRecord = async (patientId: string | number, records: PeriodontalRecord[]): Promise<PeriodontalRecord[]> => {
     console.log('API CALL: savePeriodontalRecord', { patientId, recordsCount: records.length });
-    await delay(150);
-    const patientIndex = allPatients.findIndex(p => String(p.id) === String(patientId));
-    if (patientIndex > -1) {
-        allPatients[patientIndex].periodontalRecords = records;
-        return allPatients[patientIndex];
-    }
-    return undefined;
-}
+    
+    try {
+        // Build request body
+        const requestBody = {
+            records: records.map(record => ({
+                tooth_id: record.toothId,
+                pocket_depth: record.pocketDepth,
+                gingival_index: record.gingivalIndex,
+                plaque_index: record.plaqueIndex,
+                bleeding: record.bleeding,
+                attachment_loss: record.attachmentLoss,
+                mobility: record.mobility,
+                furcation_involvement: record.furcationInvolvement,
+                notes: record.notes || undefined,
+            }))
+        };
 
-export const saveOcclusalRecord = async (patientId: string | number, record: OcclusalRecord): Promise<Patient | undefined> => {
-    console.log('API CALL: saveOcclusalRecord', { patientId, record });
-    await delay(150);
-    const patientIndex = allPatients.findIndex(p => String(p.id) === String(patientId));
-    if (patientIndex > -1) {
-        allPatients[patientIndex].occlusalRecords = record;
-        return allPatients[patientIndex];
+        const response = await customAxios.post(`/patients/${patientId}/periodontal-records`, requestBody);
+        
+        let savedRecords = response.data.data || response.data;
+        if (!Array.isArray(savedRecords)) {
+            savedRecords = [savedRecords];
+        }
+
+        // Map response back to frontend type
+        const feRecords: PeriodontalRecord[] = savedRecords.map((record: any) => ({
+            id: record.id,
+            toothId: record.tooth_id || record.toothId,
+            pocketDepth: record.pocket_depth || record.pocketDepth,
+            gingivalIndex: record.gingival_index || record.gingivalIndex,
+            plaqueIndex: record.plaque_index || record.plaqueIndex,
+            bleeding: record.bleeding || false,
+            attachmentLoss: record.attachment_loss || record.attachmentLoss,
+            mobility: record.mobility,
+            furcationInvolvement: record.furcation_involvement || record.furcationInvolvement,
+            notes: record.notes || '',
+            createdAt: record.created_at || record.createdAt,
+            updatedAt: record.updated_at || record.updatedAt,
+        }));
+
+        console.log('Saved periodontal records:', feRecords);
+        return feRecords;
+
+    } catch (error) {
+        console.error('Error saving periodontal records:', error);
+        
+        if (axios.isAxiosError(error)) {
+            if (error.response?.status === 404) {
+                throw new Error("Patient not found");
+            }
+            if (error.response?.status === 422) {
+                throw new Error(error.response?.data?.message || "Validation failed");
+            }
+            throw new Error(error.response?.data?.message || "Failed to save periodontal records");
+        }
+        throw error;
     }
-    return undefined;
+};
+
+// Get periodontal records for a patient
+export const getPeriodontalRecords = async (patientId: string | number): Promise<PeriodontalRecord[]> => {
+    console.log('API CALL: getPeriodontalRecords', { patientId });
+    
+    try {
+        const response = await customAxios.get(`/patients/${patientId}/periodontal-records`);
+        
+        let recordsData = response.data;
+        if (recordsData?.data && Array.isArray(recordsData.data)) {
+            recordsData = recordsData.data;
+        } else if (!Array.isArray(recordsData)) {
+            return [];
+        }
+
+        return recordsData.map((record: any) => ({
+            id: record.id,
+            toothId: record.tooth_id || record.toothId,
+            pocketDepth: record.pocket_depth || record.pocketDepth,
+            gingivalIndex: record.gingival_index || record.gingivalIndex,
+            plaqueIndex: record.plaque_index || record.plaqueIndex,
+            bleeding: record.bleeding || false,
+            attachmentLoss: record.attachment_loss || record.attachmentLoss,
+            mobility: record.mobility,
+            furcationInvolvement: record.furcation_involvement || record.furcationInvolvement,
+            notes: record.notes || '',
+            createdAt: record.created_at || record.createdAt,
+            updatedAt: record.updated_at || record.updatedAt,
+        }));
+
+    } catch (error) {
+        console.error('Error fetching periodontal records:', error);
+        return [];
+    }
+};
+
+export const saveOcclusalRecord = async (patientId: string | number, record: OcclusalRecord): Promise<OcclusalRecord> => {
+    console.log('API CALL: saveOcclusalRecord', { patientId, record });
+    
+    try {
+        // Build request body
+        const requestBody = {
+            jaw_relation: record.jawRelation,
+            centric_relation: record.centricRelation,
+            centric_occlusion: record.centricOcclusion,
+            working_side: record.workingSide,
+            balancing_side: record.balancingSide,
+            protrusive: record.protrusive,
+            lateral: record.lateral,
+            notes: record.notes || undefined,
+        };
+
+        const response = await customAxios.post(`/patients/${patientId}/occlusal-records`, requestBody);
+        
+        const savedRecord = response.data.data || response.data;
+
+        // Map response back to frontend type
+        const feRecord: OcclusalRecord = {
+            id: savedRecord.id,
+            jawRelation: savedRecord.jaw_relation || savedRecord.jawRelation,
+            centricRelation: savedRecord.centric_relation || savedRecord.centricRelation,
+            centricOcclusion: savedRecord.centric_occlusion || savedRecord.centricOcclusion,
+            workingSide: savedRecord.working_side || savedRecord.workingSide,
+            balancingSide: savedRecord.balancing_side || savedRecord.balancingSide,
+            protrusive: savedRecord.protrusive || false,
+            lateral: savedRecord.lateral || false,
+            notes: savedRecord.notes || '',
+            createdAt: savedRecord.created_at || savedRecord.createdAt,
+            updatedAt: savedRecord.updated_at || savedRecord.updatedAt,
+        };
+
+        console.log('Saved occlusal record:', feRecord);
+        return feRecord;
+
+    } catch (error) {
+        console.error('Error saving occlusal record:', error);
+        
+        if (axios.isAxiosError(error)) {
+            if (error.response?.status === 404) {
+                throw new Error("Patient not found");
+            }
+            if (error.response?.status === 422) {
+                throw new Error(error.response?.data?.message || "Validation failed");
+            }
+            throw new Error(error.response?.data?.message || "Failed to save occlusal record");
+        }
+        throw error;
+    }
+};
+
+// Get occlusal records for a patient
+export const getOcclusalRecords = async (patientId: string | number): Promise<OcclusalRecord[]> => {
+    console.log('API CALL: getOcclusalRecords', { patientId });
+    
+    try {
+        const response = await customAxios.get(`/patients/${patientId}/occlusal-records`);
+        
+        let recordsData = response.data;
+        if (recordsData?.data && Array.isArray(recordsData.data)) {
+            recordsData = recordsData.data;
+        } else if (!Array.isArray(recordsData)) {
+            return [];
+        }
+
+        return recordsData.map((record: any) => ({
+            id: record.id,
+            jawRelation: record.jaw_relation || record.jawRelation,
+            centricRelation: record.centric_relation || record.centricRelation,
+            centricOcclusion: record.centric_occlusion || record.centricOcclusion,
+            workingSide: record.working_side || record.workingSide,
+            balancingSide: record.balancing_side || record.balancingSide,
+            protrusive: record.protrusive || false,
+            lateral: record.lateral || false,
+            notes: record.notes || '',
+            createdAt: record.created_at || record.createdAt,
+            updatedAt: record.updated_at || record.updatedAt,
+        }));
+
+    } catch (error) {
+        console.error('Error fetching occlusal records:', error);
+        return [];
+    }
+};
+
+export const saveSoftTissueRecord = async (patientId: string | number, record: SoftTissueRecord): Promise<SoftTissueRecord> => {
+    console.log('API CALL: saveSoftTissueRecord', { patientId, record });
+    
+    try {
+        // Build request body
+        const requestBody = {
+            lips: record.lips,
+            mucosa: record.mucosa,
+            palate: record.palate,
+            tongue: record.tongue,
+            floor_of_mouth: record.floorOfMouth,
+            lesions: record.lesions,
+            abnormalities: record.abnormalities,
+            notes: record.notes || undefined,
+        };
+
+        const response = await customAxios.post(`/patients/${patientId}/soft-tissue-records`, requestBody);
+        
+        const savedRecord = response.data.data || response.data;
+
+        // Map response back to frontend type
+        const feRecord: SoftTissueRecord = {
+            id: savedRecord.id,
+            lips: savedRecord.lips,
+            mucosa: savedRecord.mucosa,
+            palate: savedRecord.palate,
+            tongue: savedRecord.tongue,
+            floorOfMouth: savedRecord.floor_of_mouth || savedRecord.floorOfMouth,
+            lesions: savedRecord.lesions || '',
+            abnormalities: savedRecord.abnormalities || '',
+            notes: savedRecord.notes || '',
+            createdAt: savedRecord.created_at || savedRecord.createdAt,
+            updatedAt: savedRecord.updated_at || savedRecord.updatedAt,
+        };
+
+        console.log('Saved soft tissue record:', feRecord);
+        return feRecord;
+
+    } catch (error) {
+        console.error('Error saving soft tissue record:', error);
+        
+        if (axios.isAxiosError(error)) {
+            if (error.response?.status === 404) {
+                throw new Error("Patient not found");
+            }
+            if (error.response?.status === 422) {
+                throw new Error(error.response?.data?.message || "Validation failed");
+            }
+            throw new Error(error.response?.data?.message || "Failed to save soft tissue record");
+        }
+        throw error;
+    }
+};
+
+// Get soft tissue records for a patient
+export const getSoftTissueRecords = async (patientId: string | number): Promise<SoftTissueRecord[]> => {
+    console.log('API CALL: getSoftTissueRecords', { patientId });
+    
+    try {
+        const response = await customAxios.get(`/patients/${patientId}/soft-tissue-records`);
+        
+        let recordsData = response.data;
+        if (recordsData?.data && Array.isArray(recordsData.data)) {
+            recordsData = recordsData.data;
+        } else if (!Array.isArray(recordsData)) {
+            return [];
+        }
+
+        return recordsData.map((record: any) => ({
+            id: record.id,
+            lips: record.lips,
+            mucosa: record.mucosa,
+            palate: record.palate,
+            tongue: record.tongue,
+            floorOfMouth: record.floor_of_mouth || record.floorOfMouth,
+            lesions: record.lesions || '',
+            abnormalities: record.abnormalities || '',
+            notes: record.notes || '',
+            createdAt: record.created_at || record.createdAt,
+            updatedAt: record.updated_at || record.updatedAt,
+        }));
+
+    } catch (error) {
+        console.error('Error fetching soft tissue records:', error);
+        return [];
+    }
+};
+
+export const saveOrthodonticRecord = async (patientId: string | number, record: OrthodonticRecord): Promise<OrthodonticRecord> => {
+    console.log('API CALL: saveOrthodonticRecord', { patientId, record });
+    
+    try {
+        // Build request body
+        const requestBody = {
+            malocclusion_type: record.malocclusionType,
+            overjet: record.overjet,
+            overbite: record.overbite,
+            crossbite: record.crossbite,
+            openbite: record.openbite,
+            crowding: record.crowding,
+            spacing: record.spacing,
+            midline_deviation: record.midlineDeviation,
+            treatment_plan: record.treatmentPlan,
+            notes: record.notes || undefined,
+        };
+
+        const response = await customAxios.post(`/patients/${patientId}/orthodontic-records`, requestBody);
+        
+        const savedRecord = response.data.data || response.data;
+
+        // Map response back to frontend type
+        const feRecord: OrthodonticRecord = {
+            id: savedRecord.id,
+            malocclusionType: savedRecord.malocclusion_type || savedRecord.malocclusionType,
+            overjet: savedRecord.overjet,
+            overbite: savedRecord.overbite,
+            crossbite: savedRecord.crossbite || false,
+            openbite: savedRecord.openbite || false,
+            crowding: savedRecord.crowding || false,
+            spacing: savedRecord.spacing || false,
+            midlineDeviation: savedRecord.midline_deviation || savedRecord.midlineDeviation,
+            treatmentPlan: savedRecord.treatment_plan || savedRecord.treatmentPlan,
+            notes: savedRecord.notes || '',
+            createdAt: savedRecord.created_at || savedRecord.createdAt,
+            updatedAt: savedRecord.updated_at || savedRecord.updatedAt,
+        };
+
+        console.log('Saved orthodontic record:', feRecord);
+        return feRecord;
+
+    } catch (error) {
+        console.error('Error saving orthodontic record:', error);
+        
+        if (axios.isAxiosError(error)) {
+            if (error.response?.status === 404) {
+                throw new Error("Patient not found");
+            }
+            if (error.response?.status === 422) {
+                throw new Error(error.response?.data?.message || "Validation failed");
+            }
+            throw new Error(error.response?.data?.message || "Failed to save orthodontic record");
+        }
+        throw error;
+    }
+};
+
+// Get orthodontic records for a patient
+export const getOrthodonticRecords = async (patientId: string | number): Promise<OrthodonticRecord[]> => {
+    console.log('API CALL: getOrthodonticRecords', { patientId });
+    
+    try {
+        const response = await customAxios.get(`/patients/${patientId}/orthodontic-records`);
+        
+        let recordsData = response.data;
+        if (recordsData?.data && Array.isArray(recordsData.data)) {
+            recordsData = recordsData.data;
+        } else if (!Array.isArray(recordsData)) {
+            return [];
+        }
+
+        return recordsData.map((record: any) => ({
+            id: record.id,
+            malocclusionType: record.malocclusion_type || record.malocclusionType,
+            overjet: record.overjet,
+            overbite: record.overbite,
+            crossbite: record.crossbite || false,
+            openbite: record.openbite || false,
+            crowding: record.crowding || false,
+            spacing: record.spacing || false,
+            midlineDeviation: record.midline_deviation || record.midlineDeviation,
+            treatmentPlan: record.treatment_plan || record.treatmentPlan,
+            notes: record.notes || '',
+            createdAt: record.created_at || record.createdAt,
+            updatedAt: record.updated_at || record.updatedAt,
+        }));
+
+    } catch (error) {
+        console.error('Error fetching orthodontic records:', error);
+        return [];
+    }
 };
 
 export const addTreatment = async (patientId: string | number, treatmentData: Omit<Treatment, 'id' | 'date'>, condition?: DentalCondition): Promise<Treatment> => {
     console.log('API CALL: addTreatment', { patientId, treatmentData, condition });
 
-    // Build request body - convert camelCase to snake_case
-    const requestBody = {
+    const today = new Date().toISOString().split('T')[0];
+
+    // Build request body matching backend validation:
+    // procedure (required|string), tooth (nullable|integer), status (required|in:Proposed,Completed),
+    // cost (required|numeric), date (required|date)
+    const requestBody: Record<string, any> = {
         procedure_id: treatmentData.procedureId,
         procedure: treatmentData.procedure,
-        tooth: treatmentData.tooth || undefined,
-        tooth_id: treatmentData.tooth || undefined,
-        status: treatmentData.status,
+        tooth: treatmentData.tooth || null,
+        status: treatmentData.status === 'In Progress' || treatmentData.status === 'Cancelled'
+            ? 'Proposed'  // Backend only accepts 'Proposed' or 'Completed'
+            : treatmentData.status,
         cost: treatmentData.cost,
-        invoice_id: treatmentData.invoiceId || undefined,
-        condition: condition || undefined,
+        date: today,
     };
 
     try {
-        // The odontogram-records endpoint creates/updates dental records
-        const response = await customAxios.post(`/patients/${patientId}/odontogram-records`, requestBody);
-        const savedRecord = response.data.data || response.data;
+        const response = await customAxios.post(`/patients/${patientId}/treatments`, requestBody);
+        const responseData = response.data.data || response.data;
 
-        // Create a treatment object with generated ID and current date
-        // The API returns dental record data, not treatment data
+        // Extract the newly created treatment from the response.
+        // The backend returns the patient with treatmentPlans loaded.
+        // The last treatment plan entry should be the one we just created.
+        const treatmentPlans = responseData.treatment_plans || responseData.treatmentPlans || [];
+        const savedTreatment = treatmentPlans.length > 0 ? treatmentPlans[treatmentPlans.length - 1] : null;
+
         const feTreatment: Treatment = {
-            id: `t${Date.now()}`, // Generate temporary ID
+            id: savedTreatment?.id || `t${Date.now()}`,
             procedureId: treatmentData.procedureId,
-            procedure: treatmentData.procedure,
-            tooth: treatmentData.tooth,
-            status: treatmentData.status,
-            cost: treatmentData.cost,
-            date: new Date().toISOString().split('T')[0],
+            procedure: savedTreatment?.procedure || treatmentData.procedure,
+            tooth: savedTreatment?.tooth || treatmentData.tooth,
+            status: savedTreatment?.status || treatmentData.status,
+            cost: savedTreatment?.cost || treatmentData.cost,
+            date: savedTreatment?.date || today,
             invoiceId: treatmentData.invoiceId,
         };
 
-        // Update local cache - find the patient and update both treatment plans and dental records
+        // Update local cache
         const patientIndex = allPatients.findIndex(p => String(p.id) === String(patientId));
         if (patientIndex > -1) {
             const patient = allPatients[patientIndex];
@@ -1757,14 +2176,14 @@ export const addTreatment = async (patientId: string | number, treatmentData: Om
             // Add treatment to treatment plans
             patient.treatmentPlans.push(feTreatment);
 
-            // Update dental record from API response
-            if (savedRecord.tooth_id) {
+            // If a condition was provided, also update dental records locally
+            if (condition && treatmentData.tooth) {
                 const newRecord: DentalRecord = {
-                    toothId: savedRecord.tooth_id,
-                    condition: savedRecord.condition,
-                    notes: savedRecord.notes || ''
+                    toothId: treatmentData.tooth,
+                    condition: condition,
+                    notes: treatmentData.procedure || ''
                 };
-                const recordIndex = patient.dentalRecords.findIndex(r => r.toothId === savedRecord.tooth_id);
+                const recordIndex = patient.dentalRecords.findIndex(r => r.toothId === treatmentData.tooth);
                 if (recordIndex > -1) {
                     patient.dentalRecords[recordIndex] = newRecord;
                 } else {
@@ -1815,23 +2234,6 @@ export const deleteTreatment = async (patientId: string | number, treatmentId: s
     return undefined;
 }
 
-export const saveOrthodonticRecord = async (patientId: string | number, recordData: Omit<OrthodonticRecord, 'id'>): Promise<Patient | undefined> => {
-    console.log('API CALL: saveOrthodonticRecord', { patientId, recordData });
-    await delay(200);
-    const patientIndex = allPatients.findIndex(p => String(p.id) === String(patientId));
-    if (patientIndex > -1) {
-        const patient = allPatients[patientIndex];
-        const newRecord: OrthodonticRecord = {
-            ...recordData,
-            id: `ortho${Date.now()}`,
-        };
-        patient.orthodonticRecords.push(newRecord);
-        patient.orthodonticRecords.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-        return patient;
-    }
-    return undefined;
-}
-
 export const updateOrthodonticRecord = async (patientId: string | number, record: OrthodonticRecord): Promise<Patient | undefined> => {
     console.log('API CALL: updateOrthodonticRecord', { patientId, record });
     await delay(200);
@@ -1855,23 +2257,6 @@ export const deleteOrthodonticRecord = async (patientId: string | number, record
     if (patientIndex > -1) {
         const patient = allPatients[patientIndex];
         patient.orthodonticRecords = patient.orthodonticRecords.filter(r => String(r.id) !== String(recordId));
-        return patient;
-    }
-    return undefined;
-}
-
-export const saveSoftTissueRecord = async (patientId: string | number, recordData: Omit<SoftTissueRecord, 'id'>): Promise<Patient | undefined> => {
-    console.log('API CALL: saveSoftTissueRecord', { patientId, recordData });
-    await delay(200);
-    const patientIndex = allPatients.findIndex(p => String(p.id) === String(patientId));
-    if (patientIndex > -1) {
-        const patient = allPatients[patientIndex];
-        const newRecord: SoftTissueRecord = {
-            ...recordData,
-            id: `soft${Date.now()}`,
-        };
-        patient.softTissueRecords.push(newRecord);
-        patient.softTissueRecords.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
         return patient;
     }
     return undefined;
