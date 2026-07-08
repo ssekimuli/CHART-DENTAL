@@ -6,7 +6,6 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -22,15 +21,14 @@ import {
   UserCheck, 
   CheckCircle, 
   PauseCircle, 
-  Ban, 
   Loader2, 
   Volume2, 
-  User, 
   Activity, 
   UserRound, 
   ChevronRight, 
   Calendar,
-  Sparkles
+  Sparkles,
+  Move
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useRouter } from "next/navigation";
@@ -41,7 +39,7 @@ type StatusColumn = {
   statuses: AppointmentStatus[];
   icon: React.ReactNode;
   themeColor: string;
-  glowColor: string;
+  borderHoverColor: string;
   badgeBg: string;
   textColor: string;
 };
@@ -50,37 +48,37 @@ const statusColumns: StatusColumn[] = [
   { 
     title: "Waiting", 
     statuses: ["Waiting"], 
-    icon: <Clock className="h-5 w-5" />, 
+    icon: <Clock className="h-4 w-4" />, 
     themeColor: "border-t-sky-500", 
-    glowColor: "shadow-sky-500/5",
-    badgeBg: "bg-sky-500/10 text-sky-600 border-sky-200/50",
+    borderHoverColor: "border-sky-300 bg-sky-50/20",
+    badgeBg: "bg-sky-50 text-sky-600 border-sky-100",
     textColor: "text-sky-700"
   },
   { 
     title: "In Session", 
     statuses: ["In Session"], 
-    icon: <UserCheck className="h-5 w-5 animate-pulse" />, 
+    icon: <UserCheck className="h-4 w-4 animate-pulse" />, 
     themeColor: "border-t-amber-500", 
-    glowColor: "shadow-amber-500/5",
-    badgeBg: "bg-amber-500/10 text-amber-600 border-amber-200/50",
+    borderHoverColor: "border-amber-300 bg-amber-50/20",
+    badgeBg: "bg-amber-50 text-amber-600 border-amber-100",
     textColor: "text-amber-700"
   },
   { 
     title: "On Hold", 
     statuses: ["On Hold"], 
-    icon: <PauseCircle className="h-5 w-5" />, 
+    icon: <PauseCircle className="h-4 w-4" />, 
     themeColor: "border-t-orange-500", 
-    glowColor: "shadow-orange-500/5",
-    badgeBg: "bg-orange-500/10 text-orange-600 border-orange-200/50",
+    borderHoverColor: "border-orange-300 bg-orange-50/20",
+    badgeBg: "bg-orange-50 text-orange-600 border-orange-100",
     textColor: "text-orange-700"
   },
   { 
     title: "Completed", 
     statuses: ["Completed"], 
-    icon: <CheckCircle className="h-5 w-5" />, 
+    icon: <CheckCircle className="h-4 w-4" />, 
     themeColor: "border-t-emerald-500", 
-    glowColor: "shadow-emerald-500/5",
-    badgeBg: "bg-emerald-500/10 text-emerald-600 border-emerald-200/50",
+    borderHoverColor: "border-emerald-300 bg-emerald-50/20",
+    badgeBg: "bg-emerald-50 text-emerald-600 border-emerald-100",
     textColor: "text-emerald-700"
   },
 ];
@@ -117,6 +115,7 @@ export default function QueuePage() {
     const [doctorFilter, setDoctorFilter] = useState<string>("all");
     const [isSpeaking, startTransition] = useTransition();
     const [currentlySpeaking, setCurrentlySpeaking] = useState<string | null>(null);
+    const [activeDragCol, setActiveDragCol] = useState<string | null>(null);
 
     const canUpdateAppointments = hasPermission('appointments:update');
 
@@ -191,20 +190,50 @@ export default function QueuePage() {
         return todaysAppointments.filter(a => statuses.includes(a.status));
     }
 
+    // Drag and Drop Handlers
+    const handleDragStart = (e: React.DragEvent, appointment: Appointment) => {
+        if (!canUpdateAppointments) {
+            e.preventDefault();
+            return;
+        }
+        e.dataTransfer.setData("text/plain", String(appointment.id));
+        e.dataTransfer.effectAllowed = "move";
+    };
+
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+    };
+
+    const handleDragEnter = (columnTitle: string) => {
+        setActiveDragCol(columnTitle);
+    };
+
+    const handleDrop = async (e: React.DragEvent, status: AppointmentStatus) => {
+        e.preventDefault();
+        setActiveDragCol(null);
+        const appointmentId = e.dataTransfer.getData("text/plain");
+        if (!appointmentId) return;
+        
+        const appointment = todaysAppointments.find(a => String(a.id) === appointmentId);
+        if (appointment && appointment.status !== status) {
+            await handleStatusChange(appointment, status);
+        }
+    };
+
   return (
     <div className="space-y-6">
         {/* Header Summary Dashboard */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 bg-white border border-[#A3D8E1]/30 rounded-3xl shadow-[0_10px_30px_rgba(44,63,77,0.02)]">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 bg-white border border-[#A3D8E1]/30 rounded-3xl shadow-[0_10px_30px_rgba(44,63,77,0.02)]">
             <div className="space-y-1.5">
                 <div className="flex items-center gap-3">
-                    <h1 className="text-3xl font-extrabold text-[#2C3F4D] tracking-tight">Today's Queue</h1>
-                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-600 text-xs font-semibold animate-pulse border border-emerald-200/30">
-                        <span className="h-2 w-2 rounded-full bg-emerald-500"></span>
+                    <h1 className="text-2xl font-extrabold text-[#2C3F4D] tracking-tight">Today's Queue</h1>
+                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#008B89]/10 text-[#008B89] text-[11px] font-bold animate-pulse border border-[#008B89]/20">
+                        <span className="h-1.5 w-1.5 rounded-full bg-[#008B89]"></span>
                         Live Dashboard
                     </div>
                 </div>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Calendar className="h-4 w-4 text-[#008B89]" />
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Calendar className="h-3.5 w-3.5 text-[#008B89]" />
                     <span>{format(new Date(), "EEEE, MMMM do, yyyy")}</span>
                 </div>
             </div>
@@ -212,15 +241,15 @@ export default function QueuePage() {
             {/* Top Toolbar filters */}
             <div className="flex flex-wrap items-center gap-3">
                 {!hasRole('Dentist') && doctorsInBranch.length > 0 && (
-                    <div className="w-full sm:w-64">
+                    <div className="w-full sm:w-60">
                         <Select value={doctorFilter} onValueChange={setDoctorFilter}>
-                            <SelectTrigger className="h-11 bg-gray-50/50 border-[#A3D8E1]/40 rounded-xl focus:ring-[#008B89] focus:border-[#008B89] transition-all">
+                            <SelectTrigger className="h-10 bg-gray-50/50 border-[#A3D8E1]/40 rounded-xl focus:ring-[#008B89] focus:border-[#008B89] transition-all text-xs">
                                 <div className="flex items-center gap-2">
-                                    <UserRound className="h-4 w-4 text-[#008B89]" />
+                                    <UserRound className="h-3.5 w-3.5 text-[#008B89]" />
                                     <SelectValue placeholder="Filter by Doctor" />
                                 </div>
                             </SelectTrigger>
-                            <SelectContent className="rounded-xl border-[#A3D8E1]/30">
+                            <SelectContent className="rounded-xl border-[#A3D8E1]/30 text-xs">
                                 <SelectItem value="all">All Doctors</SelectItem>
                                 {doctorsInBranch.map(doc => (
                                     <SelectItem key={doc.id} value={String(doc.id)}>{doc.name}</SelectItem>
@@ -235,10 +264,10 @@ export default function QueuePage() {
         {/* Board */}
         {isLoading ? (
              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <Skeleton className="h-[500px] w-full rounded-3xl" />
-                <Skeleton className="h-[500px] w-full rounded-3xl" />
-                <Skeleton className="h-[500px] w-full rounded-3xl" />
-                <Skeleton className="h-[500px] w-full rounded-3xl" />
+                <Skeleton className="h-[450px] w-full rounded-3xl" />
+                <Skeleton className="h-[450px] w-full rounded-3xl" />
+                <Skeleton className="h-[450px] w-full rounded-3xl" />
+                <Skeleton className="h-[450px] w-full rounded-3xl" />
             </div>
         ) : todaysAppointments.length === 0 ? (
             <Card className="border border-dashed border-[#A3D8E1]/60 bg-white/50 backdrop-blur-sm rounded-3xl">
@@ -255,42 +284,57 @@ export default function QueuePage() {
                 </CardContent>
             </Card>
         ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-start">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 items-start">
                 {statusColumns.map(column => {
                     const colAppointments = appointmentsByStatus(column.statuses);
+                    const isDragOver = activeDragCol === column.title;
                     return (
                         <div 
                             key={column.title} 
-                            className="flex flex-col gap-4 rounded-3xl bg-white border border-[#A3D8E1]/20 p-5 shadow-[0_10px_30px_rgba(44,63,77,0.02)] min-h-[500px]"
+                            onDragOver={handleDragOver}
+                            onDragEnter={() => handleDragEnter(column.title)}
+                            onDrop={(e) => handleDrop(e, column.statuses[0])}
+                            className={`flex flex-col gap-3 rounded-2xl bg-[#E0F7F7]/30 border p-4 shadow-[0_5px_15px_rgba(44,63,77,0.01)] min-h-[480px] transition-all duration-200 ${
+                                isDragOver 
+                                    ? `${column.borderHoverColor} border-2 border-dashed scale-[1.01]` 
+                                    : "border-[#A3D8E1]/20 bg-white"
+                            }`}
                         >
                             {/* Column Header */}
                             <div className="flex items-center justify-between pb-2 border-b border-gray-100">
-                               <div className="flex items-center gap-2.5">
-                                   <div className={`p-2 rounded-xl ${column.badgeBg} border`}>
+                               <div className="flex items-center gap-2">
+                                   <div className={`p-1.5 rounded-lg ${column.badgeBg} border`}>
                                        {column.icon}
                                    </div>
-                                   <h3 className="font-extrabold text-[#2C3F4D] text-base tracking-tight">{column.title}</h3>
+                                   <h3 className="font-extrabold text-[#2C3F4D] text-sm tracking-tight">{column.title}</h3>
                                </div>
-                               <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-gray-100 text-gray-500">
+                               <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">
                                    {colAppointments.length}
                                </span>
                             </div>
 
                             {/* Cards Stack */}
-                            <div className="flex flex-col gap-4 overflow-y-auto max-h-[650px] pr-1.5">
+                            <div className="flex flex-col gap-3 overflow-y-auto max-h-[580px] pr-1">
                                 {colAppointments.map(appointment => {
                                     const isAnnouncing = currentlySpeaking === appointment.id;
                                     return (
                                          <Card 
                                             key={appointment.id} 
-                                            className={`flex flex-col overflow-hidden bg-white border border-[#A3D8E1]/30 rounded-2xl shadow-[0_5px_15px_rgba(44,63,77,0.03)] hover:shadow-[0_15px_30px_rgba(44,63,77,0.07)] hover:border-[#008B89]/50 transition-all duration-300 border-t-4 ${column.themeColor} ${column.glowColor}`}
+                                            draggable={canUpdateAppointments}
+                                            onDragStart={(e) => handleDragStart(e, appointment)}
+                                            className={`relative flex flex-col bg-white border border-[#A3D8E1]/30 hover:border-[#008B89]/50 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 cursor-grab active:cursor-grabbing border-t-4 ${column.themeColor}`}
                                          >
-                                            <CardHeader className="flex-col items-center gap-3 space-y-0 p-5 bg-gradient-to-b from-gray-50/50 to-white border-b border-gray-100">
-                                                <div className="flex items-center justify-between w-full">
-                                                    {/* Token Badge */}
-                                                    <div className="px-3 py-1.5 rounded-lg bg-[#2C3F4D] text-white font-extrabold text-sm tracking-wide shadow-sm flex items-center gap-1.5">
-                                                        <span className="text-[10px] uppercase font-bold text-gray-300">No.</span>
-                                                        {appointment.tokenNumber}
+                                            <div className="p-3.5 space-y-2.5">
+                                                {/* Top row: Token badge, Patient name, and voice call speaker button */}
+                                                <div className="flex items-center justify-between gap-2">
+                                                    <div className="flex items-center gap-2 min-w-0">
+                                                        <span className="flex-shrink-0 px-2 py-0.5 text-[10px] font-extrabold bg-[#2C3F4D] text-white rounded-md flex items-center gap-0.5">
+                                                            <Move className="h-2.5 w-2.5 text-gray-400" />
+                                                            {appointment.tokenNumber}
+                                                        </span>
+                                                        <h4 className="text-sm font-extrabold text-[#2C3F4D] truncate min-w-0" title={appointment.patientName}>
+                                                            {appointment.patientName}
+                                                        </h4>
                                                     </div>
 
                                                     {/* Voice Announce Button */}
@@ -300,175 +344,72 @@ export default function QueuePage() {
                                                                 <Button 
                                                                     variant="ghost" 
                                                                     size="icon" 
-                                                                    onClick={() => handleAnnounce(appointment)}
-                                                                    className={`h-9 w-9 rounded-xl border border-gray-100 transition-all duration-300 ${
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        handleAnnounce(appointment);
+                                                                    }}
+                                                                    className={`h-7 w-7 rounded-lg border border-gray-100 flex-shrink-0 transition-all duration-300 ${
                                                                         isAnnouncing 
-                                                                            ? "bg-[#008B89]/10 border-[#008B89]/30 text-[#008B89]" 
+                                                                            ? "bg-[#008B89]/10 border-[#008B89]/20 text-[#008B89]" 
                                                                             : "hover:bg-[#E0F7F7] hover:text-[#008B89] text-gray-400"
                                                                     }`}
                                                                 >
                                                                     {isSpeaking && isAnnouncing ? (
-                                                                        <Loader2 className="h-4 w-4 animate-spin text-[#008B89]"/>
+                                                                        <Loader2 className="h-3 w-3 animate-spin text-[#008B89]"/>
                                                                     ) : isAnnouncing ? (
-                                                                        <div className="flex items-center gap-0.5 h-3.5">
-                                                                            <span className="w-0.5 h-2 bg-[#008B89] rounded-full animate-bounce [animation-duration:0.6s]"></span>
-                                                                            <span className="w-0.5 h-3 bg-[#008B89] rounded-full animate-bounce [animation-duration:0.6s] [animation-delay:0.2s]"></span>
-                                                                            <span className="w-0.5 h-1.5 bg-[#008B89] rounded-full animate-bounce [animation-duration:0.6s] [animation-delay:0.4s]"></span>
+                                                                        <div className="flex items-center gap-0.5 h-2.5">
+                                                                            <span className="w-0.5 h-1.5 bg-[#008B89] rounded-full animate-bounce [animation-duration:0.6s]"></span>
+                                                                            <span className="w-0.5 h-2.5 bg-[#008B89] rounded-full animate-bounce [animation-duration:0.6s] [animation-delay:0.2s]"></span>
+                                                                            <span className="w-0.5 h-1 bg-[#008B89] rounded-full animate-bounce [animation-duration:0.6s] [animation-delay:0.4s]"></span>
                                                                         </div>
                                                                     ) : (
-                                                                        <Volume2 className="h-4 w-4" />
+                                                                        <Volume2 className="h-3.5 w-3.5" />
                                                                     )}
                                                                 </Button>
                                                             </TooltipTrigger>
-                                                            <TooltipContent className="rounded-lg">
+                                                            <TooltipContent className="rounded-lg text-[10px] p-2">
                                                                 <p>Announce Patient</p>
                                                             </TooltipContent>
                                                         </Tooltip>
                                                     </TooltipProvider>
                                                 </div>
 
-                                                <div className="text-center space-y-1">
-                                                    <CardTitle className="text-base font-bold text-[#2C3F4D] line-clamp-1">{appointment.patientName}</CardTitle>
-                                                    <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#E0F7F7] text-[#008B89] text-xs font-semibold border border-[#A3D8E1]/30">
-                                                        <Sparkles className="h-3 w-3" />
+                                                {/* Second row: Treatment and Time */}
+                                                <div className="flex items-center justify-between gap-1.5 text-xs text-gray-500 border-t border-gray-50 pt-2">
+                                                    <span className="font-semibold text-gray-700 bg-[#E0F7F7] text-[#008B89] px-2 py-0.5 rounded-md truncate max-w-[130px] text-[10px]">
                                                         {appointment.treatment || "Consultation"}
+                                                    </span>
+                                                    <div className="flex items-center gap-1 text-[11px] text-muted-foreground font-medium flex-shrink-0">
+                                                        <Clock className="h-3 w-3 text-[#008B89]" />
+                                                        <span>{appointment.time}</span>
                                                     </div>
                                                 </div>
-                                            </CardHeader>
 
-                                            <CardContent className="flex-grow space-y-2.5 text-xs p-5 text-gray-600">
-                                                <div className="flex items-center justify-between">
-                                                    <span className="text-muted-foreground">Appt Time</span>
-                                                    <span className="font-bold text-[#2C3F4D] bg-gray-50 px-2 py-0.5 rounded-md border border-gray-100">{appointment.time}</span>
+                                                {/* Third row: Doctor and Chart action */}
+                                                <div className="flex items-center justify-between gap-2 border-t border-gray-50 pt-2">
+                                                    <span className="text-[10px] text-muted-foreground truncate max-w-[110px]" title={`Dr. ${appointment.doctorName}`}>
+                                                        Dr. {appointment.doctorName.split(' ').pop()}
+                                                    </span>
+                                                    <Button 
+                                                        size="sm" 
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            router.push(`/patients/${appointment.patientId}/charting`);
+                                                        }}
+                                                        className="h-7 px-2.5 bg-[#008B89] hover:bg-[#008B89]/90 text-white text-[10px] font-bold rounded-lg transition-all flex items-center gap-0.5"
+                                                    >
+                                                        Chart <ChevronRight className="h-3 w-3" />
+                                                    </Button>
                                                 </div>
-                                                <div className="flex items-center justify-between">
-                                                    <span className="text-muted-foreground">Doctor</span>
-                                                    <span className="font-medium text-[#2C3F4D]">{appointment.doctorName}</span>
-                                                </div>
-                                            </CardContent>
-
-                                            <CardFooter className="flex-col items-stretch gap-3 bg-gray-50/50 border-t border-gray-100 p-4">
-                                                {/* Toolbar actions */}
-                                                <div className="flex items-center justify-between gap-1.5 bg-white p-1 rounded-xl border border-gray-100 shadow-inner">
-                                                    <TooltipProvider>
-                                                         <Tooltip>
-                                                            <TooltipTrigger asChild>
-                                                                <Button 
-                                                                    variant="ghost" 
-                                                                    size="icon" 
-                                                                    className={`h-8 w-8 rounded-lg transition-all ${
-                                                                        appointment.status === 'Waiting' 
-                                                                            ? "bg-sky-50 text-sky-600 shadow-sm" 
-                                                                            : "text-gray-400 hover:text-sky-500 hover:bg-sky-50/50"
-                                                                    }`} 
-                                                                    onClick={() => handleStatusChange(appointment, 'Waiting')} 
-                                                                    disabled={!canUpdateAppointments}
-                                                                >
-                                                                    <Clock className="h-4 w-4"/>
-                                                                </Button>
-                                                            </TooltipTrigger>
-                                                            <TooltipContent className="rounded-lg">
-                                                                <p>Set as Waiting</p>
-                                                            </TooltipContent>
-                                                        </Tooltip>
-                                                        
-                                                        <Tooltip>
-                                                            <TooltipTrigger asChild>
-                                                                <Button 
-                                                                    variant="ghost" 
-                                                                    size="icon" 
-                                                                    className={`h-8 w-8 rounded-lg transition-all ${
-                                                                        appointment.status === 'In Session' 
-                                                                            ? "bg-amber-50 text-amber-600 shadow-sm" 
-                                                                            : "text-gray-400 hover:text-amber-500 hover:bg-amber-50/50"
-                                                                    }`}
-                                                                    onClick={() => handleStatusChange(appointment, 'In Session')} 
-                                                                    disabled={!canUpdateAppointments}
-                                                                >
-                                                                    <UserCheck className="h-4 w-4"/>
-                                                                </Button>
-                                                            </TooltipTrigger>
-                                                            <TooltipContent className="rounded-lg">
-                                                                <p>Call In Session</p>
-                                                            </TooltipContent>
-                                                        </Tooltip>
-
-                                                         <Tooltip>
-                                                            <TooltipTrigger asChild>
-                                                                <Button 
-                                                                    variant="ghost" 
-                                                                    size="icon" 
-                                                                    className={`h-8 w-8 rounded-lg transition-all ${
-                                                                        appointment.status === 'On Hold' 
-                                                                            ? "bg-orange-50 text-orange-600 shadow-sm" 
-                                                                            : "text-gray-400 hover:text-orange-500 hover:bg-orange-50/50"
-                                                                    }`}
-                                                                    onClick={() => handleStatusChange(appointment, 'On Hold')} 
-                                                                    disabled={!canUpdateAppointments}
-                                                                >
-                                                                    <PauseCircle className="h-4 w-4"/>
-                                                                </Button>
-                                                            </TooltipTrigger>
-                                                            <TooltipContent className="rounded-lg">
-                                                                <p>Put on Hold</p>
-                                                            </TooltipContent>
-                                                        </Tooltip>
-
-                                                         <Tooltip>
-                                                            <TooltipTrigger asChild>
-                                                                <Button 
-                                                                    variant="ghost" 
-                                                                    size="icon" 
-                                                                    className={`h-8 w-8 rounded-lg transition-all ${
-                                                                        appointment.status === 'Completed' 
-                                                                            ? "bg-emerald-50 text-emerald-600 shadow-sm" 
-                                                                            : "text-gray-400 hover:text-emerald-500 hover:bg-emerald-50/50"
-                                                                    }`}
-                                                                    onClick={() => handleStatusChange(appointment, 'Completed')} 
-                                                                    disabled={!canUpdateAppointments}
-                                                                >
-                                                                    <CheckCircle className="h-4 w-4"/>
-                                                                </Button>
-                                                            </TooltipTrigger>
-                                                            <TooltipContent className="rounded-lg">
-                                                                <p>Mark Completed</p>
-                                                            </TooltipContent>
-                                                        </Tooltip>
-
-                                                         <Tooltip>
-                                                            <TooltipTrigger asChild>
-                                                                <Button 
-                                                                    variant="ghost" 
-                                                                    size="icon" 
-                                                                    className="h-8 w-8 rounded-lg text-gray-300 hover:text-gray-500 hover:bg-gray-100" 
-                                                                    onClick={() => handleStatusChange(appointment, 'Scheduled')} 
-                                                                    disabled={!canUpdateAppointments}
-                                                                >
-                                                                    <Ban className="h-4 w-4"/>
-                                                                </Button>
-                                                            </TooltipTrigger>
-                                                            <TooltipContent className="rounded-lg">
-                                                                <p>Remove from Queue</p>
-                                                            </TooltipContent>
-                                                        </Tooltip>
-                                                    </TooltipProvider>
-                                                </div>
-
-                                                <Button 
-                                                    onClick={() => router.push(`/patients/${appointment.patientId}/charting`)}
-                                                    className="w-full h-9 bg-[#008B89] hover:bg-[#008B89]/90 text-white text-xs font-semibold rounded-xl hover:-translate-y-0.5 transition-all flex items-center justify-center gap-1 shadow-sm"
-                                                >
-                                                    Chart Patient
-                                                    <ChevronRight className="h-3.5 w-3.5" />
-                                                </Button>
-                                            </CardFooter>
+                                            </div>
                                          </Card>
                                     );
                                 })}
 
                                 {colAppointments.length === 0 && (
                                      <div className="flex flex-col items-center justify-center py-10 border border-dashed border-gray-200 rounded-2xl bg-gray-50/50 text-center">
-                                         <p className="text-xs text-muted-foreground font-medium">No patients in status</p>
+                                         <p className="text-[11px] text-muted-foreground font-medium">No patients in status</p>
+                                         <p className="text-[9px] text-gray-400 mt-0.5">Drag card here to move</p>
                                      </div>
                                 )}
                             </div>
