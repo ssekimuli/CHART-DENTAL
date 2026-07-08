@@ -138,10 +138,16 @@ export const getPatients = async (filters?: string | number | GetPatientsFilters
 
         // Handle backward compatibility - if filters is a string or number, treat it as branchId
         if (typeof filters === 'number' || typeof filters === 'string') {
-            params.branch_id = parseInt(String(filters), 10);
+            const parsed = parseInt(String(filters), 10);
+            if (!isNaN(parsed) && parsed > 0) {
+                params.branch_id = parsed;
+            }
         } else if (filters) {
             if (filters.branchId) {
-                params.branch_id = parseInt(String(filters.branchId), 10);
+                const parsed = parseInt(String(filters.branchId), 10);
+                if (!isNaN(parsed) && parsed > 0) {
+                    params.branch_id = parsed;
+                }
             }
             if (filters.status) {
                 params.status = filters.status;

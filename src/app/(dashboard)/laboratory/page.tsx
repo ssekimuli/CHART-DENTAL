@@ -40,7 +40,7 @@ export default function LaboratoryPage() {
             setIsLoading(true);
             const [orders, patientsData] = await Promise.all([
                 getLabOrders(branchToFetch), 
-                getPatients(branchToFetch)
+                getPatients()
             ]);
             setLabOrders(orders);
             setPatients(patientsData);
@@ -49,8 +49,18 @@ export default function LaboratoryPage() {
         fetchData();
     }, [selectedBranch, router]);
 
+    const normalizedSelectedBranch = String(selectedBranch || '');
+    const normalizedUserBranch = currentUser.branchId ? String(currentUser.branchId) : '';
+
+    const filteredPatients = useMemo(() => {
+        if (hasRole('Super Admin')) {
+            return patients.filter(p => String(p.branchId) === normalizedSelectedBranch);
+        }
+        return patients.filter(p => String(p.branchId) === normalizedUserBranch);
+    }, [normalizedSelectedBranch, normalizedUserBranch, patients]);
+
     const handleSaveOrder = async (data: Omit<LaboratoryOrder, 'id' | 'branchId' | 'patientName'>) => {
-        const patient = patients.find(p => String(p.id) === String(data.patientId));
+        const patient = filteredPatients.find(p => String(p.id) === String(data.patientId));
         if (!patient) return;
 
         const newOrder = await createLabOrder({ ...data, branchId: selectedBranch, patientName: getPatientFullName(patient) });
@@ -91,7 +101,7 @@ export default function LaboratoryPage() {
         </Card>
         {isFormOpen && (
             <LabOrderForm 
-                patients={patients}
+                patients={filteredPatients}
                 onSave={handleSaveOrder}
                 onOpenChange={setIsFormOpen}
             />
