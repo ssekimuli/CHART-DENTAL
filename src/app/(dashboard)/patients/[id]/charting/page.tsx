@@ -23,7 +23,7 @@ import { TreatmentPlanForm } from "../components/treatment-plan-form";
 import { OrthodonticChart } from "./components/orthodontic-chart";
 import { ConditionLogger } from "../components/condition-logger";
 import { getPatientById, addTreatment, saveDentalRecord, savePeriodontalRecord, saveOcclusalRecord, saveOrthodonticRecord, updateOrthodonticRecord, deleteOrthodonticRecord, saveSoftTissueRecord, updateSoftTissueRecord, deleteSoftTissueRecord } from "@/lib/api";
-import { getCurrentUser } from "@/lib/user";
+import { getCurrentUser, hasRole } from "@/lib/user";
 import { getPatientFullName } from "@/lib/utils";
 
 export default function PatientChartingPage({
@@ -45,7 +45,7 @@ export default function PatientChartingPage({
 
   useEffect(() => {
     const user = getCurrentUser();
-    if (user && (user.role === 'Receptionist' || user.role === 'Account')) {
+    if (hasRole(['Receptionist', 'Account'])) {
         router.replace('/dashboard');
         return;
     }

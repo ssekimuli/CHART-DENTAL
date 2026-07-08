@@ -15,7 +15,7 @@ import { PayrollTable } from "./components/payroll-table";
 import type { Employee, Payroll } from "@/lib/types";
 import { PayrollForm } from "./components/payroll-form";
 import { useBranch } from "@/context/branch-context";
-import { currentUser } from "@/lib/user";
+import { currentUser, hasRole } from "@/lib/user";
 import { createPayroll, getEmployees, getPayrolls } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -38,14 +38,14 @@ export default function PayrollPage() {
   }, []);
 
   const filteredEmployees = useMemo(() => {
-    if (currentUser.role === 'Super Admin') {
+    if (hasRole('Super Admin')) {
       return allEmployees.filter(e => String(e.branchId) === String(selectedBranch));
     }
     return allEmployees.filter(e => String(e.branchId) === String(currentUser.branchId));
   }, [selectedBranch, allEmployees]);
 
   const payrolls = useMemo(() => {
-     if (currentUser.role === 'Super Admin') {
+     if (hasRole('Super Admin')) {
       return allPayrolls.filter(p => String(p.branchId) === String(selectedBranch));
     }
     return allPayrolls.filter(p => String(p.branchId) === String(currentUser.branchId));

@@ -16,7 +16,7 @@ import { EmployeesTable } from "./components/employees-table";
 import type { Employee } from "@/lib/types";
 import { EmployeeForm } from "./components/employee-form";
 import { useBranch } from "@/context/branch-context";
-import { currentUser } from "@/lib/user";
+import { currentUser, hasRole } from "@/lib/user";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -51,7 +51,7 @@ export default function EmployeesPage() {
     }, [selectedBranch]);
 
     const employees = useMemo(() => {
-        if (currentUser.role === 'Super Admin') {
+        if (hasRole('Super Admin')) {
           return allEmployees.filter(e => e.branchId === selectedBranch);
         }
         return allEmployees.filter(e => e.branchId === currentUser.branchId);

@@ -25,7 +25,7 @@ import { FileDown, PlusCircle, MoreHorizontal, Pencil, Trash, Eye, HandCoins, Ca
 import type { Invoice, Patient, InvoiceTreatment } from "@/lib/types";
 import { InvoiceForm } from "./components/invoice-form";
 import { useBranch } from "@/context/branch-context";
-import { currentUser, hasPermission } from "@/lib/user";
+import { currentUser, hasPermission, hasRole } from "@/lib/user";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -126,7 +126,7 @@ export default function BillingPage() {
   };
   
   const filteredPatients = useMemo(() => {
-    if (currentUser.role === 'Super Admin') {
+    if (hasRole('Super Admin')) {
       return allPatients.filter(p => p.branchId === selectedBranch);
     }
     return allPatients.filter(p => p.branchId === currentUser.branchId);

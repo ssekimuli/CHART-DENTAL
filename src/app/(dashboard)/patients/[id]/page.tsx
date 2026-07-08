@@ -47,7 +47,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { deletePatient, getPatientById, updatePatient, addTreatment, updateTreatment, deleteTreatment, addImageToPatient } from "@/lib/api";
 import { ImageUploadForm } from "./components/image-upload-form";
-import { hasPermission, getCurrentUser } from "@/lib/user";
+import { hasPermission, getCurrentUser, hasRole } from "@/lib/user";
 import { getPatientFullName } from "@/lib/utils";
 
 export default function PatientDetailPage({
@@ -70,7 +70,7 @@ export default function PatientDetailPage({
   const canUpdatePatient = hasPermission('patients:update');
   const canDeletePatient = hasPermission('patients:delete');
   const currentUser = getCurrentUser();
-  const isReceptionist = currentUser?.role === 'Receptionist';
+  const isReceptionist = hasRole('Receptionist');
 
   useEffect(() => {
     if (typeof id !== "string") return;

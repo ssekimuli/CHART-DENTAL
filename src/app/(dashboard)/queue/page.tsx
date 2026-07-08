@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import type { Appointment, Employee, AppointmentStatus } from "@/lib/types";
 import { getTodaysQueue, getEmployees, updateAppointment, announcePatientInQueue } from "@/lib/api";
 import { useBranch } from "@/context/branch-context";
-import { currentUser, hasPermission } from "@/lib/user";
+import { currentUser, hasPermission, hasRole } from "@/lib/user";
 import { format } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Clock, UserCheck, CheckCircle, PauseCircle, Ban, Loader2 } from "lucide-react";
@@ -70,7 +70,7 @@ export default function QueuePage() {
         const fetchEmployees = async () => {
             const employeesData = await getEmployees();
             setAllEmployees(employeesData);
-             if (currentUser.role === 'Dentist') {
+             if (hasRole('Dentist')) {
                 const currentUserEmployee = employeesData.find(e => e.email === currentUser.email);
                 if (currentUserEmployee) {
                     setDoctorFilter(currentUserEmployee.id as string);
@@ -95,10 +95,10 @@ export default function QueuePage() {
 
     const doctorsInBranch = useMemo(() => {
         const doctors = allEmployees.filter(e => e.role === 'Dentist');
-         if (currentUser.role === 'Super Admin') {
-            return doctors.filter(d => String(d.branch_id) === String(selectedBranch));
+        if (hasRole('Super Admin')) {
+            return doctors.filter(d => String(d.branchId || '') === String(selectedBranch));
         }
-        return doctors.filter(d => String(d.branch_id) === String(currentUser.branchId));
+        return doctors.filter(d => String(d.branchId || '') === String(currentUser.branchId));
     }, [allEmployees, selectedBranch]);
     
     const handleAnnounce = (appointment: Appointment) => {
@@ -141,7 +141,7 @@ export default function QueuePage() {
                     <CardTitle>Today's Queue</CardTitle>
                     <CardDescription>Patient queue for {format(new Date(), "PPP")}</CardDescription>
                 </div>
-                {currentUser.role !== 'Dentist' && doctorsInBranch.length > 0 && (
+                {!hasRole('Dentist') && doctorsInBranch.length > 0 && (
                     <div className="w-full sm:w-auto sm:max-w-xs">
                         <Select value={doctorFilter} onValueChange={setDoctorFilter}>
                             <SelectTrigger>

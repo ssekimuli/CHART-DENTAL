@@ -13,7 +13,7 @@ import { PlusCircle, Search, X } from "lucide-react";
 import { PatientsTable } from "./components/patients-table";
 import { useBranch } from "@/context/branch-context";
 import { useState, useMemo, useEffect } from "react";
-import { currentUser, hasPermission } from "@/lib/user";
+import { currentUser, hasPermission, hasRole } from "@/lib/user";
 import type { Patient, BasePatient } from "@/lib/types";
 import { PatientForm } from "./components/patient-form";
 import { useRouter } from "next/navigation";
@@ -62,7 +62,7 @@ export default function PatientsPage() {
         const filters: any = {};
 
         // Add branch filter
-        if (currentUser.role === 'Super Admin') {
+        if (hasRole('Super Admin')) {
           filters.branchId = selectedBranch;
         } else {
           filters.branchId = currentUser.branchId;

@@ -78,3 +78,22 @@ export function hasPermission(permission: Permission): boolean {
     }
     return user.permissions.includes(permission);
 }
+
+export function hasRole(role: EmployeeRole | EmployeeRole[]): boolean {
+    if (typeof window === 'undefined') {
+        return true; // Allow all for SSR to prevent layout shifts
+    }
+    const user = getCurrentUser();
+    if (!user) {
+        return false;
+    }
+    if (Array.isArray(role)) {
+        return role.includes(user.role);
+    }
+    return user.role === role;
+}
+
+export function HasRole(role: EmployeeRole | EmployeeRole[]): boolean {
+    return hasRole(role);
+}
+

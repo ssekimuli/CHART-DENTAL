@@ -734,28 +734,65 @@ export const getPayrolls = async (branchId?: string | number): Promise<Payroll[]
 
 export const getInventory = async (branchId?: string | number): Promise<InventoryItem[]> => {
     console.log('API CALL: getInventory', { branchId });
-    await delay(100);
-    let localInventory = inventory;
-    if (branchId) {
-        localInventory = localInventory.filter(i => String(i.branchId) === String(branchId));
+    try {
+        const params: any = {};
+        if (branchId !== undefined && branchId !== null) {
+            params.branch_id = branchId;
+        }
+        const response = await customAxios.get('/management/inventory', { params });
+        const items = response.data;
+        return items.map((item: any) => ({
+            id: item.id,
+            name: item.name,
+            supplier: item.supplier,
+            stock: item.stock,
+            reorderLevel: item.reorder_level || item.reorderLevel,
+            price: parseFloat(item.price),
+            status: item.status,
+            branchId: String(item.branch_id),
+        }));
+    } catch (error) {
+        console.error('Error fetching inventory:', error);
+        return [];
     }
-    return JSON.parse(JSON.stringify(localInventory));
 }
 
 export const getLabOrders = async (branchId?: string | number): Promise<LaboratoryOrder[]> => {
     console.log('API CALL: getLabOrders', { branchId });
-    await delay(150);
-    let localLabOrders = allLabOrders;
-    if (branchId) {
-        localLabOrders = localLabOrders.filter(l => String(l.branchId) === String(branchId));
+    try {
+        const params: any = {};
+        if (branchId !== undefined && branchId !== null) {
+            params.branch_id = branchId;
+        }
+        const response = await customAxios.get('/management/lab-orders', { params });
+        const orders = response.data;
+        return orders.map((order: any) => ({
+            id: order.id,
+            patientId: String(order.patient_id),
+            patientName: order.patient_name || (order.patient ? `${order.patient.first_name} ${order.patient.last_name}` : ''),
+            lab: order.lab,
+            item: order.item,
+            tooth: order.tooth,
+            status: order.status,
+            sentDate: order.sent_date ? order.sent_date.split('T')[0] : '',
+            dueDate: order.due_date ? order.due_date.split('T')[0] : '',
+            branchId: String(order.branch_id),
+        }));
+    } catch (error) {
+        console.error('Error fetching lab orders:', error);
+        return [];
     }
-    return JSON.parse(JSON.stringify(localLabOrders));
 }
 
 export const getChartData = async (): Promise<ChartData[]> => {
     console.log('API CALL: getChartData');
-    await delay(300);
-    return JSON.parse(JSON.stringify(chartData));
+    try {
+        const response = await customAxios.get('/management/chart-data');
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching chart data:', error);
+        return [];
+    }
 }
 
 export const getPracticeTrends = async (branchId?: string | number): Promise<PracticeTrendPoint[]> => {
@@ -871,12 +908,27 @@ export const getTreatments = async (): Promise<SystemTreatment[]> => {
 
 export const getAttendance = async (branchId?: string | number): Promise<AttendanceRecord[]> => {
     console.log('API CALL: getAttendance', { branchId });
-    await delay(150);
-    let localAttendance = allAttendance;
-    if (branchId) {
-        localAttendance = localAttendance.filter(a => String(a.branchId) === String(branchId));
+    try {
+        const params: any = {};
+        if (branchId !== undefined && branchId !== null) {
+            params.branch_id = branchId;
+        }
+        const response = await customAxios.get('/management/attendance', { params });
+        const records = response.data;
+        return records.map((record: any) => ({
+            id: record.id,
+            employeeId: String(record.employee_id),
+            employeeName: record.employee_name || (record.employee ? record.employee.name : ''),
+            date: record.date,
+            status: record.status,
+            checkIn: record.check_in,
+            checkOut: record.check_out,
+            branchId: String(record.branch_id),
+        }));
+    } catch (error) {
+        console.error('Error fetching attendance:', error);
+        return [];
     }
-    return JSON.parse(JSON.stringify(localAttendance));
 }
 
 type GetLeaveRequestsFilters = {
@@ -1950,43 +2002,26 @@ export const saveSoftTissueRecord = async (patientId: string | number, record: S
     console.log('API CALL: saveSoftTissueRecord', { patientId, record });
     
     try {
-        // Build request body
         const requestBody = {
-            lips: record.lips,
-            mucosa: record.mucosa,
-            palate: record.palate,
-            tongue: record.tongue,
-            floor_of_mouth: record.floorOfMouth,
-            lesions: record.lesions,
-            abnormalities: record.abnormalities,
-            notes: record.notes || undefined,
+            location: record.location,
+            type: record.type,
+            description: record.description,
         };
 
         const response = await customAxios.post(`/patients/${patientId}/soft-tissue-records`, requestBody);
         
         const savedRecord = response.data.data || response.data;
 
-        // Map response back to frontend type
-        const feRecord: SoftTissueRecord = {
+        return {
             id: savedRecord.id,
-            lips: savedRecord.lips,
-            mucosa: savedRecord.mucosa,
-            palate: savedRecord.palate,
-            tongue: savedRecord.tongue,
-            floorOfMouth: savedRecord.floor_of_mouth || savedRecord.floorOfMouth,
-            lesions: savedRecord.lesions || '',
-            abnormalities: savedRecord.abnormalities || '',
-            notes: savedRecord.notes || '',
-            createdAt: savedRecord.created_at || savedRecord.createdAt,
-            updatedAt: savedRecord.updated_at || savedRecord.updatedAt,
+            location: savedRecord.location,
+            type: savedRecord.type,
+            description: savedRecord.description,
+            date: savedRecord.date || new Date().toISOString().split('T')[0],
         };
-
-        console.log('Saved soft tissue record:', feRecord);
-        return feRecord;
 
     } catch (error) {
         console.error('Error saving soft tissue record:', error);
-        
         if (axios.isAxiosError(error)) {
             if (error.response?.status === 404) {
                 throw new Error("Patient not found");
@@ -2016,16 +2051,10 @@ export const getSoftTissueRecords = async (patientId: string | number): Promise<
 
         return recordsData.map((record: any) => ({
             id: record.id,
-            lips: record.lips,
-            mucosa: record.mucosa,
-            palate: record.palate,
-            tongue: record.tongue,
-            floorOfMouth: record.floor_of_mouth || record.floorOfMouth,
-            lesions: record.lesions || '',
-            abnormalities: record.abnormalities || '',
-            notes: record.notes || '',
-            createdAt: record.created_at || record.createdAt,
-            updatedAt: record.updated_at || record.updatedAt,
+            location: record.location,
+            type: record.type,
+            description: record.description,
+            date: record.date || record.created_at || new Date().toISOString().split('T')[0],
         }));
 
     } catch (error) {
@@ -2038,47 +2067,28 @@ export const saveOrthodonticRecord = async (patientId: string | number, record: 
     console.log('API CALL: saveOrthodonticRecord', { patientId, record });
     
     try {
-        // Build request body
         const requestBody = {
-            malocclusion_type: record.malocclusionType,
-            overjet: record.overjet,
-            overbite: record.overbite,
-            crossbite: record.crossbite,
-            openbite: record.openbite,
-            crowding: record.crowding,
-            spacing: record.spacing,
-            midline_deviation: record.midlineDeviation,
-            treatment_plan: record.treatmentPlan,
-            notes: record.notes || undefined,
+            appliance: record.appliance,
+            wire_size: record.wireSize,
+            bracket_changes: record.bracketChanges,
+            notes: record.notes,
         };
 
         const response = await customAxios.post(`/patients/${patientId}/orthodontic-records`, requestBody);
         
         const savedRecord = response.data.data || response.data;
 
-        // Map response back to frontend type
-        const feRecord: OrthodonticRecord = {
+        return {
             id: savedRecord.id,
-            malocclusionType: savedRecord.malocclusion_type || savedRecord.malocclusionType,
-            overjet: savedRecord.overjet,
-            overbite: savedRecord.overbite,
-            crossbite: savedRecord.crossbite || false,
-            openbite: savedRecord.openbite || false,
-            crowding: savedRecord.crowding || false,
-            spacing: savedRecord.spacing || false,
-            midlineDeviation: savedRecord.midline_deviation || savedRecord.midlineDeviation,
-            treatmentPlan: savedRecord.treatment_plan || savedRecord.treatmentPlan,
+            appliance: savedRecord.appliance,
+            wireSize: savedRecord.wire_size || savedRecord.wireSize,
+            bracketChanges: savedRecord.bracket_changes || savedRecord.bracketChanges || [],
             notes: savedRecord.notes || '',
-            createdAt: savedRecord.created_at || savedRecord.createdAt,
-            updatedAt: savedRecord.updated_at || savedRecord.updatedAt,
+            date: savedRecord.date || savedRecord.created_at || new Date().toISOString().split('T')[0],
         };
-
-        console.log('Saved orthodontic record:', feRecord);
-        return feRecord;
 
     } catch (error) {
         console.error('Error saving orthodontic record:', error);
-        
         if (axios.isAxiosError(error)) {
             if (error.response?.status === 404) {
                 throw new Error("Patient not found");
@@ -2108,18 +2118,11 @@ export const getOrthodonticRecords = async (patientId: string | number): Promise
 
         return recordsData.map((record: any) => ({
             id: record.id,
-            malocclusionType: record.malocclusion_type || record.malocclusionType,
-            overjet: record.overjet,
-            overbite: record.overbite,
-            crossbite: record.crossbite || false,
-            openbite: record.openbite || false,
-            crowding: record.crowding || false,
-            spacing: record.spacing || false,
-            midlineDeviation: record.midline_deviation || record.midlineDeviation,
-            treatmentPlan: record.treatment_plan || record.treatmentPlan,
+            appliance: record.appliance,
+            wireSize: record.wire_size || record.wireSize,
+            bracketChanges: record.bracket_changes || record.bracketChanges || [],
             notes: record.notes || '',
-            createdAt: record.created_at || record.createdAt,
-            updatedAt: record.updated_at || record.updatedAt,
+            date: record.date || record.created_at || new Date().toISOString().split('T')[0],
         }));
 
     } catch (error) {
@@ -2236,58 +2239,55 @@ export const deleteTreatment = async (patientId: string | number, treatmentId: s
 
 export const updateOrthodonticRecord = async (patientId: string | number, record: OrthodonticRecord): Promise<Patient | undefined> => {
     console.log('API CALL: updateOrthodonticRecord', { patientId, record });
-    await delay(200);
-    const patientIndex = allPatients.findIndex(p => String(p.id) === String(patientId));
-    if (patientIndex > -1) {
-        const patient = allPatients[patientIndex];
-        const recordIndex = patient.orthodonticRecords.findIndex(r => String(r.id) === String(record.id));
-        if (recordIndex > -1) {
-            patient.orthodonticRecords[recordIndex] = record;
-            patient.orthodonticRecords.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-        }
-        return patient;
+    try {
+        await customAxios.put(`/patients/${patientId}/orthodontic-records/${record.id}`, {
+            appliance: record.appliance,
+            wire_size: record.wireSize,
+            bracket_changes: record.bracketChanges,
+            notes: record.notes,
+        });
+        return getPatientById(patientId);
+    } catch (error) {
+        console.error('Error updating orthodontic record:', error);
+        return undefined;
     }
-    return undefined;
 }
 
 export const deleteOrthodonticRecord = async (patientId: string | number, recordId: string | number): Promise<Patient | undefined> => {
     console.log('API CALL: deleteOrthodonticRecord', { patientId, recordId });
-    await delay(200);
-    const patientIndex = allPatients.findIndex(p => String(p.id) === String(patientId));
-    if (patientIndex > -1) {
-        const patient = allPatients[patientIndex];
-        patient.orthodonticRecords = patient.orthodonticRecords.filter(r => String(r.id) !== String(recordId));
-        return patient;
+    try {
+        await customAxios.delete(`/patients/${patientId}/orthodontic-records/${recordId}`);
+        return getPatientById(patientId);
+    } catch (error) {
+        console.error('Error deleting orthodontic record:', error);
+        return undefined;
     }
-    return undefined;
 }
 
 export const updateSoftTissueRecord = async (patientId: string | number, record: SoftTissueRecord): Promise<Patient | undefined> => {
     console.log('API CALL: updateSoftTissueRecord', { patientId, record });
-    await delay(200);
-    const patientIndex = allPatients.findIndex(p => String(p.id) === String(patientId));
-    if (patientIndex > -1) {
-        const patient = allPatients[patientIndex];
-        const recordIndex = patient.softTissueRecords.findIndex(r => String(r.id) === String(record.id));
-        if (recordIndex > -1) {
-            patient.softTissueRecords[recordIndex] = record;
-            patient.softTissueRecords.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-        }
-        return patient;
+    try {
+        await customAxios.put(`/patients/${patientId}/soft-tissue-records/${record.id}`, {
+            location: record.location,
+            type: record.type,
+            description: record.description,
+        });
+        return getPatientById(patientId);
+    } catch (error) {
+        console.error('Error updating soft tissue record:', error);
+        return undefined;
     }
-    return undefined;
 }
 
 export const deleteSoftTissueRecord = async (patientId: string | number, recordId: string | number): Promise<Patient | undefined> => {
     console.log('API CALL: deleteSoftTissueRecord', { patientId, recordId });
-    await delay(200);
-    const patientIndex = allPatients.findIndex(p => String(p.id) === String(patientId));
-    if (patientIndex > -1) {
-        const patient = allPatients[patientIndex];
-        patient.softTissueRecords = patient.softTissueRecords.filter(r => String(r.id) !== String(recordId));
-        return patient;
+    try {
+        await customAxios.delete(`/patients/${patientId}/soft-tissue-records/${recordId}`);
+        return getPatientById(patientId);
+    } catch (error) {
+        console.error('Error deleting soft tissue record:', error);
+        return undefined;
     }
-    return undefined;
 }
 
 
@@ -2848,38 +2848,97 @@ export const deleteEmployee = async (id: string | number): Promise<{ success: bo
 // Branches
 export const createBranch = async (data: Omit<Branch, 'id'>): Promise<Branch> => {
     console.log('API CALL: createBranch', { data });
-    await delay(200);
-    const newBranch: Branch = {
-        ...data,
-        id: mockBranches.length + 1
-    };
-    mockBranches.push(newBranch);
-    return newBranch;
+    try {
+        const response = await customAxios.post('/branches', data);
+        return response.data;
+    } catch (error) {
+        console.error('Error creating branch:', error);
+        throw error;
+    }
+}
+
+export const updateBranch = async (id: string | number, data: Omit<Branch, 'id'>): Promise<Branch> => {
+    console.log('API CALL: updateBranch', { id, data });
+    try {
+        const response = await customAxios.put(`/branches/${id}`, data);
+        return response.data;
+    } catch (error) {
+        console.error('Error updating branch:', error);
+        throw error;
+    }
+}
+
+export const deleteBranch = async (id: string | number): Promise<{ success: boolean }> => {
+    console.log('API CALL: deleteBranch', { id });
+    try {
+        const response = await customAxios.delete(`/branches/${id}`);
+        return response.data;
+    } catch (error) {
+        console.error('Error deleting branch:', error);
+        throw error;
+    }
 }
 
 // Inventory
 export const createInventoryItem = async (data: Omit<InventoryItem, 'id' | 'status'>): Promise<InventoryItem> => {
     console.log('API CALL: createInventoryItem', { data });
-    await delay(200);
-    const newItem: InventoryItem = {
-        ...data,
-        id: `item${inventory.length + 1}`,
-        status: data.stock > data.reorderLevel ? 'In Stock' : data.stock > 0 ? 'Low Stock' : 'Out of Stock'
-    };
-    inventory.push(newItem);
-    return newItem;
+    try {
+        const response = await customAxios.post('/management/inventory', {
+            name: data.name,
+            supplier: data.supplier,
+            stock: data.stock,
+            reorderLevel: data.reorderLevel,
+            price: data.price,
+            branchId: data.branchId,
+        });
+        const item = response.data;
+        return {
+            id: item.id,
+            name: item.name,
+            supplier: item.supplier,
+            stock: item.stock,
+            reorderLevel: item.reorder_level || item.reorderLevel,
+            price: parseFloat(item.price),
+            status: item.status,
+            branchId: String(item.branch_id),
+        };
+    } catch (error) {
+        console.error('Error creating inventory item:', error);
+        throw error;
+    }
 }
 
 // Lab Orders
 export const createLabOrder = async (data: Omit<LaboratoryOrder, 'id'>): Promise<LaboratoryOrder> => {
     console.log('API CALL: createLabOrder', { data });
-    await delay(200);
-    const newOrder: LaboratoryOrder = {
-        ...data,
-        id: `lab${allLabOrders.length + 1}`,
-    };
-    allLabOrders.push(newOrder);
-    return newOrder;
+    try {
+        const response = await customAxios.post('/management/lab-orders', {
+            patientId: data.patientId,
+            lab: data.lab,
+            item: data.item,
+            tooth: data.tooth,
+            status: data.status,
+            sentDate: data.sentDate,
+            dueDate: data.dueDate,
+            branchId: data.branchId,
+        });
+        const order = response.data;
+        return {
+            id: order.id,
+            patientId: String(order.patient_id),
+            patientName: order.patient_name || '',
+            lab: order.lab,
+            item: order.item,
+            tooth: order.tooth,
+            status: order.status,
+            sentDate: order.sent_date ? order.sent_date.split('T')[0] : '',
+            dueDate: order.due_date ? order.due_date.split('T')[0] : '',
+            branchId: String(order.branch_id),
+        };
+    } catch (error) {
+        console.error('Error creating lab order:', error);
+        throw error;
+    }
 }
 
 // Payroll
@@ -3041,13 +3100,24 @@ export const createLeaveRequest = async (data: Omit<LeaveRequest, 'id' | 'status
 
 export const updateLeaveRequestStatus = async (id: string | number, status: LeaveRequest['status']): Promise<LeaveRequest | undefined> => {
     console.log('API CALL: updateLeaveRequestStatus', { id, status });
-    await delay(200);
-    const requestIndex = allLeaveRequests.findIndex(req => String(req.id) === String(id));
-    if (requestIndex > -1) {
-        allLeaveRequests[requestIndex] = { ...allLeaveRequests[requestIndex], status };
-        return allLeaveRequests[requestIndex];
+    try {
+        const response = await customAxios.patch(`/management/leave-requests/${id}`, { status });
+        const request = response.data;
+        return {
+            id: request.id,
+            employeeId: request.employee_id,
+            employeeName: request.employee_name || (request.employee ? request.employee.name : ''),
+            leaveType: request.leave_type || request.leaveType,
+            startDate: request.start_date ? request.start_date.split('T')[0] : '',
+            endDate: request.end_date ? request.end_date.split('T')[0] : '',
+            reason: request.reason,
+            status: request.status,
+            branchId: String(request.branch_id),
+        };
+    } catch (error) {
+        console.error('Error updating leave request status:', error);
+        return undefined;
     }
-    return undefined;
 }
 
 // Staff Advances
@@ -3137,13 +3207,27 @@ export const updateStaffAdvanceStatus = async (id: string | number, status: Staf
 // Expenses
 export const createExpense = async (data: Omit<Expense, 'id'>): Promise<Expense> => {
     console.log('API CALL: createExpense', { data });
-    await delay(200);
-    const newExpense: Expense = {
-        ...data,
-        id: `exp${allExpenses.length + 1}`,
-    };
-    allExpenses.unshift(newExpense);
-    return newExpense;
+    try {
+        const response = await customAxios.post('/management/expenses', {
+            branchId: data.branchId,
+            date: data.date,
+            category: data.category,
+            description: data.description,
+            amount: data.amount,
+        });
+        const expense = response.data;
+        return {
+            id: expense.id,
+            branchId: String(expense.branch_id),
+            date: expense.date ? expense.date.split('T')[0] : '',
+            category: expense.category,
+            description: expense.description,
+            amount: parseFloat(expense.amount),
+        };
+    } catch (error) {
+        console.error('Error creating expense:', error);
+        throw error;
+    }
 }
 
 
@@ -3165,35 +3249,41 @@ export const updateRole = async (roleId: string | number, permissions: Permissio
 
 export const createRole = async (name: string): Promise<{id: string, name: string}> => {
     console.log('API CALL: createRole', { name });
-    // This is a mock implementation
-    await delay(200);
-    const newRole = { id: `role${mockRoles.length + 1}`, name };
-    mockRoles.push({ ...newRole, permissions: [] });
-    return newRole;
+    try {
+        const response = await customAxios.post('/settings/roles', { name });
+        return {
+            id: String(response.data.id),
+            name: response.data.name,
+        };
+    } catch (error) {
+        console.error('Error creating role:', error);
+        throw error;
+    }
 }
 
 export const updateRoleName = async (id: string | number, name: string): Promise<{id: string | number, name: string}> => {
     console.log('API CALL: updateRoleName', { id, name });
-    // This is a mock implementation
-    await delay(200);
-    const role = mockRoles.find(r => r.id === id);
-    if(role) {
-        role.name = name;
-        return { id: role.id, name: role.name };
+    try {
+        const response = await customAxios.patch(`/settings/roles/${id}`, { name });
+        return {
+            id: String(response.data.id),
+            name: response.data.name,
+        };
+    } catch (error) {
+        console.error('Error updating role name:', error);
+        throw error;
     }
-    throw new Error("Role not found");
 }
 
 export const deleteRole = async (id: string | number): Promise<boolean> => {
     console.log('API CALL: deleteRole', { id });
-     // This is a mock implementation
-    await delay(200);
-    const index = mockRoles.findIndex(r => r.id === id);
-    if(index > -1) {
-        mockRoles.splice(index, 1);
-        return true;
+    try {
+        const response = await customAxios.delete(`/settings/roles/${id}`);
+        return !!response.data.success;
+    } catch (error) {
+        console.error('Error deleting role:', error);
+        return false;
     }
-    return false;
 }
 
 // Queue

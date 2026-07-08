@@ -24,7 +24,7 @@ import { Button } from "@/components/ui/button";
 import { MoreHorizontal, PlusCircle, Trash, Pencil, FileText, Send } from "lucide-react";
 import { AppointmentForm } from "./components/appointment-form";
 import { useBranch } from "@/context/branch-context";
-import { currentUser } from "@/lib/user";
+import { currentUser, hasRole } from "@/lib/user";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -83,7 +83,7 @@ export default function AppointmentsPage() {
   const normalizedUserBranch = currentUser.branchId ? String(currentUser.branchId) : '';
 
   const filteredPatients = useMemo(() => {
-     if (currentUser.role === 'Super Admin') {
+     if (hasRole('Super Admin')) {
       return allPatients.filter(p => String(p.branchId) === normalizedSelectedBranch);
     }
     return allPatients.filter(p => String(p.branchId) === normalizedUserBranch);
@@ -91,7 +91,7 @@ export default function AppointmentsPage() {
 
   const filteredDoctors = useMemo(() => {
     const doctors = allEmployees.filter(e => e.role === 'Dentist');
-    if (currentUser.role === 'Super Admin') {
+    if (hasRole('Super Admin')) {
       return normalizedSelectedBranch
         ? doctors.filter(d => String(d.branchId) === normalizedSelectedBranch)
         : doctors;
@@ -102,7 +102,7 @@ export default function AppointmentsPage() {
   }, [normalizedSelectedBranch, normalizedUserBranch, allEmployees]);
   
   const branchAppointments = useMemo(() => {
-    if (currentUser.role === 'Super Admin') {
+    if (hasRole('Super Admin')) {
       return allAppointments.filter(a => String(a.branchId) === normalizedSelectedBranch);
     }
     return allAppointments.filter(a => String(a.branchId) === normalizedUserBranch);

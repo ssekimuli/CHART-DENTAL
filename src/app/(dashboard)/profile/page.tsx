@@ -15,7 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { getCurrentUser, setCurrentUser } from "@/lib/user";
+import { getCurrentUser, setCurrentUser, hasRole } from "@/lib/user";
 import type { CurrentUser, Employee, Payroll, Appointment, LeaveRequest, ProfileData } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -169,7 +169,7 @@ export default function ProfilePage() {
                                     <p className="text-xs text-muted-foreground">{stats.absentDays} Absent, {stats.onLeaveDays} On Leave</p>
                                 </CardContent>
                             </Card>
-                            { (user.role === 'Dentist' || user.role === 'Hygienist') &&
+                            { hasRole(['Dentist', 'Hygienist']) &&
                             <>
                             <Card>
                                 <CardHeader className="flex flex-row items-center justify-between pb-2">

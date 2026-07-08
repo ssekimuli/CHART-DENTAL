@@ -31,16 +31,17 @@ const formSchema = z.object({
 });
 
 type BranchFormProps = {
+    branch?: Branch;
     onSave: (data: Omit<Branch, 'id'>) => void;
     onOpenChange: (open: boolean) => void;
 };
 
-export function BranchForm({ onSave, onOpenChange }: BranchFormProps) {
+export function BranchForm({ branch, onSave, onOpenChange }: BranchFormProps) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-        name: "",
-        address: "",
+        name: branch?.name || "",
+        address: branch?.address || "",
     },
   });
 
@@ -52,9 +53,11 @@ export function BranchForm({ onSave, onOpenChange }: BranchFormProps) {
     <Dialog open={true} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
-                <DialogTitle>Add Branch</DialogTitle>
+                <DialogTitle>{branch ? "Edit Branch" : "Add Branch"}</DialogTitle>
                 <DialogDescription>
-                    Fill out the details for the new practice location.
+                    {branch 
+                        ? "Modify the details for the practice location." 
+                        : "Fill out the details for the new practice location."}
                 </DialogDescription>
             </DialogHeader>
             <Form {...form}>

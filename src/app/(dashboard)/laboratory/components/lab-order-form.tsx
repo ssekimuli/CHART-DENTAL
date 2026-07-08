@@ -33,7 +33,7 @@ import {
   } from "@/components/ui/select";
 import type { LaboratoryOrder, Patient } from "@/lib/types";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
+import { cn, getPatientFullName } from "@/lib/utils";
 import { CalendarIcon } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Combobox } from "@/components/ui/combobox";
@@ -91,7 +91,7 @@ export function LabOrderForm({ patients, onSave, onOpenChange }: LabOrderFormPro
                             <FormLabel>Patient</FormLabel>
                             <FormControl>
                                 <Combobox
-                                    options={patients.map(p => ({ value: p.id, label: p.name }))}
+                                    options={patients.map(p => ({ value: String(p.id), label: getPatientFullName(p) }))}
                                     value={field.value}
                                     onChange={field.onChange}
                                     placeholder="Select a patient"

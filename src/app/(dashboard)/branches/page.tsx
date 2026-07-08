@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -10,7 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { PlusCircle } from "lucide-react";
+import { PlusCircle, Pencil, Trash } from "lucide-react";
 import type { Branch } from "@/lib/types";
 import { BranchForm } from "./components/branch-form";
 import {
@@ -21,7 +20,17 @@ import {
     TableHeader,
     TableRow,
   } from "@/components/ui/table";
-import { createBranch, getBranches } from "@/lib/api";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+  } from "@/components/ui/alert-dialog";
+import { createBranch, getBranches, updateBranch, deleteBranch } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
 import { hasPermission } from "@/lib/user";
 import { useRouter } from "next/navigation";
@@ -31,6 +40,9 @@ export default function BranchesPage() {
     const [branches, setBranches] = useState<Branch[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isFormOpen, setIsFormOpen] = useState(false);
+    const [editingBranch, setEditingBranch] = useState<Branch | undefined>(undefined);
+    const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
+    const [branchToDelete, setBranchToDelete] = useState<Branch | undefined>(undefined);
 
     useEffect(() => {
       if (!hasPermission("branches:read")) {
@@ -47,11 +59,29 @@ export default function BranchesPage() {
     }, [router]);
 
     const handleSaveBranch = async (data: Omit<Branch, 'id'>) => {
-        const newBranch = await createBranch(data);
-        if (newBranch) {
-            setBranches(prev => [...prev, newBranch]);
+        if (editingBranch) {
+            const updated = await updateBranch(editingBranch.id, data);
+            if (updated) {
+                setBranches(prev => prev.map(b => b.id === editingBranch.id ? updated : b));
+            }
+        } else {
+            const newBranch = await createBranch(data);
+            if (newBranch) {
+                setBranches(prev => [...prev, newBranch]);
+            }
         }
         setIsFormOpen(false);
+        setEditingBranch(undefined);
+    }
+
+    const handleDeleteBranch = async () => {
+        if (!branchToDelete) return;
+        const res = await deleteBranch(branchToDelete.id);
+        if (res && res.success) {
+            setBranches(prev => prev.filter(b => b.id !== branchToDelete.id));
+        }
+        setIsDeleteAlertOpen(false);
+        setBranchToDelete(undefined);
     }
 
   return (
@@ -65,7 +95,10 @@ export default function BranchesPage() {
             </CardDescription>
             </div>
             {hasPermission('branches:create') && (
-              <Button onClick={() => setIsFormOpen(true)}>
+              <Button onClick={() => {
+                setEditingBranch(undefined);
+                setIsFormOpen(true);
+              }}>
                 <PlusCircle className="mr-2" />
                 Add Branch
               </Button>
@@ -78,11 +111,12 @@ export default function BranchesPage() {
                     <Skeleton className="h-12 w-full" />
                 </div>
             ) : (
-             <Table>
+              <Table>
                 <TableHeader>
                     <TableRow>
                         <TableHead>Branch Name</TableHead>
                         <TableHead>Address</TableHead>
+                        {hasPermission('branches:create') && <TableHead className="w-[120px] text-right">Actions</TableHead>}
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -90,18 +124,66 @@ export default function BranchesPage() {
                         <TableRow key={branch.id}>
                             <TableCell className="font-medium">{branch.name}</TableCell>
                             <TableCell>{branch.address}</TableCell>
+                            {hasPermission('branches:create') && (
+                              <TableCell className="text-right space-x-2">
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon"
+                                  onClick={() => {
+                                    setEditingBranch(branch);
+                                    setIsFormOpen(true);
+                                  }}
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon"
+                                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                  onClick={() => {
+                                    setBranchToDelete(branch);
+                                    setIsDeleteAlertOpen(true);
+                                  }}
+                                >
+                                  <Trash className="h-4 w-4" />
+                                </Button>
+                              </TableCell>
+                            )}
                         </TableRow>
                     ))}
                 </TableBody>
-            </Table>
+              </Table>
             )}
         </CardContent>
         </Card>
         {isFormOpen && (
             <BranchForm
+                branch={editingBranch}
                 onSave={handleSaveBranch}
-                onOpenChange={setIsFormOpen}
+                onOpenChange={(open) => {
+                    setIsFormOpen(open);
+                    if (!open) setEditingBranch(undefined);
+                }}
             />
+        )}
+        {isDeleteAlertOpen && (
+            <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This action cannot be undone. This will permanently delete the branch
+                            <strong> {branchToDelete?.name}</strong> and remove its record from our servers.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel onClick={() => setBranchToDelete(undefined)}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDeleteBranch} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                            Delete
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         )}
     </>
   );

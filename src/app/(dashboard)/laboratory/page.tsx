@@ -17,8 +17,9 @@ import { LabOrderForm } from "./components/lab-order-form";
 import { useBranch } from "@/context/branch-context";
 import { createLabOrder, getLabOrders, getPatients } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
-import { currentUser, hasPermission } from "@/lib/user";
+import { currentUser, hasPermission, hasRole } from "@/lib/user";
 import { useRouter } from "next/navigation";
+import { getPatientFullName } from "@/lib/utils";
 
 export default function LaboratoryPage() {
     const router = useRouter();
@@ -34,7 +35,7 @@ export default function LaboratoryPage() {
             return;
         }
 
-        const branchToFetch = currentUser.role === 'Super Admin' ? selectedBranch : currentUser.branchId;
+        const branchToFetch = hasRole('Super Admin') ? selectedBranch : currentUser.branchId;
         const fetchData = async () => {
             setIsLoading(true);
             const [orders, patientsData] = await Promise.all([
@@ -49,10 +50,10 @@ export default function LaboratoryPage() {
     }, [selectedBranch, router]);
 
     const handleSaveOrder = async (data: Omit<LaboratoryOrder, 'id' | 'branchId' | 'patientName'>) => {
-        const patient = patients.find(p => p.id === data.patientId);
+        const patient = patients.find(p => String(p.id) === String(data.patientId));
         if (!patient) return;
 
-        const newOrder = await createLabOrder({ ...data, branchId: selectedBranch, patientName: patient.name });
+        const newOrder = await createLabOrder({ ...data, branchId: selectedBranch, patientName: getPatientFullName(patient) });
         if(newOrder) {
             setLabOrders(prev => [newOrder, ...prev]);
         }

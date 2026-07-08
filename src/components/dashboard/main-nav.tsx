@@ -35,7 +35,7 @@ import {
   Landmark,
 } from "lucide-react";
 import type { EmployeeRole, Permission } from "@/lib/types";
-import { currentUser, getCurrentUser, hasPermission } from "@/lib/user";
+import { currentUser, getCurrentUser, hasPermission, hasRole } from "@/lib/user";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../ui/collapsible";
 import React, { useEffect, useState } from "react";
 
@@ -86,7 +86,6 @@ export function MainNav() {
   }, [pathname]); // Re-check on path change if needed, though login state is main driver
 
   const userPermissions = user?.permissions || [];
-  const userRole = user?.role;
 
   const hasPermission = (permission: Permission) => userPermissions.includes(permission);
 
@@ -96,17 +95,17 @@ export function MainNav() {
     // Make a copy to avoid mutating the original array
     const newLink = { ...link };
 
-    // Special visibility rules based on role
-    if (newLink.href === '/charting' && (userRole === 'Account' || userRole === 'Receptionist')) {
+    // Special visibility rules based on role using hasRole helper
+    if (newLink.href === '/charting' && hasRole(['Account', 'Receptionist'])) {
         return null; // Hide charting for accountants and receptionists
     }
-    if ((newLink.href === '/billing' || newLink.href === '/accounting') && !['Super Admin', 'Account'].includes(userRole as string)) {
+    if ((newLink.href === '/billing' || newLink.href === '/accounting') && !hasRole(['Super Admin', 'Account'])) {
         return null;
     }
-    if ((newLink.href === '/inventory' || newLink.label === 'HRM' || newLink.href === '/reports') && !['Super Admin', 'HR'].includes(userRole as string)) {
+    if ((newLink.href === '/inventory' || newLink.label === 'HRM' || newLink.href === '/reports') && !hasRole(['Super Admin', 'HR'])) {
         return null;
     }
-    if (newLink.href === '/settings' && userRole !== 'Super Admin') {
+    if (newLink.href === '/settings' && !hasRole('Super Admin')) {
         return null;
     }
 
