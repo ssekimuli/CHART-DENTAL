@@ -61,36 +61,6 @@ export default function LoginPage() {
     }
   };
 
-  const handleGoogleSignIn = async () => {
-    setIsLoading(true);
-    try {
-      const loggedInUser = await login("lisa.cuddy@example.com", "password");
-      if (loggedInUser) {
-          toast({
-              title: "Login Successful",
-              description: `Welcome back, ${loggedInUser.name}!`,
-          });
-          router.push("/dashboard");
-      } else {
-         toast({
-          variant: "destructive",
-          title: "Login Failed",
-          description: "Could not log in with default user.",
-         });
-      }
-    } catch (error) {
-       if (!axios.isAxiosError(error) || error.response) {
-         toast({
-          variant: "destructive",
-          title: "Login Error",
-          description: "An unexpected error occurred. Please try again.",
-         });
-       }
-    } finally {
-        setIsLoading(false);
-    }
-  };
-
   return (
     <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-12 overflow-hidden bg-[#E0F7F7]/30">
       {/* Brand/Hero Section */}
@@ -197,32 +167,7 @@ export default function LoginPage() {
                 )}
               </Button>
 
-              <Button 
-                variant="outline" 
-                className="w-full h-12 border-[#A3D8E1]/80 hover:bg-gray-50 text-[#2C3F4D] font-medium rounded-xl hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2" 
-                onClick={handleGoogleSignIn} 
-                disabled={isLoading}
-              >
-                <svg className="h-5 w-5 mr-1" viewBox="0 0 24 24">
-                  <path
-                    fill="#EA4335"
-                    d="M5.266 9.765A7.077 7.077 0 0 1 12 4.909c1.69 0 3.218.6 4.418 1.582L19.91 3C17.782 1.145 15.055 0 12 0 7.354 0 3.373 2.736 1.5 6.745l3.766 3.02z"
-                  />
-                  <path
-                    fill="#34A853"
-                    d="M16.04 15.342c-1.127.755-2.5 1.173-4.04 1.173a7.077 7.077 0 0 1-6.734-4.856L1.5 14.679C3.373 18.688 7.354 21.424 12 21.424c3.09 0 5.864-1.136 7.954-3.09l-3.913-2.992z"
-                  />
-                  <path
-                    fill="#4285F4"
-                    d="M22.5 12c0-.773-.082-1.5-.236-2.209H12v4.418h5.882a5.053 5.053 0 0 1-2.182 3.318l3.913 2.991C21.736 18.364 22.5 15.427 22.5 12z"
-                  />
-                  <path
-                    fill="#FBBC05"
-                    d="M5.266 11.659A7.01 7.01 0 0 1 5 12c0 .345.027.682.082 1.018l-3.766 3.021A11.93 11.93 0 0 1 1 12c0-1.464.264-2.864.745-4.164l3.52 2.823z"
-                  />
-                </svg>
-                Sign In with Google
-              </Button>
+
             </div>
           </div>
 
