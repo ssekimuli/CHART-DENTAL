@@ -37,7 +37,7 @@ export const login = async (email: string, password?: string): Promise<CurrentUs
         return user;
     } catch (error) {
         if (axios.isAxiosError(error)) {
-            console.error('Login failed:', error.response?.data);
+            console.error('Login failed:', error.response?.data || error.message || error);
         } else {
             console.error("An unexpected error occurred during login:", error);
         }
