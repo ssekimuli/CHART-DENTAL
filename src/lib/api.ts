@@ -60,6 +60,58 @@ export const logout = async (): Promise<void> => {
     }
 };
 
+export const forgotPassword = async (identifier: string): Promise<{ success: boolean; message: string; debug_otp?: string }> => {
+    console.log('API CALL: forgotPassword', { identifier });
+    try {
+        const response = await customAxios.post('/forgot-password', { identifier });
+        return {
+            success: true,
+            message: response.data.message || 'OTP sent successfully.',
+            debug_otp: response.data.debug_otp,
+        };
+    } catch (error) {
+        let message = 'An error occurred while sending OTP.';
+        if (axios.isAxiosError(error) && error.response?.data?.message) {
+            message = error.response.data.message;
+        }
+        return { success: false, message };
+    }
+};
+
+export const verifyOTP = async (identifier: string, otp: string): Promise<{ success: boolean; message: string }> => {
+    console.log('API CALL: verifyOTP', { identifier, otp });
+    try {
+        const response = await customAxios.post('/verify-otp', { identifier, otp });
+        return {
+            success: true,
+            message: response.data.message || 'OTP verified successfully.',
+        };
+    } catch (error) {
+        let message = 'Invalid or expired OTP.';
+        if (axios.isAxiosError(error) && error.response?.data?.message) {
+            message = error.response.data.message;
+        }
+        return { success: false, message };
+    }
+};
+
+export const resetPassword = async (identifier: string, password?: string): Promise<{ success: boolean; message: string }> => {
+    console.log('API CALL: resetPassword', { identifier });
+    try {
+        const response = await customAxios.post('/reset-password', { identifier, password });
+        return {
+            success: true,
+            message: response.data.message || 'Password reset successfully.',
+        };
+    } catch (error) {
+        let message = 'An error occurred while resetting password.';
+        if (axios.isAxiosError(error) && error.response?.data?.message) {
+            message = error.response.data.message;
+        }
+        return { success: false, message };
+    }
+};
+
 export const getProfileData = async (): Promise<ProfileData | null> => {
     console.log('API CALL: getProfileData');
     try {

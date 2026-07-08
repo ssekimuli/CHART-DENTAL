@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, Suspense } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { resetPassword } from "@/lib/api";
 import { ToothIcon } from "@/components/icons/tooth-icon";
 import Link from "next/link";
 
@@ -19,7 +20,7 @@ function ResetPasswordComponent() {
 
   const identifier = searchParams.get('id');
 
-  const handleResetPassword = () => {
+  const handleResetPassword = async () => {
     if (!password || !confirmPassword) {
       toast({
         variant: "destructive",
@@ -38,12 +39,29 @@ function ResetPasswordComponent() {
       return;
     }
 
-    // In a real app, you'd call an API to update the password for the user associated with `identifier`.
-    toast({
-      title: "Password Reset Successful",
-      description: "Your password has been changed. You can now log in.",
-    });
-    router.push("/login");
+    if (!identifier) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Missing identifier context.",
+      });
+      return;
+    }
+
+    const res = await resetPassword(identifier, password);
+    if (res.success) {
+      toast({
+        title: "Password Reset Successful",
+        description: res.message,
+      });
+      router.push("/login");
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Reset Failed",
+        description: res.message,
+      });
+    }
   };
 
   return (

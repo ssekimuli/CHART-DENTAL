@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { forgotPassword } from "@/lib/api";
 import { ToothIcon } from "@/components/icons/tooth-icon";
 import Link from "next/link";
 import { Mail, ArrowLeft, ArrowRight, Phone } from "lucide-react";
@@ -17,7 +18,7 @@ export default function ForgotPasswordPage() {
   const [identifier, setIdentifier] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSendOTP = () => {
+  const handleSendOTP = async () => {
     if (!identifier) {
       toast({
         variant: "destructive",
@@ -28,15 +29,22 @@ export default function ForgotPasswordPage() {
     }
     
     setIsLoading(true);
-    // Simulate sending OTP
-    setTimeout(() => {
+    const res = await forgotPassword(identifier);
+    setIsLoading(false);
+
+    if (res.success) {
       toast({
         title: "OTP Sent",
-        description: `An OTP has been sent to ${identifier}.`,
+        description: res.message + (res.debug_otp ? ` (Debug OTP: ${res.debug_otp})` : ''),
       });
       router.push(`/verify-otp?id=${encodeURIComponent(identifier)}`);
-      setIsLoading(false);
-    }, 1000);
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: res.message,
+      });
+    }
   };
 
   return (

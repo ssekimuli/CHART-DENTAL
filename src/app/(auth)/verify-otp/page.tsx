@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, Suspense } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { verifyOTP } from "@/lib/api";
 import { ToothIcon } from "@/components/icons/tooth-icon";
 import Link from "next/link";
 import {
@@ -19,11 +20,11 @@ function VerifyOTPComponent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
-  const [otp, setOtp] = useState("123456"); // Pre-filled for prototype
+  const [otp, setOtp] = useState("");
 
   const identifier = searchParams.get('id');
 
-  const handleVerifyOTP = () => {
+  const handleVerifyOTP = async () => {
     if (otp.length < 6) {
       toast({
         variant: "destructive",
@@ -33,13 +34,29 @@ function VerifyOTPComponent() {
       return;
     }
     
-    // In a real app, you would verify the OTP against a backend service.
-    // For this prototype, any 6-digit OTP is considered valid.
-    toast({
-      title: "OTP Verified",
-      description: "You can now reset your password.",
-    });
-    router.push(`/reset-password?id=${encodeURIComponent(identifier || '')}`);
+    if (!identifier) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Missing identifier context.",
+      });
+      return;
+    }
+
+    const res = await verifyOTP(identifier, otp);
+    if (res.success) {
+      toast({
+        title: "OTP Verified",
+        description: res.message,
+      });
+      router.push(`/reset-password?id=${encodeURIComponent(identifier)}`);
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Verification Failed",
+        description: res.message,
+      });
+    }
   };
 
   return (
