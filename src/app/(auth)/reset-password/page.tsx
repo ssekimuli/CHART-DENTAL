@@ -58,7 +58,7 @@ function ResetPasswordComponent() {
             <span className="text-blue-400">Dentio</span>
           </h1>
           <p className="max-w-sm text-gray-300">
-            The modern, AI-powered solution for dental practice management. Streamline your workflow and focus on what matters most—your patients.
+            The modern solution for dental practice management. Streamline your workflow and focus on what matters most—your patients.
           </p>
         </div>
       </div>

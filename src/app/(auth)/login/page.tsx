@@ -110,7 +110,7 @@ export default function LoginPage() {
               Dentio
             </h1>
             <p className="text-sm text-gray-300 leading-relaxed">
-              The modern, AI-powered solution for dental practice management. Streamline clinical workflows and focus on what matters most—your patients.
+              The modern solution for dental practice management. Streamline clinical workflows and focus on what matters most—your patients.
             </p>
           </div>
         </div>
