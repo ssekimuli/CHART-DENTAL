@@ -22,7 +22,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { FileDown, PlusCircle, MoreHorizontal, Pencil, Trash, Eye, HandCoins, Calendar as CalendarIcon, Search } from "lucide-react";
-import type { Invoice, Patient, InvoiceTreatment } from "@/lib/types";
+import type { Invoice, Patient, InvoiceTreatment, PaginatedArray } from "@/lib/types";
 import { InvoiceForm } from "./components/invoice-form";
 import { useBranch } from "@/context/branch-context";
 import { currentUser, hasPermission, hasRole } from "@/lib/user";
@@ -60,7 +60,7 @@ import { Pagination, PaginationContent, PaginationItem, PaginationPrevious, Pagi
 export default function BillingPage() {
   const router = useRouter();
   const { selectedBranch } = useBranch();
-  const [allInvoices, setAllInvoices] = useState<Invoice[]>([]); // Keep as Invoice[]
+  const [allInvoices, setAllInvoices] = useState<PaginatedArray<Invoice>>([] as unknown as PaginatedArray<Invoice>);
   const [allPatients, setAllPatients] = useState<Patient[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -98,6 +98,8 @@ export default function BillingPage() {
             branchId: selectedBranch,
             searchQuery,
             dateRange,
+            page: currentPage,
+            perPage: itemsPerPage
           }),
           getPatientList()
         ]);
@@ -112,7 +114,7 @@ export default function BillingPage() {
       }
     };
     fetchData();
-  }, [selectedBranch, searchQuery, dateRange, router]);
+  }, [selectedBranch, searchQuery, dateRange, currentPage, itemsPerPage, router]);
 
   const getStatusVariant = (status: "Paid" | "Pending" | "Overdue") => {
     switch (status) {
@@ -134,12 +136,9 @@ export default function BillingPage() {
 
   const filteredInvoices = allInvoices;
   
-  const totalPages = Math.max(1, Math.ceil(filteredInvoices.length / itemsPerPage));
+  const totalPages = allInvoices.meta?.last_page || 1;
   
-  const paginatedInvoices = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    return filteredInvoices.slice(startIndex, startIndex + itemsPerPage);
-  }, [filteredInvoices, currentPage, itemsPerPage]);
+  const paginatedInvoices = allInvoices;
 
   useEffect(() => {
     setCurrentPage(1);
@@ -202,7 +201,11 @@ export default function BillingPage() {
           treatments,
         });
         if (updated) {
-          setAllInvoices(prev => prev.map(i => i.id === updated.id ? updated : i));
+          setAllInvoices(prev => {
+            const updatedList = prev.map(i => i.id === updated.id ? updated : i) as PaginatedArray<Invoice>;
+            updatedList.meta = prev.meta;
+            return updatedList;
+          });
         }
       } else {
         // Create new invoice using new API helper
@@ -213,7 +216,11 @@ export default function BillingPage() {
           treatments,
         });
         if (newInvoice) {
-          setAllInvoices(prev => [newInvoice, ...prev]);
+          setAllInvoices(prev => {
+            const updatedList = [newInvoice, ...prev] as PaginatedArray<Invoice>;
+            updatedList.meta = prev.meta;
+            return updatedList;
+          });
         }
       }
       handleCloseForm();
@@ -227,7 +234,11 @@ export default function BillingPage() {
     try {
       const updated = await processPayment(invoiceId, amount, method);
       if (updated) {
-        setAllInvoices(prev => prev.map(i => i.id === updated.id ? updated : i));
+        setAllInvoices(prev => {
+          const updatedList = prev.map(i => i.id === updated.id ? updated : i) as PaginatedArray<Invoice>;
+          updatedList.meta = prev.meta;
+          return updatedList;
+        });
       }
       handleClosePaymentForm();
     } catch (error) {
@@ -240,7 +251,11 @@ export default function BillingPage() {
     if (selectedInvoice) {
       try {
         await deleteInvoice(selectedInvoice.id);
-        setAllInvoices(prev => prev.filter(i => i.id !== selectedInvoice.id));
+        setAllInvoices(prev => {
+          const updatedList = prev.filter(i => i.id !== selectedInvoice.id) as PaginatedArray<Invoice>;
+          updatedList.meta = prev.meta;
+          return updatedList;
+        });
       } catch (error) {
         console.error('Error deleting invoice:', error);
         // Optionally show error toast here

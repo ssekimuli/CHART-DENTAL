@@ -1,4 +1,12 @@
 
+export type PaginatedArray<T> = T[] & {
+    meta?: {
+        current_page: number;
+        last_page: number;
+        per_page: number;
+        total: number;
+    };
+};
 
 export type ExpenseCategory = 'Supplies' | 'Rent' | 'Utilities' | 'Salaries' | 'Marketing' | 'Maintenance' | 'Other' | 'Payroll';
 

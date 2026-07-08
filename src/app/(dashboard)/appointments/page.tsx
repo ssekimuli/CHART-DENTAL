@@ -43,7 +43,7 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
   } from "@/components/ui/alert-dialog";
-  import { getAppointments, getPatients, getDoctors, createAppointment, updateAppointment, deleteAppointment } from "@/lib/api";
+  import { getAppointments, getPatientList, getDoctors, createAppointment, updateAppointment, deleteAppointment } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
@@ -67,12 +67,12 @@ export default function AppointmentsPage() {
     const fetchData = async () => {
         setIsLoading(true);
         const [appointmentsData, patientsData, employeesData] = await Promise.all([
-            getAppointments(),
-            getPatients(),
+            getAppointments({ perPage: 1000 }),
+            getPatientList(),
             getDoctors(selectedBranch)
         ]);
         setAllAppointments(appointmentsData);
-        setAllPatients(patientsData);
+        setAllPatients(patientsData as unknown as Patient[]);
         setAllEmployees(employeesData);
         setIsLoading(false);
     };

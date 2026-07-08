@@ -12,23 +12,29 @@ import {
 } from "@/components/ui/card";
 import { PlusCircle } from "lucide-react";
 import { LabTable } from "./components/lab-table";
-import type { LaboratoryOrder, Patient } from "@/lib/types";
+import type { LaboratoryOrder, Patient, PaginatedArray } from "@/lib/types";
 import { LabOrderForm } from "./components/lab-order-form";
 import { useBranch } from "@/context/branch-context";
-import { createLabOrder, getLabOrders, getPatients } from "@/lib/api";
+import { createLabOrder, getLabOrders, getPatientList } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
 import { currentUser, hasPermission, hasRole } from "@/lib/user";
 import { useRouter } from "next/navigation";
 import { getPatientFullName } from "@/lib/utils";
+import { PaginationControl } from "@/components/ui/pagination-control";
 
 export default function LaboratoryPage() {
     const router = useRouter();
     const { selectedBranch } = useBranch();
-    const [labOrders, setLabOrders] = useState<LaboratoryOrder[]>([]);
+    const [labOrders, setLabOrders] = useState<PaginatedArray<LaboratoryOrder>>([] as unknown as PaginatedArray<LaboratoryOrder>);
     const [patients, setPatients] = useState<Patient[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isFormOpen, setIsFormOpen] = useState(false);
+    const [page, setPage] = useState(1);
     
+    useEffect(() => {
+        setPage(1);
+    }, [selectedBranch]);
+
     useEffect(() => {
         if (!hasPermission("laboratory:read")) {
             router.replace("/dashboard");
@@ -39,15 +45,15 @@ export default function LaboratoryPage() {
         const fetchData = async () => {
             setIsLoading(true);
             const [orders, patientsData] = await Promise.all([
-                getLabOrders(branchToFetch), 
-                getPatients()
+                getLabOrders(branchToFetch, page, 10), 
+                getPatientList()
             ]);
             setLabOrders(orders);
-            setPatients(patientsData);
+            setPatients(patientsData as unknown as Patient[]);
             setIsLoading(false);
         };
         fetchData();
-    }, [selectedBranch, router]);
+    }, [selectedBranch, page, router]);
 
     const normalizedSelectedBranch = String(selectedBranch || '');
     const normalizedUserBranch = currentUser.branchId ? String(currentUser.branchId) : '';
@@ -65,7 +71,11 @@ export default function LaboratoryPage() {
 
         const newOrder = await createLabOrder({ ...data, branchId: selectedBranch, patientName: getPatientFullName(patient) });
         if(newOrder) {
-            setLabOrders(prev => [newOrder, ...prev]);
+            setLabOrders(prev => {
+                const updatedList = [newOrder, ...prev] as PaginatedArray<LaboratoryOrder>;
+                updatedList.meta = prev.meta;
+                return updatedList;
+            });
         }
         setIsFormOpen(false);
     }
@@ -82,8 +92,8 @@ export default function LaboratoryPage() {
             </div>
             {hasPermission('laboratory:create') && (
                 <Button onClick={() => setIsFormOpen(true)}>
-                    <PlusCircle className="mr-2" />
-                    New Lab Order
+                <PlusCircle className="mr-2" />
+                Add Order
                 </Button>
             )}
         </CardHeader>
@@ -95,7 +105,14 @@ export default function LaboratoryPage() {
                     <Skeleton className="h-12 w-full" />
                 </div>
             ) : (
-                <LabTable data={labOrders} />
+                <>
+                    <LabTable data={labOrders} />
+                    <PaginationControl
+                        currentPage={page}
+                        lastPage={labOrders.meta?.last_page || 1}
+                        onPageChange={setPage}
+                    />
+                </>
             )}
         </CardContent>
         </Card>

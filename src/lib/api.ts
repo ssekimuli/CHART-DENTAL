@@ -15,7 +15,7 @@ import {
     expenses as allExpenses,
     roles as mockRoles
 } from '@/lib/data';
-import type { Patient, Appointment, Invoice, ChartData, PracticeTrendPoint, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, BasePatient, InvoiceTreatment, OtherCharge, SystemTreatment, PaymentMethod, PaymentTransaction, AttendanceRecord, LeaveRequest, StaffAdvance, StaffAdvanceStatus, Expense, ExpenseCategory, ExpenseSummary, IncomeRecord, RolePermissions, Permission, DentalRecord, PeriodontalRecord, OcclusalRecord, SoftTissueRecord, OrthodonticRecord, Treatment, DentalCondition, PatientImage, FinancialSummary, CurrentUser, ProfileData, AppointmentStatus, DashboardSummary, EmployeeRole } from '@/lib/types';
+import type { PaginatedArray, Patient, Appointment, Invoice, ChartData, PracticeTrendPoint, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, BasePatient, InvoiceTreatment, OtherCharge, SystemTreatment, PaymentMethod, PaymentTransaction, AttendanceRecord, LeaveRequest, StaffAdvance, StaffAdvanceStatus, Expense, ExpenseCategory, ExpenseSummary, IncomeRecord, RolePermissions, Permission, DentalRecord, PeriodontalRecord, OcclusalRecord, SoftTissueRecord, OrthodonticRecord, Treatment, DentalCondition, PatientImage, FinancialSummary, CurrentUser, ProfileData, AppointmentStatus, DashboardSummary, EmployeeRole } from '@/lib/types';
 import { format, parse } from "date-fns";
 import { speak } from '@/ai/flows/speak';
 import { clearCurrentUser, setCurrentUser, currentUser as userDetails } from './user';
@@ -128,13 +128,15 @@ type GetPatientsFilters = {
     branchId?: string | number;
     status?: 'Active' | 'Inactive';
     gender?: 'Male' | 'Female' | 'Other';
+    page?: number;
+    perPage?: number;
 };
 
-export const getPatients = async (filters?: string | number | GetPatientsFilters): Promise<Patient[]> => {
+export const getPatients = async (filters?: string | number | GetPatientsFilters): Promise<PaginatedArray<Patient>> => {
     console.log('API CALL: getPatients', { filters });
 
     try {
-        const params: { branch_id?: number; status?: string; gender?: string } = {};
+        const params: { branch_id?: number; status?: string; gender?: string; page?: number; per_page?: number } = {};
 
         // Handle backward compatibility - if filters is a string or number, treat it as branchId
         if (typeof filters === 'number' || typeof filters === 'string') {
@@ -155,6 +157,12 @@ export const getPatients = async (filters?: string | number | GetPatientsFilters
             if (filters.gender) {
                 params.gender = filters.gender;
             }
+            if (filters.page) {
+                params.page = filters.page;
+            }
+            if (filters.perPage) {
+                params.per_page = filters.perPage;
+            }
         }
 
         const response = await customAxios.get('/patients', { params });
@@ -163,7 +171,7 @@ export const getPatients = async (filters?: string | number | GetPatientsFilters
         const dataArray = Array.isArray(response.data) ? response.data : (response.data.data || []);
 
         // Map API response to frontend type
-        return dataArray.map((patient: any) => ({
+        const patientsList: PaginatedArray<Patient> = dataArray.map((patient: any) => ({
             id: String(patient.id),
             first_name: patient.first_name,
             last_name: patient.last_name,
@@ -187,13 +195,20 @@ export const getPatients = async (filters?: string | number | GetPatientsFilters
             softTissueRecords: patient.soft_tissue_records || [],
             orthodonticRecords: patient.orthodontic_records || [],
         }));
+
+        if (response.data && response.data.meta) {
+            patientsList.meta = response.data.meta;
+        }
+
+        return patientsList;
     } catch (error) {
         if (axios.isAxiosError(error)) {
             console.error('Failed to fetch patients:', error.response?.data);
         } else {
             console.error("An unexpected error occurred while fetching patients:", error);
         }
-        return [];
+        const emptyArray: PaginatedArray<Patient> = [];
+        return emptyArray;
     }
 }
 
@@ -359,7 +374,9 @@ export const getAppointments = async (filters?: {
     date_from?: string; // YYYY-MM-DD
     date_to?: string; // YYYY-MM-DD
     search?: string;
-}): Promise<Appointment[]> => {
+    page?: number;
+    perPage?: number;
+}): Promise<PaginatedArray<Appointment>> => {
     console.log('API CALL: getAppointments', { filters });
     
     try {
@@ -374,6 +391,8 @@ export const getAppointments = async (filters?: {
         if (filters?.date_from) params.date_from = filters.date_from;
         if (filters?.date_to) params.date_to = filters.date_to;
         if (filters?.search) params.search = filters.search;
+        if (filters?.page) params.page = filters.page;
+        if (filters?.perPage) params.per_page = filters.perPage;
 
         // ✅ Make API call
         const response = await customAxios.get('/appointments', { params });
@@ -384,13 +403,14 @@ export const getAppointments = async (filters?: {
             appointmentData = appointmentData.data;
         } else if (!Array.isArray(appointmentData)) {
             console.error('Unexpected response format:', appointmentData);
-            return [];
+            const emptyArray: PaginatedArray<Appointment> = [];
+            return emptyArray;
         }
 
         console.log(`Fetched ${appointmentData.length} appointments`);
 
         // Normalize to frontend Appointment type
-        const mapped: Appointment[] = appointmentData.map((a: any) => ({
+        const mapped: PaginatedArray<Appointment> = appointmentData.map((a: any) => ({
             id: a.id,
             patientName: a.patient_name ?? a.patientName ?? (a.patient && (a.patient.first_name + ' ' + (a.patient.last_name || '')) ) ?? '',
             patientId: a.patient_id ?? a.patientId ?? (a.patient && a.patient.id) ?? '',
@@ -410,6 +430,10 @@ export const getAppointments = async (filters?: {
             tokenNumber: a.token_number ?? a.tokenNumber ?? '',
         }));
 
+        if (response.data && response.data.meta) {
+            mapped.meta = response.data.meta;
+        }
+
         return mapped;
 
     } catch (error) {
@@ -420,11 +444,13 @@ export const getAppointments = async (filters?: {
             
             if (error.response?.status === 403) {
                 console.error('Permission denied to fetch appointments');
-                return [];
+                const emptyArray: PaginatedArray<Appointment> = [];
+                return emptyArray;
             }
             if (error.response?.status === 404) {
                 console.warn('Appointments endpoint not found');
-                return [];
+                const emptyArray: PaginatedArray<Appointment> = [];
+                return emptyArray;
             }
         }
         
@@ -521,7 +547,14 @@ export const createAppointment = async (appointment: CreateAppointmentPayload): 
 };
 
 
-export const getInvoices = async (filters?: any) => {
+export const getInvoices = async (filters?: {
+    branchId?: string | number;
+    status?: string;
+    searchQuery?: string;
+    dateRange?: { from?: Date; to?: Date };
+    page?: number;
+    perPage?: number;
+}): Promise<PaginatedArray<Invoice>> => {
     console.log('API CALL: getInvoices', { filters });
 
     // ✅ Build params exactly as backend expects
@@ -529,12 +562,16 @@ export const getInvoices = async (filters?: any) => {
 
     if (filters?.branchId) params.branch_id = filters.branchId;
     if (filters?.status) params.status = filters.status;
+    if (filters?.page) params.page = filters.page;
+    if (filters?.perPage) params.per_page = filters.perPage;
 
     try {
         // ✅ API CALL
         const response = await customAxios.get('/invoices', { params });
 
-        let invoices = response.data.map((inv: any) => ({
+        const rawInvoices = Array.isArray(response.data) ? response.data : (response.data.data || []);
+
+        let invoices: PaginatedArray<Invoice> = rawInvoices.map((inv: any) => ({
             ...inv,
 
             // ✅ FIX TYPES
@@ -559,23 +596,30 @@ export const getInvoices = async (filters?: any) => {
             );
         }
 
-        if (filters?.dateRange?.from) {
+        const dateFrom = filters?.dateRange?.from;
+        if (dateFrom) {
             invoices = invoices.filter((inv: any) =>
-                new Date(inv.issue_date) >= filters.dateRange.from
+                new Date(inv.issue_date) >= dateFrom
             );
         }
 
-        if (filters?.dateRange?.to) {
+        const dateTo = filters?.dateRange?.to;
+        if (dateTo) {
             invoices = invoices.filter((inv: any) =>
-                new Date(inv.issue_date) <= filters.dateRange.to
+                new Date(inv.issue_date) <= dateTo
             );
+        }
+
+        if (response.data && response.data.meta) {
+            invoices.meta = response.data.meta;
         }
 
         return invoices;
 
     } catch (error) {
         console.error('Error fetching invoices:', error);
-        return [];
+        const emptyArray: PaginatedArray<Invoice> = [];
+        return emptyArray;
     }
 };
 
@@ -738,16 +782,20 @@ export const getPayrolls = async (branchId?: string | number): Promise<Payroll[]
     }
 }
 
-export const getInventory = async (branchId?: string | number): Promise<InventoryItem[]> => {
-    console.log('API CALL: getInventory', { branchId });
+export const getInventory = async (branchId?: string | number, page?: number, perPage?: number): Promise<PaginatedArray<InventoryItem>> => {
+    console.log('API CALL: getInventory', { branchId, page, perPage });
     try {
         const params: any = {};
         if (branchId !== undefined && branchId !== null) {
             params.branch_id = branchId;
         }
+        if (page) params.page = page;
+        if (perPage) params.per_page = perPage;
+
         const response = await customAxios.get('/management/inventory', { params });
-        const items = response.data;
-        return items.map((item: any) => ({
+        const rawItems = Array.isArray(response.data) ? response.data : (response.data.data || []);
+        
+        const items: PaginatedArray<InventoryItem> = rawItems.map((item: any) => ({
             id: item.id,
             name: item.name,
             supplier: item.supplier,
@@ -757,22 +805,32 @@ export const getInventory = async (branchId?: string | number): Promise<Inventor
             status: item.status,
             branchId: String(item.branch_id),
         }));
+
+        if (response.data && response.data.meta) {
+            items.meta = response.data.meta;
+        }
+        return items;
     } catch (error) {
         console.error('Error fetching inventory:', error);
-        return [];
+        const emptyArray: PaginatedArray<InventoryItem> = [];
+        return emptyArray;
     }
 }
 
-export const getLabOrders = async (branchId?: string | number): Promise<LaboratoryOrder[]> => {
-    console.log('API CALL: getLabOrders', { branchId });
+export const getLabOrders = async (branchId?: string | number, page?: number, perPage?: number): Promise<PaginatedArray<LaboratoryOrder>> => {
+    console.log('API CALL: getLabOrders', { branchId, page, perPage });
     try {
         const params: any = {};
         if (branchId !== undefined && branchId !== null) {
             params.branch_id = branchId;
         }
+        if (page) params.page = page;
+        if (perPage) params.per_page = perPage;
+
         const response = await customAxios.get('/management/lab-orders', { params });
-        const orders = response.data;
-        return orders.map((order: any) => ({
+        const rawOrders = Array.isArray(response.data) ? response.data : (response.data.data || []);
+        
+        const orders: PaginatedArray<LaboratoryOrder> = rawOrders.map((order: any) => ({
             id: order.id,
             patientId: String(order.patient_id),
             patientName: order.patient_name || (order.patient ? `${order.patient.first_name} ${order.patient.last_name}` : ''),
@@ -784,9 +842,15 @@ export const getLabOrders = async (branchId?: string | number): Promise<Laborato
             dueDate: order.due_date ? order.due_date.split('T')[0] : '',
             branchId: String(order.branch_id),
         }));
+
+        if (response.data && response.data.meta) {
+            orders.meta = response.data.meta;
+        }
+        return orders;
     } catch (error) {
         console.error('Error fetching lab orders:', error);
-        return [];
+        const emptyArray: PaginatedArray<LaboratoryOrder> = [];
+        return emptyArray;
     }
 }
 
@@ -1190,7 +1254,9 @@ export const getExpenses = async (filters?: string | number | {
     search?: string;
     minAmount?: number;
     maxAmount?: number;
-}): Promise<Expense[]> => {
+    page?: number;
+    perPage?: number;
+}): Promise<PaginatedArray<Expense>> => {
     console.log('API CALL: getExpenses', { filters });
     
     try {
@@ -1208,6 +1274,8 @@ export const getExpenses = async (filters?: string | number | {
             if (filters.search) params.search = filters.search;
             if (filters.minAmount) params.min_amount = filters.minAmount;
             if (filters.maxAmount) params.max_amount = filters.maxAmount;
+            if (filters.page) params.page = filters.page;
+            if (filters.perPage) params.per_page = filters.perPage;
         }
 
         // ✅ Make API call to /expense-records
@@ -1225,10 +1293,11 @@ export const getExpenses = async (filters?: string | number | {
 
         if (!Array.isArray(expenseData)) {
             console.error('Unexpected response format:', response.data);
-            return [];
+            const emptyArray: PaginatedArray<Expense> = [];
+            return emptyArray;
         }
 
-        const expenses: Expense[] = expenseData.map((expense: any) => {
+        const expenses: PaginatedArray<Expense> = expenseData.map((expense: any) => {
             if (expense.type === 'payroll') {
                 return {
                     id: expense.id || expense.employee_id,
@@ -1256,6 +1325,10 @@ export const getExpenses = async (filters?: string | number | {
             };
         });
 
+        if (response.data && response.data.meta) {
+            expenses.meta = response.data.meta;
+        }
+
         console.log(`Fetched ${expenses.length} expenses`);
         return expenses;
 
@@ -1267,15 +1340,18 @@ export const getExpenses = async (filters?: string | number | {
             
             if (error.response?.status === 403) {
                 console.error('Permission denied to fetch expenses');
-                return [];
+                const emptyArray: PaginatedArray<Expense> = [];
+                return emptyArray;
             }
             if (error.response?.status === 404) {
                 console.warn('Expenses endpoint not found');
-                return [];
+                const emptyArray: PaginatedArray<Expense> = [];
+                return emptyArray;
             }
         }
         
-        return [];
+        const emptyArray: PaginatedArray<Expense> = [];
+        return emptyArray;
     }
 };
 
