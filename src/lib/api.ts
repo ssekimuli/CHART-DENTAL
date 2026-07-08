@@ -24,6 +24,12 @@ import axios from 'axios';
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
+// Static configs in-memory cache
+let branchesCache: Branch[] | null = null;
+let treatmentsCache: SystemTreatment[] | null = null;
+let rolesCache: RolePermissions[] | null = null;
+let rolesListCache: any[] | null = null;
+
 
 // --- READ OPERATIONS ---
 
@@ -161,11 +167,13 @@ export const getProfileData = async (): Promise<ProfileData | null> => {
 
 
 export const getBranches = async (): Promise<Branch[]> => {
+    if (branchesCache) return branchesCache;
     console.log('API CALL: getBranches');
     try {
         const response = await customAxios.get('/all-branch');
         // The API returns 'id' as a number, which matches our updated type.
-        return response.data.map((branch: any) => ({ ...branch, id: branch.id }));
+        branchesCache = response.data.map((branch: any) => ({ ...branch, id: branch.id }));
+        return branchesCache || [];
     } catch (error) {
         if (axios.isAxiosError(error)) {
             console.error('Failed to fetch branches:', error.response?.data);
@@ -1002,6 +1010,7 @@ export const getDashboardSummary = async (branchId?: string | number): Promise<D
 };
 
 export const getTreatments = async (): Promise<SystemTreatment[]> => {
+    if (treatmentsCache) return treatmentsCache;
     console.log('API CALL: getTreatments');
     try {
         const response = await customAxios.get('/procedures');
@@ -1010,13 +1019,14 @@ export const getTreatments = async (): Promise<SystemTreatment[]> => {
         const treatmentData = Array.isArray(response.data) ? response.data : (response.data.data || []);
         
         // Map API response to SystemTreatment type
-        return treatmentData.map((treatment: any) => ({
+        treatmentsCache = treatmentData.map((treatment: any) => ({
             id: treatment.id,
             procedure: treatment.procedure || treatment.name || '',
             cost: parseFloat(treatment.cost || treatment.price || '0'),
             description: treatment.description || '',
             category: treatment.category || '',
         }));
+        return treatmentsCache || [];
     } catch (error) {
         if (axios.isAxiosError(error)) {
             console.error('Failed to fetch treatments:', error.response?.data);
@@ -1170,10 +1180,12 @@ export const getStaffAdvances = async (filters?: number | string | GetStaffAdvan
 
 
 export const getRoles = async (): Promise<RolePermissions[]> => {
+    if (rolesCache) return rolesCache;
     console.log('API CALL: getRoles');
     try {
         const response = await customAxios.get('/settings/roles');
-        return response.data.data;
+        rolesCache = response.data.data;
+        return rolesCache || [];
     } catch (error) {
         if (axios.isAxiosError(error)) {
             console.error('Failed to fetch roles:', error.response?.data);
@@ -1186,11 +1198,13 @@ export const getRoles = async (): Promise<RolePermissions[]> => {
 }
 
 export const getRolesList = async (): Promise<{id: string, name: string}[]> => {
+    if (rolesListCache) return rolesListCache;
     console.log('API CALL: getRolesList');
      try {
         const response = await customAxios.get('/roles');
         if (response.data && Array.isArray(response.data.data)) {
-            return response.data.data.map((role: any) => ({ ...role, id: String(role.id) }));
+            rolesListCache = response.data.data.map((role: any) => ({ ...role, id: String(role.id) }));
+            return rolesListCache || [];
         }
         return [];
     } catch (error) {
@@ -2901,6 +2915,7 @@ export const deleteEmployee = async (id: string | number): Promise<{ success: bo
 
 // Branches
 export const createBranch = async (data: Omit<Branch, 'id'>): Promise<Branch> => {
+    branchesCache = null; // Invalidate cache
     console.log('API CALL: createBranch', { data });
     try {
         const response = await customAxios.post('/branches', data);
@@ -2912,6 +2927,7 @@ export const createBranch = async (data: Omit<Branch, 'id'>): Promise<Branch> =>
 }
 
 export const updateBranch = async (id: string | number, data: Omit<Branch, 'id'>): Promise<Branch> => {
+    branchesCache = null; // Invalidate cache
     console.log('API CALL: updateBranch', { id, data });
     try {
         const response = await customAxios.put(`/branches/${id}`, data);
@@ -2923,6 +2939,7 @@ export const updateBranch = async (id: string | number, data: Omit<Branch, 'id'>
 }
 
 export const deleteBranch = async (id: string | number): Promise<{ success: boolean }> => {
+    branchesCache = null; // Invalidate cache
     console.log('API CALL: deleteBranch', { id });
     try {
         const response = await customAxios.delete(`/branches/${id}`);
@@ -3287,6 +3304,8 @@ export const createExpense = async (data: Omit<Expense, 'id'>): Promise<Expense>
 
 // Roles
 export const updateRole = async (roleId: string | number, permissions: Permission[]): Promise<RolePermissions | undefined> => {
+    rolesCache = null; // Invalidate cache
+    rolesListCache = null;
     console.log('API CALL: updateRole', { roleId, permissions });
     try {
         const response = await customAxios.put(`/settings/roles/${roleId}`, { permissions });
@@ -3302,6 +3321,8 @@ export const updateRole = async (roleId: string | number, permissions: Permissio
 }
 
 export const createRole = async (name: string): Promise<{id: string, name: string}> => {
+    rolesCache = null; // Invalidate cache
+    rolesListCache = null;
     console.log('API CALL: createRole', { name });
     try {
         const response = await customAxios.post('/settings/roles', { name });
@@ -3316,6 +3337,8 @@ export const createRole = async (name: string): Promise<{id: string, name: strin
 }
 
 export const updateRoleName = async (id: string | number, name: string): Promise<{id: string | number, name: string}> => {
+    rolesCache = null; // Invalidate cache
+    rolesListCache = null;
     console.log('API CALL: updateRoleName', { id, name });
     try {
         const response = await customAxios.patch(`/settings/roles/${id}`, { name });
@@ -3330,6 +3353,8 @@ export const updateRoleName = async (id: string | number, name: string): Promise
 }
 
 export const deleteRole = async (id: string | number): Promise<boolean> => {
+    rolesCache = null; // Invalidate cache
+    rolesListCache = null;
     console.log('API CALL: deleteRole', { id });
     try {
         const response = await customAxios.delete(`/settings/roles/${id}`);

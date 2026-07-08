@@ -67,7 +67,7 @@ export default function AppointmentsPage() {
     const fetchData = async () => {
         setIsLoading(true);
         const [appointmentsData, patientsData, employeesData] = await Promise.all([
-            getAppointments({ perPage: 1000 }),
+            getAppointments({ branch_id: selectedBranch, perPage: 1000 }),
             getPatientList(),
             getDoctors(selectedBranch)
         ]);

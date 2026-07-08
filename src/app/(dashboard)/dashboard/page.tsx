@@ -76,8 +76,8 @@ export default function DashboardPage() {
     const fetchData = async () => {
       setIsLoading(true);
       const [appointmentsData, patientsData, chartDataResult, trendData, summaryData] = await Promise.all([
-        getAppointments(),
-        getPatients(),
+        getAppointments({ branch_id: selectedBranch }),
+        getPatients({ branchId: selectedBranch }),
         getChartData(),
         getPracticeTrends(selectedBranch),
         getDashboardSummary(selectedBranch)
