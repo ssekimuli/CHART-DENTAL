@@ -226,13 +226,6 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {/* Footer */}
-          <div className="text-center text-sm text-muted-foreground">
-            Don&apos;t have an account?{" "}
-            <a href="#" className="text-[#008B89] hover:underline font-semibold">
-              Create an account
-            </a>
-          </div>
 
         </div>
       </div>
