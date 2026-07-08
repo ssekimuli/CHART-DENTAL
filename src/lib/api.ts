@@ -1571,7 +1571,7 @@ export const getTodaysQueue = async (filters: {
 
         const normalizedAppointments: Appointment[] = appointmentsData.map((item: any) => ({
             id: item.id,
-            patientName: item.patient_name || item.patientName || item.patient?.name || '',
+            patientName: item.patient_name || item.patientName || (item.patient ? [item.patient.first_name, item.patient.last_name].filter(Boolean).join(' ') : '') || '',
             patientId: item.patient_id || item.patientId || item.patient?.id || '',
             doctorName: item.doctor_name || item.doctorName || item.doctor?.name || '',
             doctorId: item.doctor_id || item.doctorId || item.doctor?.id || '',
