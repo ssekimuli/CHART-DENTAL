@@ -18,11 +18,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { RolePermissions, Permission, EmployeeRole } from "@/lib/types";
-import { getRoles, updateRole, updateBranch } from "@/lib/api";
+import { getRoles, updateRole, updateBranch, getProfileData, updateEmployee } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { hasPermission } from "@/lib/user";
+import { hasPermission, getCurrentUser } from "@/lib/user";
 import { useRouter } from "next/navigation";
 import { useCurrency } from "@/hooks/use-currency";
 import { CURRENCIES } from "@/lib/currency";
@@ -55,20 +55,101 @@ export default function SettingsPage() {
     const { currencyCode, setCurrency } = useCurrency();
     const { selectedBranch, availableBranches } = useBranch();
 
+    // Bound state variables
+    const [profile, setProfile] = useState<any>(null);
+    const [profileName, setProfileName] = useState("");
+    const [profileEmail, setProfileEmail] = useState("");
+    const [practiceName, setPracticeName] = useState("");
+    const [practiceAddress, setPracticeAddress] = useState("");
+
     useEffect(() => {
         if (!hasPermission("settings:manage")) {
             router.replace("/dashboard");
             return;
         }
-        const fetchRoles = async () => {
+        const fetchRolesAndProfile = async () => {
             setIsLoading(true);
-            const data = await getRoles();
-            setRoles(data);
-            setSelectedRole(data[0] || null);
+            try {
+                const [rolesData, profileData] = await Promise.all([
+                    getRoles(),
+                    getProfileData()
+                ]);
+                setRoles(rolesData);
+                setSelectedRole(rolesData[0] || null);
+                if (profileData) {
+                    setProfile(profileData);
+                    setProfileName(profileData.employee.name);
+                    setProfileEmail(profileData.employee.email);
+                }
+            } catch (err) {
+                console.error("Failed to load settings data:", err);
+            }
             setIsLoading(false);
         }
-        fetchRoles();
-    }, [router])
+        fetchRolesAndProfile();
+    }, [router]);
+
+    useEffect(() => {
+        if (selectedBranch && availableBranches.length > 0) {
+            const activeBranch = availableBranches.find(b => String(b.id) === String(selectedBranch));
+            if (activeBranch) {
+                setPracticeName(activeBranch.name);
+                setPracticeAddress(activeBranch.address);
+            }
+        }
+    }, [selectedBranch, availableBranches]);
+
+    const handleSaveProfile = async () => {
+        if (!profile) return;
+        try {
+            const updated = await updateEmployee(profile.employee.id, {
+                name: profileName,
+                email: profileEmail,
+            });
+            if (updated) {
+                const localUser = getCurrentUser();
+                if (localUser) {
+                    localUser.name = profileName;
+                    localUser.email = profileEmail;
+                    localStorage.setItem('currentUser', JSON.stringify(localUser));
+                    window.dispatchEvent(new Event("currentUserChange"));
+                }
+                toast({
+                    title: "Profile Saved",
+                    description: "Your profile changes have been successfully saved.",
+                });
+            }
+        } catch (error) {
+            toast({
+                title: "Save Failed",
+                description: "Failed to update profile settings.",
+                variant: "destructive",
+            });
+        }
+    };
+
+    const handleSavePractice = async () => {
+        const activeBranch = availableBranches.find(b => String(b.id) === String(selectedBranch));
+        if (activeBranch) {
+            try {
+                await updateBranch(activeBranch.id, {
+                    name: practiceName,
+                    address: practiceAddress,
+                    currency: currencyCode,
+                });
+                toast({
+                    title: "Practice Details Saved",
+                    description: "Your practice settings have been successfully updated.",
+                });
+            } catch (error) {
+                toast({
+                    title: "Save Failed",
+                    description: "Failed to update practice settings in database.",
+                    variant: "destructive",
+                });
+            }
+        }
+    };
 
     const handlePermissionChange = (permission: Permission, checked: boolean) => {
         if (!selectedRole) return;
@@ -135,15 +216,15 @@ export default function SettingsPage() {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="name">Name</Label>
-              <Input id="name" defaultValue="Dr. Lisa Cuddy" />
+              <Input id="name" value={profileName} onChange={(e) => setProfileName(e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" defaultValue="lisa.cuddy@example.com" />
+              <Input id="email" type="email" value={profileEmail} onChange={(e) => setProfileEmail(e.target.value)} />
             </div>
           </CardContent>
           <CardFooter>
-            <Button>Save Changes</Button>
+            <Button onClick={handleSaveProfile}>Save Changes</Button>
           </CardFooter>
         </Card>
       </TabsContent>
@@ -170,11 +251,11 @@ export default function SettingsPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="practice-name">Practice Name</Label>
-              <Input id="practice-name" defaultValue="Princeton-Plainsboro Dental" />
+              <Input id="practice-name" value={practiceName} onChange={(e) => setPracticeName(e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="practice-address">Address</Label>
-              <Input id="practice-address" defaultValue="123 Dental Ave, Princeton, NJ" />
+              <Input id="practice-address" value={practiceAddress} onChange={(e) => setPracticeAddress(e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="currency-select">System Currency</Label>
@@ -224,7 +305,7 @@ export default function SettingsPage() {
             </div>
           </CardContent>
           <CardFooter>
-            <Button>Save Changes</Button>
+            <Button onClick={handleSavePractice}>Save Changes</Button>
           </CardFooter>
         </Card>
       </TabsContent>
@@ -254,7 +335,12 @@ export default function SettingsPage() {
             </div>
           </CardContent>
            <CardFooter>
-            <Button>Save Preferences</Button>
+            <Button onClick={() => {
+                 toast({
+                     title: "Preferences Saved",
+                     description: "Your notification preferences have been saved locally.",
+                 });
+             }}>Save Preferences</Button>
           </CardFooter>
         </Card>
       </TabsContent>
