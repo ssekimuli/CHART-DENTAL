@@ -12,11 +12,13 @@ import { getInvoiceById, getPatientById } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { hasPermission } from '@/lib/user';
 import moment from 'moment';
+import { useCurrency } from '@/hooks/use-currency';
 
 export default function InvoiceDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { id } = params;
+  const { formatCurrency } = useCurrency();
 
   const [invoice, setInvoice] = useState<Invoice | undefined>(undefined);
   const [patient, setPatient] = useState<Patient | undefined>(undefined);
@@ -93,13 +95,7 @@ export default function InvoiceDetailPage() {
     }
   };
 
-  // ✅ Helper function to safely format currency
-  const formatCurrency = (value: any): string => {
-    if (value === undefined || value === null) return '$0.00';
-    const num = typeof value === 'string' ? parseFloat(value) : value;
-    if (isNaN(num)) return '$0.00';
-    return `$${num.toFixed(2)}`;
-  };
+
 
   // ✅ Helper function to safely get number value
   const getNumber = (value: any): number => {

@@ -30,6 +30,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ExpenseForm } from "./components/expense-form";
 import { useRouter } from "next/navigation";
 import { hasPermission } from "@/lib/user";
+import { useCurrency } from "@/hooks/use-currency";
 
 const chartConfig = {
     income: { label: "Income", color: "hsl(var(--chart-1))" },
@@ -39,6 +40,7 @@ const chartConfig = {
 export default function AccountingPage() {
     const router = useRouter();
     const { selectedBranch } = useBranch();
+    const { formatCurrency } = useCurrency();
     const [incomeRecords, setIncomeRecords] = useState<IncomeRecord[]>([]);
     const [expenseSummary, setExpenseSummary] = useState<ExpenseSummary | null>(null);
     const [financialSummary, setFinancialSummary] = useState<FinancialSummary | null>(null);
@@ -99,7 +101,7 @@ export default function AccountingPage() {
                         <TrendingUp className="h-4 w-4 text-green-500" />
                         </CardHeader>
                         <CardContent>
-                        {isLoading || !financialSummary ? <Skeleton className="h-8 w-3/4" /> : <div className="text-2xl font-bold">${financialSummary.totalIncome.toLocaleString()}</div>}
+                        {isLoading || !financialSummary ? <Skeleton className="h-8 w-3/4" /> : <div className="text-2xl font-bold">{formatCurrency(financialSummary.totalIncome)}</div>}
                         <p className="text-xs text-muted-foreground">From paid invoices</p>
                         </CardContent>
                     </Card>
@@ -109,7 +111,7 @@ export default function AccountingPage() {
                         <TrendingDown className="h-4 w-4 text-red-500" />
                         </CardHeader>
                         <CardContent>
-                        {isLoading || !financialSummary ? <Skeleton className="h-8 w-3/4" /> : <div className="text-2xl font-bold">${financialSummary.totalExpenses.toLocaleString()}</div>}
+                        {isLoading || !financialSummary ? <Skeleton className="h-8 w-3/4" /> : <div className="text-2xl font-bold">{formatCurrency(financialSummary.totalExpenses)}</div>}
                         <p className="text-xs text-muted-foreground">Includes payroll and other costs</p>
                         </CardContent>
                     </Card>
@@ -118,7 +120,7 @@ export default function AccountingPage() {
                         <CardTitle className="text-sm font-medium">Net Profit</CardTitle>
                         </CardHeader>
                         <CardContent>
-                        {isLoading || !financialSummary ? <Skeleton className="h-8 w-3/4" /> : <div className={`text-2xl font-bold ${financialSummary.netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>${financialSummary.netProfit.toLocaleString()}</div>}
+                        {isLoading || !financialSummary ? <Skeleton className="h-8 w-3/4" /> : <div className={`text-2xl font-bold ${financialSummary.netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>{formatCurrency(financialSummary.netProfit)}</div>}
                         <p className="text-xs text-muted-foreground">Total income minus total expenses</p>
                         </CardContent>
                     </Card>
@@ -169,7 +171,7 @@ export default function AccountingPage() {
                                     <TableCell className="font-mono">{record.id}</TableCell>
                                     <TableCell>{record.patientName}</TableCell>
                                     <TableCell>{record.date}</TableCell>
-                                    <TableCell className="text-right">${record.amount.toFixed(2)}</TableCell>
+                                    <TableCell className="text-right">{formatCurrency(record.amount)}</TableCell>
                                 </TableRow>
                             ))}
                              {paidIncomeRecords.length === 0 && !isLoading && (
@@ -201,17 +203,17 @@ export default function AccountingPage() {
                                 <p className="text-xs uppercase text-muted-foreground">Branch</p>
                                 <p className="mt-1 text-lg font-semibold">{expenseSummary.branch?.name || 'All branches'}</p>
                             </div>
-                            <div className="rounded-lg border bg-muted p-4">
+                             <div className="rounded-lg border bg-muted p-4">
                                 <p className="text-xs uppercase text-muted-foreground">Total</p>
-                                <p className="mt-1 text-lg font-semibold">${Number(expenseSummary.total).toLocaleString()}</p>
+                                <p className="mt-1 text-lg font-semibold">{formatCurrency(expenseSummary.total)}</p>
                             </div>
                             <div className="rounded-lg border bg-muted p-4">
                                 <p className="text-xs uppercase text-muted-foreground">Payroll</p>
-                                <p className="mt-1 text-lg font-semibold">${Number(expenseSummary.totalPayroll).toLocaleString()}</p>
+                                <p className="mt-1 text-lg font-semibold">{formatCurrency(expenseSummary.totalPayroll)}</p>
                             </div>
                             <div className="rounded-lg border bg-muted p-4">
                                 <p className="text-xs uppercase text-muted-foreground">Operational</p>
-                                <p className="mt-1 text-lg font-semibold">${Number(expenseSummary.totalOperationalExpenses).toLocaleString()}</p>
+                                <p className="mt-1 text-lg font-semibold">{formatCurrency(expenseSummary.totalOperationalExpenses)}</p>
                             </div>
                         </div>
                     ) : null}
@@ -235,7 +237,7 @@ export default function AccountingPage() {
                                     <TableCell>{expense.date}</TableCell>
                                     <TableCell>{expense.category}</TableCell>
                                     <TableCell>{expense.description}</TableCell>
-                                    <TableCell className="text-right">${expense.amount.toFixed(2)}</TableCell>
+                                    <TableCell className="text-right">{formatCurrency(expense.amount)}</TableCell>
                                 </TableRow>
                             ))}
                             {(expenseSummary?.records?.length ?? 0) === 0 && !isLoading && (

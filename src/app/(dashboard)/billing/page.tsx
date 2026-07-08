@@ -55,11 +55,13 @@ import { Calendar } from "@/components/ui/calendar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Pagination, PaginationContent, PaginationItem, PaginationPrevious, PaginationNext, PaginationLink } from "@/components/ui/pagination";
+import { useCurrency } from "@/hooks/use-currency";
 
 
 export default function BillingPage() {
   const router = useRouter();
   const { selectedBranch } = useBranch();
+  const { formatCurrency } = useCurrency();
   const [allInvoices, setAllInvoices] = useState<PaginatedArray<Invoice>>([] as unknown as PaginatedArray<Invoice>);
   const [allPatients, setAllPatients] = useState<Patient[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -342,9 +344,9 @@ export default function BillingPage() {
                   <TableCell>
                     {formatDate(invoice.issueDate)}
                   </TableCell>
-                  <TableCell>${invoice.amount.toFixed(2)}</TableCell>
-                  <TableCell>${invoice.paidAmount.toFixed(2)}</TableCell>
-                  <TableCell>${(invoice.amount - invoice.paidAmount).toFixed(2)}</TableCell>
+                  <TableCell>{formatCurrency(invoice.amount)}</TableCell>
+                  <TableCell>{formatCurrency(invoice.paidAmount)}</TableCell>
+                  <TableCell>{formatCurrency(invoice.amount - invoice.paidAmount)}</TableCell>
                   <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>

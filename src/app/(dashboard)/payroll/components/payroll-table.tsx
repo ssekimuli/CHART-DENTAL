@@ -12,8 +12,10 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import type { Payroll } from "@/lib/types";
+import { useCurrency } from "@/hooks/use-currency";
 
 export function PayrollTable({ data }: { data: Payroll[] }) {
+    const { formatCurrency } = useCurrency();
     const getStatusVariant = (status: "Paid" | "Pending") => {
         switch (status) {
           case "Paid":
@@ -48,9 +50,7 @@ export function PayrollTable({ data }: { data: Payroll[] }) {
                 </Badge>
               </TableCell>
               <TableCell>{payroll.payDate ? String(payroll.payDate).split('T')[0] : ''}</TableCell>
-              <TableCell className="text-right">
-                ${Number(payroll.netPay).toFixed(2)}
-              </TableCell>
+              <TableCell className="text-right">{formatCurrency(payroll.netPay)}</TableCell>
             </TableRow>
           ))}
            {(!data || data.length === 0) && (

@@ -14,6 +14,7 @@ import { useRouter } from 'next/navigation';
 import { getEmployeeById } from '@/lib/api';
 import { hasPermission } from '@/lib/user';
 import { PayrollTable } from '../../payroll/components/payroll-table';
+import { useCurrency } from '@/hooks/use-currency';
 
 type EmployeeDetailData = ProfileData;
 
@@ -21,6 +22,7 @@ export default function EmployeeDetailPage() {
   const router = useRouter();
   const params = useParams();
   const { id } = params;
+  const { formatCurrency } = useCurrency();
 
   const [employeeData, setEmployeeData] = useState<EmployeeDetailData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -115,7 +117,7 @@ export default function EmployeeDetailPage() {
                     </div>
                     <div className="grid gap-1">
                         <span className="text-muted-foreground">Salary</span>
-                        <span className="font-medium">${Number(employee.salary).toLocaleString()}</span>
+                        <span className="font-medium">{formatCurrency(employee.salary)}</span>
                     </div>
                     <div className="grid gap-1">
                         <span className="text-muted-foreground">Branch</span>
@@ -132,7 +134,7 @@ export default function EmployeeDetailPage() {
                     <DollarSign className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                    <div className="text-2xl font-bold">${stats.totalPaid.toLocaleString()}</div>
+                    <div className="text-2xl font-bold">{formatCurrency(stats.totalPaid)}</div>
                     <p className="text-xs text-muted-foreground">Total net salary paid to date</p>
                 </CardContent>
             </Card>

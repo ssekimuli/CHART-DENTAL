@@ -43,6 +43,7 @@ import { Combobox } from "@/components/ui/combobox";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getTreatments, getPatientById } from "@/lib/api";
+import { useCurrency } from "@/hooks/use-currency";
 
 
 const formSchema = z.object({
@@ -71,6 +72,7 @@ type InvoiceFormProps = {
 export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: InvoiceFormProps) {
   const [selectedTreatments, setSelectedTreatments] = useState<InvoiceTreatment[]>([]);
   const [availableTreatments, setAvailableTreatments] = useState<SystemTreatment[]>([]);
+  const { formatCurrency } = useCurrency();
   
   useEffect(() => {
     const fetchTreatments = async () => {
@@ -233,7 +235,7 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
                                                             <span>{treatment.procedure}</span>
                                                     </div>
                                                     <div className="flex items-center gap-2">
-                                                            <span className="font-mono">${Number(treatment.cost).toFixed(2)}</span>
+                                                            <span className="font-mono">{formatCurrency(treatment.cost)}</span>
                                                             {selectedTreatments.some(t => Number(t.procedureId) === Number(treatment.id)) && <Check className="h-4 w-4 text-primary" />}
                                                     </div>
                                                     </CommandItem>
@@ -265,7 +267,7 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
                                     {selectedTreatments.map((treatment) => (
                                         <TableRow key={String(treatment.procedureId)}>
                                             <TableCell>{treatment.procedure} {treatment.tooth ? `(#${treatment.tooth})` : ''}</TableCell>
-                                            <TableCell className="text-right">${Number(treatment.cost).toFixed(2)}</TableCell>
+                                            <TableCell className="text-right">{formatCurrency(treatment.cost)}</TableCell>
                                             <TableCell>
                                                 <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleTreatmentToggle(treatment)} title="Remove treatment">
                                                     <X className="h-4 w-4 text-muted-foreground hover:text-destructive" />
@@ -374,15 +376,15 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
                         <div className="rounded-md border p-4 space-y-2">
                             <div className="flex justify-between text-sm">
                                 <span className="text-muted-foreground">Subtotal (Treatments)</span>
-                                <span>${subTotal.toFixed(2)}</span>
+                                 <span>{formatCurrency(subTotal)}</span>
                             </div>
                             <div className="flex justify-between text-sm">
                                 <span className="text-muted-foreground">Subtotal (Other Charges)</span>
-                                <span>${otherChargesTotal.toFixed(2)}</span>
+                                <span>{formatCurrency(otherChargesTotal)}</span>
                             </div>
                             <div className="flex justify-between font-semibold text-lg border-t pt-2 mt-2">
                                 <span>Total Amount</span>
-                                <span>${totalAmount.toFixed(2)}</span>
+                                <span>{formatCurrency(totalAmount)}</span>
                             </div>
                         </div>
                         

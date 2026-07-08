@@ -21,6 +21,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useCurrency } from "@/hooks/use-currency";
 
 type AdvancesTableProps = {
     data: StaffAdvance[];
@@ -29,6 +30,7 @@ type AdvancesTableProps = {
 };
 
 export function AdvancesTable({ data, onStatusChange, canUpdate }: AdvancesTableProps) {
+    const { formatCurrency } = useCurrency();
     const getStatusVariant = (status: StaffAdvanceStatus) => {
         switch (status) {
           case "Approved":
@@ -70,7 +72,7 @@ export function AdvancesTable({ data, onStatusChange, canUpdate }: AdvancesTable
             >
               <TableCell className="font-medium">{request.employeeName}</TableCell>
               <TableCell>{request.date}</TableCell>
-              <TableCell>${Number(request.amount).toFixed(2)}</TableCell>
+              <TableCell>{formatCurrency(request.amount)}</TableCell>
               <TableCell className="max-w-xs truncate">{request.reason}</TableCell>
               <TableCell>
                 <Badge variant={getStatusVariant(request.status)} className={getStatusClass(request.status)}>

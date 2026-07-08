@@ -24,6 +24,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { useCurrency } from "@/hooks/use-currency";
 import {
     Select,
     SelectContent,
@@ -46,7 +47,8 @@ type PaymentFormProps = {
 };
 
 export function PaymentForm({ invoice, onSave, onOpenChange }: PaymentFormProps) {
-  const balance = invoice.amount - invoice.paidAmount;
+  const { formatCurrency } = useCurrency();
+  const balance = Number(invoice.amount) - Number(invoice.paidAmount);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -68,7 +70,7 @@ export function PaymentForm({ invoice, onSave, onOpenChange }: PaymentFormProps)
             <DialogHeader>
                 <DialogTitle>Process Payment</DialogTitle>
                 <DialogDescription>
-                   For Invoice #{invoice.id} - Balance: ${balance.toFixed(2)}
+                   For Invoice #{invoice.id} - Balance: {formatCurrency(balance)}
                 </DialogDescription>
             </DialogHeader>
             <Form {...form}>

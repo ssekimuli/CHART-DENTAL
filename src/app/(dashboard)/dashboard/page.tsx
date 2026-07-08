@@ -40,6 +40,7 @@ import type { Patient, Appointment, ChartData, AppointmentStatus, DashboardSumma
 import { getPatients, getAppointments, getChartData, getDashboardSummary, getPracticeTrends, updateAppointment } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
 import { hasPermission } from "@/lib/user";
+import { useCurrency } from "@/hooks/use-currency";
 
 const chartConfig = {
   revenue: {
@@ -63,6 +64,7 @@ type DashboardPatientRow = Patient | DashboardRecentPatient;
 
 export default function DashboardPage() {
   const { selectedBranch } = useBranch();
+  const { formatCurrency } = useCurrency();
   const [allAppointments, setAllAppointments] = useState<Appointment[]>([]);
   const [allRecentPatients, setAllRecentPatients] = useState<Patient[]>([]);
   const [allChartData, setAllChartData] = useState<ChartData[]>([]);
@@ -144,7 +146,7 @@ export default function DashboardPage() {
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-                {isLoading ? <Skeleton className="h-8 w-3/4" /> : <div className="text-2xl font-bold">${totalRevenue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>}
+                {isLoading ? <Skeleton className="h-8 w-3/4" /> : <div className="text-2xl font-bold">{formatCurrency(totalRevenue)}</div>}
                 <p className="text-xs text-muted-foreground">
                 For selected branch
                 </p>

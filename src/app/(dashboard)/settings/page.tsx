@@ -24,6 +24,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { hasPermission } from "@/lib/user";
 import { useRouter } from "next/navigation";
+import { useCurrency } from "@/hooks/use-currency";
+import { CURRENCIES } from "@/lib/currency";
 
 const permissionGroups = {
     Dashboard: ['dashboard:read'],
@@ -49,6 +51,7 @@ export default function SettingsPage() {
     const [roles, setRoles] = useState<RolePermissions[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [selectedRole, setSelectedRole] = useState<RolePermissions | null>(null);
+    const { currencyCode, setCurrency } = useCurrency();
 
     useEffect(() => {
         if (!hasPermission("settings:manage")) {
@@ -170,6 +173,27 @@ export default function SettingsPage() {
             <div className="space-y-2">
               <Label htmlFor="practice-address">Address</Label>
               <Input id="practice-address" defaultValue="123 Dental Ave, Princeton, NJ" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="currency-select">System Currency</Label>
+              <select
+                id="currency-select"
+                value={currencyCode}
+                onChange={(e) => {
+                  setCurrency(e.target.value);
+                  toast({
+                    title: "Currency Updated",
+                    description: `System currency preference set to ${e.target.value}.`,
+                  });
+                }}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {CURRENCIES.map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {c.name} ({c.symbol})
+                  </option>
+                ))}
+              </select>
             </div>
           </CardContent>
           <CardFooter>
