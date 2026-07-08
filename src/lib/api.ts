@@ -1814,64 +1814,26 @@ export const deleteDentalRecord = async (patientId: string | number, recordId: s
     }
 };
 
-export const savePeriodontalRecord = async (patientId: string | number, records: PeriodontalRecord[]): Promise<PeriodontalRecord[]> => {
+export const savePeriodontalRecord = async (patientId: string | number, records: PeriodontalRecord): Promise<Patient | undefined> => {
     console.log('API CALL: savePeriodontalRecord', { patientId, recordsCount: records.length });
     
     try {
-        // Build request body
         const requestBody = {
             records: records.map(record => ({
                 tooth_id: record.toothId,
-                pocket_depth: record.pocketDepth,
-                gingival_index: record.gingivalIndex,
-                plaque_index: record.plaqueIndex,
-                bleeding: record.bleeding,
-                attachment_loss: record.attachmentLoss,
-                mobility: record.mobility,
-                furcation_involvement: record.furcationInvolvement,
-                notes: record.notes || undefined,
+                pockets: record.pockets,
+                recession: record.recession ?? 0,
+                mobility: record.mobility || '0',
+                furcation: record.furcation || null,
+                conditions: record.conditions,
             }))
         };
 
-        const response = await customAxios.post(`/patients/${patientId}/periodontal-records`, requestBody);
-        
-        let savedRecords = response.data.data || response.data;
-        if (!Array.isArray(savedRecords)) {
-            savedRecords = [savedRecords];
-        }
-
-        // Map response back to frontend type
-        const feRecords: PeriodontalRecord[] = savedRecords.map((record: any) => ({
-            id: record.id,
-            toothId: record.tooth_id || record.toothId,
-            pocketDepth: record.pocket_depth || record.pocketDepth,
-            gingivalIndex: record.gingival_index || record.gingivalIndex,
-            plaqueIndex: record.plaque_index || record.plaqueIndex,
-            bleeding: record.bleeding || false,
-            attachmentLoss: record.attachment_loss || record.attachmentLoss,
-            mobility: record.mobility,
-            furcationInvolvement: record.furcation_involvement || record.furcationInvolvement,
-            notes: record.notes || '',
-            createdAt: record.created_at || record.createdAt,
-            updatedAt: record.updated_at || record.updatedAt,
-        }));
-
-        console.log('Saved periodontal records:', feRecords);
-        return feRecords;
-
+        await customAxios.post(`/patients/${patientId}/periodontal-records`, requestBody);
+        return getPatientById(patientId);
     } catch (error) {
         console.error('Error saving periodontal records:', error);
-        
-        if (axios.isAxiosError(error)) {
-            if (error.response?.status === 404) {
-                throw new Error("Patient not found");
-            }
-            if (error.response?.status === 422) {
-                throw new Error(error.response?.data?.message || "Validation failed");
-            }
-            throw new Error(error.response?.data?.message || "Failed to save periodontal records");
-        }
-        throw error;
+        return undefined;
     }
 };
 
@@ -1910,57 +1872,23 @@ export const getPeriodontalRecords = async (patientId: string | number): Promise
     }
 };
 
-export const saveOcclusalRecord = async (patientId: string | number, record: OcclusalRecord): Promise<OcclusalRecord> => {
+export const saveOcclusalRecord = async (patientId: string | number, record: OcclusalRecord): Promise<Patient | undefined> => {
     console.log('API CALL: saveOcclusalRecord', { patientId, record });
     
     try {
-        // Build request body
         const requestBody = {
-            jaw_relation: record.jawRelation,
-            centric_relation: record.centricRelation,
-            centric_occlusion: record.centricOcclusion,
-            working_side: record.workingSide,
-            balancing_side: record.balancingSide,
-            protrusive: record.protrusive,
-            lateral: record.lateral,
-            notes: record.notes || undefined,
+            overbite: typeof record.overbite === 'string' ? parseInt(record.overbite) : record.overbite,
+            overjet: typeof record.overjet === 'string' ? parseInt(record.overjet) : record.overjet,
+            crossbite: record.crossbite,
+            openbite: record.openbite,
+            malocclusion: record.malocclusion,
         };
 
-        const response = await customAxios.post(`/patients/${patientId}/occlusal-records`, requestBody);
-        
-        const savedRecord = response.data.data || response.data;
-
-        // Map response back to frontend type
-        const feRecord: OcclusalRecord = {
-            id: savedRecord.id,
-            jawRelation: savedRecord.jaw_relation || savedRecord.jawRelation,
-            centricRelation: savedRecord.centric_relation || savedRecord.centricRelation,
-            centricOcclusion: savedRecord.centric_occlusion || savedRecord.centricOcclusion,
-            workingSide: savedRecord.working_side || savedRecord.workingSide,
-            balancingSide: savedRecord.balancing_side || savedRecord.balancingSide,
-            protrusive: savedRecord.protrusive || false,
-            lateral: savedRecord.lateral || false,
-            notes: savedRecord.notes || '',
-            createdAt: savedRecord.created_at || savedRecord.createdAt,
-            updatedAt: savedRecord.updated_at || savedRecord.updatedAt,
-        };
-
-        console.log('Saved occlusal record:', feRecord);
-        return feRecord;
-
+        await customAxios.post(`/patients/${patientId}/occlusal-records`, requestBody);
+        return getPatientById(patientId);
     } catch (error) {
         console.error('Error saving occlusal record:', error);
-        
-        if (axios.isAxiosError(error)) {
-            if (error.response?.status === 404) {
-                throw new Error("Patient not found");
-            }
-            if (error.response?.status === 422) {
-                throw new Error(error.response?.data?.message || "Validation failed");
-            }
-            throw new Error(error.response?.data?.message || "Failed to save occlusal record");
-        }
-        throw error;
+        return undefined;
     }
 };
 
@@ -1971,26 +1899,18 @@ export const getOcclusalRecords = async (patientId: string | number): Promise<Oc
     try {
         const response = await customAxios.get(`/patients/${patientId}/occlusal-records`);
         
-        let recordsData = response.data;
-        if (recordsData?.data && Array.isArray(recordsData.data)) {
-            recordsData = recordsData.data;
-        } else if (!Array.isArray(recordsData)) {
+        let record = response.data.data || response.data;
+        if (!record || typeof record !== 'object') {
             return [];
         }
 
-        return recordsData.map((record: any) => ({
-            id: record.id,
-            jawRelation: record.jaw_relation || record.jawRelation,
-            centricRelation: record.centric_relation || record.centricRelation,
-            centricOcclusion: record.centric_occlusion || record.centricOcclusion,
-            workingSide: record.working_side || record.workingSide,
-            balancingSide: record.balancing_side || record.balancingSide,
-            protrusive: record.protrusive || false,
-            lateral: record.lateral || false,
-            notes: record.notes || '',
-            createdAt: record.created_at || record.createdAt,
-            updatedAt: record.updated_at || record.updatedAt,
-        }));
+        return [{
+            overbite: record.overbite,
+            overjet: record.overjet,
+            crossbite: record.crossbite,
+            openbite: record.openbite,
+            malocclusion: record.malocclusion,
+        }];
 
     } catch (error) {
         console.error('Error fetching occlusal records:', error);

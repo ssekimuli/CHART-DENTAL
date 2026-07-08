@@ -57,9 +57,12 @@ export type PatientImage = {
 export type DentalCondition = 'Healthy' | 'Caries' | 'Filling' | 'Crown' | 'Missing' | 'Fracture';
 
 export type DentalRecord = {
+  id?: string | number;
   toothId: number;
   condition: DentalCondition;
   notes: string;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 export type Treatment = {
