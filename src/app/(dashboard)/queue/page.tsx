@@ -325,17 +325,12 @@ export default function QueuePage() {
                                             className={`relative flex flex-col bg-white border border-[#A3D8E1]/30 hover:border-[#008B89]/50 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 cursor-grab active:cursor-grabbing border-t-4 ${column.themeColor}`}
                                          >
                                             <div className="p-3.5 space-y-2.5">
-                                                {/* Top row: Token badge, Patient name, and voice call speaker button */}
+                                                {/* Top row: Token badge, and voice call speaker button */}
                                                 <div className="flex items-center justify-between gap-2">
-                                                    <div className="flex items-center gap-2 min-w-0">
-                                                        <span className="flex-shrink-0 px-2 py-0.5 text-[10px] font-extrabold bg-[#2C3F4D] text-white rounded-md flex items-center gap-0.5">
-                                                            <Move className="h-2.5 w-2.5 text-gray-400" />
-                                                            {appointment.tokenNumber}
-                                                        </span>
-                                                        <h4 className="text-sm font-extrabold text-[#2C3F4D] truncate min-w-0" title={appointment.patientName}>
-                                                            {appointment.patientName}
-                                                        </h4>
-                                                    </div>
+                                                    <span className="flex-shrink-0 px-2 py-0.5 text-[10px] font-extrabold bg-[#2C3F4D] text-white rounded-md flex items-center gap-0.5">
+                                                        <Move className="h-2.5 w-2.5 text-gray-400" />
+                                                        {appointment.tokenNumber}
+                                                    </span>
 
                                                     {/* Voice Announce Button */}
                                                     <TooltipProvider>
@@ -374,7 +369,14 @@ export default function QueuePage() {
                                                     </TooltipProvider>
                                                 </div>
 
-                                                {/* Second row: Treatment and Time */}
+                                                {/* Second row: Patient Name */}
+                                                <div className="min-w-0">
+                                                    <h4 className="text-sm font-extrabold text-[#2C3F4D] truncate" title={appointment.patientName}>
+                                                        {appointment.patientName}
+                                                    </h4>
+                                                </div>
+
+                                                {/* Third row: Treatment and Time */}
                                                 <div className="flex items-center justify-between gap-1.5 text-xs text-gray-500 border-t border-gray-50 pt-2">
                                                     <span className="font-semibold text-gray-700 bg-[#E0F7F7] text-[#008B89] px-2 py-0.5 rounded-md truncate max-w-[130px] text-[10px]">
                                                         {appointment.treatment || "Consultation"}
