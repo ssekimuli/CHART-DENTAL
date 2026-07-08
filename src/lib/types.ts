@@ -248,6 +248,7 @@ export type Branch = {
   id: number;
   name: string;
   address: string;
+  currency?: string;
 };
 
 export type InventoryItem = {

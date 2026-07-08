@@ -5,6 +5,7 @@ import React, { createContext, useContext, useState, ReactNode, useEffect } from
 import type { Branch } from '@/lib/types';
 import { getBranches } from '@/lib/api';
 import { getCurrentUser } from '@/lib/user';
+import { setCurrencyCode } from '@/lib/currency';
 
 interface BranchContextType {
   selectedBranch: number | string;
@@ -38,6 +39,15 @@ export function BranchProvider({ children }: { children: ReactNode }) {
     }
     fetchBranches();
   }, []);
+
+  useEffect(() => {
+    if (selectedBranch && availableBranches.length > 0) {
+      const activeBranch = availableBranches.find(b => String(b.id) === String(selectedBranch));
+      if (activeBranch && activeBranch.currency) {
+        setCurrencyCode(activeBranch.currency);
+      }
+    }
+  }, [selectedBranch, availableBranches]);
 
   return (
     <BranchContext.Provider value={{ selectedBranch, setSelectedBranch, availableBranches }}>

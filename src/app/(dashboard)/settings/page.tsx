@@ -18,7 +18,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { RolePermissions, Permission, EmployeeRole } from "@/lib/types";
-import { getRoles, updateRole } from "@/lib/api";
+import { getRoles, updateRole, updateBranch } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -26,6 +26,7 @@ import { hasPermission } from "@/lib/user";
 import { useRouter } from "next/navigation";
 import { useCurrency } from "@/hooks/use-currency";
 import { CURRENCIES } from "@/lib/currency";
+import { useBranch } from "@/context/branch-context";
 
 const permissionGroups = {
     Dashboard: ['dashboard:read'],
@@ -52,6 +53,7 @@ export default function SettingsPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [selectedRole, setSelectedRole] = useState<RolePermissions | null>(null);
     const { currencyCode, setCurrency } = useCurrency();
+    const { selectedBranch, availableBranches } = useBranch();
 
     useEffect(() => {
         if (!hasPermission("settings:manage")) {
@@ -179,12 +181,37 @@ export default function SettingsPage() {
               <select
                 id="currency-select"
                 value={currencyCode}
-                onChange={(e) => {
-                  setCurrency(e.target.value);
-                  toast({
-                    title: "Currency Updated",
-                    description: `System currency preference set to ${e.target.value}.`,
-                  });
+                onChange={async (e) => {
+                  const newCurrency = e.target.value;
+                  const activeBranch = availableBranches.find(b => String(b.id) === String(selectedBranch));
+                  
+                  if (activeBranch) {
+                    try {
+                      await updateBranch(activeBranch.id, {
+                        name: activeBranch.name,
+                        address: activeBranch.address,
+                        currency: newCurrency,
+                      });
+                      
+                      setCurrency(newCurrency);
+                      toast({
+                        title: "Currency Updated",
+                        description: `System currency preference saved in backend for ${activeBranch.name} as ${newCurrency}.`,
+                      });
+                    } catch (err) {
+                      toast({
+                        title: "Update Failed",
+                        description: "Failed to save currency setting to backend database.",
+                        variant: "destructive",
+                      });
+                    }
+                  } else {
+                    setCurrency(newCurrency);
+                    toast({
+                      title: "Currency Updated (Local Only)",
+                      description: `System currency preference set to ${newCurrency}.`,
+                    });
+                  }
                 }}
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               >
