@@ -33,6 +33,8 @@ import {
     HelpCircle 
 } from "lucide-react";
 
+import * as XLSX from "xlsx";
+
 interface DataImporterProps {
     type: "patients" | "employees" | "treatments";
     triggerText: string;
@@ -100,7 +102,28 @@ export function DataImporter({ type, triggerText, onImportSuccess }: DataImporte
         if (!file) return;
         setIsParsing(true);
         try {
-            const data = await parseImportFile(file, type);
+            let fileToParse = file;
+            const isExcel = file.name.endsWith(".xlsx") || file.name.endsWith(".xls");
+            
+            if (isExcel) {
+                toast({
+                    title: "Excel File Detected",
+                    description: "Converting worksheet to CSV format in browser...",
+                });
+                const data = await file.arrayBuffer();
+                const workbook = XLSX.read(data, { type: "array" });
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                const csv = XLSX.utils.sheet_to_csv(worksheet);
+                
+                fileToParse = new File(
+                    [csv], 
+                    file.name.replace(/\.xlsx?$/, ".csv"), 
+                    { type: "text/csv" }
+                );
+            }
+
+            const data = await parseImportFile(fileToParse, type);
             setFilePath(data.file_path);
             setCsvHeaders(data.headers);
             setAvailableColumns(data.available_columns);
@@ -246,7 +269,7 @@ export function DataImporter({ type, triggerText, onImportSuccess }: DataImporte
                         <div className="space-y-3">
                             <Label className="text-sm font-semibold text-foreground flex items-center gap-1.5">
                                 <Upload className="h-4 w-4 text-primary" />
-                                2. Upload CSV File
+                                2. Upload CSV or Excel File
                             </Label>
                             <div className="border-2 border-dashed border-border/60 hover:border-primary/50 transition-colors rounded-xl p-8 flex flex-col items-center justify-center bg-background/50 text-center">
                                 <Upload className="h-8 w-8 text-muted-foreground mb-3" />
@@ -256,10 +279,10 @@ export function DataImporter({ type, triggerText, onImportSuccess }: DataImporte
                                     </span>{" "}
                                     or drag and drop
                                 </div>
-                                <div className="text-xs text-muted-foreground">CSV files up to 20MB</div>
+                                <div className="text-xs text-muted-foreground">CSV or Excel files up to 20MB</div>
                                 <input
                                     type="file"
-                                    accept=".csv,.txt"
+                                    accept=".csv,.txt,.xlsx,.xls"
                                     onChange={handleFileChange}
                                     className="hidden"
                                     id="csv-file-upload"
