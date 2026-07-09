@@ -17,6 +17,7 @@ import { currentUser, hasPermission, hasRole } from "@/lib/user";
 import type { Patient, BasePatient, PaginatedArray } from "@/lib/types";
 import { PatientForm } from "./components/patient-form";
 import { useRouter } from "next/navigation";
+import { DataImporter } from "@/components/dashboard/data-importer";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -55,6 +56,7 @@ export default function PatientsPage() {
   const [statusFilter, setStatusFilter] = useState<"all" | "Active" | "Inactive">("all");
   const [genderFilter, setGenderFilter] = useState<"all" | "Male" | "Female" | "Other">("all");
   const [page, setPage] = useState(1);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   // Reset to page 1 on filter/search change
   useEffect(() => {
@@ -98,7 +100,7 @@ export default function PatientsPage() {
         setIsLoading(false);
     }
     fetchData();
-  }, [selectedBranch, statusFilter, genderFilter, page, searchQuery]);
+  }, [selectedBranch, statusFilter, genderFilter, page, searchQuery, refreshKey]);
 
   const patients = useMemo(() => {
     // If there's a search query, filter on the client side
@@ -192,12 +194,24 @@ export default function PatientsPage() {
             View and manage patient records.
           </CardDescription>
         </div>
-        {hasPermission('patients:create') && (
-          <Button onClick={() => handleOpenForm()}>
-            <PlusCircle className="mr-2" />
-            Add Patient
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {hasPermission('patients:create') && (
+            <>
+              <DataImporter 
+                type="patients" 
+                triggerText="Import Patients" 
+                onImportSuccess={() => {
+                  setPage(1);
+                  setRefreshKey(prev => prev + 1);
+                }} 
+              />
+              <Button onClick={() => handleOpenForm()}>
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Add Patient
+              </Button>
+            </>
+          )}
+        </div>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Filters bar */}

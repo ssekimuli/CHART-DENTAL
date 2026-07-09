@@ -3378,3 +3378,95 @@ export const announcePatientInQueue = async (appointmentId: string | number): Pr
 
     return { audio_url: audio.media };
 }
+
+// Imports & Templates
+export type ParsedHeadersResponse = {
+    file_path: string;
+    headers: string[];
+    available_columns: string[];
+};
+
+export type TemplateInfo = {
+    name: string;
+    type: 'patients' | 'employees' | 'treatments';
+    format: 'csv' | 'xlsx';
+    download_url: string;
+};
+
+export type ImportStartResponse = {
+    status: 'success' | 'failed';
+    processed_rows: number;
+    duration_seconds: number;
+    method_used: string;
+    message: string;
+};
+
+export const parseImportFile = async (file: File, type: 'patients' | 'employees' | 'treatments'): Promise<ParsedHeadersResponse> => {
+    console.log('API CALL: parseImportFile', { type, filename: file.name });
+    try {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('type', type);
+
+        const response = await customAxios.post('/import/parse', formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Error parsing CSV headers:', error);
+        throw error;
+    }
+};
+
+export const startImport = async (
+    filePath: string,
+    type: 'patients' | 'employees' | 'treatments',
+    mapping: Record<string, string>
+): Promise<ImportStartResponse> => {
+    console.log('API CALL: startImport', { filePath, type, mapping });
+    try {
+        const response = await customAxios.post('/import/start', {
+            file_path: filePath,
+            type,
+            mapping,
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Error starting import:', error);
+        throw error;
+    }
+};
+
+export const listTemplates = async (): Promise<TemplateInfo[]> => {
+    console.log('API CALL: listTemplates');
+    try {
+        const response = await customAxios.get('/import/templates');
+        return response.data;
+    } catch (error) {
+        console.error('Error listing templates:', error);
+        return [];
+    }
+};
+
+export const downloadTemplate = async (filename: string): Promise<void> => {
+    console.log('API CALL: downloadTemplate', { filename });
+    try {
+        const response = await customAxios.get(`/import/templates/download/${filename}`, {
+            responseType: 'blob',
+        });
+        const blob = new Blob([response.data], { type: response.headers['content-type'] });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', filename);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
+    } catch (error) {
+        console.error('Error downloading template:', error);
+        throw error;
+    }
+};

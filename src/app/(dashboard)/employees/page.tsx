@@ -29,12 +29,14 @@ import {
   } from "@/components/ui/alert-dialog";
 import { createEmployee, deleteEmployee, getEmployees, updateEmployee } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DataImporter } from "@/components/dashboard/data-importer";
 
 export default function EmployeesPage() {
     const router = useRouter();
     const { selectedBranch } = useBranch();
     const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [refreshKey, setRefreshKey] = useState(0);
 
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [selectedEmployee, setSelectedEmployee] = useState<Employee | undefined>(undefined);
@@ -48,7 +50,7 @@ export default function EmployeesPage() {
             setIsLoading(false);
         };
         fetchData();
-    }, [selectedBranch]);
+    }, [selectedBranch, refreshKey]);
 
     const employees = useMemo(() => {
         if (hasRole('Super Admin')) {
@@ -110,10 +112,19 @@ export default function EmployeesPage() {
                 Manage your practice's staff members.
             </CardDescription>
             </div>
-            <Button onClick={() => handleOpenForm()}>
-            <PlusCircle className="mr-2" />
-            Add Employee
-            </Button>
+            <div className="flex items-center gap-2">
+                <DataImporter 
+                    type="employees" 
+                    triggerText="Import Employees" 
+                    onImportSuccess={() => {
+                        setRefreshKey(prev => prev + 1);
+                    }} 
+                />
+                <Button onClick={() => handleOpenForm()}>
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Add Employee
+                </Button>
+            </div>
         </CardHeader>
         <CardContent>
             {isLoading ? (
