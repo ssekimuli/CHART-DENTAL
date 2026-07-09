@@ -279,7 +279,7 @@ export function DataImporter({ type, triggerText, onImportSuccess }: DataImporte
                                     </span>{" "}
                                     or drag and drop
                                 </div>
-                                <div className="text-xs text-muted-foreground">CSV or Excel files up to 20MB</div>
+                                <div className="text-xs text-muted-foreground">CSV or Excel files up to 200MB</div>
                                 <input
                                     type="file"
                                     accept=".csv,.txt,.xlsx,.xls"
