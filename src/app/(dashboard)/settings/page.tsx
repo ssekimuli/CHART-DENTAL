@@ -27,6 +27,7 @@ import { useRouter } from "next/navigation";
 import { useCurrency } from "@/hooks/use-currency";
 import { CURRENCIES } from "@/lib/currency";
 import { useBranch } from "@/context/branch-context";
+import { DataImporter } from "@/components/dashboard/data-importer";
 
 const permissionGroups = {
     Dashboard: ['dashboard:read'],
@@ -198,11 +199,12 @@ export default function SettingsPage() {
 
   return (
     <Tabs defaultValue="profile">
-      <TabsList className="grid w-full grid-cols-4">
+      <TabsList className="grid w-full grid-cols-5">
         <TabsTrigger value="profile">Profile</TabsTrigger>
         <TabsTrigger value="practice">Practice</TabsTrigger>
         <TabsTrigger value="notifications">Notifications</TabsTrigger>
         <TabsTrigger value="roles">Roles &amp; Permissions</TabsTrigger>
+        <TabsTrigger value="treatments">Treatments</TabsTrigger>
       </TabsList>
       
       <TabsContent value="profile">
@@ -433,6 +435,34 @@ export default function SettingsPage() {
           <CardFooter className="justify-end">
             <Button onClick={handleSaveChanges} disabled={isLoading || !selectedRole}>Save Changes</Button>
           </CardFooter>
+        </Card>
+      </TabsContent>
+      <TabsContent value="treatments">
+        <Card>
+          <CardHeader>
+            <CardTitle>Treatments &amp; Procedures Catalog</CardTitle>
+            <CardDescription>
+              Import and manage the procedures and treatments available in your practice.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="rounded-lg border border-border/40 bg-muted/30 p-4">
+                <h4 className="text-sm font-semibold mb-1 text-foreground">Import Catalog</h4>
+                <p className="text-xs text-muted-foreground mb-4">
+                  Upload a CSV file containing your practice's treatment codes, procedure names, and standard pricing to bulk load them.
+                </p>
+                <DataImporter 
+                    type="treatments" 
+                    triggerText="Import Treatment Catalog" 
+                    onImportSuccess={() => {
+                        toast({
+                            title: "Catalog Updated",
+                            description: "The procedures catalog has been successfully updated.",
+                        });
+                    }} 
+                />
+            </div>
+          </CardContent>
         </Card>
       </TabsContent>
     </Tabs>
