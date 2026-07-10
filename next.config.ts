@@ -31,12 +31,13 @@ const nextConfig: NextConfig = {
     ],
   },
   async rewrites() {
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://dentalapi.poslycloud.com/api';
     return [
       {
         source: '/api/backend/:path*',
-        destination: `${process.env.NEXT_PUBLIC_BACKEND_URL}/:path*`,
+        destination: `${backendUrl}/:path*`,
       },
-    ]
+    ];
   },
 };
 

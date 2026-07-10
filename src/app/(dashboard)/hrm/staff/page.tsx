@@ -29,12 +29,14 @@ import {
 import { createEmployee, deleteEmployee, getEmployees, updateEmployee } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
 import { hasPermission } from "@/lib/user";
+import { DataImporter } from "@/components/dashboard/data-importer";
 
 export default function StaffPage() {
     const router = useRouter();
     const { selectedBranch } = useBranch();
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [refreshKey, setRefreshKey] = useState(0);
 
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [selectedEmployee, setSelectedEmployee] = useState<Employee | undefined>(undefined);
@@ -52,7 +54,7 @@ export default function StaffPage() {
             setIsLoading(false);
         };
         fetchData();
-    }, [selectedBranch, router]);
+    }, [selectedBranch, router, refreshKey]);
 
     const handleOpenForm = (employee?: Employee) => {
         setSelectedEmployee(employee);
@@ -107,12 +109,23 @@ export default function StaffPage() {
                 Manage your practice's staff members.
             </CardDescription>
             </div>
-            {hasPermission('hrm:create') && (
-                <Button onClick={() => handleOpenForm()}>
-                    <PlusCircle className="mr-2" />
-                    Add Employee
-                </Button>
-            )}
+            <div className="flex items-center gap-2">
+                {hasPermission('hrm:create') && (
+                    <>
+                        <DataImporter 
+                            type="employees" 
+                            triggerText="Import Staff" 
+                            onImportSuccess={() => {
+                                setRefreshKey(prev => prev + 1);
+                            }} 
+                        />
+                        <Button onClick={() => handleOpenForm()}>
+                            <PlusCircle className="mr-2 h-4 w-4" />
+                            Add Employee
+                        </Button>
+                    </>
+                )}
+            </div>
         </CardHeader>
         <CardContent>
             {isLoading ? (
