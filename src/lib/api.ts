@@ -1802,18 +1802,54 @@ export const deletePatient = async (id: string | number): Promise<{ success: boo
 
 export const addImageToPatient = async (patientId: string | number, image: Omit<PatientImage, 'date'>): Promise<Patient | undefined> => {
     console.log('API CALL: addImageToPatient', { patientId, image });
-    await delay(200);
-    const patientIndex = allPatients.findIndex(p => String(p.id) === String(patientId));
-    if (patientIndex > -1) {
-        const patient = allPatients[patientIndex];
-        const newImage: PatientImage = {
-            ...image,
-            date: new Date().toISOString().split('T')[0],
-        }
-        patient.imaging.push(newImage);
-        return patient;
+    try {
+        const response = await customAxios.post(`/patients/${patientId}/images`, {
+            url: image.url,
+            description: image.description,
+        });
+        const updatedPatient = response.data;
+
+        // Map API response to frontend type
+        return {
+            id: String(updatedPatient.id),
+            first_name: updatedPatient.first_name,
+            last_name: updatedPatient.last_name,
+            avatar: updatedPatient.avatar || '',
+            email: updatedPatient.email,
+            phone: updatedPatient.phone,
+            address: updatedPatient.address,
+            gender: updatedPatient.gender,
+            dateOfBirth: updatedPatient.date_of_birth ? updatedPatient.date_of_birth.split('T')[0] : updatedPatient.date_of_birth,
+            lastVisit: updatedPatient.last_visit ? updatedPatient.last_visit.split('T')[0] : updatedPatient.last_visit,
+            status: updatedPatient.status,
+            history: updatedPatient.history || '',
+            branchId: String(updatedPatient.branch_id),
+            dentalRecords: (updatedPatient.dental_records || []).map((record: any) => ({
+                toothId: record.tooth_id,
+                condition: record.condition,
+                notes: record.notes || '',
+            })),
+            treatmentPlans: (updatedPatient.treatment_plans || []).map((plan: any) => ({
+                id: String(plan.id),
+                procedure: plan.procedure,
+                tooth: plan.tooth,
+                status: plan.status,
+                cost: parseFloat(plan.cost),
+                date: plan.date,
+                invoiceId: plan.invoice_id,
+            })),
+            imaging: updatedPatient.images || updatedPatient.imaging || [], // Backend returns 'images', not 'imaging'
+            periodontalRecords: updatedPatient.periodontal_records || [],
+            occlusalRecords: typeof updatedPatient.occlusal_records === 'string'
+                ? JSON.parse(updatedPatient.occlusal_records)
+                : (updatedPatient.occlusal_records || { overbite: 0, overjet: 0, crossbite: 'None', openbite: 'None', malocclusion: 'Class I' }),
+            softTissueRecords: updatedPatient.soft_tissue_records || [],
+            orthodonticRecords: updatedPatient.orthodontic_records || [],
+        };
+    } catch (error) {
+        console.error("Error adding image to patient:", error);
+        return undefined;
     }
-    return undefined;
 }
 
 export const getOdontogramRecords = async (patientId: string | number): Promise<DentalRecord[]> => {
