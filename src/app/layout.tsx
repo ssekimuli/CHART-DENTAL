@@ -7,6 +7,9 @@ import { Toaster } from "@/components/ui/toaster";
 export const metadata: Metadata = {
   title: "Dentio",
   description: "Advanced Dental Charting and Practice Management",
+  icons: {
+    icon: "/assets/dental-hygiene.png",
+  },
 };
 
 export default function RootLayout({
