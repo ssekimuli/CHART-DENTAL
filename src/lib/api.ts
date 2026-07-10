@@ -3373,7 +3373,8 @@ export const announcePatientInQueue = async (appointmentId: string | number): Pr
         throw new Error("Appointment not found");
     }
 
-    const announcementText = `Token number ${appointment.tokenNumber.split('').join(' ')}, please proceed to the doctor's room.`;
+    const token = appointment.tokenNumber || '';
+    const announcementText = `Token number ${token.split('').join(' ')}, please proceed to the doctor's room.`;
     const audio = await speak(announcementText);
 
     return { audio_url: audio.media };

@@ -66,7 +66,7 @@ const formSchema = z.object({
   }),
   time: z.string().regex(/^(0?[1-9]|1[0-2]):[0-5][0-9] (AM|PM)$/, "Please use HH:MM AM/PM format."),
   status: z.enum(["Scheduled", "Completed", "Cancelled", "Waiting", "In Session", "On Hold"]),
-  tokenNumber: z.string().min(1, "Please generate a token number."),
+  tokenNumber: z.string().optional(),
 });
 
 type AppointmentFormProps = {
@@ -122,7 +122,7 @@ export function AppointmentForm({ appointment, patients: initialPatients, doctor
         date: appointment ? parse(appointment.date, "yyyy-MM-dd", new Date()) : new Date(),
         time: appointment?.time ?? "",
         status: appointment?.status ?? 'Scheduled',
-        tokenNumber: appointment?.tokenNumber,
+        tokenNumber: appointment?.tokenNumber ?? "",
     },
   });
 

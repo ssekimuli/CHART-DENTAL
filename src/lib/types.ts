@@ -135,7 +135,7 @@ export type Appointment = {
   date: string;
   time: string;
   branchId: string | number;
-  tokenNumber: string;
+  tokenNumber?: string;
 };
 
 export type OtherCharge = {
