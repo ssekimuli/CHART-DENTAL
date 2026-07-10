@@ -11,7 +11,6 @@ import {
 } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import Image from "next/image";
 import { summarizePatientHistory } from "@/ai/flows/summarize-patient-history";
 import {
   Table,
@@ -318,11 +317,9 @@ export default function PatientDetailPage({
                 <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
                   {patient.imaging.map((image, index) => (
                     <div key={index} className="overflow-hidden rounded-lg border group relative">
-                      <Image
+                      <img
                         src={image.url}
                         alt={image.description || `Patient image ${index + 1}`}
-                        width={400}
-                        height={300}
                         className="aspect-video h-auto w-full object-cover"
                         data-ai-hint="dental xray"
                       />
