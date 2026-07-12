@@ -337,6 +337,7 @@ export type SystemTreatment = {
     id: string | number;
     procedure: string;
     cost: number;
+    category?: string;
 };
 
 export type LeaveType = 'Annual' | 'Sick' | 'Unpaid' | 'Maternity';

@@ -119,7 +119,10 @@ export function TreatmentPlanForm({ treatment, onSave, onOpenChange, toothId, cu
                           <FormLabel>Procedure</FormLabel>
                           <FormControl>
                             <Combobox
-                                options={systemTreatments.map(t => ({ value: t.id, label: `${t.procedure} ($${t.cost})` }))}
+                                options={systemTreatments.map(t => ({ 
+                                    value: t.id, 
+                                    label: `${t.category ? `[${t.category}] ` : ''}${t.procedure} ($${t.cost})` 
+                                }))}
                                 value={field.value}
                                 onChange={(value) => {
                                   field.onChange(value);

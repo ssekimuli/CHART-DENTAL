@@ -17,10 +17,12 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Checkbox } from "@/components/ui/checkbox";
-import type { RolePermissions, Permission, EmployeeRole } from "@/lib/types";
-import { getRoles, updateRole, updateBranch, getProfileData, updateEmployee } from "@/lib/api";
+import type { RolePermissions, Permission, EmployeeRole, SystemTreatment } from "@/lib/types";
+import { getRoles, updateRole, updateBranch, getProfileData, updateEmployee, getTreatments } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { hasPermission, getCurrentUser } from "@/lib/user";
 import { useRouter } from "next/navigation";
@@ -62,6 +64,12 @@ export default function SettingsPage() {
     const [profileEmail, setProfileEmail] = useState("");
     const [practiceName, setPracticeName] = useState("");
     const [practiceAddress, setPracticeAddress] = useState("");
+    const [treatments, setTreatments] = useState<SystemTreatment[]>([]);
+
+    const refreshTreatments = async () => {
+        const treatmentsData = await getTreatments();
+        setTreatments(treatmentsData);
+    };
 
     useEffect(() => {
         if (!hasPermission("settings:manage")) {
@@ -71,12 +79,14 @@ export default function SettingsPage() {
         const fetchRolesAndProfile = async () => {
             setIsLoading(true);
             try {
-                const [rolesData, profileData] = await Promise.all([
+                const [rolesData, profileData, treatmentsData] = await Promise.all([
                     getRoles(),
-                    getProfileData()
+                    getProfileData(),
+                    getTreatments()
                 ]);
                 setRoles(rolesData);
                 setSelectedRole(rolesData[0] || null);
+                setTreatments(treatmentsData);
                 if (profileData) {
                     setProfile(profileData);
                     setProfileName(profileData.employee.name);
@@ -449,7 +459,7 @@ export default function SettingsPage() {
             <div className="rounded-lg border border-border/40 bg-muted/30 p-4">
                 <h4 className="text-sm font-semibold mb-1 text-foreground">Import Catalog</h4>
                 <p className="text-xs text-muted-foreground mb-4">
-                  Upload a CSV file containing your practice's treatment codes, procedure names, and standard pricing to bulk load them.
+                  Upload a CSV file containing your practice's treatment codes, procedure names, standard pricing, and categories to bulk load them.
                 </p>
                 <DataImporter 
                     type="treatments" 
@@ -459,8 +469,60 @@ export default function SettingsPage() {
                             title: "Catalog Updated",
                             description: "The procedures catalog has been successfully updated.",
                         });
+                        refreshTreatments();
                     }} 
                 />
+            </div>
+            
+            <div className="space-y-4 mt-6">
+                <h3 className="text-lg font-medium">Categorized Treatments</h3>
+                {['Preventive', 'Restorative', 'Cosmetic', 'Surgical', 'Other'].map(category => {
+                    const categoryTreatments = treatments.filter(t => {
+                        if (category === 'Other') {
+                            return !t.category || !['preventive', 'restorative', 'cosmetic', 'surgical'].includes(t.category.toLowerCase());
+                        }
+                        return t.category?.toLowerCase() === category.toLowerCase();
+                    });
+                    
+                    if (categoryTreatments.length === 0 && category !== 'Other') return null;
+                    
+                    return (
+                        <Card key={category} className="overflow-hidden">
+                            <CardHeader className="bg-muted/30 pb-4">
+                                <CardTitle className="text-base flex items-center justify-between">
+                                    {category}
+                                    <Badge variant="secondary">{categoryTreatments.length}</Badge>
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="p-0">
+                                {categoryTreatments.length > 0 ? (
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead>Procedure</TableHead>
+                                                <TableHead className="text-right">Cost</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {categoryTreatments.map(treatment => (
+                                                <TableRow key={treatment.id}>
+                                                    <TableCell className="font-medium">{treatment.procedure}</TableCell>
+                                                    <TableCell className="text-right">
+                                                        {new Intl.NumberFormat('en-US', { style: 'currency', currency: currencyCode }).format(treatment.cost)}
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                ) : (
+                                    <div className="p-4 text-center text-sm text-muted-foreground">
+                                        No treatments in this category.
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    );
+                })}
             </div>
           </CardContent>
         </Card>
