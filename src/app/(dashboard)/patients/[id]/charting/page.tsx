@@ -1,5 +1,18 @@
 
 "use client";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { PlusCircle, Trash, Pencil, MoreHorizontal } from "lucide-react";
+import { getTreatments, deleteTreatment } from "@/lib/api";
+import type { SystemTreatment } from "@/lib/types";
+
 
 import { notFound, useRouter } from "next/navigation";
 import {
@@ -23,7 +36,7 @@ import { TreatmentPlanForm } from "../components/treatment-plan-form";
 import { OrthodonticChart } from "./components/orthodontic-chart";
 import { ConditionLogger } from "../components/condition-logger";
 import { getPatientById, addTreatment, saveDentalRecord, savePeriodontalRecord, saveOcclusalRecord, saveOrthodonticRecord, updateOrthodonticRecord, deleteOrthodonticRecord, saveSoftTissueRecord, updateSoftTissueRecord, deleteSoftTissueRecord } from "@/lib/api";
-import { getCurrentUser, hasRole } from "@/lib/user";
+import { getCurrentUser, hasRole, hasPermission } from "@/lib/user";
 import { getPatientFullName } from "@/lib/utils";
 
 export default function PatientChartingPage({
@@ -35,6 +48,24 @@ export default function PatientChartingPage({
   const router = useRouter();
   const [patient, setPatient] = useState<Patient | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(true);
+  const [systemTreatments, setSystemTreatments] = useState<SystemTreatment[]>([]);
+  const canUpdatePatient = hasPermission('patients:update');
+  const [selectedTreatment, setSelectedTreatment] = useState<Treatment | undefined>(undefined);
+
+  const handleDeleteTreatment = async (treatmentId: string | number) => {
+     if (!patient) return;
+     const updatedPatient = await deleteTreatment(patient.id, treatmentId);
+      if (updatedPatient) {
+        setPatient(updatedPatient);
+    }
+  }
+
+  const handleOpenTreatmentFormForEdit = (treatment?: Treatment) => {
+    // Wait, the existing code calls handleOpenTreatmentFormForEdit(plan), so let's redefine it
+    setSelectedTreatment(treatment);
+    setIsTreatmentFormOpen(true);
+  }
+
 
   const [isTreatmentFormOpen, setIsTreatmentFormOpen] = useState(false);
   const [selectedToothForTreatment, setSelectedToothForTreatment] = useState<number | undefined>(undefined);
@@ -244,7 +275,8 @@ export default function PatientChartingPage({
           <TabsTrigger value="occlusal">Occlusal</TabsTrigger>
           <TabsTrigger value="soft-tissue">Soft Tissue</TabsTrigger>
           <TabsTrigger value="orthodontic">Orthodontic</TabsTrigger>
-        </TabsList>
+          <TabsTrigger value="treatment">Treatment Plan</TabsTrigger>
+          </TabsList>
 
         <TabsContent value="odontogram">
             <Card>
@@ -286,6 +318,107 @@ export default function PatientChartingPage({
               onDelete={handleDeleteOrthoRecord}
             />
         </TabsContent>
+        <TabsContent value="treatment">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>Current Treatment Plan</CardTitle>
+                  <CardDescription>
+                    List of proposed and ongoing treatments.
+                  </CardDescription>
+                </div>
+                {canUpdatePatient && (
+                    <Button size="sm" onClick={() => handleOpenTreatmentFormForEdit()}>
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    New Treatment
+                    </Button>
+                )}
+              </CardHeader>
+              <CardContent className="overflow-auto">
+                <Tabs defaultValue="All" className="w-full">
+                  <TabsList className="mb-4 flex flex-wrap h-auto gap-1 bg-muted/50 p-1">
+                    <TabsTrigger value="All" className="data-[state=active]:bg-background">All Treatments</TabsTrigger>
+                    <TabsTrigger value="Preventive" className="data-[state=active]:bg-background">Preventive</TabsTrigger>
+                    <TabsTrigger value="Restorative" className="data-[state=active]:bg-background">Restorative</TabsTrigger>
+                    <TabsTrigger value="Cosmetic" className="data-[state=active]:bg-background">Cosmetic</TabsTrigger>
+                    <TabsTrigger value="Surgical" className="data-[state=active]:bg-background">Surgical</TabsTrigger>
+                    <TabsTrigger value="Other" className="data-[state=active]:bg-background">Other</TabsTrigger>
+                  </TabsList>
+                  {['All', 'Preventive', 'Restorative', 'Cosmetic', 'Surgical', 'Other'].map(tab => {
+                    const filteredPlans = patient.treatmentPlans.filter(plan => {
+                      if (tab === 'All') return true;
+                      const t = systemTreatments.find(st => String(st.id) === String(plan.procedureId));
+                      if (tab === 'Other') {
+                          return !t || !t.category || !['preventive', 'restorative', 'cosmetic', 'surgical'].includes(t.category.toLowerCase());
+                      }
+                      return t?.category?.toLowerCase() === tab.toLowerCase();
+                    });
+
+                    return (
+                      <TabsContent key={tab} value={tab} className="mt-0 max-h-[480px] overflow-auto border rounded-md">
+                        {filteredPlans.length > 0 ? (
+                          <Table className="min-w-full">
+                            <TableHeader>
+                              <TableRow className="bg-muted/30 hover:bg-muted/30">
+                                <TableHead>Procedure</TableHead>
+                                <TableHead>Tooth</TableHead>
+                                <TableHead>Status</TableHead>
+                                <TableHead>Cost</TableHead>
+                                {canUpdatePatient && <TableHead className="text-right">Actions</TableHead>}
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {filteredPlans.map((plan) => (
+                                <TableRow key={plan.id}>
+                                  <TableCell className="font-medium">
+                                    {plan.procedure}
+                                  </TableCell>
+                                  <TableCell>{plan.tooth || "N/A"}</TableCell>
+                                  <TableCell>
+                                    <Badge variant="outline">{plan.status}</Badge>
+                                  </TableCell>
+                                  <TableCell>
+                                    ${Number(plan.cost).toFixed(2)}
+                                  </TableCell>
+                                  {canUpdatePatient && (
+                                      <TableCell className="text-right">
+                                      <DropdownMenu>
+                                          <DropdownMenuTrigger asChild>
+                                          <Button variant="ghost" className="h-8 w-8 p-0">
+                                              <span className="sr-only">Open menu</span>
+                                              <MoreHorizontal className="h-4 w-4" />
+                                          </Button>
+                                          </DropdownMenuTrigger>
+                                          <DropdownMenuContent align="end">
+                                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                          <DropdownMenuItem onClick={() => handleOpenTreatmentFormForEdit(plan)}>
+                                              <Pencil className="mr-2 h-4 w-4" />
+                                              Edit
+                                          </DropdownMenuItem>
+                                          <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleDeleteTreatment(plan.id)}>
+                                              <Trash className="mr-2 h-4 w-4" />
+                                              Delete
+                                          </DropdownMenuItem>
+                                          </DropdownMenuContent>
+                                      </DropdownMenu>
+                                      </TableCell>
+                                  )}
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        ) : (
+                          <div className="flex flex-col items-center justify-center p-8 text-center text-muted-foreground min-h-[200px]">
+                            <p>No {tab !== 'All' ? tab.toLowerCase() : ''} treatments found.</p>
+                          </div>
+                        )}
+                      </TabsContent>
+                    );
+                  })}
+                </Tabs>
+              </CardContent>
+              </Card>
+            </TabsContent>
       </Tabs>
       {isTreatmentFormOpen && (
         <TreatmentPlanForm

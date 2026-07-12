@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useEffect, useState, use } from "react";
-import type { Patient, Treatment, BasePatient, PatientImage, DentalCondition } from "@/lib/types";
+import type { Patient, Treatment, BasePatient, PatientImage, DentalCondition, SystemTreatment } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, Trash, Pencil, FileText, Loader2, Upload, MoreHorizontal } from "lucide-react";
 import { TreatmentPlanForm } from "./components/treatment-plan-form";
@@ -44,7 +44,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { deletePatient, getPatientById, updatePatient, addTreatment, updateTreatment, deleteTreatment, addImageToPatient } from "@/lib/api";
+import { deletePatient, getPatientById, updatePatient, addTreatment, updateTreatment, deleteTreatment, addImageToPatient, getTreatments } from "@/lib/api";
 import { ImageUploadForm } from "./components/image-upload-form";
 import { hasPermission, getCurrentUser, hasRole } from "@/lib/user";
 import { getPatientFullName } from "@/lib/utils";
@@ -57,6 +57,7 @@ export default function PatientDetailPage({
   const { id } = use(params);
   const router = useRouter();
   const [patient, setPatient] = useState<Patient | undefined>(undefined);
+  const [systemTreatments, setSystemTreatments] = useState<SystemTreatment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const [isTreatmentFormOpen, setIsTreatmentFormOpen] = useState(false);
@@ -75,8 +76,12 @@ export default function PatientDetailPage({
     if (typeof id !== "string") return;
     const fetchData = async () => {
         setIsLoading(true);
-        const patientData = await getPatientById(id);
+        const [patientData, treatmentsData] = await Promise.all([
+            getPatientById(id),
+            getTreatments()
+        ]);
         setPatient(patientData);
+        setSystemTreatments(treatmentsData);
         if (patientData && !isReceptionist && patientData.history) {
             summarizePatientHistory({ patientHistory: patientData.history }).then(setHistorySummary);
         }
@@ -213,89 +218,12 @@ export default function PatientDetailPage({
       </Card>
 
       {!isReceptionist && (
-        <Tabs defaultValue="treatment">
+        <Tabs defaultValue="imaging">
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="treatment">Treatment Plan</TabsTrigger>
             <TabsTrigger value="imaging">Imaging</TabsTrigger>
             <TabsTrigger value="history">History</TabsTrigger>
           </TabsList>
-          <TabsContent value="treatment">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle>Current Treatment Plan</CardTitle>
-                  <CardDescription>
-                    List of proposed and ongoing treatments.
-                  </CardDescription>
-                </div>
-                {canUpdatePatient && (
-                    <Button size="sm" onClick={() => handleOpenTreatmentForm()}>
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    New Treatment
-                    </Button>
-                )}
-              </CardHeader>
-              <CardContent className="max-h-[480px] overflow-auto">
-                  <Table className="min-w-full">
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Procedure</TableHead>
-                        <TableHead>Tooth</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Cost</TableHead>
-                        {canUpdatePatient && <TableHead className="text-right">Actions</TableHead>}
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {patient.treatmentPlans.map((plan) => (
-                        <TableRow key={plan.id}>
-                          <TableCell className="font-medium">
-                            {plan.procedure}
-                          </TableCell>
-                          <TableCell>{plan.tooth || "N/A"}</TableCell>
-                          <TableCell>
-                            <Badge variant="outline">{plan.status}</Badge>
-                          </TableCell>
-                          <TableCell>
-                            ${Number(plan.cost).toFixed(2)}
-                          </TableCell>
-                          {canUpdatePatient && (
-                              <TableCell className="text-right">
-                              <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" className="h-8 w-8 p-0">
-                                      <span className="sr-only">Open menu</span>
-                                      <MoreHorizontal className="h-4 w-4" />
-                                  </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end">
-                                  <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                  <DropdownMenuItem onClick={() => handleOpenTreatmentForm(plan)}>
-                                      <Pencil className="mr-2 h-4 w-4" />
-                                      Edit
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem className="text-red-600" onClick={() => handleDeleteTreatment(plan.id)}>
-                                      <Trash className="mr-2 h-4 w-4" />
-                                      Delete
-                                  </DropdownMenuItem>
-                                  </DropdownMenuContent>
-                              </DropdownMenu>
-                              </TableCell>
-                          )}
-                        </TableRow>
-                      ))}
-                       {patient.treatmentPlans.length === 0 && (
-                        <TableRow>
-                          <TableCell colSpan={5} className="h-24 text-center">
-                            No treatment plans yet.
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
-            </TabsContent>
+          
 
           <TabsContent value="imaging">
             <Card>
