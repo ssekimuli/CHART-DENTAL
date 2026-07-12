@@ -133,6 +133,17 @@ export function DentalChart({ initialRecords, treatmentPlans, onAddTreatment, on
                     <FilePen className="mr-2 h-4 w-4" /> Log Condition
                 </Button>
                 <Button 
+                    variant="secondary"
+                    className="flex-1"
+                    onClick={() => {
+                        if (selectedTooth) {
+                            window.location.href = `/patients/${initialRecords[0]?.patient_id || window.location.pathname.split('/')[2]}/charting/tooth/${selectedTooth}`;
+                        }
+                    }}
+                >
+                    <FilePen className="mr-2 h-4 w-4" /> View History
+                </Button>
+                <Button 
                     className="flex-1"
                     onClick={() => {
                         if (selectedTooth) onAddTreatment(selectedTooth);
