@@ -92,8 +92,8 @@ export function DentalChart({ initialRecords, treatmentPlans, onAddTreatment, on
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="rounded-lg bg-muted/10 p-6 border overflow-x-auto flex justify-center">
-        <div className="min-w-[700px]">
+      <div className="rounded-lg bg-muted/10 p-8 border overflow-x-auto flex justify-center items-center min-h-[500px]">
+        <div className="w-full max-w-[1000px] min-w-[850px] scale-110 origin-center py-8">
           <Odontogram 
             singleSelect 
             layout="square"
