@@ -269,18 +269,13 @@ export default function PatientChartingPage({
         </h1>
       </div>
       <Tabs defaultValue="odontogram">
-        <TabsList className="flex flex-wrap gap-1 bg-muted/50 p-1 mb-4 h-auto">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="odontogram">Odontogram</TabsTrigger>
           <TabsTrigger value="periodontal">Periodontal</TabsTrigger>
           <TabsTrigger value="occlusal">Occlusal</TabsTrigger>
           <TabsTrigger value="soft-tissue">Soft Tissue</TabsTrigger>
           <TabsTrigger value="orthodontic">Orthodontic</TabsTrigger>
-          <TabsTrigger value="All" className="data-[state=active]:bg-background">All Treatments</TabsTrigger>
-          <TabsTrigger value="Preventive" className="data-[state=active]:bg-background">Preventive</TabsTrigger>
-          <TabsTrigger value="Restorative" className="data-[state=active]:bg-background">Restorative</TabsTrigger>
-          <TabsTrigger value="Cosmetic" className="data-[state=active]:bg-background">Cosmetic</TabsTrigger>
-          <TabsTrigger value="Surgical" className="data-[state=active]:bg-background">Surgical</TabsTrigger>
-          <TabsTrigger value="Other" className="data-[state=active]:bg-background">Other</TabsTrigger>
+          <TabsTrigger value="treatment">Treatment Plan</TabsTrigger>
         </TabsList>
 
         <TabsContent value="odontogram">
@@ -323,95 +318,82 @@ export default function PatientChartingPage({
               onDelete={handleDeleteOrthoRecord}
             />
         </TabsContent>
-        {['All', 'Preventive', 'Restorative', 'Cosmetic', 'Surgical', 'Other'].map(tab => {
-          const filteredPlans = patient.treatmentPlans.filter(plan => {
-            if (tab === 'All') return true;
-            const t = systemTreatments.find(st => String(st.id) === String(plan.procedureId));
-            if (tab === 'Other') {
-                return !t || !t.category || !['preventive', 'restorative', 'cosmetic', 'surgical'].includes(t.category.toLowerCase());
-            }
-            return t?.category?.toLowerCase() === tab.toLowerCase();
-          });
-
-          return (
-            <TabsContent key={tab} value={tab}>
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between">
-                    <div>
-                      <CardTitle>{tab === 'All' ? 'Current Treatment Plan' : `${tab} Treatments`}</CardTitle>
-                      <CardDescription>
-                        List of proposed and ongoing treatments.
-                      </CardDescription>
-                    </div>
-                    {canUpdatePatient && (
-                        <Button size="sm" onClick={() => handleOpenTreatmentFormForEdit()}>
-                        <PlusCircle className="mr-2 h-4 w-4" />
-                        New Treatment
-                        </Button>
-                    )}
-                  </CardHeader>
-                  <CardContent className="overflow-auto max-h-[480px]">
-                    {filteredPlans.length > 0 ? (
-                      <Table className="min-w-full border rounded-md">
-                        <TableHeader>
-                          <TableRow className="bg-muted/30 hover:bg-muted/30">
-                            <TableHead>Procedure</TableHead>
-                            <TableHead>Tooth</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead>Cost</TableHead>
-                            {canUpdatePatient && <TableHead className="text-right">Actions</TableHead>}
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {filteredPlans.map((plan) => (
-                            <TableRow key={plan.id}>
-                              <TableCell className="font-medium">
-                                {plan.procedure}
+        <TabsContent value="treatment">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>Current Treatment Plan</CardTitle>
+                  <CardDescription>
+                    List of proposed and ongoing treatments.
+                  </CardDescription>
+                </div>
+                {canUpdatePatient && (
+                    <Button size="sm" onClick={() => handleOpenTreatmentFormForEdit()}>
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    New Treatment
+                    </Button>
+                )}
+              </CardHeader>
+              <CardContent className="overflow-auto max-h-[480px]">
+                {patient.treatmentPlans.length > 0 ? (
+                  <Table className="min-w-full border rounded-md">
+                    <TableHeader>
+                      <TableRow className="bg-muted/30 hover:bg-muted/30">
+                        <TableHead>Procedure</TableHead>
+                        <TableHead>Tooth</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Cost</TableHead>
+                        {canUpdatePatient && <TableHead className="text-right">Actions</TableHead>}
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {patient.treatmentPlans.map((plan) => (
+                        <TableRow key={plan.id}>
+                          <TableCell className="font-medium">
+                            {plan.procedure}
+                          </TableCell>
+                          <TableCell>{plan.tooth || "N/A"}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline">{plan.status}</Badge>
+                          </TableCell>
+                          <TableCell>
+                            ${Number(plan.cost).toFixed(2)}
+                          </TableCell>
+                          {canUpdatePatient && (
+                              <TableCell className="text-right">
+                              <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" className="h-8 w-8 p-0">
+                                      <span className="sr-only">Open menu</span>
+                                      <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                  <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                  <DropdownMenuItem onClick={() => handleOpenTreatmentFormForEdit(plan)}>
+                                      <Pencil className="mr-2 h-4 w-4" />
+                                      Edit
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleDeleteTreatment(plan.id)}>
+                                      <Trash className="mr-2 h-4 w-4" />
+                                      Delete
+                                  </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                              </DropdownMenu>
                               </TableCell>
-                              <TableCell>{plan.tooth || "N/A"}</TableCell>
-                              <TableCell>
-                                <Badge variant="outline">{plan.status}</Badge>
-                              </TableCell>
-                              <TableCell>
-                                ${Number(plan.cost).toFixed(2)}
-                              </TableCell>
-                              {canUpdatePatient && (
-                                  <TableCell className="text-right">
-                                  <DropdownMenu>
-                                      <DropdownMenuTrigger asChild>
-                                      <Button variant="ghost" className="h-8 w-8 p-0">
-                                          <span className="sr-only">Open menu</span>
-                                          <MoreHorizontal className="h-4 w-4" />
-                                      </Button>
-                                      </DropdownMenuTrigger>
-                                      <DropdownMenuContent align="end">
-                                      <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                      <DropdownMenuItem onClick={() => handleOpenTreatmentFormForEdit(plan)}>
-                                          <Pencil className="mr-2 h-4 w-4" />
-                                          Edit
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleDeleteTreatment(plan.id)}>
-                                          <Trash className="mr-2 h-4 w-4" />
-                                          Delete
-                                      </DropdownMenuItem>
-                                      </DropdownMenuContent>
-                                  </DropdownMenu>
-                                  </TableCell>
-                              )}
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    ) : (
-                      <div className="flex flex-col items-center justify-center p-8 text-center text-muted-foreground min-h-[200px] border rounded-md">
-                        <p>No {tab !== 'All' ? tab.toLowerCase() : ''} treatments found.</p>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-            </TabsContent>
-          );
-        })}
+                          )}
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                ) : (
+                  <div className="flex flex-col items-center justify-center p-8 text-center text-muted-foreground min-h-[200px] border rounded-md">
+                    <p>No treatments found.</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+        </TabsContent>
       </Tabs>
       {isTreatmentFormOpen && (
         <TreatmentPlanForm
