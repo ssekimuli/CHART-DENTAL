@@ -35,7 +35,7 @@ import { SoftTissueChart } from "./components/soft-tissue-chart";
 import { TreatmentPlanForm } from "../components/treatment-plan-form";
 import { OrthodonticChart } from "./components/orthodontic-chart";
 import { ConditionLogger } from "../components/condition-logger";
-import { getPatientById, addTreatment, saveDentalRecord, savePeriodontalRecord, saveOcclusalRecord, saveOrthodonticRecord, updateOrthodonticRecord, deleteOrthodonticRecord, saveSoftTissueRecord, updateSoftTissueRecord, deleteSoftTissueRecord } from "@/lib/api";
+import { getPatientById, addTreatment, updateTreatment, saveDentalRecord, savePeriodontalRecord, saveOcclusalRecord, saveOrthodonticRecord, updateOrthodonticRecord, deleteOrthodonticRecord, saveSoftTissueRecord, updateSoftTissueRecord, deleteSoftTissueRecord } from "@/lib/api";
 import { getCurrentUser, hasRole, hasPermission } from "@/lib/user";
 import { getPatientFullName } from "@/lib/utils";
 

@@ -111,11 +111,15 @@ export function TreatmentPlanForm({ treatment, onSave, onOpenChange, toothId, cu
   }, [selectedProcedureId, systemTreatments, form])
   function onSubmit(values: z.infer<typeof formSchema>) {
     const selectedSystemTreatment = systemTreatments.find(t => String(t.id) === String(values.procedureId));
-    if (!selectedSystemTreatment) return;
+    
+    // When editing, it's okay if we can't find the system treatment (user may not have changed procedure)
+    // Fall back to the existing treatment prop's procedure name
+    const procedureName = selectedSystemTreatment?.procedure ?? treatment?.procedure ?? values.procedure ?? '';
+    if (!procedureName) return;
 
     onSave({
         ...values,
-        procedure: selectedSystemTreatment.procedure,
+        procedure: procedureName,
     }, values.condition);
   }
 

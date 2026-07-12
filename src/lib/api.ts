@@ -2321,9 +2321,10 @@ export const updateTreatment = async (patientId: string | number, treatment: Tre
     
     try {
         const requestBody = {
+            procedure_id: treatment.procedureId,
             procedure: treatment.procedure,
             tooth: treatment.tooth || null,
-            status: treatment.status === 'In Progress' || treatment.status === 'Cancelled' ? 'Proposed' : treatment.status,
+            status: treatment.status,
             cost: treatment.cost,
             date: treatment.date,
         };
