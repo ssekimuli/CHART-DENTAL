@@ -2252,6 +2252,8 @@ export const addTreatment = async (patientId: string | number, treatmentData: Om
             : treatmentData.status,
         cost: treatmentData.cost,
         date: today,
+        condition: condition || null,
+        notes: treatmentData.procedure || null,
     };
 
     try {
