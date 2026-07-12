@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { fetchApi } from "@/lib/api";
+import customAxios from "@/lib/axios";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Clock, Stethoscope, ActivitySquare } from "lucide-react";
@@ -31,9 +31,9 @@ export default function ToothHistoryPage() {
     useEffect(() => {
         const loadHistory = async () => {
             try {
-                const response = await fetchApi(`/patients/${patientId}/tooth/${toothId}/history`);
-                if (response?.history) {
-                    setHistory(response.history);
+                const response = await customAxios.get(`/patients/${patientId}/tooth/${toothId}/history`);
+                if (response.data?.history) {
+                    setHistory(response.data.history);
                 }
             } catch (error) {
                 console.error("Failed to load tooth history:", error);
