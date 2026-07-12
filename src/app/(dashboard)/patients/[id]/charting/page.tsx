@@ -61,8 +61,8 @@ export default function PatientChartingPage({
   }
 
   const handleOpenTreatmentFormForEdit = (treatment?: Treatment) => {
-    // Wait, the existing code calls handleOpenTreatmentFormForEdit(plan), so let's redefine it
     setSelectedTreatment(treatment);
+    setSelectedToothForTreatment(undefined);
     setIsTreatmentFormOpen(true);
   }
 
@@ -205,7 +205,7 @@ export default function PatientChartingPage({
     }
   }
   
-  const handleDeleteOrthoRecord = async (recordId: string) => {
+  const handleDeleteOrthoRecord = async (recordId: string | number) => {
     if (!patient) return;
     const updatedPatient = await deleteOrthodonticRecord(patient.id, recordId);
     if (updatedPatient) {
@@ -229,13 +229,13 @@ export default function PatientChartingPage({
     }
  }
 
- const handleDeleteSoftTissueRecord = async (recordId: string) => {
+  const handleDeleteSoftTissueRecord = async (recordId: string | number) => {
     if (!patient) return;
     const updatedPatient = await deleteSoftTissueRecord(patient.id, recordId);
-    if (updatedPatient) {
+     if (updatedPatient) {
         setPatient(updatedPatient);
     }
- }
+  }
 
   const handleOpenTreatmentForm = (toothId: number) => {
     setSelectedToothForTreatment(toothId);
