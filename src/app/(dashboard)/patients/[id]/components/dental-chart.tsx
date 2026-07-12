@@ -1,17 +1,13 @@
 
 "use client";
 
-import React, { useState } from "react";
-import { Tooth } from "./tooth";
+import React, { useState, useMemo } from "react";
 import type { DentalRecord, DentalCondition, Treatment } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
 import { FilePen, Plus } from "lucide-react";
+import { Odontogram } from "react-odontogram";
+import "react-odontogram/style.css";
 
 
 const upperRightQuadrant = [18, 17, 16, 15, 14, 13, 12, 11];
@@ -36,64 +32,101 @@ type DentalChartProps = {
 };
 
 export function DentalChart({ initialRecords, treatmentPlans, onAddTreatment, onLogCondition }: DentalChartProps) {
+  const [selectedTooth, setSelectedTooth] = useState<number | null>(null);
 
-  const getRecordForTooth = (toothId: number) => {
-    return initialRecords.find((r) => r.toothId === toothId);
-  };
-  
-  const getTreatmentForTooth = (toothId: number) => {
-    return treatmentPlans.some(
-        plan => plan.tooth === toothId && (plan.status === 'Proposed' || plan.status === 'In Progress')
-    );
-  }
+  // Group conditions for react-odontogram
+  const teethConditions = useMemo(() => {
+    const conditionsMap: Record<string, string[]> = {
+      Caries: [],
+      Filling: [],
+      Crown: [],
+      Missing: [],
+      Fracture: [],
+    };
+    
+    const treatmentMap: string[] = []; // Teeth with treatments but no specific condition style
 
-  const renderQuadrant = (quadrant: number[], reverse: boolean = false) => {
-    const teeth = reverse ? [...quadrant].reverse() : quadrant;
-    return (
-      <div className="flex justify-center gap-1">
-        {teeth.map((toothId) => (
-           <DropdownMenu key={toothId}>
-            <DropdownMenuTrigger asChild>
-                <div>
-                    <Tooth
-                        toothId={toothId}
-                        condition={getRecordForTooth(toothId)?.condition ?? "Healthy"}
-                        hasTreatmentPlan={getTreatmentForTooth(toothId)}
-                        onClick={() => {}} // onClick is handled by dropdown items now
-                    />
-                </div>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-                <DropdownMenuItem onClick={() => onLogCondition(toothId)}>
-                    <FilePen className="mr-2 h-4 w-4" />
-                    <span>Log Condition</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onAddTreatment(toothId)}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    <span>Add Treatment</span>
-                </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        ))}
-      </div>
-    );
-  };
+    initialRecords.forEach((record) => {
+      if (record.condition !== 'Healthy' && conditionsMap[record.condition]) {
+        conditionsMap[record.condition].push(`teeth-${record.toothId}`);
+      }
+    });
+
+    treatmentPlans.forEach((plan) => {
+      if (plan.tooth && (plan.status === 'Proposed' || plan.status === 'In Progress')) {
+          const toothIdStr = `teeth-${plan.tooth}`;
+          // Only add to treatment map if it doesn't already have a strong condition color, 
+          // or we can just make a dedicated "Treatment" condition group that has a blue outline.
+          // react-odontogram layers conditions by array order.
+          treatmentMap.push(toothIdStr);
+      }
+    });
+
+    const groups = [];
+    
+    if (conditionsMap.Caries.length > 0) groups.push({ label: 'Caries', teeth: conditionsMap.Caries, fillColor: '#FBBF24', outlineColor: '#B45309' });
+    if (conditionsMap.Filling.length > 0) groups.push({ label: 'Filling', teeth: conditionsMap.Filling, fillColor: '#60A5FA', outlineColor: '#1D4ED8' });
+    if (conditionsMap.Crown.length > 0) groups.push({ label: 'Crown', teeth: conditionsMap.Crown, fillColor: '#A78BFA', outlineColor: '#6D28D9' });
+    if (conditionsMap.Missing.length > 0) groups.push({ label: 'Missing', teeth: conditionsMap.Missing, fillColor: '#6B7280', outlineColor: '#374151' });
+    if (conditionsMap.Fracture.length > 0) groups.push({ label: 'Fracture', teeth: conditionsMap.Fracture, fillColor: '#EF4444', outlineColor: '#B91C1C' });
+
+    // Treatments (blue outline)
+    if (treatmentMap.length > 0) {
+        groups.push({
+            label: 'Treatment Plan',
+            teeth: treatmentMap,
+            fillColor: 'transparent',
+            outlineColor: '#3B82F6', // Blue outline for treatments
+        });
+    }
+
+    return groups;
+  }, [initialRecords, treatmentPlans]);
 
   return (
-    <>
-      <div className="flex flex-col gap-4 rounded-lg bg-muted/30 p-4">
-        <div className="flex justify-between border-b-2 border-dashed border-border pb-4">
-          {renderQuadrant(upperRightQuadrant, true)}
-          {renderQuadrant(upperLeftQuadrant)}
-        </div>
-        <div className="flex justify-between">
-          {renderQuadrant(lowerRightQuadrant, true)}
-          {renderQuadrant(lowerLeftQuadrant)}
+    <div className="flex flex-col gap-6">
+      <div className="rounded-lg bg-muted/10 p-6 border overflow-x-auto flex justify-center">
+        <div className="min-w-[700px]">
+          <Odontogram 
+            singleSelect 
+            teethConditions={teethConditions}
+            onChange={(teeth: any) => {
+              if (teeth && teeth.length > 0) {
+                const fdi = parseInt(teeth[0].notations.fdi, 10);
+                setSelectedTooth(fdi);
+              } else {
+                setSelectedTooth(null);
+              }
+            }}
+          />
         </div>
       </div>
-      <div className="mt-4 flex flex-wrap justify-center gap-x-6 gap-y-2">
+
+      {selectedTooth && (
+        <div className="p-4 border rounded-md bg-muted/50 flex flex-col sm:flex-row items-center justify-between gap-4 animate-in fade-in slide-in-from-bottom-2">
+            <div className="flex items-center gap-2">
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary font-bold">
+                    {selectedTooth}
+                </span>
+                <div>
+                    <h4 className="font-semibold text-lg leading-none mb-1">Tooth #{selectedTooth}</h4>
+                    <p className="text-sm text-muted-foreground">Select an action for this tooth</p>
+                </div>
+            </div>
+            <div className="flex gap-2">
+                <Button variant="outline" onClick={() => onLogCondition(selectedTooth)}>
+                    <FilePen className="mr-2 h-4 w-4" /> Log Condition
+                </Button>
+                <Button onClick={() => onAddTreatment(selectedTooth)}>
+                    <Plus className="mr-2 h-4 w-4" /> Add Treatment
+                </Button>
+            </div>
+        </div>
+      )}
+
+      <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 mt-4">
         <div className="flex items-center gap-2">
-            <div className="h-4 w-4 rounded-full border border-blue-500 bg-transparent ring-2 ring-blue-500/50"></div>
+            <div className="h-4 w-4 rounded-full border-2 border-blue-500 bg-transparent"></div>
             <span className="text-sm text-muted-foreground">Treatment Plan</span>
         </div>
         {conditionInfo.map(({ condition, twColor }) => (
@@ -103,6 +136,6 @@ export function DentalChart({ initialRecords, treatmentPlans, onAddTreatment, on
           </div>
         ))}
       </div>
-    </>
+    </div>
   );
 }
