@@ -6,6 +6,13 @@ import type { DentalRecord, DentalCondition, Treatment } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { FilePen, Plus } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { Odontogram } from "react-odontogram";
 import "react-odontogram/style.css";
 
@@ -89,40 +96,54 @@ export function DentalChart({ initialRecords, treatmentPlans, onAddTreatment, on
         <div className="min-w-[700px]">
           <Odontogram 
             singleSelect 
+            layout="square"
             teethConditions={teethConditions}
             onChange={(teeth: any) => {
               if (teeth && teeth.length > 0) {
                 const fdi = parseInt(teeth[0].notations.fdi, 10);
                 setSelectedTooth(fdi);
-              } else {
-                setSelectedTooth(null);
               }
             }}
           />
         </div>
       </div>
 
-      {selectedTooth && (
-        <div className="p-4 border rounded-md bg-muted/50 flex flex-col sm:flex-row items-center justify-between gap-4 animate-in fade-in slide-in-from-bottom-2">
-            <div className="flex items-center gap-2">
-                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary font-bold">
-                    {selectedTooth}
-                </span>
-                <div>
-                    <h4 className="font-semibold text-lg leading-none mb-1">Tooth #{selectedTooth}</h4>
-                    <p className="text-sm text-muted-foreground">Select an action for this tooth</p>
-                </div>
-            </div>
-            <div className="flex gap-2">
-                <Button variant="outline" onClick={() => onLogCondition(selectedTooth)}>
+      <Dialog open={selectedTooth !== null} onOpenChange={(open) => !open && setSelectedTooth(null)}>
+        <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary font-bold text-sm">
+                        {selectedTooth}
+                    </span>
+                    Tooth #{selectedTooth}
+                </DialogTitle>
+                <DialogDescription>
+                    Select an action to perform on this tooth.
+                </DialogDescription>
+            </DialogHeader>
+            <div className="flex flex-col sm:flex-row gap-3 mt-4">
+                <Button 
+                    variant="outline" 
+                    className="flex-1"
+                    onClick={() => {
+                        if (selectedTooth) onLogCondition(selectedTooth);
+                        setSelectedTooth(null);
+                    }}
+                >
                     <FilePen className="mr-2 h-4 w-4" /> Log Condition
                 </Button>
-                <Button onClick={() => onAddTreatment(selectedTooth)}>
+                <Button 
+                    className="flex-1"
+                    onClick={() => {
+                        if (selectedTooth) onAddTreatment(selectedTooth);
+                        setSelectedTooth(null);
+                    }}
+                >
                     <Plus className="mr-2 h-4 w-4" /> Add Treatment
                 </Button>
             </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
 
       <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 mt-4">
         <div className="flex items-center gap-2">
