@@ -121,36 +121,54 @@ export default function PatientChartingPage({
     return null; // Return null during the loading/redirect state
   }
 
-  const handleAddTreatment = async (newTreatment: Omit<Treatment, 'id' | 'date'>, condition?: DentalCondition) => {
-    const savedTreatment = await addTreatment(patient.id, newTreatment, condition);
-    if (savedTreatment) {
-      // Update the patient's treatment plans and dental records
-      const updatedDentalRecords = [...patient.dentalRecords];
-
-      // If a tooth is specified and condition is provided, update the dental record
-      if (newTreatment.tooth && condition) {
-        const recordIndex = updatedDentalRecords.findIndex(r => r.toothId === newTreatment.tooth);
-        const newRecord: DentalRecord = {
-          toothId: newTreatment.tooth,
-          condition: condition,
-          notes: savedTreatment.procedure || ''
-        };
-
-        if (recordIndex > -1) {
-          updatedDentalRecords[recordIndex] = newRecord;
-        } else {
-          updatedDentalRecords.push(newRecord);
+  const handleSaveTreatment = async (treatmentData: Omit<Treatment, 'id' | 'date'>, condition?: DentalCondition) => {
+    if (!patient) return;
+    
+    if (selectedTreatment) {
+        // It's an update
+        const updatedTreatmentObj = {
+            ...selectedTreatment,
+            ...treatmentData,
+        } as Treatment;
+        
+        const updatedPatient = await updateTreatment(patient.id, updatedTreatmentObj);
+        if (updatedPatient) {
+            setPatient(updatedPatient);
         }
-      }
+    } else {
+        // It's a new treatment
+        const savedTreatment = await addTreatment(patient.id, treatmentData, condition);
+        if (savedTreatment) {
+            // Update the patient's treatment plans and dental records
+            const updatedDentalRecords = [...patient.dentalRecords];
 
-      setPatient({
-        ...patient,
-        treatmentPlans: [savedTreatment, ...patient.treatmentPlans],
-        dentalRecords: updatedDentalRecords
-      });
+            // If a tooth is specified and condition is provided, update the dental record
+            if (treatmentData.tooth && condition) {
+                const recordIndex = updatedDentalRecords.findIndex(r => r.toothId === treatmentData.tooth);
+                const newRecord: DentalRecord = {
+                toothId: treatmentData.tooth,
+                condition: condition,
+                notes: savedTreatment.procedure || ''
+                };
+
+                if (recordIndex > -1) {
+                updatedDentalRecords[recordIndex] = newRecord;
+                } else {
+                updatedDentalRecords.push(newRecord);
+                }
+            }
+
+            setPatient({
+                ...patient,
+                treatmentPlans: [savedTreatment, ...patient.treatmentPlans],
+                dentalRecords: updatedDentalRecords
+            });
+        }
     }
+    
     setIsTreatmentFormOpen(false);
     setSelectedToothForTreatment(undefined);
+    setSelectedTreatment(undefined);
   }
 
   const handleSaveDentalRecord = async (record: DentalRecord) => {
@@ -397,10 +415,11 @@ export default function PatientChartingPage({
       </Tabs>
       {isTreatmentFormOpen && (
         <TreatmentPlanForm
-            onSave={handleAddTreatment}
+            treatment={selectedTreatment}
+            onSave={handleSaveTreatment}
             onOpenChange={handleCloseTreatmentForm}
             toothId={selectedToothForTreatment}
-            currentCondition={patient.dentalRecords.find(r => r.toothId === selectedToothForTreatment)?.condition}
+            currentCondition={patient.dentalRecords.find(r => r.toothId === (selectedToothForTreatment || selectedTreatment?.tooth))?.condition}
         />
       )}
       {isConditionLoggerOpen && selectedToothForCondition && (

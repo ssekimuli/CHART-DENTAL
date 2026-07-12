@@ -75,6 +75,27 @@ export function TreatmentPlanForm({ treatment, onSave, onOpenChange, toothId, cu
     }
     fetchTreatments();
   }, [])
+
+  // When editing, if we have a treatment but procedureId is empty, try to match it by name
+  // after system treatments load.
+  useEffect(() => {
+      if (treatment && systemTreatments.length > 0) {
+          let pId = treatment.procedureId;
+          if (!pId) {
+              const matched = systemTreatments.find(st => st.procedure === treatment.procedure);
+              if (matched) {
+                  pId = String(matched.id);
+                  form.setValue('procedureId', pId);
+              }
+          }
+          // Set other values to ensure form is fully populated
+          form.setValue('procedure', treatment.procedure);
+          form.setValue('status', treatment.status);
+          if (treatment.tooth) form.setValue('tooth', treatment.tooth);
+          form.setValue('cost', treatment.cost);
+          if (currentCondition) form.setValue('condition', currentCondition);
+      }
+  }, [treatment, systemTreatments, form, currentCondition]);
   
   const selectedProcedureId = form.watch("procedureId");
   useEffect(() => {
