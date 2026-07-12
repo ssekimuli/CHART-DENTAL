@@ -93,7 +93,17 @@ export function DentalChart({ initialRecords, treatmentPlans, onAddTreatment, on
   return (
     <div className="flex flex-col gap-6">
       <div className="rounded-lg bg-muted/10 p-6 border overflow-x-auto flex justify-center items-center min-h-[450px]">
-        <div className="w-full max-w-[900px] min-w-[800px] scale-105 origin-center py-4">
+        <div className="w-full max-w-[900px] min-w-[800px] scale-105 origin-center py-4 flex flex-col relative">
+          
+          {/* Top Row Numbers */}
+          <div className="flex w-full justify-between text-xs font-semibold text-muted-foreground mb-2 px-1">
+            {[...upperRightQuadrant, ...upperLeftQuadrant].map(num => (
+              <div key={`top-${num}`} className="flex-1 text-center">
+                {num}
+              </div>
+            ))}
+          </div>
+
           <Odontogram 
             singleSelect 
             layout="square"
@@ -105,6 +115,16 @@ export function DentalChart({ initialRecords, treatmentPlans, onAddTreatment, on
               }
             }}
           />
+
+          {/* Bottom Row Numbers */}
+          <div className="flex w-full justify-between text-xs font-semibold text-muted-foreground mt-2 px-1">
+            {[...lowerRightQuadrant, ...lowerLeftQuadrant].map(num => (
+              <div key={`bottom-${num}`} className="flex-1 text-center">
+                {num}
+              </div>
+            ))}
+          </div>
+          
         </div>
       </div>
 
