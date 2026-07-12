@@ -2318,29 +2318,56 @@ export const addTreatment = async (patientId: string | number, treatmentData: Om
 
 export const updateTreatment = async (patientId: string | number, treatment: Treatment): Promise<Patient | undefined> => {
     console.log('API CALL: updateTreatment', { patientId, treatment });
-    await delay(200);
-    const patientIndex = allPatients.findIndex(p => String(p.id) === String(patientId));
-    if (patientIndex > -1) {
-        const patient = allPatients[patientIndex];
-        const treatmentIndex = patient.treatmentPlans.findIndex(t => String(t.id) === String(treatment.id));
-        if (treatmentIndex > -1) {
-            patient.treatmentPlans[treatmentIndex] = treatment;
-        }
-        return patient;
+    
+    try {
+        const requestBody = {
+            procedure: treatment.procedure,
+            tooth: treatment.tooth || null,
+            status: treatment.status === 'In Progress' || treatment.status === 'Cancelled' ? 'Proposed' : treatment.status,
+            cost: treatment.cost,
+            date: treatment.date,
+        };
+
+        await customAxios.put(`/patients/${patientId}/treatments/${treatment.id}`, requestBody);
+        
+        // Fetch fresh patient data to get all updated relations
+        return getPatientById(patientId);
+    } catch (error) {
+        console.error('Error updating treatment:', error);
+        return undefined;
     }
-    return undefined;
+}
+
+export const updateTreatmentStatus = async (patientId: string | number, treatmentId: string | number, status: string): Promise<Patient | undefined> => {
+    console.log('API CALL: updateTreatmentStatus', { patientId, treatmentId, status });
+    
+    try {
+        const requestBody = {
+            status: status === 'In Progress' || status === 'Cancelled' ? 'Proposed' : status,
+        };
+
+        await customAxios.patch(`/patients/${patientId}/treatments/${treatmentId}/status`, requestBody);
+        
+        // Fetch fresh patient data to get all updated relations
+        return getPatientById(patientId);
+    } catch (error) {
+        console.error('Error updating treatment status:', error);
+        return undefined;
+    }
 }
 
 export const deleteTreatment = async (patientId: string | number, treatmentId: string | number): Promise<Patient | undefined> => {
     console.log('API CALL: deleteTreatment', { patientId, treatmentId });
-    await delay(200);
-    const patientIndex = allPatients.findIndex(p => String(p.id) === String(patientId));
-    if (patientIndex > -1) {
-        const patient = allPatients[patientIndex];
-        patient.treatmentPlans = patient.treatmentPlans.filter(t => String(t.id) !== String(treatmentId));
-        return patient;
+    
+    try {
+        await customAxios.delete(`/patients/${patientId}/treatments/${treatmentId}`);
+        
+        // Fetch fresh patient data
+        return getPatientById(patientId);
+    } catch (error) {
+        console.error('Error deleting treatment:', error);
+        return undefined;
     }
-    return undefined;
 }
 
 export const updateOrthodonticRecord = async (patientId: string | number, record: OrthodonticRecord): Promise<Patient | undefined> => {
