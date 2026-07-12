@@ -2261,10 +2261,10 @@ export const addTreatment = async (patientId: string | number, treatmentData: Om
         const responseData = response.data.data || response.data;
 
         // Extract the newly created treatment from the response.
-        // The backend returns the patient with treatmentPlans loaded.
-        // The last treatment plan entry should be the one we just created.
+        // The backend returns the patient with treatmentPlans loaded, ordered by id desc.
+        // The first treatment plan entry should be the one we just created.
         const treatmentPlans = responseData.treatment_plans || responseData.treatmentPlans || [];
-        const savedTreatment = treatmentPlans.length > 0 ? treatmentPlans[treatmentPlans.length - 1] : null;
+        const savedTreatment = treatmentPlans.length > 0 ? treatmentPlans[0] : null;
 
         const feTreatment: Treatment = {
             id: savedTreatment?.id || `t${Date.now()}`,
@@ -2282,8 +2282,8 @@ export const addTreatment = async (patientId: string | number, treatmentData: Om
         if (patientIndex > -1) {
             const patient = allPatients[patientIndex];
 
-            // Add treatment to treatment plans
-            patient.treatmentPlans.push(feTreatment);
+            // Add treatment to treatment plans at the beginning (descending order)
+            patient.treatmentPlans.unshift(feTreatment);
 
             // If a condition was provided, also update dental records locally
             if (condition && treatmentData.tooth) {

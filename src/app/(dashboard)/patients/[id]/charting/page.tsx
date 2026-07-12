@@ -145,7 +145,7 @@ export default function PatientChartingPage({
 
       setPatient({
         ...patient,
-        treatmentPlans: [...patient.treatmentPlans, savedTreatment],
+        treatmentPlans: [savedTreatment, ...patient.treatmentPlans],
         dentalRecords: updatedDentalRecords
       });
     }
