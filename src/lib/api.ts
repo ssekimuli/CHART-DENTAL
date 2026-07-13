@@ -198,7 +198,6 @@ export const getPatients = async (filters?: string | number | GetPatientsFilters
     try {
         const params: { branch_id?: number; status?: string; gender?: string; page?: number; per_page?: number } = {};
 
-        // Handle backward compatibility - if filters is a string or number, treat it as branchId
         if (typeof filters === 'number' || typeof filters === 'string') {
             const parsed = parseInt(String(filters), 10);
             if (!isNaN(parsed) && parsed > 0) {
@@ -305,7 +304,6 @@ export const getPatientList = async (filters?: string | number | GetPatientsFilt
             return [];
         }
 
-        // ✅ Map the response to BasePatient type
         const patients: BasePatient[] = patientData.map((patient: any) => ({
             id: patient.id || patient.patient_id,
             name: patient.name || patient.patient_name || 'Unknown',
