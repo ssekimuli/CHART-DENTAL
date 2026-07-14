@@ -23,6 +23,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useCurrency } from "@/hooks/use-currency";
 
 type EmployeesTableProps = {
     data: Employee[];
@@ -32,6 +33,7 @@ type EmployeesTableProps = {
 };
 
 export function EmployeesTable({ data, onView, onEdit, onDelete }: EmployeesTableProps) {
+  const { formatCurrency } = useCurrency();
 
   return (
     <div className="rounded-md border">
@@ -73,7 +75,7 @@ export function EmployeesTable({ data, onView, onEdit, onDelete }: EmployeesTabl
                 </Badge>
               </TableCell>
               <TableCell>{employee.hire_date}</TableCell>
-              <TableCell className="text-right">${employee.salary.toLocaleString()}</TableCell>
+              <TableCell className="text-right">{formatCurrency(employee.salary)}</TableCell>
               <TableCell className="text-right">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>

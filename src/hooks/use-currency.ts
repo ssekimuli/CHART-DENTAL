@@ -5,7 +5,7 @@ import { getCurrencyCode, getCurrencyConfig, formatCurrency, setCurrencyCode, Cu
 
 export function useCurrency() {
     // We initialize state with client-side value if available, or default
-    const [currencyCode, setCurrencyCodeState] = useState("USD");
+    const [currencyCode, setCurrencyCodeState] = useState("UGX");
 
     useEffect(() => {
         // Update state to correct value once mounted (client-side only)

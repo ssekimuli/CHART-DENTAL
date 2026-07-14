@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { MoreHorizontal, Eye, Pencil, Trash } from "lucide-react";
+import { useCurrency } from "@/hooks/use-currency";
 
 type PayrollTableProps = {
     data: Payroll[];
@@ -34,6 +35,7 @@ type PayrollTableProps = {
 
 
 export function PayrollTable({ data, onView, onEdit, onDelete, canUpdate, canDelete }: PayrollTableProps) {
+    const { formatCurrency } = useCurrency();
     const getStatusVariant = (status: "Paid" | "Pending") => {
         switch (status) {
           case "Paid":
@@ -70,7 +72,7 @@ export function PayrollTable({ data, onView, onEdit, onDelete, canUpdate, canDel
               </TableCell>
               <TableCell>{payroll.payDate ? String(payroll.payDate).split('T')[0] : ''}</TableCell>
               <TableCell className="text-right font-mono">
-                ${Number(payroll.netPay).toFixed(2)}
+                {formatCurrency(payroll.netPay)}
               </TableCell>
               {(canUpdate || canDelete) && (
                 <TableCell className="text-right">

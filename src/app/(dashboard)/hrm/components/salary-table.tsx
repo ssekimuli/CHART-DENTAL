@@ -14,6 +14,7 @@ import type { Employee } from "@/lib/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Pencil } from "lucide-react";
+import { useCurrency } from "@/hooks/use-currency";
 
 type SalaryTableProps = {
     data: Employee[];
@@ -22,6 +23,7 @@ type SalaryTableProps = {
 };
 
 export function SalaryTable({ data, onEdit, canUpdate }: SalaryTableProps) {
+  const { formatCurrency } = useCurrency();
 
   return (
     <div className="rounded-md border">
@@ -49,7 +51,7 @@ export function SalaryTable({ data, onEdit, canUpdate }: SalaryTableProps) {
                 </div>
               </TableCell>
               <TableCell>{employee.role}</TableCell>
-              <TableCell className="text-right font-mono">${Number(employee.salary).toLocaleString()}</TableCell>
+              <TableCell className="text-right font-mono">{formatCurrency(employee.salary)}</TableCell>
               {canUpdate && (
                 <TableCell className="text-right">
                     <Button variant="outline" size="sm" onClick={() => onEdit(employee)}>
