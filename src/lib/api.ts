@@ -3215,6 +3215,31 @@ export const markAttendance = async(data: {
     }
 }
 
+export const saveAttendanceSheet = async (
+  payload: {
+    employee_id: number | string;
+    date: string;
+    status: string;
+    check_in?: string;
+    check_out?: string;
+    branch_id: number | string;
+  }[]
+): Promise<any[]> => {
+  console.log('API CALL: saveAttendanceSheet', payload);
+  try {
+    const response = await customAxios.post('/management/attendance', payload);
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+        console.error('Failed to save attendance sheet:', error.response?.data);
+        throw new Error(error.response?.data?.message || "Failed to save attendance sheet");
+    } else {
+        console.error("An unexpected error occurred during saving attendance sheet:", error);
+        throw error;
+    }
+  }
+}
+
 // Leave
 export const createLeaveRequest = async (data: Omit<LeaveRequest, 'id' | 'status'>): Promise<LeaveRequest> => {
     console.log('API CALL: createLeaveRequest', { data });
