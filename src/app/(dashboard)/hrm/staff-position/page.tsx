@@ -40,7 +40,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { hasPermission } from "@/lib/user";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, PlusCircle, Pencil, Shield, Trash } from "lucide-react";
+import { MoreHorizontal, PlusCircle, Shield, Trash } from "lucide-react";
 import { RoleForm } from "../components/role-form";
 import { useToast } from "@/hooks/use-toast";
 
@@ -59,7 +59,6 @@ export default function StaffPositionPage() {
     const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
     
     const canCreate = hasPermission("hrm:create");
-    const canUpdate = hasPermission("hrm:update");
     const canDelete = hasPermission("hrm:delete");
     const canManageSettings = hasPermission("settings:manage");
 
@@ -186,11 +185,6 @@ export default function StaffPositionPage() {
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="end">
                                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                            {canUpdate && (
-                                                <DropdownMenuItem onClick={() => handleOpenForm(role)}>
-                                                    <Pencil className="mr-2 h-4 w-4" /> Edit Name
-                                                </DropdownMenuItem>
-                                            )}
                                             {canManageSettings && (
                                                  <DropdownMenuItem onClick={() => handleManagePermissions(role.id)}>
                                                     <Shield className="mr-2 h-4 w-4" /> Manage Permissions
