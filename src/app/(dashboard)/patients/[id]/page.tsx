@@ -24,7 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { useEffect, useState, use } from "react";
 import type { Patient, Treatment, BasePatient, PatientImage, DentalCondition, SystemTreatment } from "@/lib/types";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Trash, Pencil, FileText, Loader2, Upload, MoreHorizontal } from "lucide-react";
+import { PlusCircle, Trash, Pencil, FileText, Loader2, Upload, MoreHorizontal, HandCoins } from "lucide-react";
 import { TreatmentPlanForm } from "./components/treatment-plan-form";
 import { PatientForm } from "../components/patient-form";
 import {
@@ -44,11 +44,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { deletePatient, getPatientById, updatePatient, addTreatment, updateTreatment, deleteTreatment, addImageToPatient, getTreatments, getPatientInvoices } from "@/lib/api";
+import { deletePatient, getPatientById, updatePatient, addTreatment, updateTreatment, deleteTreatment, addImageToPatient, getTreatments, getPatientInvoices, processPayment } from "@/lib/api";
 import { ImageUploadForm } from "./components/image-upload-form";
 import { hasPermission, getCurrentUser, hasRole } from "@/lib/user";
 import { getPatientFullName } from "@/lib/utils";
 import { useCurrency } from "@/hooks/use-currency";
+import { useToast } from "@/hooks/use-toast";
+import { PaymentForm } from "../../billing/components/payment-form";
+import moment from "moment";
 
 export default function PatientDetailPage({
   params,
@@ -69,6 +72,43 @@ export default function PatientDetailPage({
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const [isImageFormOpen, setIsImageFormOpen] = useState(false);
   const [historySummary, setHistorySummary] = useState<{ summary: string } | null>(null);
+
+  const { toast } = useToast();
+  const [selectedInvoice, setSelectedInvoice] = useState<any | undefined>(undefined);
+  const [isPaymentFormOpen, setIsPaymentFormOpen] = useState(false);
+
+  const handleOpenPaymentForm = (invoice: any) => {
+    setSelectedInvoice(invoice);
+    setIsPaymentFormOpen(true);
+  };
+
+  const handleClosePaymentForm = () => {
+    setSelectedInvoice(undefined);
+    setIsPaymentFormOpen(false);
+  };
+
+  const handleProcessPayment = async (invoiceId: string, amount: number, method: string) => {
+    try {
+      const updated = await processPayment(invoiceId, amount, method);
+      if (updated) {
+        setInvoices((prev) =>
+          prev.map((inv) => (String(inv.id) === String(updated.id) ? { ...inv, ...updated, paidAmount: Number(updated.paid_amount), amount: Number(updated.amount) } : inv))
+        );
+        toast({
+          title: "Payment Recorded",
+          description: `Recorded payment of ${formatCurrency(amount)} via ${method}.`,
+        });
+      }
+      handleClosePaymentForm();
+    } catch (error) {
+      toast({
+        title: "Payment Failed",
+        description: "An error occurred while processing the payment.",
+        variant: "destructive",
+      });
+      console.error('Error processing payment:', error);
+    }
+  };
 
   const canUpdatePatient = hasPermission('patients:update');
   const canDeletePatient = hasPermission('patients:delete');
@@ -314,19 +354,20 @@ export default function PatientDetailPage({
                         <TableHead className="text-right">Amount</TableHead>
                         <TableHead className="text-right">Paid Amount</TableHead>
                         <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {invoices.map((invoice) => (
                         <TableRow key={invoice.id}>
                           <TableCell className="font-medium">{invoice.id}</TableCell>
-                          <TableCell>{invoice.issue_date || invoice.issueDate || '-'}</TableCell>
-                          <TableCell>{invoice.due_date || invoice.dueDate || '-'}</TableCell>
+                          <TableCell>{invoice.issueDate ? moment(invoice.issueDate).format("MMM DD, YYYY") : '-'}</TableCell>
+                          <TableCell>{invoice.dueDate ? moment(invoice.dueDate).format("MMM DD, YYYY") : '-'}</TableCell>
                           <TableCell className="text-right font-mono">
                             {formatCurrency(invoice.amount)}
                           </TableCell>
                           <TableCell className="text-right font-mono">
-                            {formatCurrency(invoice.paid_amount || invoice.paidAmount || 0)}
+                            {formatCurrency(invoice.paidAmount || 0)}
                           </TableCell>
                           <TableCell>
                             <Badge
@@ -346,11 +387,28 @@ export default function PatientDetailPage({
                               {invoice.status}
                             </Badge>
                           </TableCell>
+                          <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" className="h-8 w-8 p-0">
+                                  <span className="sr-only">Open menu</span>
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                <DropdownMenuItem onClick={() => handleOpenPaymentForm(invoice)} disabled={invoice.status === 'Paid'}>
+                                  <HandCoins className="mr-2 h-4 w-4" />
+                                  Pay
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
                         </TableRow>
                       ))}
                       {invoices.length === 0 && (
                         <TableRow>
-                          <TableCell colSpan={6} className="h-24 text-center">
+                          <TableCell colSpan={7} className="h-24 text-center">
                             No invoices found for this patient.
                           </TableCell>
                         </TableRow>
@@ -399,6 +457,13 @@ export default function PatientDetailPage({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      {isPaymentFormOpen && selectedInvoice && (
+        <PaymentForm
+          invoice={selectedInvoice}
+          onSave={handleProcessPayment as any}
+          onOpenChange={handleClosePaymentForm}
+        />
+      )}
     </div>
   );
 }
