@@ -407,7 +407,18 @@ export const getPatientInvoices = async (patientId: string | number): Promise<In
     console.log('API CALL: getPatientInvoices', { patientId });
     try {
         const response = await customAxios.get(`/patients/${patientId}/invoices`);
-        return response.data;
+        const rawInvoices = Array.isArray(response.data) ? response.data : [];
+        return rawInvoices.map((inv: any) => ({
+            ...inv,
+            id: String(inv.id),
+            amount: Number(inv.amount),
+            paidAmount: Number(inv.paid_amount),
+            patientName: inv.patient_name,
+            patientId: inv.patient_id ?? inv.patientId,
+            issueDate: inv.issue_date,
+            dueDate: inv.due_date,
+            branchId: inv.branch_id,
+        }));
     } catch (error) {
         console.error('Failed to fetch patient invoices:', error);
         return [];
