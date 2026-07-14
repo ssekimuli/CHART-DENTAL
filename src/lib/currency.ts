@@ -23,9 +23,9 @@ export const CURRENCIES: CurrencyConfig[] = [
 
 export const getCurrencyCode = (): string => {
     if (typeof window !== "undefined") {
-        return localStorage.getItem("currency_preference") || "USD";
+        return localStorage.getItem("currency_preference") || "UGX";
     }
-    return "USD";
+    return "UGX";
 };
 
 export const setCurrencyCode = (code: string) => {
@@ -38,7 +38,7 @@ export const setCurrencyCode = (code: string) => {
 
 export const getCurrencyConfig = (): CurrencyConfig => {
     const code = getCurrencyCode();
-    return CURRENCIES.find(c => c.code === code) || CURRENCIES[0];
+    return CURRENCIES.find(c => c.code === code) || CURRENCIES.find(c => c.code === "UGX") || CURRENCIES[0];
 };
 
 export const formatCurrency = (value: any): string => {

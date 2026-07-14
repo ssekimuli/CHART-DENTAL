@@ -23,7 +23,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { PlusCircle } from "lucide-react";
 import type { AttendanceRecord, Employee, AttendanceStatus } from "@/lib/types";
 import { useBranch } from "@/context/branch-context";
-import { getAttendance, getEmployees, markAttendance } from "@/lib/api";
+import { getAttendance, getEmployees, markAttendance, saveAttendanceSheet } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { AttendanceForm } from "../components/attendance-form";
@@ -141,22 +141,46 @@ export default function AttendancePage() {
             return record;
         }).filter(Boolean) as Omit<AttendanceRecord, 'id' | 'employeeName'>[];
 
-        const updatedRecords = await Promise.all(recordsToUpdate.map(markAttendance));
-        
-        setAllAttendance(prev => {
-            const newAttendance = [...prev];
-            updatedRecords.forEach(newRecord => {
-                if (newRecord) {
-                    const existingIndex = newAttendance.findIndex(att => att.employeeId === newRecord.employeeId && att.date === newRecord.date);
-                    if (existingIndex > -1) {
-                        newAttendance[existingIndex] = newRecord;
-                    } else {
-                        newAttendance.push(newRecord);
+        const payload = recordsToUpdate.map(record => ({
+            employee_id: typeof record.employeeId === 'string' ? parseInt(record.employeeId, 10) : record.employeeId,
+            date: record.date,
+            status: record.status,
+            check_in: record.checkIn || undefined,
+            check_out: record.checkOut || undefined,
+            branch_id: typeof record.branchId === 'string' ? parseInt(record.branchId, 10) : record.branchId,
+        }));
+
+        try {
+            const responseData = await saveAttendanceSheet(payload);
+
+            const updatedRecords: AttendanceRecord[] = responseData.map((attendanceData: any) => ({
+                id: attendanceData.id,
+                employeeId: String(attendanceData.employee_id),
+                employeeName: attendanceData.employee_name,
+                date: attendanceData.date,
+                status: attendanceData.status,
+                checkIn: attendanceData.check_in,
+                checkOut: attendanceData.check_out,
+                branchId: attendanceData.branch_id,
+            }));
+
+            setAllAttendance(prev => {
+                const newAttendance = [...prev];
+                updatedRecords.forEach(newRecord => {
+                    if (newRecord) {
+                        const existingIndex = newAttendance.findIndex(att => att.employeeId === newRecord.employeeId && att.date === newRecord.date);
+                        if (existingIndex > -1) {
+                            newAttendance[existingIndex] = newRecord;
+                        } else {
+                            newAttendance.push(newRecord);
+                        }
                     }
-                }
-            })
-            return newAttendance;
-        });
+                });
+                return newAttendance;
+            });
+        } catch (error) {
+            console.error('Error saving attendance sheet:', error);
+        }
 
         setSelectedEmployeeIds([]);
         setIsMassFormOpen(false);

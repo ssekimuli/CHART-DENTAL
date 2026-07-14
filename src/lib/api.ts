@@ -184,6 +184,17 @@ export const getBranches = async (): Promise<Branch[]> => {
     }
 }
 
+export const getCurrencies = async (): Promise<any[]> => {
+    console.log('API CALL: getCurrencies');
+    try {
+        const response = await customAxios.get('/currencies');
+        return response.data;
+    } catch (error) {
+        console.error('Failed to fetch currencies:', error);
+        return [];
+    }
+}
+
 type GetPatientsFilters = {
     branchId?: string | number;
     status?: 'Active' | 'Inactive';
@@ -389,6 +400,28 @@ export const getPatientById = async (id: string | number): Promise<Patient | und
         return undefined;
     }
 }
+
+export const getPatientInvoices = async (patientId: string | number): Promise<Invoice[]> => {
+    console.log('API CALL: getPatientInvoices', { patientId });
+    try {
+        const response = await customAxios.get(`/patients/${patientId}/invoices`);
+        const rawInvoices = Array.isArray(response.data) ? response.data : [];
+        return rawInvoices.map((inv: any) => ({
+            ...inv,
+            id: String(inv.id),
+            amount: Number(inv.amount),
+            paidAmount: Number(inv.paid_amount),
+            patientName: inv.patient_name,
+            patientId: inv.patient_id ?? inv.patientId,
+            issueDate: inv.issue_date,
+            dueDate: inv.due_date,
+            branchId: inv.branch_id,
+        }));
+    } catch (error) {
+        console.error('Failed to fetch patient invoices:', error);
+        return [];
+    }
+};
 
 export const getDoctors = async (branchId?: string | number): Promise<Employee[]> => {
     console.log('API CALL: getDoctors', { branchId });
@@ -3189,6 +3222,31 @@ export const markAttendance = async(data: {
             throw error;
         }
     }
+}
+
+export const saveAttendanceSheet = async (
+  payload: {
+    employee_id: number | string;
+    date: string;
+    status: string;
+    check_in?: string;
+    check_out?: string;
+    branch_id: number | string;
+  }[]
+): Promise<any[]> => {
+  console.log('API CALL: saveAttendanceSheet', payload);
+  try {
+    const response = await customAxios.post('/management/attendance', payload);
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+        console.error('Failed to save attendance sheet:', error.response?.data);
+        throw new Error(error.response?.data?.message || "Failed to save attendance sheet");
+    } else {
+        console.error("An unexpected error occurred during saving attendance sheet:", error);
+        throw error;
+    }
+  }
 }
 
 // Leave
