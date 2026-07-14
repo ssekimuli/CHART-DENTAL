@@ -292,6 +292,7 @@ export default function PatientDetailPage({
                   </div>
                 </div>
               </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="invoices">
