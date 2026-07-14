@@ -44,10 +44,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { deletePatient, getPatientById, updatePatient, addTreatment, updateTreatment, deleteTreatment, addImageToPatient, getTreatments } from "@/lib/api";
+import { deletePatient, getPatientById, updatePatient, addTreatment, updateTreatment, deleteTreatment, addImageToPatient, getTreatments, getPatientInvoices } from "@/lib/api";
 import { ImageUploadForm } from "./components/image-upload-form";
 import { hasPermission, getCurrentUser, hasRole } from "@/lib/user";
 import { getPatientFullName } from "@/lib/utils";
+import { useCurrency } from "@/hooks/use-currency";
 
 export default function PatientDetailPage({
   params,
@@ -56,8 +57,10 @@ export default function PatientDetailPage({
 }) {
   const { id } = use(params);
   const router = useRouter();
+  const { formatCurrency } = useCurrency();
   const [patient, setPatient] = useState<Patient | undefined>(undefined);
   const [systemTreatments, setSystemTreatments] = useState<SystemTreatment[]>([]);
+  const [invoices, setInvoices] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const [isTreatmentFormOpen, setIsTreatmentFormOpen] = useState(false);
@@ -76,12 +79,14 @@ export default function PatientDetailPage({
     if (typeof id !== "string") return;
     const fetchData = async () => {
         setIsLoading(true);
-        const [patientData, treatmentsData] = await Promise.all([
+        const [patientData, treatmentsData, invoicesData] = await Promise.all([
             getPatientById(id),
-            getTreatments()
+            getTreatments(),
+            getPatientInvoices(id)
         ]);
         setPatient(patientData);
         setSystemTreatments(treatmentsData);
+        setInvoices(invoicesData);
         if (patientData && !isReceptionist && patientData.history) {
             summarizePatientHistory({ patientHistory: patientData.history }).then(setHistorySummary);
         }
@@ -222,6 +227,7 @@ export default function PatientDetailPage({
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="imaging">Imaging</TabsTrigger>
             <TabsTrigger value="history">History</TabsTrigger>
+            <TabsTrigger value="invoices">Invoices</TabsTrigger>
           </TabsList>
           
 
@@ -284,6 +290,72 @@ export default function PatientDetailPage({
                   <div className="mt-1 rounded-md border bg-secondary/30 p-4 text-sm text-muted-foreground">
                       <p className="whitespace-pre-wrap">{patient.history}</p>
                   </div>
+                </div>
+              </CardContent>
+          </TabsContent>
+
+          <TabsContent value="invoices">
+            <Card>
+              <CardHeader>
+                <CardTitle>Invoices</CardTitle>
+                <CardDescription>
+                  View and track billing invoices and payment statuses for this patient.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Invoice ID</TableHead>
+                        <TableHead>Issue Date</TableHead>
+                        <TableHead>Due Date</TableHead>
+                        <TableHead className="text-right">Amount</TableHead>
+                        <TableHead className="text-right">Paid Amount</TableHead>
+                        <TableHead>Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {invoices.map((invoice) => (
+                        <TableRow key={invoice.id}>
+                          <TableCell className="font-medium">{invoice.id}</TableCell>
+                          <TableCell>{invoice.issue_date || invoice.issueDate || '-'}</TableCell>
+                          <TableCell>{invoice.due_date || invoice.dueDate || '-'}</TableCell>
+                          <TableCell className="text-right font-mono">
+                            {formatCurrency(invoice.amount)}
+                          </TableCell>
+                          <TableCell className="text-right font-mono">
+                            {formatCurrency(invoice.paid_amount || invoice.paidAmount || 0)}
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={
+                                invoice.status === "Paid"
+                                  ? "secondary"
+                                  : invoice.status === "Unpaid" || invoice.status === "Overdue"
+                                  ? "destructive"
+                                  : "outline"
+                              }
+                              className={
+                                invoice.status === "Paid"
+                                  ? "bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800"
+                                  : ""
+                              }
+                            >
+                              {invoice.status}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      {invoices.length === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={6} className="h-24 text-center">
+                            No invoices found for this patient.
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
                 </div>
               </CardContent>
             </Card>
