@@ -184,6 +184,17 @@ export const getBranches = async (): Promise<Branch[]> => {
     }
 }
 
+export const getCurrencies = async (): Promise<any[]> => {
+    console.log('API CALL: getCurrencies');
+    try {
+        const response = await customAxios.get('/currencies');
+        return response.data;
+    } catch (error) {
+        console.error('Failed to fetch currencies:', error);
+        return [];
+    }
+}
+
 type GetPatientsFilters = {
     branchId?: string | number;
     status?: 'Active' | 'Inactive';

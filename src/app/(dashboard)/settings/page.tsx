@@ -18,7 +18,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { RolePermissions, Permission, EmployeeRole, SystemTreatment } from "@/lib/types";
-import { getRoles, updateRole, updateBranch, getProfileData, updateEmployee, getTreatments } from "@/lib/api";
+import { getRoles, updateRole, updateBranch, getProfileData, updateEmployee, getTreatments, getCurrencies } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -57,6 +57,7 @@ export default function SettingsPage() {
     const [selectedRole, setSelectedRole] = useState<RolePermissions | null>(null);
     const { currencyCode, setCurrency } = useCurrency();
     const { selectedBranch, availableBranches } = useBranch();
+    const [currencies, setCurrencies] = useState<any[]>(CURRENCIES);
 
     // Bound state variables
     const [profile, setProfile] = useState<any>(null);
@@ -79,14 +80,18 @@ export default function SettingsPage() {
         const fetchRolesAndProfile = async () => {
             setIsLoading(true);
             try {
-                const [rolesData, profileData, treatmentsData] = await Promise.all([
+                const [rolesData, profileData, treatmentsData, currenciesData] = await Promise.all([
                     getRoles(),
                     getProfileData(),
-                    getTreatments()
+                    getTreatments(),
+                    getCurrencies()
                 ]);
                 setRoles(rolesData);
                 setSelectedRole(rolesData[0] || null);
                 setTreatments(treatmentsData);
+                if (currenciesData && currenciesData.length > 0) {
+                    setCurrencies(currenciesData);
+                }
                 if (profileData) {
                     setProfile(profileData);
                     setProfileName(profileData.employee.name);
@@ -308,7 +313,7 @@ export default function SettingsPage() {
                 }}
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {CURRENCIES.map((c) => (
+                {currencies.map((c) => (
                   <option key={c.code} value={c.code}>
                     {c.name} ({c.symbol})
                   </option>
