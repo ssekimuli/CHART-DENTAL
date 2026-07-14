@@ -15,7 +15,7 @@ import { PayrollTable } from "../components/payroll-table";
 import type { Employee, Payroll } from "@/lib/types";
 import { PayrollForm } from "../components/payroll-form";
 import { useBranch } from "@/context/branch-context";
-import { createPayroll, getEmployees, getPayrolls } from "@/lib/api";
+import { createPayroll, getEmployees, getPayrolls, approvePayroll } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
 import { hasPermission } from "@/lib/user";
 import { useRouter } from "next/navigation";
@@ -112,6 +112,24 @@ export default function PayrollPage() {
     setSelectedPayroll(undefined);
   };
 
+  const handleApprovePayroll = async (payroll: Payroll) => {
+    try {
+        const updated = await approvePayroll(payroll.id, 'Approved');
+        if (updated) {
+            setPayrolls(prev => prev.map(p => p.id === payroll.id ? updated : p));
+            toast({ title: "Payroll Approved", description: `Payroll for ${payroll.employeeName} has been approved and marked as Paid.` });
+        } else {
+            toast({ variant: "destructive", title: "Approval Failed", description: "Could not approve the payroll record." });
+        }
+    } catch (error: any) {
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: error.message || "An error occurred while approving the payroll."
+        });
+    }
+  };
+
   return (
     <>
         <Card>
@@ -148,6 +166,7 @@ export default function PayrollPage() {
                   onView={handleViewEmployee}
                   onEdit={handleOpenForm}
                   onDelete={openDeleteDialog}
+                  onApprove={handleApprovePayroll}
                   canUpdate={canUpdate}
                   canDelete={canDelete}
                 />

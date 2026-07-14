@@ -21,7 +21,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, Eye, Pencil, Trash } from "lucide-react";
+import { MoreHorizontal, Eye, Pencil, Trash, Check } from "lucide-react";
 import { useCurrency } from "@/hooks/use-currency";
 
 type PayrollTableProps = {
@@ -29,12 +29,13 @@ type PayrollTableProps = {
     onView: (employeeId: string | number) => void;
     onEdit: (payroll: Payroll) => void;
     onDelete: (payroll: Payroll) => void;
+    onApprove: (payroll: Payroll) => void;
     canUpdate: boolean;
     canDelete: boolean;
 };
 
 
-export function PayrollTable({ data, onView, onEdit, onDelete, canUpdate, canDelete }: PayrollTableProps) {
+export function PayrollTable({ data, onView, onEdit, onDelete, onApprove, canUpdate, canDelete }: PayrollTableProps) {
     const { formatCurrency } = useCurrency();
     const getStatusVariant = (status: "Paid" | "Pending") => {
         switch (status) {
@@ -76,36 +77,55 @@ export function PayrollTable({ data, onView, onEdit, onDelete, canUpdate, canDel
               </TableCell>
               {(canUpdate || canDelete) && (
                 <TableCell className="text-right">
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
-                                <span className="sr-only">Open menu</span>
-                                <MoreHorizontal className="h-4 w-4" />
+                    <div className="flex justify-end items-center gap-2">
+                        {canUpdate && payroll.status === 'Pending' && (
+                            <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="h-8 text-green-600 border-green-200 hover:bg-green-50 hover:text-green-700 hover:border-green-300"
+                                onClick={() => onApprove(payroll)}
+                            >
+                                <Check className="mr-1 h-3.5 w-3.5" />
+                                Approve
                             </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                             <DropdownMenuItem onClick={() => onView(payroll.employeeId)}>
-                                <Eye className="mr-2 h-4 w-4" />
-                                View Employee
-                            </DropdownMenuItem>
-                            {canUpdate && (
-                                <DropdownMenuItem onClick={() => onEdit(payroll)}>
-                                    <Pencil className="mr-2 h-4 w-4" />
-                                    Edit
+                        )}
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" className="h-8 w-8 p-0">
+                                    <span className="sr-only">Open menu</span>
+                                    <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                 <DropdownMenuItem onClick={() => onView(payroll.employeeId)}>
+                                    <Eye className="mr-2 h-4 w-4" />
+                                    View Employee
                                 </DropdownMenuItem>
-                            )}
-                            {canDelete && (
-                                <>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem className="text-red-600" onClick={() => onDelete(payroll)}>
-                                    <Trash className="mr-2 h-4 w-4" />
-                                    Delete
-                                </DropdownMenuItem>
-                                </>
-                            )}
-                        </DropdownMenuContent>
-                    </DropdownMenu>
+                                {canUpdate && (
+                                    <DropdownMenuItem onClick={() => onEdit(payroll)}>
+                                        <Pencil className="mr-2 h-4 w-4" />
+                                        Edit
+                                    </DropdownMenuItem>
+                                )}
+                                {canUpdate && payroll.status === 'Pending' && (
+                                    <DropdownMenuItem onClick={() => onApprove(payroll)}>
+                                        <Check className="mr-2 h-4 w-4 text-green-600" />
+                                        Approve Payment
+                                    </DropdownMenuItem>
+                                )}
+                                {canDelete && (
+                                    <>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem className="text-red-600" onClick={() => onDelete(payroll)}>
+                                        <Trash className="mr-2 h-4 w-4" />
+                                        Delete
+                                    </DropdownMenuItem>
+                                    </>
+                                )}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
                 </TableCell>
               )}
             </TableRow>

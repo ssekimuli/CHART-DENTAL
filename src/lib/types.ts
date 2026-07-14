@@ -218,6 +218,7 @@ export type Payroll = {
   payDate: string;
   status: 'Paid' | 'Pending';
   branchId: string | number;
+  approvalStatus?: 'Pending' | 'Approved' | 'Rejected';
 };
 
 export type IncomeRecord = {

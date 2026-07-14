@@ -862,6 +862,7 @@ export const getPayrolls = async (branchId?: string | number): Promise<Payroll[]
             payDate: p.pay_date ? p.pay_date.split('T')[0] : '',
             status: p.status,
             branchId: p.branch_id,
+            approvalStatus: p.approval_status,
         }));
     } catch (error) {
         if (axios.isAxiosError(error)) {
@@ -3139,6 +3140,7 @@ export const createPayroll = async (data: Omit<Payroll, 'id'>): Promise<Payroll>
             payDate: newPayrollData.pay_date.split('T')[0],
             status: newPayrollData.status,
             branchId: newPayrollData.branch_id,
+            approvalStatus: newPayrollData.approval_status,
         };
 
         mockPayrolls.unshift(fePayroll); // Add to local mock data for UI update
@@ -3149,6 +3151,37 @@ export const createPayroll = async (data: Omit<Payroll, 'id'>): Promise<Payroll>
             throw new Error(error.response?.data?.message || "Failed to create payroll");
         } else {
             console.error("An unexpected error occurred during payroll creation:", error);
+            throw error;
+        }
+    }
+}
+
+export const approvePayroll = async (id: string | number, approvalStatus: 'Pending' | 'Approved' | 'Rejected'): Promise<Payroll | null> => {
+    console.log('API CALL: approvePayroll', { id, approvalStatus });
+    try {
+        const response = await customAxios.patch(`/management/payrolls/${id}/approve`, {
+            approval_status: approvalStatus,
+        });
+        const p = response.data;
+        return {
+            id: p.id,
+            employeeId: p.employee_id,
+            employeeName: p.employee_name,
+            payPeriod: p.pay_period,
+            grossPay: parseFloat(p.gross_pay),
+            deductions: parseFloat(p.deductions),
+            netPay: parseFloat(p.net_pay),
+            payDate: p.pay_date ? p.pay_date.split('T')[0] : '',
+            status: p.status,
+            branchId: p.branch_id,
+            approvalStatus: p.approval_status,
+        };
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            console.error('Failed to approve payroll:', error.response?.data);
+            throw new Error(error.response?.data?.message || "Failed to approve payroll");
+        } else {
+            console.error("An unexpected error occurred during payroll approval:", error);
             throw error;
         }
     }
