@@ -31,7 +31,7 @@ const nextConfig: NextConfig = {
     ],
   },
   async rewrites() {
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://zyrendentalapi.poslycloud.com/api';
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://dentalapi.poslycloud.com/api';
     return [
       {
         source: '/api/backend/:path*',
