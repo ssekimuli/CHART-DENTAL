@@ -39,7 +39,7 @@ import { useRouter } from "next/navigation";
 import type { Patient, Appointment, ChartData, AppointmentStatus, DashboardSummary, DashboardUpcomingAppointment, DashboardRecentPatient, PracticeTrendPoint } from "@/lib/types";
 import { getPatients, getAppointments, getChartData, getDashboardSummary, getPracticeTrends, updateAppointment } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
-import { hasPermission } from "@/lib/user";
+import { hasPermission, hasRole } from "@/lib/user";
 import { useCurrency } from "@/hooks/use-currency";
 
 const chartConfig = {
@@ -132,7 +132,7 @@ export default function DashboardPage() {
   };
 
   const router = useRouter();
-  const canReadAccounting = hasPermission('accounting:read');
+  const canReadAccounting = hasRole(['Super Admin', 'Account']);
 
   return (
     <div className="flex flex-col gap-6">
