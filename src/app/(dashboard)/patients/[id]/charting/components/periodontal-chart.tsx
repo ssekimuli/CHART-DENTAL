@@ -530,34 +530,38 @@ export function PeriodontalChart({
     );
 
     const conditionToggles = (
-      <g transform="translate(18, 172)" className={cn(canUpdateChart && "cursor-pointer")} onClick={() => canUpdateChart && setSelectedTooth(toothId)}>
-        {conditionKeys.map((con, i) => (
-          <circle
-            key={con}
-            cx={i * 5 - 7.5}
-            cy="0"
-            r="2"
-            className={cn(
-              "stroke-none transition-all",
-              record.conditions[con]
-                ? {
-                    "bleeding": "fill-red-500",
-                    "suppuration": "fill-yellow-400",
-                    "plaque": "fill-blue-400",
-                    "calculus": "fill-green-500",
-                  }[con]
-                : "fill-muted"
-            )}
-            onClick={(e) => {
-              if (canUpdateChart) {
-                e.stopPropagation();
-                handleConditionToggle(toothId, con);
-              }
-            }}
-          >
-            <title>{con.charAt(0).toUpperCase() + con.slice(1)}</title>
-          </circle>
-        ))}
+      <g transform="translate(2, 168)" className={cn(canUpdateChart && "cursor-pointer")} onClick={() => canUpdateChart && setSelectedTooth(toothId)}>
+        {conditionKeys.map((con, i) => {
+          const isActive = record.conditions && record.conditions[con];
+          const color = {
+            bleeding: "#ef4444",
+            suppuration: "#eab308",
+            plaque: "#3b82f6",
+            calculus: "#22c55e",
+          }[con];
+          return (
+            <rect
+              key={con}
+              x={i * 8}
+              y="0"
+              width="8"
+              height="8"
+              rx="1.5"
+              fill={isActive ? color : "hsl(var(--card))"}
+              stroke={isActive ? color : "hsl(var(--border))"}
+              strokeWidth="0.5"
+              className="transition-colors duration-200"
+              onClick={(e) => {
+                if (canUpdateChart) {
+                  e.stopPropagation();
+                  handleConditionToggle(toothId, con);
+                }
+              }}
+            >
+              <title>{con.charAt(0).toUpperCase() + con.slice(1)}</title>
+            </rect>
+          );
+        })}
       </g>
     );
 
@@ -624,7 +628,28 @@ export function PeriodontalChart({
         <rect x="-4" y="-4" width="44" height="400" className={cn("fill-transparent transition-colors", selectedTooth === toothId && "fill-blue-500/10")} />
         <text x="18" y="24" className="text-xs font-semibold fill-muted-foreground text-anchor-middle">{toothId}</text>
         
-        <rect x="0" y="32" width="36" height="36" className="fill-card" stroke="hsl(var(--border))" />
+        <rect 
+          x="0" 
+          y="32" 
+          width="36" 
+          height="36" 
+          fill={
+            record.conditions?.bleeding ? "rgba(239, 68, 68, 0.15)" :
+            record.conditions?.suppuration ? "rgba(250, 204, 21, 0.2)" :
+            record.conditions?.plaque ? "rgba(96, 165, 250, 0.2)" :
+            record.conditions?.calculus ? "rgba(34, 197, 94, 0.15)" :
+            "hsl(var(--card))"
+          }
+          stroke={
+            record.conditions?.bleeding ? "#ef4444" :
+            record.conditions?.suppuration ? "#eab308" :
+            record.conditions?.plaque ? "#3b82f6" :
+            record.conditions?.calculus ? "#22c55e" :
+            "hsl(var(--border))"
+          }
+          strokeWidth="1"
+          className="transition-colors duration-200" 
+        />
         <text x="18" y="56" className="font-mono text-base font-bold fill-foreground text-anchor-middle">{toothId % 10}</text>
 
         {buccalPocketInputs}
