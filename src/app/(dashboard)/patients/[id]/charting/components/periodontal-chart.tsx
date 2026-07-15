@@ -84,28 +84,52 @@ export function PeriodontalChart({
   ) => {
     const numericValue = value === "" ? undefined : parseInt(value, 10);
     setRecords((prev) => {
-      const newRecords = [...prev];
-      let record = newRecords.find((r) => r.toothId === toothId);
-      if (!record) {
-        record = { toothId, pockets: {}, conditions: {} };
-        newRecords.push(record);
+      const recordIndex = prev.findIndex((r) => r.toothId === toothId);
+      if (recordIndex > -1) {
+        const record = prev[recordIndex];
+        const updatedRecord = {
+          ...record,
+          pockets: {
+            ...record.pockets,
+            [position]: numericValue,
+          },
+        };
+        const newRecords = [...prev];
+        newRecords[recordIndex] = updatedRecord;
+        return newRecords;
+      } else {
+        const newRecord = {
+          toothId,
+          pockets: { [position]: numericValue },
+          conditions: {},
+        };
+        return [...prev, newRecord];
       }
-      record.pockets[position] = numericValue;
-      return newRecords;
     });
   };
 
   const handleRecessionChange = (toothId: number, value: string) => {
     const numericValue = value === "" ? undefined : parseInt(value, 10);
     setRecords((prev) => {
-      const newRecords = [...prev];
-      let record = newRecords.find((r) => r.toothId === toothId);
-      if (!record) {
-        record = { toothId, pockets: {}, conditions: {} };
-        newRecords.push(record);
+      const recordIndex = prev.findIndex((r) => r.toothId === toothId);
+      if (recordIndex > -1) {
+        const record = prev[recordIndex];
+        const updatedRecord = {
+          ...record,
+          recession: numericValue,
+        };
+        const newRecords = [...prev];
+        newRecords[recordIndex] = updatedRecord;
+        return newRecords;
+      } else {
+        const newRecord = {
+          toothId,
+          pockets: {},
+          recession: numericValue,
+          conditions: {},
+        };
+        return [...prev, newRecord];
       }
-      record.recession = numericValue;
-      return newRecords;
     });
   };
 
@@ -114,14 +138,29 @@ export function PeriodontalChart({
     condition: keyof PeriodontalConditions
   ) => {
     setRecords((prev) => {
-      const newRecords = [...prev];
-      let record = newRecords.find((r) => r.toothId === toothId);
-      if (!record) {
-        record = { toothId, pockets: {}, conditions: {} };
-        newRecords.push(record);
+      const recordIndex = prev.findIndex((r) => r.toothId === toothId);
+      if (recordIndex > -1) {
+        const record = prev[recordIndex];
+        const updatedRecord = {
+          ...record,
+          conditions: {
+            ...(record.conditions || {}),
+            [condition]: !(record.conditions && record.conditions[condition]),
+          },
+        };
+        const newRecords = [...prev];
+        newRecords[recordIndex] = updatedRecord;
+        return newRecords;
+      } else {
+        const newRecord = {
+          toothId,
+          pockets: {},
+          conditions: {
+            [condition]: true,
+          },
+        };
+        return [...prev, newRecord];
       }
-      record.conditions[condition] = !record.conditions[condition];
-      return newRecords;
     });
   };
 
@@ -131,14 +170,25 @@ export function PeriodontalChart({
     value: string
   ) => {
     setRecords((prev) => {
-      const newRecords = [...prev];
-      let record = newRecords.find((r) => r.toothId === toothId);
-      if (!record) {
-        record = { toothId, pockets: {}, conditions: {} };
-        newRecords.push(record);
+      const recordIndex = prev.findIndex((r) => r.toothId === toothId);
+      if (recordIndex > -1) {
+        const record = prev[recordIndex];
+        const updatedRecord = {
+          ...record,
+          [type]: value as any,
+        };
+        const newRecords = [...prev];
+        newRecords[recordIndex] = updatedRecord;
+        return newRecords;
+      } else {
+        const newRecord = {
+          toothId,
+          pockets: {},
+          conditions: {},
+          [type]: value as any,
+        };
+        return [...prev, newRecord];
       }
-      (record as any)[type] = value;
-      return newRecords;
     });
   };
 
