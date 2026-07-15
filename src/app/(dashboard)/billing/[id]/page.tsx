@@ -196,9 +196,11 @@ export default function InvoiceDetailPage() {
                     {invoice.paymentMethod && (
                       <p><span className="font-medium">Payment Method:</span> {invoice.paymentMethod}</p>
                     )}
-                    {invoice.branchId && (
+                    {invoice.branch?.name ? (
+                      <p><span className="font-medium">Branch:</span> {invoice.branch.name}</p>
+                    ) : invoice.branchId ? (
                       <p><span className="font-medium">Branch ID:</span> {invoice.branchId}</p>
-                    )}
+                    ) : null}
                   </div>
               </div>
           </div>

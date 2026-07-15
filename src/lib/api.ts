@@ -676,6 +676,12 @@ export const getInvoices = async (filters?: {
             patientId: inv.patient_id ?? inv.patientId,
             issueDate: inv.issue_date,
             branchId: inv.branch_id,
+            branch: inv.branch ? {
+                id: inv.branch.id,
+                name: inv.branch.name,
+                currency: inv.branch.currency || 'USD',
+                address: inv.branch.address || ''
+            } : undefined,
         }));
 
         console.log('Fetched invoices from API:', invoices);
@@ -748,6 +754,12 @@ export const getInvoiceById = async (id: string | number): Promise<Invoice | und
             dueDate: invoiceData.due_date || invoiceData.dueDate || new Date().toISOString(),
             paymentMethod: invoiceData.payment_method || invoiceData.paymentMethod || null,
             branchId: invoiceData.branch_id || invoiceData.branchId,
+            branch: invoiceData.branch ? {
+                id: invoiceData.branch.id,
+                name: invoiceData.branch.name,
+                currency: invoiceData.branch.currency || 'USD',
+                address: invoiceData.branch.address || ''
+            } : undefined,
             otherCharges: (invoiceData.other_charges || invoiceData.otherCharges || []).map((charge: any) => ({
                 description: charge.description,
                 amount: Number(charge.amount) || 0
