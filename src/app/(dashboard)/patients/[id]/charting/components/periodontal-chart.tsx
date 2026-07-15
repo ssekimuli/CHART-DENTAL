@@ -63,6 +63,10 @@ export function PeriodontalChart({
   const [selectedTooth, setSelectedTooth] = useState<number | undefined>();
   const canUpdateChart = hasPermission('charting:update');
 
+  useEffect(() => {
+    setRecords(initialRecords);
+  }, [initialRecords]);
+
   const getRecord = (toothId: number): PeriodontalMeasurement => {
     const record = records.find((r) => r.toothId === toothId);
     if (record) return record;

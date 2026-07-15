@@ -195,6 +195,17 @@ export const getCurrencies = async (): Promise<any[]> => {
     }
 }
 
+const mapPeriodontalRecords = (records: any[]): PeriodontalRecord => {
+    return (records || []).map((record: any) => ({
+        toothId: Number(record.tooth_id || record.toothId),
+        pockets: record.pockets || {},
+        recession: record.recession !== undefined && record.recession !== null ? Number(record.recession) : undefined,
+        mobility: record.mobility || undefined,
+        furcation: record.furcation || undefined,
+        conditions: record.conditions || {},
+    }));
+};
+
 type GetPatientsFilters = {
     branchId?: string | number;
     status?: 'Active' | 'Inactive';
@@ -259,7 +270,7 @@ export const getPatients = async (filters?: string | number | GetPatientsFilters
             dentalRecords: patient.dental_records || [],
             treatmentPlans: patient.treatment_plans || [],
             imaging: patient.images || patient.imaging || [], // Backend returns 'images', not 'imaging'
-            periodontalRecords: patient.periodontal_records || [],
+            periodontalRecords: mapPeriodontalRecords(patient.periodontal_records),
             occlusalRecords: typeof patient.occlusal_records === 'string'
                 ? JSON.parse(patient.occlusal_records)
                 : (patient.occlusal_records || { overbite: 0, overjet: 0, crossbite: 'None', openbite: 'None', malocclusion: 'Class I' }),
@@ -382,7 +393,7 @@ export const getPatientById = async (id: string | number): Promise<Patient | und
                 invoiceId: plan.invoice_id,
             })),
             imaging: patient.images || patient.imaging || [], // Backend returns 'images', not 'imaging'
-            periodontalRecords: patient.periodontal_records || [],
+            periodontalRecords: mapPeriodontalRecords(patient.periodontal_records),
             occlusalRecords: typeof patient.occlusal_records === 'string'
                 ? JSON.parse(patient.occlusal_records)
                 : (patient.occlusal_records || { overbite: 0, overjet: 0, crossbite: 'None', openbite: 'None', malocclusion: 'Class I' }),
@@ -1794,7 +1805,7 @@ export const createPatient = async (data: BasePatient & { branchId: string | num
             dentalRecords: newPatient.dental_records || [],
             treatmentPlans: newPatient.treatment_plans || [],
             imaging: newPatient.images || newPatient.imaging || [], // Backend returns 'images', not 'imaging'
-            periodontalRecords: newPatient.periodontal_records || [],
+            periodontalRecords: mapPeriodontalRecords(newPatient.periodontal_records),
             occlusalRecords: typeof newPatient.occlusal_records === 'string'
                 ? JSON.parse(newPatient.occlusal_records)
                 : (newPatient.occlusal_records || { overbite: 0, overjet: 0, crossbite: 'None', openbite: 'None', malocclusion: 'Class I' }),
@@ -1862,7 +1873,7 @@ export const updatePatient = async (id: string | number, data: Partial<Patient>)
             dentalRecords: updatedPatient.dental_records || [],
             treatmentPlans: updatedPatient.treatment_plans || [],
             imaging: updatedPatient.images || updatedPatient.imaging || [],
-            periodontalRecords: updatedPatient.periodontal_records || [],
+            periodontalRecords: mapPeriodontalRecords(updatedPatient.periodontal_records),
             occlusalRecords: typeof updatedPatient.occlusal_records === 'string'
                 ? JSON.parse(updatedPatient.occlusal_records)
                 : (updatedPatient.occlusal_records || { overbite: 0, overjet: 0, crossbite: 'None', openbite: 'None', malocclusion: 'Class I' }),
@@ -1958,7 +1969,7 @@ export const addImageToPatient = async (patientId: string | number, image: Omit<
                 invoiceId: plan.invoice_id,
             })),
             imaging: updatedPatient.images || updatedPatient.imaging || [], // Backend returns 'images', not 'imaging'
-            periodontalRecords: updatedPatient.periodontal_records || [],
+            periodontalRecords: mapPeriodontalRecords(updatedPatient.periodontal_records),
             occlusalRecords: typeof updatedPatient.occlusal_records === 'string'
                 ? JSON.parse(updatedPatient.occlusal_records)
                 : (updatedPatient.occlusal_records || { overbite: 0, overjet: 0, crossbite: 'None', openbite: 'None', malocclusion: 'Class I' }),
