@@ -252,6 +252,7 @@ export const getPatients = async (filters?: string | number | GetPatientsFilters
             gender: patient.gender,
             dateOfBirth: patient.date_of_birth ? patient.date_of_birth.split('T')[0] : patient.date_of_birth,
             lastVisit: patient.last_visit ? patient.last_visit.split('T')[0] : patient.last_visit,
+            nextVisit: patient.next_visit ? patient.next_visit.split('T')[0] : patient.next_visit,
             status: patient.status,
             history: patient.history || '',
             branchId: String(patient.branch_id),
@@ -362,6 +363,7 @@ export const getPatientById = async (id: string | number): Promise<Patient | und
             gender: patient.gender,
             dateOfBirth: patient.date_of_birth ? patient.date_of_birth.split('T')[0] : patient.date_of_birth,
             lastVisit: patient.last_visit ? patient.last_visit.split('T')[0] : patient.last_visit,
+            nextVisit: patient.next_visit ? patient.next_visit.split('T')[0] : patient.next_visit,
             status: patient.status,
             history: patient.history || '',
             branchId: String(patient.branch_id),
@@ -1752,6 +1754,7 @@ export const createPatient = async (data: BasePatient & { branchId: string | num
         gender: data.gender || undefined,
         date_of_birth: data.dateOfBirth,
         last_visit: data.lastVisit || undefined,
+        next_visit: data.nextVisit || undefined,
         status: data.status,
         branch_id: parseInt(String(data.branchId), 10),
         history: data.history || undefined,
@@ -1772,6 +1775,7 @@ export const createPatient = async (data: BasePatient & { branchId: string | num
             gender: newPatient.gender,
             dateOfBirth: newPatient.date_of_birth ? newPatient.date_of_birth.split('T')[0] : newPatient.date_of_birth,
             lastVisit: newPatient.last_visit ? newPatient.last_visit.split('T')[0] : newPatient.last_visit,
+            nextVisit: newPatient.next_visit ? newPatient.next_visit.split('T')[0] : newPatient.next_visit,
             status: newPatient.status,
             history: newPatient.history || '',
             branchId: String(newPatient.branch_id),
@@ -1814,6 +1818,7 @@ export const updatePatient = async (id: string | number, data: Partial<Patient>)
     if (data.gender !== undefined) requestBody.gender = data.gender;
     if (data.dateOfBirth !== undefined) requestBody.date_of_birth = data.dateOfBirth;
     if (data.lastVisit !== undefined) requestBody.last_visit = data.lastVisit;
+    if (data.nextVisit !== undefined) requestBody.next_visit = data.nextVisit;
     if (data.status !== undefined) requestBody.status = data.status;
     if (data.branchId !== undefined) requestBody.branch_id = parseInt(String(data.branchId), 10);
     if (data.history !== undefined) requestBody.history = data.history;
@@ -1838,6 +1843,7 @@ export const updatePatient = async (id: string | number, data: Partial<Patient>)
             gender: updatedPatient.gender,
             dateOfBirth: updatedPatient.date_of_birth ? updatedPatient.date_of_birth.split('T')[0] : updatedPatient.date_of_birth,
             lastVisit: updatedPatient.last_visit ? updatedPatient.last_visit.split('T')[0] : updatedPatient.last_visit,
+            nextVisit: updatedPatient.next_visit ? updatedPatient.next_visit.split('T')[0] : updatedPatient.next_visit,
             status: updatedPatient.status,
             history: updatedPatient.history || '',
             branchId: String(updatedPatient.branch_id),
@@ -1921,6 +1927,7 @@ export const addImageToPatient = async (patientId: string | number, image: Omit<
             gender: updatedPatient.gender,
             dateOfBirth: updatedPatient.date_of_birth ? updatedPatient.date_of_birth.split('T')[0] : updatedPatient.date_of_birth,
             lastVisit: updatedPatient.last_visit ? updatedPatient.last_visit.split('T')[0] : updatedPatient.last_visit,
+            nextVisit: updatedPatient.next_visit ? updatedPatient.next_visit.split('T')[0] : updatedPatient.next_visit,
             status: updatedPatient.status,
             history: updatedPatient.history || '',
             branchId: String(updatedPatient.branch_id),

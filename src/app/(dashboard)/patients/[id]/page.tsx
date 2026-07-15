@@ -233,9 +233,12 @@ export default function PatientDetailPage({
             <CardDescription className="text-base">
               {patient.email}
             </CardDescription>
-            <div className="mt-2 flex gap-4 text-sm text-muted-foreground">
+            <div className="mt-2 flex flex-wrap gap-4 items-center text-sm text-muted-foreground">
               <span>DOB: {patient.dateOfBirth}</span>
-              <span>Last Visit: {patient.lastVisit}</span>
+              <span>Last Visit: {patient.lastVisit || 'Never'}</span>
+              {patient.nextVisit && (
+                <span className="text-blue-600 dark:text-blue-400 font-semibold bg-blue-50 dark:bg-blue-950/30 px-2 py-0.5 rounded-md">Next Visit: {patient.nextVisit}</span>
+              )}
               <Badge variant={patient.status === 'Active' ? 'default' : 'outline'}>{patient.status}</Badge>
             </div>
           </div>

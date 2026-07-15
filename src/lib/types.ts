@@ -44,6 +44,7 @@ export type Patient = {
   gender?: 'Male' | 'Female' | 'Other';
   dateOfBirth: string;
   lastVisit?: string;
+  nextVisit?: string;
   status: 'Active' | 'Inactive';
   dentalRecords: DentalRecord[];
   treatmentPlans: Treatment[];
