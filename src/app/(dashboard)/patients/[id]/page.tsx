@@ -27,6 +27,7 @@ import { Button } from "@/components/ui/button";
 import { PlusCircle, Trash, Pencil, FileText, Loader2, Upload, MoreHorizontal, HandCoins } from "lucide-react";
 import { TreatmentPlanForm } from "./components/treatment-plan-form";
 import { PatientForm } from "../components/patient-form";
+import { PrescriptionForm } from "./components/prescription-form";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -76,6 +77,7 @@ export default function PatientDetailPage({
   const { toast } = useToast();
   const [selectedInvoice, setSelectedInvoice] = useState<any | undefined>(undefined);
   const [isPaymentFormOpen, setIsPaymentFormOpen] = useState(false);
+  const [isRxFormOpen, setIsRxFormOpen] = useState(false);
 
   const handleOpenPaymentForm = (invoice: any) => {
     setSelectedInvoice(invoice);
@@ -243,6 +245,12 @@ export default function PatientDetailPage({
             </div>
           </div>
           <div className="flex gap-2">
+            {!isReceptionist && (
+                <Button variant="outline" onClick={() => setIsRxFormOpen(true)}>
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Give Prescription
+                </Button>
+            )}
             {!isReceptionist && (
                 <Button variant="outline" onClick={() => router.push(`/patients/${patient.id}/charting`)}>
                     <FileText className="mr-2 h-4 w-4" />
@@ -465,6 +473,21 @@ export default function PatientDetailPage({
           invoice={selectedInvoice}
           onSave={handleProcessPayment as any}
           onOpenChange={handleClosePaymentForm}
+        />
+      )}
+      {isRxFormOpen && patient && (
+        <PrescriptionForm
+          patientId={patient.id}
+          patientName={getPatientFullName(patient)}
+          branchId={patient.branchId}
+          onOpenChange={setIsRxFormOpen}
+          onSave={() => {
+            const fetchInvoices = async () => {
+              const invList = await getPatientInvoices(patient.id);
+              setInvoices(invList);
+            };
+            fetchInvoices();
+          }}
         />
       )}
     </div>
