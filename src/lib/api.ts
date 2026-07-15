@@ -15,7 +15,7 @@ import {
     expenses as allExpenses,
     roles as mockRoles
 } from '@/lib/data';
-import type { PaginatedArray, Patient, Appointment, Invoice, ChartData, PracticeTrendPoint, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, BasePatient, InvoiceTreatment, OtherCharge, SystemTreatment, PaymentMethod, PaymentTransaction, AttendanceRecord, LeaveRequest, StaffAdvance, StaffAdvanceStatus, Expense, ExpenseCategory, ExpenseSummary, IncomeRecord, RolePermissions, Permission, DentalRecord, PeriodontalRecord, OcclusalRecord, SoftTissueRecord, OrthodonticRecord, Treatment, DentalCondition, PatientImage, FinancialSummary, CurrentUser, ProfileData, AppointmentStatus, DashboardSummary, EmployeeRole } from '@/lib/types';
+import type { PaginatedArray, Patient, Appointment, Invoice, ChartData, PracticeTrendPoint, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, BasePatient, InvoiceTreatment, OtherCharge, SystemTreatment, PaymentMethod, PaymentTransaction, AttendanceRecord, LeaveRequest, StaffAdvance, StaffAdvanceStatus, Expense, ExpenseCategory, ExpenseSummary, IncomeRecord, RolePermissions, Permission, DentalRecord, PeriodontalRecord, OcclusalRecord, SoftTissueRecord, OrthodonticRecord, Treatment, DentalCondition, PatientImage, FinancialSummary, CurrentUser, ProfileData, AppointmentStatus, DashboardSummary, EmployeeRole, ReportsOverview } from '@/lib/types';
 import { format, parse } from "date-fns";
 import { speak } from '@/ai/flows/speak';
 import { clearCurrentUser, setCurrentUser, currentUser as userDetails } from './user';
@@ -1358,6 +1358,46 @@ export const getFinancialSummary = async (branchId: string | number): Promise<Fi
             }));
 
         return { branchId, from: undefined, to: undefined, totalIncome, totalExpenses, netProfit, monthlyFinancials };
+    }
+}
+
+export const getReportsOverview = async (branchId?: string | number): Promise<ReportsOverview | null> => {
+    console.log('API CALL: getReportsOverview', { branchId });
+
+    try {
+        const params: Record<string, string | number> = {};
+        if (branchId !== undefined && branchId !== null && branchId !== '') {
+            params.branch_id = branchId;
+        }
+
+        const response = await customAxios.get('/reports/overview', { params });
+        const data = response.data;
+
+        return {
+            categories: data.categories,
+            financial_summary: {
+                total_income: Number(data.financial_summary?.total_income) || 0,
+                total_expenses: Number(data.financial_summary?.total_expenses) || 0,
+                net_profit: Number(data.financial_summary?.net_profit) || 0,
+            },
+            appointment_summary: {
+                total_appointments: Number(data.appointment_summary?.total_appointments) || 0,
+                status_distribution: data.appointment_summary?.status_distribution || {},
+            },
+            patient_summary: {
+                total_patients: Number(data.patient_summary?.total_patients) || 0,
+                status_distribution: data.patient_summary?.status_distribution || {},
+                gender_distribution: data.patient_summary?.gender_distribution || {},
+                age_distribution: data.patient_summary?.age_distribution || {},
+            },
+        };
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            console.error('Failed to fetch reports overview:', error.response?.data);
+        } else {
+            console.error('An unexpected error occurred while fetching reports overview:', error);
+        }
+        return null;
     }
 }
 

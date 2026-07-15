@@ -427,3 +427,26 @@ export type ProfileData = {
     stats: ProfileDataStats;
     payrolls: Payroll[];
 }
+
+export type ReportsOverview = {
+    categories: {
+        financial: { title: string; description: string };
+        appointments: { title: string; description: string };
+        demographics: { title: string; description: string };
+    };
+    financial_summary: {
+        total_income: number;
+        total_expenses: number;
+        net_profit: number;
+    };
+    appointment_summary: {
+        total_appointments: number;
+        status_distribution: Record<string, number>;
+    };
+    patient_summary: {
+        total_patients: number;
+        status_distribution: Record<string, number>;
+        gender_distribution: Record<string, number>;
+        age_distribution: Record<string, number>;
+    };
+};
