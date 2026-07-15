@@ -2288,7 +2288,7 @@ export const getSoftTissueRecords = async (patientId: string | number): Promise<
     }
 };
 
-export const saveOrthodonticRecord = async (patientId: string | number, record: OrthodonticRecord): Promise<OrthodonticRecord> => {
+export const saveOrthodonticRecord = async (patientId: string | number, record: Omit<OrthodonticRecord, 'id'>): Promise<Patient | undefined> => {
     console.log('API CALL: saveOrthodonticRecord', { patientId, record });
     
     try {
@@ -2299,18 +2299,8 @@ export const saveOrthodonticRecord = async (patientId: string | number, record: 
             notes: record.notes,
         };
 
-        const response = await customAxios.post(`/patients/${patientId}/orthodontic-records`, requestBody);
-        
-        const savedRecord = response.data.data || response.data;
-
-        return {
-            id: savedRecord.id,
-            appliance: savedRecord.appliance,
-            wireSize: savedRecord.wire_size || savedRecord.wireSize,
-            bracketChanges: savedRecord.bracket_changes || savedRecord.bracketChanges || [],
-            notes: savedRecord.notes || '',
-            date: savedRecord.date || savedRecord.created_at || new Date().toISOString().split('T')[0],
-        };
+        await customAxios.post(`/patients/${patientId}/orthodontic-records`, requestBody);
+        return getPatientById(patientId);
 
     } catch (error) {
         console.error('Error saving orthodontic record:', error);
