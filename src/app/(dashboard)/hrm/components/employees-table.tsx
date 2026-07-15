@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import type { Employee } from "@/lib/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, Pencil, Trash, Eye } from "lucide-react";
+import { MoreHorizontal, Pencil, Trash, Eye, Ban } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,9 +30,10 @@ type EmployeesTableProps = {
     onView: (employeeId: string) => void;
     onEdit: (employee: Employee) => void;
     onDelete: (employee: Employee) => void;
+    onBlockToggle?: (employee: Employee) => void;
 };
 
-export function EmployeesTable({ data, onView, onEdit, onDelete }: EmployeesTableProps) {
+export function EmployeesTable({ data, onView, onEdit, onDelete, onBlockToggle }: EmployeesTableProps) {
   const { formatCurrency } = useCurrency();
 
   return (
@@ -101,6 +102,15 @@ export function EmployeesTable({ data, onView, onEdit, onDelete }: EmployeesTabl
                         Edit
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
+                    {onBlockToggle && (
+                      <DropdownMenuItem 
+                        className={employee.status === 'Blocked' ? "text-green-600" : "text-amber-600"} 
+                        onClick={() => onBlockToggle(employee)}
+                      >
+                        <Ban className="mr-2 h-4 w-4" />
+                        {employee.status === 'Blocked' ? 'Unblock User' : 'Block User'}
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem className="text-red-600" onClick={() => onDelete(employee)}>
                         <Trash className="mr-2 h-4 w-4" />
                         Delete
