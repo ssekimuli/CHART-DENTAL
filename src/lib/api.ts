@@ -2232,7 +2232,7 @@ export const getOcclusalRecords = async (patientId: string | number): Promise<Oc
     }
 };
 
-export const saveSoftTissueRecord = async (patientId: string | number, record: SoftTissueRecord): Promise<SoftTissueRecord> => {
+export const saveSoftTissueRecord = async (patientId: string | number, record: Omit<SoftTissueRecord, 'id'>): Promise<Patient | undefined> => {
     console.log('API CALL: saveSoftTissueRecord', { patientId, record });
     
     try {
@@ -2242,17 +2242,8 @@ export const saveSoftTissueRecord = async (patientId: string | number, record: S
             description: record.description,
         };
 
-        const response = await customAxios.post(`/patients/${patientId}/soft-tissue-records`, requestBody);
-        
-        const savedRecord = response.data.data || response.data;
-
-        return {
-            id: savedRecord.id,
-            location: savedRecord.location,
-            type: savedRecord.type,
-            description: savedRecord.description,
-            date: savedRecord.date || new Date().toISOString().split('T')[0],
-        };
+        await customAxios.post(`/patients/${patientId}/soft-tissue-records`, requestBody);
+        return getPatientById(patientId);
 
     } catch (error) {
         console.error('Error saving soft tissue record:', error);
