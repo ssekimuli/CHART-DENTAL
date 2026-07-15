@@ -94,7 +94,7 @@ export default function ProfilePage() {
     }
     
     const handleSaveLeaveRequest = async (data: Omit<LeaveRequest, 'id' | 'employeeName' | 'status'>) => {
-        const newRequest = await createLeaveRequest(data);
+        const newRequest = await createLeaveRequest({ ...data, employeeName: user?.name || '' });
         if (newRequest) {
             toast({
                 title: "Leave Request Submitted",

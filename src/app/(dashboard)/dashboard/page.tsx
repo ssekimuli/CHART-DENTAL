@@ -97,19 +97,19 @@ export default function DashboardPage() {
     const totalRevenue = filteredChartData.reduce((acc, item) => acc + item.revenue, 0);
 
     return {
-      recentPatients: dashboardSummary?.recentPatients ?? allRecentPatients.filter(p => p.branchId === selectedBranch).sort((a,b) => new Date(b.lastVisit).getTime() - new Date(a.lastVisit).getTime()).slice(0, 5),
-      appointments: dashboardSummary?.upcomingAppointments ?? allAppointments.filter(a => a.branchId === selectedBranch),
+      recentPatients: (dashboardSummary?.recentPatients ?? allRecentPatients.filter(p => p.branchId === selectedBranch).sort((a,b) => new Date(b.lastVisit || '').getTime() - new Date(a.lastVisit || '').getTime()).slice(0, 5)) as DashboardPatientRow[],
+      appointments: (dashboardSummary?.upcomingAppointments ?? allAppointments.filter(a => a.branchId === selectedBranch)) as DashboardAppointmentRow[],
       chartData: filteredChartData,
       totalRevenue: dashboardSummary?.totalRevenue ?? totalRevenue,
       activePatients: dashboardSummary?.activePatients ?? allRecentPatients.filter(p => p.branchId === selectedBranch && p.status === 'Active').length,
-      newAppointments: dashboardSummary?.appointmentsLast30Days ?? allAppointments.filter(a => a.branchId === selectedBranch && new Date(a.date) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)).length,
-      newPatients: dashboardSummary?.newPatientsLast30Days ?? allRecentPatients.filter(p => p.branchId === selectedBranch && new Date(p.lastVisit) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)).length,
+      newAppointments: dashboardSummary?.appointmentsLast30Days ?? allAppointments.filter(a => a.branchId === selectedBranch && new Date(a.date || '') > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)).length,
+      newPatients: dashboardSummary?.newPatientsLast30Days ?? allRecentPatients.filter(p => p.branchId === selectedBranch && new Date(p.lastVisit || '') > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)).length,
     }
   }, [selectedBranch, allAppointments, allRecentPatients, allChartData, dashboardSummary]);
 
   const practiceTrendData = practiceTrends;
 
-  const handleSendToQueue = async (appointment: Appointment) => {
+  const handleSendToQueue = async (appointment: any) => {
     const updated = await updateAppointment(appointment.id, { status: "Waiting" });
     if (updated) {
       setAllAppointments(prev => prev.map(a => a.id === updated.id ? updated : a));

@@ -140,7 +140,6 @@ export function MainNav() {
                  <Collapsible defaultOpen={isHrmActive}>
                     <CollapsibleTrigger asChild>
                         <SidebarMenuButton
-                            variant="ghost"
                             className="w-full justify-between"
                             isActive={isHrmActive}
                             tooltip={link.label}

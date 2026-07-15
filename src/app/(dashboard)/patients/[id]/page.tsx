@@ -92,7 +92,7 @@ export default function PatientDetailPage({
       const updated = await processPayment(invoiceId, amount, method);
       if (updated) {
         setInvoices((prev) =>
-          prev.map((inv) => (String(inv.id) === String(updated.id) ? { ...inv, ...updated, paidAmount: Number(updated.paid_amount), amount: Number(updated.amount) } : inv))
+          prev.map((inv) => (String(inv.id) === String(updated.id) ? { ...inv, ...updated, paidAmount: Number(updated.paidAmount), amount: Number(updated.amount) } : inv))
         );
         toast({
           title: "Payment Recorded",

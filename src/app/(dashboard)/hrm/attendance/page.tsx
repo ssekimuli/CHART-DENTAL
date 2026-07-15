@@ -108,13 +108,15 @@ export default function AttendancePage() {
         const newRecord = await markAttendance(data);
         if (newRecord) {
             setAllAttendance(prev => {
-                const existingIndex = prev.findIndex(att => att.employeeId === newRecord.employeeId && att.date === newRecord.date);
+                const record = newRecord[0];
+                if (!record) return prev;
+                const existingIndex = prev.findIndex(att => String(att.employeeId) === String(record.employeeId) && att.date === record.date);
                 if (existingIndex > -1) {
                     const updated = [...prev];
-                    updated[existingIndex] = newRecord;
+                    updated[existingIndex] = record;
                     return updated;
                 }
-                return [...prev, newRecord];
+                return [...prev, record];
             });
         }
         setIsFormOpen(false);
@@ -197,7 +199,7 @@ export default function AttendancePage() {
 
     const handleSelectAll = (checked: boolean) => {
         if (checked) {
-            setSelectedEmployeeIds(attendanceForDate.map(a => a.employeeId));
+            setSelectedEmployeeIds(attendanceForDate.map(a => String(a.employeeId)));
         } else {
             setSelectedEmployeeIds([]);
         }
@@ -295,8 +297,8 @@ export default function AttendancePage() {
                                      {hasPermission('hrm:update') && (
                                         <TableCell>
                                             <Checkbox
-                                                checked={selectedEmployeeIds.includes(record.employeeId)}
-                                                onCheckedChange={(checked) => handleSelectSingle(record.employeeId, !!checked)}
+                                                checked={selectedEmployeeIds.includes(String(record.employeeId))}
+                                                onCheckedChange={(checked) => handleSelectSingle(String(record.employeeId), !!checked)}
                                                 aria-label={`Select ${record.employeeName}`}
                                             />
                                         </TableCell>

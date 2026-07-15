@@ -36,7 +36,7 @@ export default function EmployeeDetailPage() {
     const fetchData = async () => {
         setIsLoading(true);
         const data = await getEmployeeById(id);
-        setEmployeeData(data);
+        setEmployeeData((data as any) || null);
         setIsLoading(false);
     }
     fetchData();

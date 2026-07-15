@@ -45,7 +45,7 @@ export function SalaryForm({ employee, onSave, onOpenChange }: SalaryFormProps) 
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    onSave(employee.id, values.salary);
+    onSave(String(employee.id), values.salary);
   }
 
   return (
