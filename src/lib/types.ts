@@ -168,6 +168,7 @@ export type Invoice = {
   paymentMethod?: PaymentMethod;
   transactions?: PaymentTransaction[];
   branch?: Branch;
+  medicines?: InvoiceMedicine[];
 };
 
 export type ChartData = {
@@ -450,4 +451,69 @@ export type ReportsOverview = {
         gender_distribution: Record<string, number>;
         age_distribution: Record<string, number>;
     };
+};
+
+export type MedicineUnit = {
+  id: number;
+  medicine_id: number;
+  unit_name: string;
+  price: number;
+  stock_quantity: number;
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type Medicine = {
+  id: number;
+  name: string;
+  description?: string;
+  category?: string;
+  branch_id: number;
+  units: MedicineUnit[];
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type PrescriptionItem = {
+  id?: number;
+  prescription_id?: number;
+  medicine_id: number;
+  medicine_unit_id: number;
+  dosage: string;
+  quantity: number;
+  price: number;
+  medicine?: Medicine;
+  unit?: MedicineUnit;
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type Prescription = {
+  id: number;
+  patient_id: number;
+  patient_name: string;
+  doctor_id?: number;
+  doctor_name?: string;
+  prescription_date: string;
+  status: 'Pending' | 'Dispensed' | 'Billed';
+  invoice_id?: number;
+  notes?: string;
+  branch_id: number;
+  items: PrescriptionItem[];
+  invoice?: Invoice;
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type InvoiceMedicine = {
+  id: number;
+  invoice_id: number;
+  medicine_id: number;
+  medicine_unit_id: number;
+  quantity: number;
+  price: number;
+  medicine?: Medicine;
+  unit?: MedicineUnit;
+  created_at?: string;
+  updated_at?: string;
 };

@@ -15,7 +15,7 @@ import {
     expenses as allExpenses,
     roles as mockRoles
 } from '@/lib/data';
-import type { PaginatedArray, Patient, Appointment, Invoice, ChartData, PracticeTrendPoint, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, BasePatient, InvoiceTreatment, OtherCharge, SystemTreatment, PaymentMethod, PaymentTransaction, AttendanceRecord, LeaveRequest, StaffAdvance, StaffAdvanceStatus, Expense, ExpenseCategory, ExpenseSummary, IncomeRecord, RolePermissions, Permission, DentalRecord, PeriodontalRecord, OcclusalRecord, SoftTissueRecord, OrthodonticRecord, Treatment, DentalCondition, PatientImage, FinancialSummary, CurrentUser, ProfileData, AppointmentStatus, DashboardSummary, EmployeeRole, ReportsOverview } from '@/lib/types';
+import type { PaginatedArray, Patient, Appointment, Invoice, ChartData, PracticeTrendPoint, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, BasePatient, InvoiceTreatment, OtherCharge, SystemTreatment, PaymentMethod, PaymentTransaction, AttendanceRecord, LeaveRequest, StaffAdvance, StaffAdvanceStatus, Expense, ExpenseCategory, ExpenseSummary, IncomeRecord, RolePermissions, Permission, DentalRecord, PeriodontalRecord, OcclusalRecord, SoftTissueRecord, OrthodonticRecord, Treatment, DentalCondition, PatientImage, FinancialSummary, CurrentUser, ProfileData, AppointmentStatus, DashboardSummary, EmployeeRole, ReportsOverview, Medicine, MedicineUnit, Prescription, PrescriptionItem, InvoiceMedicine } from '@/lib/types';
 import { format, parse } from "date-fns";
 import { speak } from '@/ai/flows/speak';
 import { clearCurrentUser, setCurrentUser, currentUser as userDetails } from './user';
@@ -3703,5 +3703,176 @@ export const downloadTemplate = async (filename: string): Promise<void> => {
     } catch (error) {
         console.error('Error downloading template:', error);
         throw error;
+    }
+};
+
+// --- PHARMACY MODULE ---
+
+export const getMedicines = async (
+    branchId?: string | number,
+    search?: string,
+    page?: number,
+    perPage?: number
+): Promise<PaginatedArray<Medicine>> => {
+    console.log('API CALL: getMedicines', { branchId, search, page, perPage });
+    try {
+        const params: any = {};
+        if (branchId) params.branch_id = branchId;
+        if (search) params.search = search;
+        if (page) params.page = page;
+        if (perPage) params.per_page = perPage;
+
+        const response = await customAxios.get('/pharmacy/medicines', { params });
+        const rawItems = Array.isArray(response.data) ? response.data : (response.data.data || []);
+        
+        const items: PaginatedArray<Medicine> = rawItems.map((med: any) => ({
+            ...med,
+            units: Array.isArray(med.units) ? med.units.map((unit: any) => ({
+                ...unit,
+                price: parseFloat(unit.price),
+                stock_quantity: parseInt(unit.stock_quantity, 10),
+            })) : [],
+        }));
+
+        if (response.data && response.data.meta) {
+            items.meta = response.data.meta;
+        }
+        return items;
+    } catch (error) {
+        console.error('Error fetching medicines:', error);
+        const emptyArray: PaginatedArray<Medicine> = [];
+        return emptyArray;
+    }
+};
+
+export const storeMedicine = async (medicineData: {
+    name: string;
+    description?: string;
+    category?: string;
+    branch_id: number;
+    units: { unit_name: string; price: number; stock_quantity: number }[];
+}): Promise<Medicine> => {
+    console.log('API CALL: storeMedicine', medicineData);
+    const response = await customAxios.post('/pharmacy/medicines', medicineData);
+    return response.data;
+};
+
+export const updateMedicine = async (
+    id: string | number,
+    medicineData: {
+        name?: string;
+        description?: string;
+        category?: string;
+        branch_id?: number;
+        units?: { id?: number; unit_name: string; price: number; stock_quantity: number }[];
+    }
+): Promise<Medicine> => {
+    console.log('API CALL: updateMedicine', { id, medicineData });
+    const response = await customAxios.put(`/pharmacy/medicines/${id}`, medicineData);
+    return response.data;
+};
+
+export const deleteMedicine = async (id: string | number): Promise<{ success: boolean }> => {
+    console.log('API CALL: deleteMedicine', { id });
+    const response = await customAxios.delete(`/pharmacy/medicines/${id}`);
+    return response.data;
+};
+
+export const getPrescriptions = async (
+    branchId?: string | number,
+    patientId?: string | number,
+    page?: number,
+    perPage?: number
+): Promise<PaginatedArray<Prescription>> => {
+    console.log('API CALL: getPrescriptions', { branchId, patientId, page, perPage });
+    try {
+        const params: any = {};
+        if (branchId) params.branch_id = branchId;
+        if (patientId) params.patient_id = patientId;
+        if (page) params.page = page;
+        if (perPage) params.per_page = perPage;
+
+        const response = await customAxios.get('/pharmacy/prescriptions', { params });
+        const rawItems = Array.isArray(response.data) ? response.data : (response.data.data || []);
+        
+        const items: PaginatedArray<Prescription> = rawItems.map((rx: any) => ({
+            ...rx,
+            items: Array.isArray(rx.items) ? rx.items.map((item: any) => ({
+                ...item,
+                price: parseFloat(item.price),
+                quantity: parseInt(item.quantity, 10),
+            })) : [],
+        }));
+
+        if (response.data && response.data.meta) {
+            items.meta = response.data.meta;
+        }
+        return items;
+    } catch (error) {
+        console.error('Error fetching prescriptions:', error);
+        const emptyArray: PaginatedArray<Prescription> = [];
+        return emptyArray;
+    }
+};
+
+export const storePrescription = async (prescriptionData: {
+    patient_id: number;
+    doctor_id?: number;
+    prescription_date: string;
+    notes?: string;
+    branch_id: number;
+    bill_to_invoice?: boolean;
+    items: {
+        medicine_id: number;
+        medicine_unit_id: number;
+        dosage: string;
+        quantity: number;
+        price: number;
+    }[];
+}): Promise<Prescription> => {
+    console.log('API CALL: storePrescription', prescriptionData);
+    const response = await customAxios.post('/pharmacy/prescriptions', prescriptionData);
+    return response.data;
+};
+
+export const updatePrescriptionStatus = async (
+    id: string | number,
+    status: 'Pending' | 'Dispensed' | 'Billed'
+): Promise<Prescription> => {
+    console.log('API CALL: updatePrescriptionStatus', { id, status });
+    const response = await customAxios.patch(`/pharmacy/prescriptions/${id}/status`, { status });
+    return response.data;
+};
+
+export const getPatientPrescriptions = async (patientId: string | number): Promise<Prescription[]> => {
+    console.log('API CALL: getPatientPrescriptions', { patientId });
+    try {
+        const response = await customAxios.get(`/patients/${patientId}/prescriptions`);
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching patient prescriptions:', error);
+        return [];
+    }
+};
+
+export const getDoctorsList = async (): Promise<Employee[]> => {
+    console.log('API CALL: getDoctorsList');
+    try {
+        const response = await customAxios.get('/doctors');
+        return Array.isArray(response.data) ? response.data : (response.data.data || []);
+    } catch (error) {
+        console.error('Error fetching doctors:', error);
+        return [];
+    }
+};
+
+export const getPatientsList = async (): Promise<any[]> => {
+    console.log('API CALL: getPatientsList');
+    try {
+        const response = await customAxios.get('/patients-list');
+        return Array.isArray(response.data) ? response.data : (response.data.data || []);
+    } catch (error) {
+        console.error('Error fetching patients list:', error);
+        return [];
     }
 };

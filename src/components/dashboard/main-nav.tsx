@@ -33,6 +33,7 @@ import {
   Clock,
   DollarSign,
   Landmark,
+  Pill,
 } from "lucide-react";
 import type { EmployeeRole, Permission } from "@/lib/types";
 import { currentUser, getCurrentUser, hasPermission, hasRole } from "@/lib/user";
@@ -54,6 +55,7 @@ const allLinks: NavLink[] = [
   { href: "/charting", label: "Charting", icon: FileText },
   { href: "/appointments", label: "Appointments", icon: Calendar },
   { href: "/billing", label: "Billing", icon: CreditCard },
+  { href: "/pharmacy", label: "Pharmacy", icon: Pill },
   { href: "/accounting", label: "Accounting", icon: Landmark },
   { href: "/inventory", label: "Inventory", icon: Package },
   { href: "/laboratory", label: "Laboratory", icon: FlaskConical, permission: 'laboratory:read' },
