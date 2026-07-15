@@ -1361,13 +1361,23 @@ export const getFinancialSummary = async (branchId: string | number): Promise<Fi
     }
 }
 
-export const getReportsOverview = async (branchId?: string | number): Promise<ReportsOverview | null> => {
-    console.log('API CALL: getReportsOverview', { branchId });
+export const getReportsOverview = async (
+    branchId?: string | number,
+    startDate?: string,
+    endDate?: string
+): Promise<ReportsOverview | null> => {
+    console.log('API CALL: getReportsOverview', { branchId, startDate, endDate });
 
     try {
         const params: Record<string, string | number> = {};
         if (branchId !== undefined && branchId !== null && branchId !== '') {
             params.branch_id = branchId;
+        }
+        if (startDate) {
+            params.start_date = startDate;
+        }
+        if (endDate) {
+            params.end_date = endDate;
         }
 
         const response = await customAxios.get('/reports/overview', { params });

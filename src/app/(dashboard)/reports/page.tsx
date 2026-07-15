@@ -29,6 +29,7 @@ import {
   UserCheck
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 export default function ReportsPage() {
   const router = useRouter();
@@ -36,6 +37,8 @@ export default function ReportsPage() {
   const { formatCurrency } = useCurrency();
   const [data, setData] = useState<ReportsOverview | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [startDate, setStartDate] = useState<string>("");
+  const [endDate, setEndDate] = useState<string>("");
 
   useEffect(() => {
     if (!hasPermission("reports:read")) {
@@ -46,15 +49,15 @@ export default function ReportsPage() {
   useEffect(() => {
     const fetchOverview = async () => {
       setIsLoading(true);
-      const overview = await getReportsOverview(selectedBranch);
+      const overview = await getReportsOverview(selectedBranch, startDate, endDate);
       setData(overview);
       setIsLoading(false);
     };
 
-    if (selectedBranch) {
+    if (selectedBranch !== undefined && selectedBranch !== null) {
       fetchOverview();
     }
-  }, [selectedBranch]);
+  }, [selectedBranch, startDate, endDate]);
 
   if (!hasPermission("reports:read")) {
     return null;
@@ -70,6 +73,36 @@ export default function ReportsPage() {
     ? Math.min(Math.round((data.financial_summary.total_expenses / data.financial_summary.total_income) * 100), 100)
     : 0;
 
+  const handlePreset = (preset: 'this-month' | 'last-30-days' | 'this-year' | 'all') => {
+    const today = new Date();
+    let start = "";
+    let end = today.toISOString().split('T')[0];
+
+    if (preset === 'this-month') {
+      const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+      const offset = firstDay.getTimezoneOffset();
+      const localFirstDay = new Date(firstDay.getTime() - (offset * 60 * 1000));
+      start = localFirstDay.toISOString().split('T')[0];
+    } else if (preset === 'last-30-days') {
+      const date30DaysAgo = new Date();
+      date30DaysAgo.setDate(today.getDate() - 30);
+      const offset = date30DaysAgo.getTimezoneOffset();
+      const localDate = new Date(date30DaysAgo.getTime() - (offset * 60 * 1000));
+      start = localDate.toISOString().split('T')[0];
+    } else if (preset === 'this-year') {
+      const jan1 = new Date(today.getFullYear(), 0, 1);
+      const offset = jan1.getTimezoneOffset();
+      const localJan1 = new Date(jan1.getTime() - (offset * 60 * 1000));
+      start = localJan1.toISOString().split('T')[0];
+    } else if (preset === 'all') {
+      start = "";
+      end = "";
+    }
+
+    setStartDate(start);
+    setEndDate(end);
+  };
+
   return (
     <div className="flex flex-col gap-6 p-1">
       {/* Page Header */}
@@ -79,6 +112,46 @@ export default function ReportsPage() {
           <p className="text-muted-foreground mt-1">
             Consolidated practice intelligence and summaries for your active branch.
           </p>
+        </div>
+      </div>
+
+      {/* Filter Controls */}
+      <div className="flex flex-col lg:flex-row gap-4 p-4 rounded-xl border bg-card text-card-foreground shadow-sm">
+        <div className="flex flex-col md:flex-row md:items-center gap-4 flex-1">
+          <div className="flex flex-col gap-1.5 flex-1">
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Start Date</span>
+            <Input 
+              type="date" 
+              value={startDate} 
+              onChange={(e) => setStartDate(e.target.value)} 
+              className="w-full bg-background"
+            />
+          </div>
+          <div className="flex flex-col gap-1.5 flex-1">
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">End Date</span>
+            <Input 
+              type="date" 
+              value={endDate} 
+              onChange={(e) => setEndDate(e.target.value)} 
+              className="w-full bg-background"
+            />
+          </div>
+        </div>
+        <div className="flex flex-wrap items-end gap-2 lg:mt-5">
+          <Button variant="outline" size="sm" onClick={() => handlePreset('this-month')}>
+            This Month
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => handlePreset('last-30-days')}>
+            Last 30 Days
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => handlePreset('this-year')}>
+            This Year
+          </Button>
+          {(startDate || endDate) && (
+            <Button variant="ghost" size="sm" onClick={() => handlePreset('all')} className="text-destructive hover:bg-destructive/10">
+              Clear Filters
+            </Button>
+          )}
         </div>
       </div>
 
