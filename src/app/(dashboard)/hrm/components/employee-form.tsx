@@ -80,9 +80,26 @@ export function EmployeeForm({ employee, onSave, onOpenChange }: EmployeeFormPro
         hire_date: employee ? parseISO(employee.hire_date) : undefined,
         gender: employee?.gender,
         avatar: employee?.avatar ?? "",
-        branchId: employee ? String(employee.branchId) : selectedBranch,
+        branchId: employee ? String(employee.branchId) : String(selectedBranch || ""),
     },
   });
+
+  useEffect(() => {
+    if (employee) {
+      form.reset({
+        name: employee.name ?? "",
+        email: employee.email ?? "",
+        role: employee.role,
+        status: employee.status ?? 'Active',
+        salary: Number(employee.salary),
+        monthlySalary: Number(employee.salary) / 12,
+        hire_date: employee.hire_date ? parseISO(employee.hire_date) : undefined as any,
+        gender: employee.gender,
+        avatar: employee.avatar ?? "",
+        branchId: String(employee.branchId),
+      });
+    }
+  }, [employee, form]);
 
   useEffect(() => {
     const fetchRoles = async () => {
@@ -174,7 +191,7 @@ export function EmployeeForm({ employee, onSave, onOpenChange }: EmployeeFormPro
                             render={({ field }) => (
                                 <FormItem>
                                 <FormLabel>Role</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={String(field.value)}>
+                                <Select onValueChange={field.onChange} value={field.value ? String(field.value) : undefined}>
                                     <FormControl>
                                     <SelectTrigger>
                                         <SelectValue placeholder="Select role" />
@@ -196,7 +213,7 @@ export function EmployeeForm({ employee, onSave, onOpenChange }: EmployeeFormPro
                             render={({ field }) => (
                                 <FormItem>
                                 <FormLabel>Gender</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <Select onValueChange={field.onChange} value={field.value}>
                                     <FormControl>
                                     <SelectTrigger>
                                         <SelectValue placeholder="Select gender" />
@@ -220,7 +237,7 @@ export function EmployeeForm({ employee, onSave, onOpenChange }: EmployeeFormPro
                             render={({ field }) => (
                                 <FormItem>
                                 <FormLabel>Branch</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <Select onValueChange={field.onChange} value={field.value}>
                                     <FormControl>
                                     <SelectTrigger>
                                         <SelectValue placeholder="Select branch" />
@@ -310,7 +327,7 @@ export function EmployeeForm({ employee, onSave, onOpenChange }: EmployeeFormPro
                             render={({ field }) => (
                                 <FormItem>
                                 <FormLabel>Status</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <Select onValueChange={field.onChange} value={field.value}>
                                     <FormControl>
                                     <SelectTrigger>
                                         <SelectValue placeholder="Select status" />
