@@ -378,6 +378,36 @@ export function PeriodontalChart({
         <text x="45" y={baselineY + 12} className="text-[8px] font-bold fill-muted-foreground opacity-60">
           {type === "buccal" ? "BUCCAL GUM & BONE PROFILE" : "LINGUAL GUM & BONE PROFILE"}
         </text>
+
+        {/* Active Conditions Indicators */}
+        {teeth.map((toothId, colIndex) => {
+          const record = getRecord(toothId);
+          const xCenter = 40 + colIndex * 44 + 18;
+          return (
+            <g key={toothId}>
+              {conditionKeys.map((con, idx) => {
+                if (!record.conditions[con]) return null;
+                const color = {
+                  bleeding: "fill-red-500",
+                  suppuration: "fill-yellow-400",
+                  plaque: "fill-blue-400",
+                  calculus: "fill-green-500",
+                }[con];
+                return (
+                  <circle
+                    key={con}
+                    cx={xCenter + (idx * 5 - 7.5)}
+                    cy={baselineY - 10}
+                    r="2.5"
+                    className={cn(color, "stroke-none transition-all")}
+                  >
+                    <title>{con.charAt(0).toUpperCase() + con.slice(1)}</title>
+                  </circle>
+                );
+              })}
+            </g>
+          );
+        })}
       </g>
     );
   };
