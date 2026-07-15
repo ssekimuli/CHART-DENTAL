@@ -298,6 +298,90 @@ export function PeriodontalChart({
     }
   };
 
+  const PeriodontalGraph = ({ arch, type }: { arch: "upper" | "lower"; type: "buccal" | "lingual" }) => {
+    const teeth = arch === "upper"
+      ? [...quadrants.upperRight.slice().reverse(), ...quadrants.upperLeft]
+      : [...quadrants.lowerRight.slice().reverse(), ...quadrants.lowerLeft];
+      
+    const marginPoints: { x: number; y: number }[] = [];
+    const pocketPoints: { x: number; y: number }[] = [];
+    
+    const sliceStart = type === "buccal" ? 0 : 3;
+    const sliceEnd = type === "buccal" ? 3 : 6;
+    const baselineY = type === "buccal" ? 30 : 120;
+    
+    teeth.forEach((toothId, colIndex) => {
+      const record = getRecord(toothId);
+      const recession = record.recession ?? 0;
+      
+      pocketPositions.slice(sliceStart, sliceEnd).forEach((pos, posIndex) => {
+        const x = 40 + colIndex * 44 + 8 + posIndex * 10;
+        const pocket = record.pockets[pos] ?? 0;
+        
+        const yMargin = baselineY + recession * 5;
+        const yPocket = yMargin + pocket * 5;
+        
+        marginPoints.push({ x, y: yMargin });
+        pocketPoints.push({ x, y: yPocket });
+      });
+    });
+    
+    let marginPath = "";
+    let pocketPath = "";
+    let areaPath = "";
+    
+    if (marginPoints.length > 0) {
+      marginPath = "M " + marginPoints.map(p => `${p.x} ${p.y}`).join(" L ");
+      pocketPath = "M " + pocketPoints.map(p => `${p.x} ${p.y}`).join(" L ");
+      
+      const marginPart = marginPoints.map(p => `${p.x} ${p.y}`).join(" L ");
+      const pocketPart = [...pocketPoints].reverse().map(p => `${p.x} ${p.y}`).join(" L ");
+      areaPath = `M ${marginPart} L ${pocketPart} Z`;
+    }
+    
+    const depthLevels = [0, 2, 4, 6, 8, 10, 12];
+    const dangerY = baselineY + 4 * 5;
+    
+    return (
+      <g>
+        {/* Background Grid */}
+        <rect x="40" y={baselineY} width="704" height="60" className="fill-slate-50/50 stroke-none" />
+        {/* Danger zone (>= 4mm) background highlight */}
+        <rect x="40" y={dangerY} width="704" height="40" fill="rgba(239, 68, 68, 0.05)" />
+        
+        {depthLevels.map(lvl => {
+          const y = baselineY + lvl * 5;
+          return (
+            <g key={lvl} className="opacity-40">
+              <line x1="40" y1={y} x2="744" y2={y} stroke="hsl(var(--border))" strokeWidth="0.5" strokeDasharray={lvl >= 4 ? "none" : "2,2"} />
+              <text x="35" y={y + 3} className="text-[7px] font-semibold fill-muted-foreground text-anchor-end">{lvl}</text>
+            </g>
+          );
+        })}
+        
+        {/* Active Pocket Area */}
+        {areaPath && (
+          <path d={areaPath} fill="rgba(239, 68, 68, 0.12)" stroke="none" />
+        )}
+        
+        {/* Gum Margin (Blue line) */}
+        {marginPath && (
+          <path d={marginPath} fill="none" stroke="#3b82f6" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        )}
+        
+        {/* Pocket Depth (Red line) */}
+        {pocketPath && (
+          <path d={pocketPath} fill="none" stroke="#ef4444" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        )}
+        
+        {/* Graph Title */}
+        <text x="45" y={baselineY + 12} className="text-[8px] font-bold fill-muted-foreground opacity-60">
+          {type === "buccal" ? "BUCCAL GUM & BONE PROFILE" : "LINGUAL GUM & BONE PROFILE"}
+        </text>
+      </g>
+    );
+  };
+
   const ToothColumn = ({ toothId, arch, col }: { toothId: number; arch: "upper" | "lower"; col: number }) => {
     const record = getRecord(toothId);
 
@@ -514,33 +598,45 @@ export function PeriodontalChart({
           </div>
         </div>
 
-        <svg viewBox="0 0 780 840" className="w-full max-w-[800px] mx-auto min-w-[760px]">
-          {/* Upper Arch (Maxillary) Row */}
-          <g transform="translate(40, 0)">
+        <svg viewBox="0 0 780 1230" className="w-full max-w-[800px] mx-auto min-w-[760px]">
+          {/* Upper Arch (Maxillary) 2D Graphs */}
+          <PeriodontalGraph arch="upper" type="buccal" />
+          <PeriodontalGraph arch="upper" type="lingual" />
+
+          {/* Upper Arch Inputs Grid */}
+          <g transform="translate(40, 210)">
             <text x="0" y="96" className="text-[10px] font-bold fill-muted-foreground" transform="rotate(-90 0 96)">Buccal (Upper)</text>
             <text x="0" y="240" className="text-[10px] font-bold fill-muted-foreground" transform="rotate(-90 0 240)">Lingual (Upper)</text>
           </g>
           {[...quadrants.upperRight.slice().reverse(), ...quadrants.upperLeft].map((toothId, i) => (
-            <g key={toothId} transform={`translate(${40 + i * 44}, 0)`}>
+            <g key={toothId} transform={`translate(${40 + i * 44}, 210)`}>
               <ToothColumn toothId={toothId} arch="upper" col={i} />
             </g>
           ))}
-          <line x1={40 + 8 * 44} y1="0" x2={40 + 8 * 44} y2="400" className="stroke-muted-foreground/40 stroke-2" />
+          <line x1={40 + 8 * 44} y1="210" x2={40 + 8 * 44} y2="610" className="stroke-muted-foreground/40 stroke-2" />
 
           {/* Separator line between arches */}
-          <line x1="0" y1="418" x2="780" y2="418" className="stroke-border stroke-1 stroke-dasharray-[4,4]" />
+          <line x1="0" y1="815" x2="780" y2="815" className="stroke-border stroke-1 stroke-dasharray-[4,4]" />
 
-          {/* Lower Arch (Mandibular) Row */}
-          <g transform="translate(40, 430)">
+          {/* Lower Arch (Mandibular) 2D Graphs */}
+          <g transform="translate(0, 640)">
+            <PeriodontalGraph arch="lower" type="buccal" />
+          </g>
+          <g transform="translate(0, 640)">
+            <PeriodontalGraph arch="lower" type="lingual" />
+          </g>
+
+          {/* Lower Arch Inputs Grid */}
+          <g transform="translate(40, 820)">
             <text x="0" y="96" className="text-[10px] font-bold fill-muted-foreground" transform="rotate(-90 0 96)">Buccal (Lower)</text>
             <text x="0" y="240" className="text-[10px] font-bold fill-muted-foreground" transform="rotate(-90 0 240)">Lingual (Lower)</text>
           </g>
           {[...quadrants.lowerRight.slice().reverse(), ...quadrants.lowerLeft].map((toothId, i) => (
-            <g key={toothId} transform={`translate(${40 + i * 44}, 430)`}>
+            <g key={toothId} transform={`translate(${40 + i * 44}, 820)`}>
               <ToothColumn toothId={toothId} arch="lower" col={i} />
             </g>
           ))}
-          <line x1={40 + 8 * 44} y1="430" x2={40 + 8 * 44} y2="830" className="stroke-muted-foreground/40 stroke-2" />
+          <line x1={40 + 8 * 44} y1="820" x2={40 + 8 * 44} y2="1220" className="stroke-muted-foreground/40 stroke-2" />
         </svg>
       </CardContent>
       {canUpdateChart && (
