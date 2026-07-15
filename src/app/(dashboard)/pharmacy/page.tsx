@@ -35,6 +35,7 @@ import { useBranch } from "@/context/branch-context";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PaginationControl } from "@/components/ui/pagination-control";
 import { toast } from "@/hooks/use-toast";
+import { useCurrency } from "@/hooks/use-currency";
 import { 
   getMedicines, 
   storeMedicine, 
@@ -50,6 +51,7 @@ import type { Medicine, MedicineUnit, Prescription, Employee } from "@/lib/types
 
 export default function PharmacyPage() {
   const { selectedBranch } = useBranch();
+  const { formatCurrency } = useCurrency();
   const [activeTab, setActiveTab] = useState("inventory");
 
   // Inventory State
@@ -396,7 +398,7 @@ export default function PharmacyPage() {
                                 {med.units.map((unit) => (
                                   <div key={unit.id} className="flex items-center gap-2 text-xs">
                                     <span className="font-medium text-foreground/80">{unit.unit_name}:</span>
-                                    <span className="text-muted-foreground">${Number(unit.price).toFixed(2)}</span>
+                                    <span className="text-muted-foreground">{formatCurrency(unit.price)}</span>
                                     <span>•</span>
                                     <span className="font-normal text-muted-foreground">{unit.stock_quantity} available</span>
                                   </div>
@@ -580,7 +582,7 @@ export default function PharmacyPage() {
                     />
                   </div>
                   <div className="col-span-3 space-y-1">
-                    <Label className="text-xs">Price ($)</Label>
+                    <Label className="text-xs">Price</Label>
                     <Input
                       type="number"
                       step="0.01"
@@ -722,7 +724,7 @@ export default function PharmacyPage() {
                       >
                         <option value="">Select...</option>
                         {selectedMed?.units.map(u => (
-                          <option key={u.id} value={u.id}>{u.unit_name} (${Number(u.price).toFixed(2)})</option>
+                          <option key={u.id} value={u.id}>{u.unit_name} ({formatCurrency(u.price)})</option>
                         ))}
                       </select>
                     </div>
@@ -825,7 +827,7 @@ export default function PharmacyPage() {
                           <TableCell>{item.unit?.unit_name || "Unknown"}</TableCell>
                           <TableCell>{item.dosage}</TableCell>
                           <TableCell>{item.quantity}</TableCell>
-                          <TableCell className="text-right">${Number(item.price).toFixed(2)}</TableCell>
+                          <TableCell className="text-right">{formatCurrency(item.price)}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>

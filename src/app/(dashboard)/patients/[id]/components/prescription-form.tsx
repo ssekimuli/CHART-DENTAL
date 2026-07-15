@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Trash, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useCurrency } from "@/hooks/use-currency";
 import { getMedicines, getDoctorsList, storePrescription } from "@/lib/api";
 import type { Medicine, Employee } from "@/lib/types";
 
@@ -34,6 +35,7 @@ export function PrescriptionForm({
   onSave,
 }: PrescriptionFormProps) {
   const { toast } = useToast();
+  const { formatCurrency } = useCurrency();
   const [medicines, setMedicines] = useState<Medicine[]>([]);
   const [doctors, setDoctors] = useState<Employee[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -249,7 +251,7 @@ export function PrescriptionForm({
                         <option value="">Select Unit</option>
                         {availableUnits.map((u) => (
                           <option key={u.id} value={u.id}>
-                            {u.unit_name} (${Number(u.price).toFixed(2)})
+                            {u.unit_name} ({formatCurrency(u.price)})
                           </option>
                         ))}
                       </select>
