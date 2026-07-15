@@ -193,7 +193,7 @@ export type Employee = {
   avatar: string;
   email: string;
   role: EmployeeRole;
-  status: 'Active' | 'On Leave';
+  status: 'Active' | 'On Leave' | 'Blocked';
   salary: number;
   hire_date: string;
   gender?: 'Male' | 'Female' | 'Other';

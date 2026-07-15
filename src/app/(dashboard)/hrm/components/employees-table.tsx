@@ -68,8 +68,14 @@ export function EmployeesTable({ data, onView, onEdit, onDelete }: EmployeesTabl
               <TableCell>{employee.gender || '-'}</TableCell>
               <TableCell>
                 <Badge
-                  variant={employee.status === "Active" ? "secondary" : "outline"}
-                  className={employee.status === 'Active' ? 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800' : ''}
+                  variant={employee.status === "Active" ? "secondary" : employee.status === "Blocked" ? "destructive" : "outline"}
+                  className={
+                    employee.status === 'Active' 
+                      ? 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800' 
+                      : employee.status === 'Blocked'
+                      ? 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800'
+                      : ''
+                  }
                 >
                   {employee.status}
                 </Badge>

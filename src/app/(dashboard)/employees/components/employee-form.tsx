@@ -44,7 +44,7 @@ const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
   email: z.string().email("Please enter a valid email."),
   role: z.string({ required_error: "Role is required."}),
-  status: z.enum(['Active', 'On Leave']),
+  status: z.enum(['Active', 'On Leave', 'Blocked']),
   salary: z.coerce.number().positive("Salary must be a positive number.").optional(),
   monthlySalary: z.coerce.number().optional(),
   hire_date: z.date({
@@ -306,6 +306,7 @@ export function EmployeeForm({ employee, onSave, onOpenChange }: EmployeeFormPro
                                     <SelectContent>
                                         <SelectItem value="Active">Active</SelectItem>
                                         <SelectItem value="On Leave">On Leave</SelectItem>
+                                        <SelectItem value="Blocked">Blocked</SelectItem>
                                     </SelectContent>
                                 </Select>
                                 <FormMessage />
