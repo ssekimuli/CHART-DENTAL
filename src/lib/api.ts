@@ -743,7 +743,25 @@ export const getInvoiceById = async (id: string | number): Promise<Invoice | und
             patientName: invoiceData.patient_name || invoiceData.patientName || 'Unknown',
             patientId: invoiceData.patient_id ?? invoiceData.patientId ?? '',
             issueDate: invoiceData.issue_date || invoiceData.issueDate || new Date().toISOString(),
+            dueDate: invoiceData.due_date || invoiceData.dueDate || new Date().toISOString(),
+            paymentMethod: invoiceData.payment_method || invoiceData.paymentMethod || null,
             branchId: invoiceData.branch_id || invoiceData.branchId,
+            otherCharges: (invoiceData.other_charges || invoiceData.otherCharges || []).map((charge: any) => ({
+                description: charge.description,
+                amount: Number(charge.amount) || 0
+            })),
+            transactions: (invoiceData.transactions || []).map((tx: any) => ({
+                id: tx.id,
+                date: tx.date || tx.created_at,
+                amount: Number(tx.amount) || 0,
+                method: tx.method
+            })),
+            treatments: (invoiceData.treatments || []).map((t: any) => ({
+                procedureId: t.procedure_id || t.id || '',
+                procedure: t.procedure || '',
+                cost: Number(t.cost) || 0,
+                tooth: t.tooth
+            })),
             // Keep original fields for reference (optional)
             patient_name: invoiceData.patient_name,
             patient_id: invoiceData.patient_id,

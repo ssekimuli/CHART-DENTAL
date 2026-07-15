@@ -18,7 +18,8 @@ export default function InvoiceDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { id } = params;
-  const { formatCurrency } = useCurrency();
+  const { formatCurrency: baseFormatCurrency } = useCurrency();
+  const formatCurrency = (value: any) => baseFormatCurrency(value, invoice?.branch?.currency);
 
   const [invoice, setInvoice] = useState<Invoice | undefined>(undefined);
   const [patient, setPatient] = useState<Patient | undefined>(undefined);

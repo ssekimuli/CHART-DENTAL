@@ -166,6 +166,7 @@ export type Invoice = {
   otherCharges?: OtherCharge[];
   paymentMethod?: PaymentMethod;
   transactions?: PaymentTransaction[];
+  branch?: Branch;
 };
 
 export type ChartData = {
