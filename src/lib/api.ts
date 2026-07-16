@@ -15,7 +15,7 @@ import {
     expenses as allExpenses,
     roles as mockRoles
 } from '@/lib/data';
-import type { PaginatedArray, Patient, Appointment, Invoice, ChartData, PracticeTrendPoint, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, BasePatient, InvoiceTreatment, OtherCharge, SystemTreatment, PaymentMethod, PaymentTransaction, AttendanceRecord, LeaveRequest, StaffAdvance, StaffAdvanceStatus, Expense, ExpenseCategory, ExpenseSummary, IncomeRecord, RolePermissions, Permission, DentalRecord, PeriodontalRecord, OcclusalRecord, SoftTissueRecord, OrthodonticRecord, Treatment, DentalCondition, PatientImage, FinancialSummary, CurrentUser, ProfileData, AppointmentStatus, DashboardSummary, EmployeeRole, ReportsOverview, Medicine, MedicineUnit, Prescription, PrescriptionItem, InvoiceMedicine } from '@/lib/types';
+import type { PaginatedArray, Patient, Appointment, Invoice, ChartData, PracticeTrendPoint, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, BasePatient, InvoiceTreatment, OtherCharge, SystemTreatment, PaymentMethod, PaymentTransaction, AttendanceRecord, LeaveRequest, StaffAdvance, StaffAdvanceStatus, Expense, ExpenseCategory, ExpenseSummary, IncomeRecord, RolePermissions, Permission, DentalRecord, PeriodontalRecord, OcclusalRecord, SoftTissueRecord, OrthodonticRecord, Treatment, DentalCondition, PatientImage, FinancialSummary, CurrentUser, ProfileData, AppointmentStatus, DashboardSummary, EmployeeRole, ReportsOverview, Medicine, MedicineUnit, Prescription, PrescriptionItem, InvoiceMedicine, EndodonticRecord } from '@/lib/types';
 import { format, parse } from "date-fns";
 import { speak } from '@/ai/flows/speak';
 import { clearCurrentUser, setCurrentUser, currentUser as userDetails } from './user';
@@ -276,6 +276,9 @@ export const getPatients = async (filters?: string | number | GetPatientsFilters
                 : (patient.occlusal_records || { overbite: 0, overjet: 0, crossbite: 'None', openbite: 'None', malocclusion: 'Class I' }),
             softTissueRecords: patient.soft_tissue_records || [],
             orthodonticRecords: patient.orthodontic_records || [],
+            endodonticRecords: typeof window !== 'undefined'
+                ? JSON.parse(localStorage.getItem(`endo_records_${patient.id}`) || '[]')
+                : [],
         }));
 
         if (response.data && response.data.meta) {
@@ -399,6 +402,9 @@ export const getPatientById = async (id: string | number): Promise<Patient | und
                 : (patient.occlusal_records || { overbite: 0, overjet: 0, crossbite: 'None', openbite: 'None', malocclusion: 'Class I' }),
             softTissueRecords: patient.soft_tissue_records || [],
             orthodonticRecords: patient.orthodontic_records || [],
+            endodonticRecords: typeof window !== 'undefined'
+                ? JSON.parse(localStorage.getItem(`endo_records_${patient.id}`) || '[]')
+                : [],
         };
     } catch (error) {
         if (axios.isAxiosError(error)) {
@@ -1811,6 +1817,9 @@ export const createPatient = async (data: BasePatient & { branchId: string | num
                 : (newPatient.occlusal_records || { overbite: 0, overjet: 0, crossbite: 'None', openbite: 'None', malocclusion: 'Class I' }),
             softTissueRecords: newPatient.soft_tissue_records || [],
             orthodonticRecords: newPatient.orthodontic_records || [],
+            endodonticRecords: typeof window !== 'undefined'
+                ? JSON.parse(localStorage.getItem(`endo_records_${newPatient.id}`) || '[]')
+                : [],
         };
 
         allPatients.push(fePatient);
@@ -1879,6 +1888,9 @@ export const updatePatient = async (id: string | number, data: Partial<Patient>)
                 : (updatedPatient.occlusal_records || { overbite: 0, overjet: 0, crossbite: 'None', openbite: 'None', malocclusion: 'Class I' }),
             softTissueRecords: updatedPatient.soft_tissue_records || [],
             orthodonticRecords: updatedPatient.orthodontic_records || [],
+            endodonticRecords: typeof window !== 'undefined'
+                ? JSON.parse(localStorage.getItem(`endo_records_${updatedPatient.id}`) || '[]')
+                : [],
         };
 
         // Update local cache
@@ -1975,6 +1987,9 @@ export const addImageToPatient = async (patientId: string | number, image: Omit<
                 : (updatedPatient.occlusal_records || { overbite: 0, overjet: 0, crossbite: 'None', openbite: 'None', malocclusion: 'Class I' }),
             softTissueRecords: updatedPatient.soft_tissue_records || [],
             orthodonticRecords: updatedPatient.orthodontic_records || [],
+            endodonticRecords: typeof window !== 'undefined'
+                ? JSON.parse(localStorage.getItem(`endo_records_${updatedPatient.id}`) || '[]')
+                : [],
         };
     } catch (error) {
         console.error("Error adding image to patient:", error);
@@ -2534,6 +2549,68 @@ export const deleteSoftTissueRecord = async (patientId: string | number, recordI
         return undefined;
     }
 }
+
+export const getEndodonticRecords = async (patientId: string | number): Promise<EndodonticRecord[]> => {
+    if (typeof window === 'undefined') return [];
+    try {
+        return JSON.parse(localStorage.getItem(`endo_records_${patientId}`) || '[]');
+    } catch {
+        return [];
+    }
+};
+
+export const saveEndodonticRecord = async (
+    patientId: string | number, 
+    record: Omit<EndodonticRecord, 'id' | 'date'>
+): Promise<Patient | undefined> => {
+    if (typeof window === 'undefined') return undefined;
+    try {
+        const records = await getEndodonticRecords(patientId);
+        const newRecord: EndodonticRecord = {
+            ...record,
+            id: String(Date.now()),
+            date: new Date().toISOString().split('T')[0]
+        };
+        records.push(newRecord);
+        localStorage.setItem(`endo_records_${patientId}`, JSON.stringify(records));
+        return getPatientById(patientId);
+    } catch (error) {
+        console.error('Error saving endodontic record:', error);
+        return undefined;
+    }
+};
+
+export const updateEndodonticRecord = async (
+    patientId: string | number, 
+    record: EndodonticRecord
+): Promise<Patient | undefined> => {
+    if (typeof window === 'undefined') return undefined;
+    try {
+        const records = await getEndodonticRecords(patientId);
+        const updatedRecords = records.map(r => String(r.id) === String(record.id) ? record : r);
+        localStorage.setItem(`endo_records_${patientId}`, JSON.stringify(updatedRecords));
+        return getPatientById(patientId);
+    } catch (error) {
+        console.error('Error updating endodontic record:', error);
+        return undefined;
+    }
+};
+
+export const deleteEndodonticRecord = async (
+    patientId: string | number, 
+    recordId: string | number
+): Promise<Patient | undefined> => {
+    if (typeof window === 'undefined') return undefined;
+    try {
+        const records = await getEndodonticRecords(patientId);
+        const updatedRecords = records.filter(r => String(r.id) !== String(recordId));
+        localStorage.setItem(`endo_records_${patientId}`, JSON.stringify(updatedRecords));
+        return getPatientById(patientId);
+    } catch (error) {
+        console.error('Error deleting endodontic record:', error);
+        return undefined;
+    }
+};
 
 
 

@@ -55,6 +55,7 @@ export type Patient = {
   occlusalRecords: OcclusalRecord;
   softTissueRecords: SoftTissueRecord[];
   orthodonticRecords: OrthodonticRecord[];
+  endodonticRecords?: EndodonticRecord[];
 };
 
 export type PatientImage = {
@@ -516,4 +517,24 @@ export type InvoiceMedicine = {
   unit?: MedicineUnit;
   created_at?: string;
   updated_at?: string;
+};
+
+export type CanalDetail = {
+  name: string;
+  referencePoint?: string;
+  workingLength?: number;
+  fileSize?: string;
+  obturationSize?: string;
+};
+
+export type EndodonticRecord = {
+  id: string | number;
+  date: string;
+  toothId: number;
+  pulpalDiagnosis: string;
+  periapicalDiagnosis: string;
+  canals: CanalDetail[];
+  obturationMaterial?: string;
+  postType?: string;
+  notes?: string;
 };
