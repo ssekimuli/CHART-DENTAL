@@ -256,9 +256,17 @@ export function EndodonticRecordForm({
             {record ? "Edit Endodontic Record" : "Add Endodontic Record"}
           </CardTitle>
         </div>
-        <Button variant="outline" size="sm" onClick={onClose}>
-          <ArrowLeft className="mr-2 h-4 w-4" /> Back to Records
-        </Button>
+        <div className="flex gap-2 items-center">
+          <Button type="button" variant="outline" size="sm" onClick={onClose}>
+            <ArrowLeft className="mr-2 h-4 w-4" /> Back to Records
+          </Button>
+          <Button type="button" variant="outline" size="sm" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button type="submit" form="endodontic-form" size="sm">
+            {record ? "Save Changes" : "Save Record"}
+          </Button>
+        </div>
       </CardHeader>
       
       <CardContent className="pt-6">
@@ -269,7 +277,7 @@ export function EndodonticRecordForm({
           </div>
 
           {/* Right Column - Form Fields */}
-          <form onSubmit={handleSubmit(onSubmit)} className="md:col-span-8 space-y-6">
+          <form id="endodontic-form" onSubmit={handleSubmit(onSubmit)} className="md:col-span-8 space-y-6">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="toothId">Tooth Number</Label>
@@ -461,12 +469,7 @@ export function EndodonticRecordForm({
               />
             </div>
 
-            <div className="flex items-center justify-end gap-3 pt-4 border-t">
-              <Button type="button" variant="outline" onClick={onClose}>
-                Cancel
-              </Button>
-              <Button type="submit">{record ? "Save Changes" : "Save Record"}</Button>
-            </div>
+            {/* Buttons moved to top-right CardHeader */}
           </form>
         </div>
       </CardContent>

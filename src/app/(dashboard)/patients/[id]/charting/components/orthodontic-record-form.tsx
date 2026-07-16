@@ -75,11 +75,17 @@ export function OrthodonticRecordForm({ record, onSave, onOpenChange }: Orthodon
   return (
     <Dialog open={true} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[550px]">
-        <DialogHeader>
-          <DialogTitle>{record ? "Edit Orthodontic Record" : "Add Orthodontic Record"}</DialogTitle>
-          <DialogDescription>
-            Log the details of the orthodontic appointment.
-          </DialogDescription>
+        <DialogHeader className="flex flex-row items-center justify-between border-b pb-4">
+          <div>
+            <DialogTitle>{record ? "Edit Orthodontic Record" : "Add Orthodontic Record"}</DialogTitle>
+            <DialogDescription>
+              Log the details of the orthodontic appointment.
+            </DialogDescription>
+          </div>
+          <div className="flex gap-2 mr-6">
+            <Button type="button" variant="outline" size="sm" onClick={() => onOpenChange(false)}>Cancel</Button>
+            <Button type="button" size="sm" onClick={form.handleSubmit(onSubmit)}>{record ? "Save" : "Add"}</Button>
+          </div>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -191,10 +197,6 @@ export function OrthodonticRecordForm({ record, onSave, onOpenChange }: Orthodon
                 )}
                 />
 
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-              <Button type="submit">{record ? "Save Changes" : "Add Record"}</Button>
-            </DialogFooter>
           </form>
         </Form>
       </DialogContent>

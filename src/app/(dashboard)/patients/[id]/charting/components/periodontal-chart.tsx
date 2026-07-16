@@ -678,15 +678,22 @@ export function PeriodontalChart({
   };
   return (
     <Card className="border border-[#A3D8E1]/30 rounded-3xl shadow-[0_10px_30px_rgba(44,63,77,0.02)]">
-      <CardHeader>
-        <CardTitle className="text-xl font-extrabold text-[#2C3F4D]">Periodontal Chart</CardTitle>
-        <CardDescription>
-          Assess the health of gums and bone around each tooth. 
-          <span className="block mt-1 text-xs text-amber-600 font-medium">
-            💡 Pro-Tip: Use Up/Down/Left/Right Arrow keys or Enter to navigate the grid. 
-            Press B (Bleeding), S (Suppuration), P (Plaque), or C (Calculus) to quickly toggle conditions on focused tooth!
-          </span>
-        </CardDescription>
+      <CardHeader className="flex flex-row items-center justify-between border-b pb-4">
+        <div>
+          <CardTitle className="text-xl font-extrabold text-[#2C3F4D]">Periodontal Chart</CardTitle>
+          <CardDescription>
+            Assess the health of gums and bone around each tooth. 
+            <span className="block mt-1 text-xs text-amber-600 font-medium">
+              💡 Pro-Tip: Use Up/Down/Left/Right Arrow keys or Enter to navigate the grid. 
+              Press B (Bleeding), S (Suppuration), P (Plaque), or C (Calculus) to quickly toggle conditions on focused tooth!
+            </span>
+          </CardDescription>
+        </div>
+        {canUpdateChart && (
+          <Button onClick={() => onSave(records)} className="bg-[#008B89] hover:bg-[#008B89]/90 text-white rounded-xl px-6">
+            Save Chart
+          </Button>
+        )}
       </CardHeader>
       
       <CardContent className="p-6">
@@ -769,14 +776,6 @@ export function PeriodontalChart({
           </div>
         </div>
       </CardContent>
-      
-      {canUpdateChart && (
-        <CardFooter className="flex justify-end gap-3 border-t border-gray-100/50 p-6">
-          <Button onClick={() => onSave(records)} className="bg-[#008B89] hover:bg-[#008B89]/90 text-white rounded-xl px-6">
-            Save Chart
-          </Button>
-        </CardFooter>
-      )}
     </Card>
   );
 }
