@@ -628,29 +628,31 @@ export function PeriodontalChart({
         <rect x="-4" y="-4" width="44" height="400" className={cn("fill-transparent transition-colors", selectedTooth === toothId && "fill-blue-500/10")} />
         <text x="18" y="24" className="text-xs font-semibold fill-muted-foreground text-anchor-middle">{toothId}</text>
         
-        <rect 
-          x="0" 
-          y="32" 
-          width="36" 
-          height="36" 
-          fill={
-            record.conditions?.bleeding ? "rgba(239, 68, 68, 0.15)" :
-            record.conditions?.suppuration ? "rgba(250, 204, 21, 0.2)" :
-            record.conditions?.plaque ? "rgba(96, 165, 250, 0.2)" :
-            record.conditions?.calculus ? "rgba(34, 197, 94, 0.15)" :
-            "hsl(var(--card))"
-          }
-          stroke={
-            record.conditions?.bleeding ? "#ef4444" :
-            record.conditions?.suppuration ? "#eab308" :
-            record.conditions?.plaque ? "#3b82f6" :
-            record.conditions?.calculus ? "#22c55e" :
-            "hsl(var(--border))"
-          }
-          strokeWidth="1"
-          className="transition-colors duration-200" 
-        />
-        <text x="18" y="56" className="font-mono text-base font-bold fill-foreground text-anchor-middle">{toothId % 10}</text>
+        {/* Realistic Transparent PNG Tooth Image representation */}
+        <foreignObject x="0" y="32" width="36" height="36">
+          <div 
+            className={cn(
+              "w-full h-full p-0.5 flex items-center justify-center rounded border relative transition-colors duration-200",
+              record.conditions?.bleeding ? "bg-red-50 border-red-300 dark:bg-red-950/20 dark:border-red-800" :
+              record.conditions?.suppuration ? "bg-yellow-50 border-yellow-300 dark:bg-yellow-950/20 dark:border-yellow-800" :
+              record.conditions?.plaque ? "bg-blue-50 border-blue-300 dark:bg-blue-950/20 dark:border-blue-800" :
+              record.conditions?.calculus ? "bg-green-50 border-green-300 dark:bg-green-950/20 dark:border-green-800" :
+              "bg-card border-border"
+            )}
+          >
+            <img 
+              src={`/periodontal/${toothId}.png`} 
+              alt={`Tooth ${toothId}`}
+              className="w-full h-full object-contain"
+              style={{
+                filter: record.conditions?.bleeding ? "drop-shadow(0 0 2px rgba(239, 68, 68, 0.8))" : "none"
+              }}
+            />
+            <div className="absolute bottom-0 right-1 text-[8px] font-bold opacity-75 pointer-events-none fill-foreground">
+              {toothId}
+            </div>
+          </div>
+        </foreignObject>
 
         {buccalPocketInputs}
         {conditionToggles}
