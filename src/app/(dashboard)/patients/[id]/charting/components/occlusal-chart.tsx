@@ -75,11 +75,18 @@ export function OcclusalChart({ initialRecord, onSave }: OcclusalChartProps) {
                 : "Bite relationship between upper and lower jaws."}
             </CardDescription>
         </div>
-        {!isEditing && canUpdateChart && (
+        {isEditing ? (
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={handleCancel}>Cancel</Button>
+            <Button size="sm" onClick={handleSave}>Save Changes</Button>
+          </div>
+        ) : (
+          canUpdateChart && (
             <Button variant="outline" size="icon" onClick={() => setIsEditing(true)}>
                 <Pencil className="h-4 w-4" />
                 <span className="sr-only">Edit Chart</span>
             </Button>
+          )
         )}
       </CardHeader>
       <CardContent className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -181,12 +188,6 @@ export function OcclusalChart({ initialRecord, onSave }: OcclusalChartProps) {
           </>
         )}
       </CardContent>
-      {isEditing && (
-        <CardFooter className="justify-end gap-2">
-          <Button variant="outline" onClick={handleCancel}>Cancel</Button>
-          <Button onClick={handleSave}>Save Changes</Button>
-        </CardFooter>
-      )}
     </Card>
   );
 }

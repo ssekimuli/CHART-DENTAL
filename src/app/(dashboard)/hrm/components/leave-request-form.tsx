@@ -58,7 +58,7 @@ export function LeaveRequestForm({ employees, onSave, onOpenChange }: LeaveReque
     resolver: zodResolver(formSchema),
     defaultValues: {
         // If there's only one employee in the list (e.g., from profile page), pre-select them.
-        employeeId: employees.length === 1 ? employees[0].id : undefined
+        employeeId: employees.length === 1 ? String(employees[0].id) : undefined
     }
   });
 

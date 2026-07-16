@@ -99,6 +99,14 @@ export default function StaffPage() {
         router.push(`/hrm/staff/${employeeId}`);
     };
 
+    const handleBlockToggle = async (employee: Employee) => {
+        const newStatus = employee.status === 'Blocked' ? 'Active' : 'Blocked';
+        const updated = await updateEmployee(employee.id, { status: newStatus });
+        if (updated) {
+            setEmployees(prev => prev.map(e => e.id === updated.id ? updated : e));
+        }
+    };
+
   return (
     <>
         <Card>
@@ -140,6 +148,7 @@ export default function StaffPage() {
                     onEdit={handleOpenForm}
                     onDelete={openDeleteDialog}
                     onView={handleViewEmployee}
+                    onBlockToggle={handleBlockToggle}
                 />
             )}
         </CardContent>

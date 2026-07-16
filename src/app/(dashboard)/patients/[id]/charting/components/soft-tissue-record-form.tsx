@@ -72,14 +72,20 @@ export function SoftTissueRecordForm({ record, onSave, onOpenChange }: SoftTissu
   return (
     <Dialog open={true} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[550px]">
-        <DialogHeader>
-          <DialogTitle>{record ? "Edit Soft Tissue Record" : "Add Soft Tissue Record"}</DialogTitle>
-          <DialogDescription>
-            Log any observations or abnormalities on the soft tissues.
-          </DialogDescription>
+        <DialogHeader className="flex flex-row items-center justify-between border-b pb-4">
+          <div>
+            <DialogTitle>{record ? "Edit Soft Tissue Record" : "Add Soft Tissue Record"}</DialogTitle>
+            <DialogDescription>
+              Log any observations or abnormalities on the soft tissues.
+            </DialogDescription>
+          </div>
+          <div className="flex gap-2 mr-6">
+            <Button type="button" variant="outline" size="sm" onClick={() => onOpenChange(false)}>Cancel</Button>
+            <Button type="button" size="sm" onClick={form.handleSubmit(onSubmit)}>{record ? "Save" : "Add"}</Button>
+          </div>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4">
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -93,7 +99,7 @@ export function SoftTissueRecordForm({ record, onSave, onOpenChange }: SoftTissu
                           <Button
                             variant={"outline"}
                             className={cn(
-                              "pl-3 text-left font-normal",
+                              "w-full pl-3 text-left font-normal",
                               !field.value && "text-muted-foreground"
                             )}
                           >
@@ -111,6 +117,9 @@ export function SoftTissueRecordForm({ record, onSave, onOpenChange }: SoftTissu
                           mode="single"
                           selected={field.value}
                           onSelect={field.onChange}
+                          disabled={(date) =>
+                            date > new Date() || date < new Date("1900-01-01")
+                          }
                           initialFocus
                         />
                       </PopoverContent>
@@ -119,21 +128,7 @@ export function SoftTissueRecordForm({ record, onSave, onOpenChange }: SoftTissu
                   </FormItem>
                 )}
               />
-               <FormField
-                    control={form.control}
-                    name="location"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Location</FormLabel>
-                        <FormControl>
-                            <Input placeholder="e.g., Right buccal mucosa" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                />
-            </div>
-             <FormField
+              <FormField
                 control={form.control}
                 name="type"
                 render={({ field }) => (
@@ -146,38 +141,48 @@ export function SoftTissueRecordForm({ record, onSave, onOpenChange }: SoftTissu
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="Ulcer">Ulcer</SelectItem>
                         <SelectItem value="Lesion">Lesion</SelectItem>
-                        <SelectItem value="Color Change">Color Change</SelectItem>
+                        <SelectItem value="Ulcer">Ulcer</SelectItem>
                         <SelectItem value="Swelling">Swelling</SelectItem>
+                        <SelectItem value="Color Change">Color Change</SelectItem>
+                        <SelectItem value="Other">Other</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-             <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Description</FormLabel>
-                    <FormControl>
-                        <Textarea
-                        placeholder="e.g., 2mm white, round, well-defined borders..."
-                        className="resize-none"
-                        {...field}
-                        />
-                    </FormControl>
-                    <FormMessage />
-                    </FormItem>
-                )}
-                />
-
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-              <Button type="submit">{record ? "Save Changes" : "Add Record"}</Button>
-            </DialogFooter>
+            </div>
+            <FormField
+              control={form.control}
+              name="location"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Location</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g., Buccal mucosa near #16, Lateral border of tongue..." {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description / Findings</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="e.g., 2mm white, round, well-defined borders..."
+                      className="resize-none"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </form>
         </Form>
       </DialogContent>

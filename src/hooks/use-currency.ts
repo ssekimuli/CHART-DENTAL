@@ -26,7 +26,7 @@ export function useCurrency() {
     return {
         currencyCode,
         config,
-        formatCurrency: (value: any) => formatCurrency(value),
+        formatCurrency: (value: any, currencyCodeOverride?: string) => formatCurrency(value, currencyCodeOverride),
         setCurrency: (code: string) => setCurrencyCode(code),
     };
 }

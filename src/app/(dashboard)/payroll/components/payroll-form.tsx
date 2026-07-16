@@ -58,14 +58,14 @@ export function PayrollForm({ employees, onSave, onOpenChange }: PayrollFormProp
     const periodStart = subDays(payDate, 14);
     
     onSave({
-        employee_id: values.employee_id,
-        gross_pay: values.gross_pay,
+        employeeId: values.employee_id,
+        grossPay: values.gross_pay,
         deductions: values.deductions,
-        net_pay: values.gross_pay - values.deductions,
-        pay_date: format(payDate, "yyyy-MM-dd"),
-        pay_period: `${format(periodStart, "yyyy-MM-dd")} to ${format(payDate, "yyyy-MM-dd")}`,
+        netPay: values.gross_pay - values.deductions,
+        payDate: format(payDate, "yyyy-MM-dd"),
+        payPeriod: `${format(periodStart, "yyyy-MM-dd")} to ${format(payDate, "yyyy-MM-dd")}`,
         status: 'Pending',
-    });
+    } as any);
   }
 
   return (

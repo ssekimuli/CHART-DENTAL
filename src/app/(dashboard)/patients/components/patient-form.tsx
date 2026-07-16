@@ -46,6 +46,7 @@ const formSchema = z.object({
   address: z.string().optional(),
   gender: z.enum(['Male', 'Female', 'Other']).optional(),
   dateOfBirth: z.date({ required_error: "A date of birth is required." }),
+  nextVisit: z.date().optional().nullable(),
   status: z.enum(['Active', 'Inactive']),
   history: z.string().optional(),
   avatar: z.string().url().optional().or(z.literal('')),
@@ -68,6 +69,7 @@ export function PatientForm({ patient, onSave, onOpenChange }: PatientFormProps)
         address: patient?.address ?? "",
         gender: patient?.gender,
         dateOfBirth: patient?.dateOfBirth ? parseISO(patient.dateOfBirth) : undefined,
+        nextVisit: patient?.nextVisit ? parseISO(patient.nextVisit) : undefined,
         status: patient?.status ?? 'Active',
         history: patient?.history ?? "",
         avatar: patient?.avatar ?? "",
@@ -84,7 +86,9 @@ export function PatientForm({ patient, onSave, onOpenChange }: PatientFormProps)
         gender: values.gender,
         status: values.status,
         dateOfBirth: format(values.dateOfBirth, "yyyy-MM-dd"),
+        nextVisit: values.nextVisit ? format(values.nextVisit, "yyyy-MM-dd") : undefined,
         history: values.history,
+        branchId: patient?.branchId ?? "",
         avatar: values.avatar || `https://picsum.photos/seed/p${Math.random()}/200/200`,
     });
   }
@@ -169,7 +173,7 @@ export function PatientForm({ patient, onSave, onOpenChange }: PatientFormProps)
                             </FormItem>
                         )}
                     />
-                     <div className="grid grid-cols-3 gap-4">
+                     <div className="grid grid-cols-2 gap-4">
                         <FormField
                             control={form.control}
                             name="dateOfBirth"
@@ -211,6 +215,49 @@ export function PatientForm({ patient, onSave, onOpenChange }: PatientFormProps)
                                 </FormItem>
                             )}
                         />
+                        <FormField
+                            control={form.control}
+                            name="nextVisit"
+                            render={({ field }) => (
+                                <FormItem className="flex flex-col">
+                                <FormLabel>Next Visit Target Date</FormLabel>
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                    <FormControl>
+                                        <Button
+                                        variant={"outline"}
+                                        className={cn(
+                                            "pl-3 text-left font-normal",
+                                            !field.value && "text-muted-foreground"
+                                        )}
+                                        >
+                                        {field.value ? (
+                                            format(field.value, "PPP")
+                                        ) : (
+                                            <span>Pick a date</span>
+                                        )}
+                                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                        </Button>
+                                    </FormControl>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0" align="start">
+                                    <Calendar
+                                        mode="single"
+                                        selected={field.value || undefined}
+                                        onSelect={field.onChange}
+                                        captionLayout="dropdown-buttons"
+                                        fromYear={new Date().getFullYear()}
+                                        toYear={new Date().getFullYear() + 5}
+                                        initialFocus
+                                    />
+                                    </PopoverContent>
+                                </Popover>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
                         <FormField
                             control={form.control}
                             name="gender"

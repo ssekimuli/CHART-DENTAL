@@ -41,9 +41,11 @@ export const getCurrencyConfig = (): CurrencyConfig => {
     return CURRENCIES.find(c => c.code === code) || CURRENCIES.find(c => c.code === "UGX") || CURRENCIES[0];
 };
 
-export const formatCurrency = (value: any): string => {
+export const formatCurrency = (value: any, currencyCodeOverride?: string): string => {
+    const code = currencyCodeOverride || getCurrencyCode();
+    const config = CURRENCIES.find(c => c.code === code) || CURRENCIES.find(c => c.code === "UGX") || CURRENCIES[0];
+
     if (value === undefined || value === null) {
-        const config = getCurrencyConfig();
         const zeroValue = 0;
         const formattedZero = zeroValue.toLocaleString(config.locale, {
             minimumFractionDigits: config.digits,
@@ -57,7 +59,6 @@ export const formatCurrency = (value: any): string => {
     const num = Number(value);
     if (isNaN(num)) return "";
     
-    const config = getCurrencyConfig();
     const formattedNum = num.toLocaleString(config.locale, {
         minimumFractionDigits: config.digits,
         maximumFractionDigits: config.digits,

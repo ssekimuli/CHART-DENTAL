@@ -44,7 +44,7 @@ const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
   email: z.string().email("Please enter a valid email."),
   role: z.string({ required_error: "Role is required."}),
-  status: z.enum(['Active', 'On Leave']),
+  status: z.enum(['Active', 'On Leave', 'Blocked']),
   salary: z.coerce.number().positive("Salary must be a positive number.").optional(),
   monthlySalary: z.coerce.number().optional(),
   hire_date: z.date({
@@ -75,9 +75,25 @@ export function EmployeeForm({ employee, onSave, onOpenChange }: EmployeeFormPro
         monthlySalary: employee ? Number(employee.salary) / 12 : undefined,
         hire_date: employee ? parseISO(employee.hire_date) : undefined,
         avatar: employee?.avatar ?? "",
-        branchId: employee ? String(employee.branchId) : undefined,
+        branchId: employee ? String(employee.branchId) : "",
     },
   });
+
+  useEffect(() => {
+    if (employee) {
+      form.reset({
+        name: employee.name ?? "",
+        email: employee.email ?? "",
+        role: employee.role,
+        status: employee.status ?? 'Active',
+        salary: Number(employee.salary),
+        monthlySalary: Number(employee.salary) / 12,
+        hire_date: employee.hire_date ? parseISO(employee.hire_date) : undefined as any,
+        avatar: employee.avatar ?? "",
+        branchId: String(employee.branchId),
+      });
+    }
+  }, [employee, form]);
 
   useEffect(() => {
     const fetchRoles = async () => {
@@ -169,7 +185,7 @@ export function EmployeeForm({ employee, onSave, onOpenChange }: EmployeeFormPro
                             render={({ field }) => (
                                 <FormItem>
                                 <FormLabel>Role</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={String(field.value)}>
+                                <Select onValueChange={field.onChange} value={field.value ? String(field.value) : undefined}>
                                     <FormControl>
                                     <SelectTrigger>
                                         <SelectValue placeholder="Select role" />
@@ -191,7 +207,7 @@ export function EmployeeForm({ employee, onSave, onOpenChange }: EmployeeFormPro
                             render={({ field }) => (
                                 <FormItem>
                                 <FormLabel>Branch</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <Select onValueChange={field.onChange} value={field.value}>
                                     <FormControl>
                                     <SelectTrigger>
                                         <SelectValue placeholder="Select branch" />
@@ -281,7 +297,7 @@ export function EmployeeForm({ employee, onSave, onOpenChange }: EmployeeFormPro
                             render={({ field }) => (
                                 <FormItem>
                                 <FormLabel>Status</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <Select onValueChange={field.onChange} value={field.value}>
                                     <FormControl>
                                     <SelectTrigger>
                                         <SelectValue placeholder="Select status" />
@@ -290,6 +306,7 @@ export function EmployeeForm({ employee, onSave, onOpenChange }: EmployeeFormPro
                                     <SelectContent>
                                         <SelectItem value="Active">Active</SelectItem>
                                         <SelectItem value="On Leave">On Leave</SelectItem>
+                                        <SelectItem value="Blocked">Blocked</SelectItem>
                                     </SelectContent>
                                 </Select>
                                 <FormMessage />

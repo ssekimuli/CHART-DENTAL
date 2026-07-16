@@ -59,7 +59,7 @@ export function TreatmentPlanForm({ treatment, onSave, onOpenChange, toothId, cu
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      procedureId: treatment?.procedureId ?? "",
+      procedureId: treatment?.procedureId ? String(treatment.procedureId) : "",
       procedure: treatment?.procedure ?? "",
       status: treatment?.status ?? 'Proposed',
       tooth: treatment?.tooth ?? toothId ?? undefined,

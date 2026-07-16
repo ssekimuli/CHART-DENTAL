@@ -59,7 +59,7 @@ export function PaymentForm({ invoice, onSave, onOpenChange }: PaymentFormProps)
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    onSave(invoice.id, values.paymentAmount, values.paymentMethod);
+    onSave(String(invoice.id), values.paymentAmount, values.paymentMethod);
   }
 
   const paymentMethods: PaymentMethod[] = ['Cash', 'Credit Card', 'Insurance', 'Bank Transfer'];

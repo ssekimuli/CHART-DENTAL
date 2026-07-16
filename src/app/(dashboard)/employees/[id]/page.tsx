@@ -36,7 +36,7 @@ export default function EmployeeDetailPage() {
     const fetchData = async () => {
         setIsLoading(true);
         const data = await getEmployeeById(id);
-        setEmployeeData(data);
+        setEmployeeData((data as any) || null);
         setIsLoading(false);
     }
     fetchData();
@@ -101,8 +101,14 @@ export default function EmployeeDetailPage() {
                     <div className="mt-2 flex items-center gap-2">
                         <Badge variant="outline">{employee.role}</Badge>
                         <Badge
-                            variant={employee.status === "Active" ? "secondary" : "outline"}
-                            className={employee.status === 'Active' ? 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800' : ''}
+                            variant={employee.status === "Active" ? "secondary" : employee.status === "Blocked" ? "destructive" : "outline"}
+                            className={
+                                employee.status === 'Active' 
+                                ? 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800' 
+                                : employee.status === 'Blocked'
+                                ? 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800'
+                                : ''
+                            }
                             >
                             {employee.status}
                         </Badge>

@@ -44,6 +44,7 @@ export type Patient = {
   gender?: 'Male' | 'Female' | 'Other';
   dateOfBirth: string;
   lastVisit?: string;
+  nextVisit?: string;
   status: 'Active' | 'Inactive';
   dentalRecords: DentalRecord[];
   treatmentPlans: Treatment[];
@@ -54,6 +55,7 @@ export type Patient = {
   occlusalRecords: OcclusalRecord;
   softTissueRecords: SoftTissueRecord[];
   orthodonticRecords: OrthodonticRecord[];
+  endodonticRecords?: EndodonticRecord[];
 };
 
 export type PatientImage = {
@@ -166,6 +168,8 @@ export type Invoice = {
   otherCharges?: OtherCharge[];
   paymentMethod?: PaymentMethod;
   transactions?: PaymentTransaction[];
+  branch?: Branch;
+  medicines?: InvoiceMedicine[];
 };
 
 export type ChartData = {
@@ -191,7 +195,7 @@ export type Employee = {
   avatar: string;
   email: string;
   role: EmployeeRole;
-  status: 'Active' | 'On Leave';
+  status: 'Active' | 'On Leave' | 'Blocked';
   salary: number;
   hire_date: string;
   gender?: 'Male' | 'Female' | 'Other';
@@ -426,3 +430,111 @@ export type ProfileData = {
     stats: ProfileDataStats;
     payrolls: Payroll[];
 }
+
+export type ReportsOverview = {
+    categories: {
+        financial: { title: string; description: string };
+        appointments: { title: string; description: string };
+        demographics: { title: string; description: string };
+    };
+    financial_summary: {
+        total_income: number;
+        total_expenses: number;
+        net_profit: number;
+    };
+    appointment_summary: {
+        total_appointments: number;
+        status_distribution: Record<string, number>;
+    };
+    patient_summary: {
+        total_patients: number;
+        status_distribution: Record<string, number>;
+        gender_distribution: Record<string, number>;
+        age_distribution: Record<string, number>;
+    };
+};
+
+export type MedicineUnit = {
+  id: number;
+  medicine_id: number;
+  unit_name: string;
+  price: number;
+  stock_quantity: number;
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type Medicine = {
+  id: number;
+  name: string;
+  description?: string;
+  category?: string;
+  branch_id: number;
+  units: MedicineUnit[];
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type PrescriptionItem = {
+  id?: number;
+  prescription_id?: number;
+  medicine_id: number;
+  medicine_unit_id: number;
+  dosage: string;
+  quantity: number;
+  price: number;
+  medicine?: Medicine;
+  unit?: MedicineUnit;
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type Prescription = {
+  id: number;
+  patient_id: number;
+  patient_name: string;
+  doctor_id?: number;
+  doctor_name?: string;
+  prescription_date: string;
+  status: 'Pending' | 'Dispensed' | 'Billed';
+  invoice_id?: number;
+  notes?: string;
+  branch_id: number;
+  items: PrescriptionItem[];
+  invoice?: Invoice;
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type InvoiceMedicine = {
+  id: number;
+  invoice_id: number;
+  medicine_id: number;
+  medicine_unit_id: number;
+  quantity: number;
+  price: number;
+  medicine?: Medicine;
+  unit?: MedicineUnit;
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type CanalDetail = {
+  name: string;
+  referencePoint?: string;
+  workingLength?: number;
+  fileSize?: string;
+  obturationSize?: string;
+};
+
+export type EndodonticRecord = {
+  id: string | number;
+  date: string;
+  toothId: number;
+  pulpalDiagnosis: string;
+  periapicalDiagnosis: string;
+  canals: CanalDetail[];
+  obturationMaterial?: string;
+  postType?: string;
+  notes?: string;
+};

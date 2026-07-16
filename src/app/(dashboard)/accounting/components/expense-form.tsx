@@ -56,7 +56,7 @@ export function ExpenseForm({ expense, onSave, onOpenChange }: ExpenseFormProps)
     resolver: zodResolver(formSchema),
     defaultValues: {
       date: expense ? new Date(expense.date) : new Date(),
-      category: expense?.category ?? 'Other',
+      category: (expense?.category && ['Supplies', 'Rent', 'Utilities', 'Marketing', 'Maintenance', 'Other'].includes(expense.category) ? expense.category : 'Other') as any,
       description: expense?.description ?? "",
       amount: expense?.amount,
     },

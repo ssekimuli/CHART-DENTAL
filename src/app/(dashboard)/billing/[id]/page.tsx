@@ -18,7 +18,8 @@ export default function InvoiceDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { id } = params;
-  const { formatCurrency } = useCurrency();
+  const { formatCurrency: baseFormatCurrency } = useCurrency();
+  const formatCurrency = (value: any) => baseFormatCurrency(value, invoice?.branch?.currency);
 
   const [invoice, setInvoice] = useState<Invoice | undefined>(undefined);
   const [patient, setPatient] = useState<Patient | undefined>(undefined);
@@ -195,9 +196,11 @@ export default function InvoiceDetailPage() {
                     {invoice.paymentMethod && (
                       <p><span className="font-medium">Payment Method:</span> {invoice.paymentMethod}</p>
                     )}
-                    {invoice.branchId && (
+                    {invoice.branch?.name ? (
+                      <p><span className="font-medium">Branch:</span> {invoice.branch.name}</p>
+                    ) : invoice.branchId ? (
                       <p><span className="font-medium">Branch ID:</span> {invoice.branchId}</p>
-                    )}
+                    ) : null}
                   </div>
               </div>
           </div>
@@ -229,6 +232,41 @@ export default function InvoiceDetailPage() {
               </Table>
           </div>
 
+          {invoice.medicines && invoice.medicines.length > 0 && (
+            <div>
+              <h4 className="font-semibold mb-2">Prescribed Medicines</h4>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Medicine</TableHead>
+                    <TableHead>Unit</TableHead>
+                    <TableHead className="text-right">Price</TableHead>
+                    <TableHead className="text-right">Quantity</TableHead>
+                    <TableHead className="text-right">Total Cost</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {invoice.medicines.map((med, index) => {
+                    const medName = med.medicine?.name || `Medicine ID: ${med.medicine_id}`;
+                    const unitName = med.unit?.unit_name || 'Unit';
+                    const itemPrice = Number(med.price) || 0;
+                    const itemQty = Number(med.quantity) || 0;
+                    const itemTotal = itemPrice * itemQty;
+                    return (
+                      <TableRow key={index}>
+                        <TableCell className="font-medium">{medName}</TableCell>
+                        <TableCell>{unitName}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(itemPrice)}</TableCell>
+                        <TableCell className="text-right">{itemQty}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(itemTotal)}</TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+
           {(invoice.transactions && invoice.transactions.length > 0) && (
             <div>
               <h4 className="font-semibold mb-2">Payment Transactions</h4>
@@ -258,9 +296,19 @@ export default function InvoiceDetailPage() {
         <CardFooter className="justify-end bg-muted/50 p-6">
           <div className="w-full max-w-sm grid gap-2 text-right">
               <div className="flex justify-between">
-                  <span>Subtotal:</span>
+                  <span>Treatments Subtotal:</span>
                   <span>{formatCurrency(subtotal)}</span>
               </div>
+              {invoice.medicines && invoice.medicines.length > 0 && (
+                  <div className="flex justify-between text-muted-foreground">
+                      <span>Medicines Subtotal:</span>
+                      <span>
+                        {formatCurrency(
+                          invoice.medicines.reduce((sum, med) => sum + (Number(med.price) * Number(med.quantity)), 0)
+                        )}
+                      </span>
+                  </div>
+              )}
               {invoice.otherCharges && invoice.otherCharges.length > 0 && (
                    <>
                       <div className="border-t border-dashed my-1"></div>

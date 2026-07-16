@@ -27,6 +27,7 @@ import { Button } from "@/components/ui/button";
 import { PlusCircle, Trash, Pencil, FileText, Loader2, Upload, MoreHorizontal, HandCoins } from "lucide-react";
 import { TreatmentPlanForm } from "./components/treatment-plan-form";
 import { PatientForm } from "../components/patient-form";
+import { PrescriptionForm } from "./components/prescription-form";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -76,6 +77,7 @@ export default function PatientDetailPage({
   const { toast } = useToast();
   const [selectedInvoice, setSelectedInvoice] = useState<any | undefined>(undefined);
   const [isPaymentFormOpen, setIsPaymentFormOpen] = useState(false);
+  const [isRxFormOpen, setIsRxFormOpen] = useState(false);
 
   const handleOpenPaymentForm = (invoice: any) => {
     setSelectedInvoice(invoice);
@@ -92,7 +94,7 @@ export default function PatientDetailPage({
       const updated = await processPayment(invoiceId, amount, method);
       if (updated) {
         setInvoices((prev) =>
-          prev.map((inv) => (String(inv.id) === String(updated.id) ? { ...inv, ...updated, paidAmount: Number(updated.paid_amount), amount: Number(updated.amount) } : inv))
+          prev.map((inv) => (String(inv.id) === String(updated.id) ? { ...inv, ...updated, paidAmount: Number(updated.paidAmount), amount: Number(updated.amount) } : inv))
         );
         toast({
           title: "Payment Recorded",
@@ -233,13 +235,22 @@ export default function PatientDetailPage({
             <CardDescription className="text-base">
               {patient.email}
             </CardDescription>
-            <div className="mt-2 flex gap-4 text-sm text-muted-foreground">
+            <div className="mt-2 flex flex-wrap gap-4 items-center text-sm text-muted-foreground">
               <span>DOB: {patient.dateOfBirth}</span>
-              <span>Last Visit: {patient.lastVisit}</span>
+              <span>Last Visit: {patient.lastVisit || 'Never'}</span>
+              {patient.nextVisit && (
+                <span className="text-blue-600 dark:text-blue-400 font-semibold bg-blue-50 dark:bg-blue-950/30 px-2 py-0.5 rounded-md">Next Visit: {patient.nextVisit}</span>
+              )}
               <Badge variant={patient.status === 'Active' ? 'default' : 'outline'}>{patient.status}</Badge>
             </div>
           </div>
           <div className="flex gap-2">
+            {!isReceptionist && (
+                <Button variant="outline" onClick={() => setIsRxFormOpen(true)}>
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Give Prescription
+                </Button>
+            )}
             {!isReceptionist && (
                 <Button variant="outline" onClick={() => router.push(`/patients/${patient.id}/charting`)}>
                     <FileText className="mr-2 h-4 w-4" />
@@ -462,6 +473,21 @@ export default function PatientDetailPage({
           invoice={selectedInvoice}
           onSave={handleProcessPayment as any}
           onOpenChange={handleClosePaymentForm}
+        />
+      )}
+      {isRxFormOpen && patient && (
+        <PrescriptionForm
+          patientId={patient.id}
+          patientName={getPatientFullName(patient)}
+          branchId={patient.branchId}
+          onOpenChange={setIsRxFormOpen}
+          onSave={() => {
+            const fetchInvoices = async () => {
+              const invList = await getPatientInvoices(patient.id);
+              setInvoices(invList);
+            };
+            fetchInvoices();
+          }}
         />
       )}
     </div>
