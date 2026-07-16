@@ -69,8 +69,8 @@ function ToothAnatomy({ toothId, activeCanals }: { toothId: number; activeCanals
 
   if (type === "anterior") {
     return (
-      <div className="flex flex-col items-center justify-center p-4 border rounded-lg bg-card/50 h-full min-h-[300px]">
-        <span className="text-sm font-bold text-muted-foreground mb-4">Tooth #{toothId} (Anterior)</span>
+      <div className="flex flex-col items-center justify-center p-4 border rounded-lg bg-slate-900 border-slate-800 text-slate-100 h-full min-h-[300px]">
+        <span className="text-sm font-bold text-slate-200 mb-4">Tooth #{toothId} (Anterior)</span>
         
         {/* Relative wrapper holding both the real PNG image and the dynamic SVG canal overlay */}
         <div className="relative w-full max-w-[150px] aspect-[100/200] flex items-center justify-center">
@@ -93,15 +93,15 @@ function ToothAnatomy({ toothId, activeCanals }: { toothId: number; activeCanals
             />
           </svg>
         </div>
-        <span className="text-[10px] text-muted-foreground mt-4 text-center">Single canal highlighted in red when canals are defined</span>
+        <span className="text-[10px] text-slate-400 mt-4 text-center">Single canal highlighted in red when canals are defined</span>
       </div>
     );
   }
 
   if (type === "premolar") {
     return (
-      <div className="flex flex-col items-center justify-center p-4 border rounded-lg bg-card/50 h-full min-h-[300px]">
-        <span className="text-sm font-bold text-muted-foreground mb-4">Tooth #{toothId} (Premolar)</span>
+      <div className="flex flex-col items-center justify-center p-4 border rounded-lg bg-slate-900 border-slate-800 text-slate-100 h-full min-h-[300px]">
+        <span className="text-sm font-bold text-slate-200 mb-4">Tooth #{toothId} (Premolar)</span>
         
         <div className="relative w-full max-w-[150px] aspect-[100/200] flex items-center justify-center">
           <img 
@@ -133,14 +133,14 @@ function ToothAnatomy({ toothId, activeCanals }: { toothId: number; activeCanals
             />
           </svg>
         </div>
-        <span className="text-[10px] text-muted-foreground mt-4 text-center">Buccal & Palatal/Lingual canals</span>
+        <span className="text-[10px] text-slate-400 mt-4 text-center">Buccal & Palatal/Lingual canals</span>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col items-center justify-center p-4 border rounded-lg bg-card/50 h-full min-h-[300px]">
-      <span className="text-sm font-bold text-muted-foreground mb-4">Tooth #{toothId} (Molar)</span>
+    <div className="flex flex-col items-center justify-center p-4 border rounded-lg bg-slate-900 border-slate-800 text-slate-100 h-full min-h-[300px]">
+      <span className="text-sm font-bold text-slate-200 mb-4">Tooth #{toothId} (Molar)</span>
       
       <div className="relative w-full max-w-[150px] aspect-[120/200] flex items-center justify-center">
         <img 
@@ -182,7 +182,7 @@ function ToothAnatomy({ toothId, activeCanals }: { toothId: number; activeCanals
           />
         </svg>
       </div>
-      <span className="text-[10px] text-muted-foreground mt-4 text-center">Multi-rooted molar canal pathways</span>
+      <span className="text-[10px] text-slate-400 mt-4 text-center">Multi-rooted molar canal pathways</span>
     </div>
   );
 }
