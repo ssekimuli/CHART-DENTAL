@@ -121,6 +121,13 @@ export function DentalChart({ initialRecords, treatmentPlans, onAddTreatment, on
             singleSelect 
             layout="square"
             teethConditions={teethConditions}
+            tooltip={{
+              content: (tooth: any) => {
+                if (!tooth) return null;
+                const fdi = parseInt(tooth.notations.fdi, 10);
+                return `Tooth #${mapOdontogramToFdi(fdi)}`;
+              }
+            }}
             onChange={(teeth: any) => {
               if (teeth && teeth.length > 0) {
                 const fdi = parseInt(teeth[0].notations.fdi, 10);
