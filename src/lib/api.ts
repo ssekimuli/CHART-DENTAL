@@ -101,6 +101,25 @@ export const verifyOTP = async (identifier: string, otp: string): Promise<{ succ
     }
 };
 
+export const resendEmployeePassword = async (id: string | number): Promise<{ success: boolean; message: string }> => {
+    console.log('API CALL: resendEmployeePassword', { id });
+    try {
+        const response = await customAxios.post(`/employees/${id}/resend-password`);
+        return {
+            success: true,
+            message: response.data.message || 'Password resent successfully.',
+        };
+    } catch (error) {
+        let message = 'An error occurred while resending password.';
+        if (axios.isAxiosError(error) && error.response?.data?.error) {
+            message = error.response.data.error;
+        } else if (axios.isAxiosError(error) && error.response?.data?.message) {
+            message = error.response.data.message;
+        }
+        return { success: false, message };
+    }
+};
+
 export const resetPassword = async (identifier: string, password?: string): Promise<{ success: boolean; message: string }> => {
     console.log('API CALL: resetPassword', { identifier });
     try {

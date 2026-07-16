@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import type { Employee } from "@/lib/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, Pencil, Trash, Eye, Ban } from "lucide-react";
+import { MoreHorizontal, Pencil, Trash, Eye, Ban, KeyRound } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -100,6 +100,14 @@ export function EmployeesTable({ data, onView, onEdit, onDelete, onBlockToggle }
                     <DropdownMenuItem onClick={() => onEdit(employee)}>
                         <Pencil className="mr-2 h-4 w-4" />
                         Edit
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={async () => {
+                        const { resendEmployeePassword } = await import("@/lib/api");
+                        const res = await resendEmployeePassword(employee.id);
+                        alert(res.message);
+                    }}>
+                        <KeyRound className="mr-2 h-4 w-4" />
+                        Resend Password
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     {onBlockToggle && (
