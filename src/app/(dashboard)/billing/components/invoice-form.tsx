@@ -34,7 +34,7 @@ import {
     SelectTrigger,
     SelectValue,
   } from "@/components/ui/select";
-import type { Invoice, Patient, InvoiceTreatment, OtherCharge, SystemTreatment, PaymentMethod, Treatment } from "@/lib/types";
+import type { Invoice, Patient, InvoiceTreatment, OtherCharge, SystemTreatment, PaymentMethod, Treatment, Medicine, InvoiceMedicine } from "@/lib/types";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { CalendarIcon, X, Check, Trash2, PlusCircle } from "lucide-react";
@@ -42,7 +42,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Combobox } from "@/components/ui/combobox";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { getTreatments, getPatientById } from "@/lib/api";
+import { getTreatments, getPatientById, getMedicines } from "@/lib/api";
 import { useCurrency } from "@/hooks/use-currency";
 
 
@@ -72,14 +72,19 @@ type InvoiceFormProps = {
 export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: InvoiceFormProps) {
   const [selectedTreatments, setSelectedTreatments] = useState<InvoiceTreatment[]>([]);
   const [availableTreatments, setAvailableTreatments] = useState<SystemTreatment[]>([]);
+  const [selectedMedicines, setSelectedMedicines] = useState<InvoiceMedicine[]>([]);
+  const [availableMedicines, setAvailableMedicines] = useState<Medicine[]>([]);
   const { formatCurrency } = useCurrency();
   
   useEffect(() => {
-    const fetchTreatments = async () => {
-        const data = await getTreatments();
-        setAvailableTreatments(data);
+    const fetchData = async () => {
+        const tData = await getTreatments();
+        setAvailableTreatments(tData);
+        
+        const mData = await getMedicines();
+        setAvailableMedicines(mData);
     }
-    fetchTreatments();
+    fetchData();
   }, [])
   
   const parseDateSafe = (value?: string | Date) => {
@@ -122,6 +127,8 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
           cost: Number(t.cost) || 0,
           tooth: t.tooth,
         })));
+        
+        setSelectedMedicines(invoice.medicines || []);
     } else if (patientId) {
         // When creating a new invoice for a patient, auto-select their unbilled treatments.
         const fetchPatientTreatments = async () => {
@@ -134,8 +141,10 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
             }
         };
         fetchPatientTreatments();
+        setSelectedMedicines([]);
     } else {
         setSelectedTreatments([]);
+        setSelectedMedicines([]);
     }
   }, [invoice, patientId]);
 
@@ -144,6 +153,7 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
         ...values,
         otherCharges: values.otherCharges || [],
         treatments: selectedTreatments,
+        medicines: selectedMedicines,
         issueDate: format(values.issueDate, "yyyy-MM-dd"),
         dueDate: format(values.dueDate, "yyyy-MM-dd"),
     }, selectedTreatments);
@@ -165,6 +175,28 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
     }
   }
 
+  const handleMedicineSelect = (medicineId: number) => {
+    const med = availableMedicines.find(m => m.id === medicineId);
+    if (!med || !med.units || med.units.length === 0) return;
+    
+    setSelectedMedicines(prev => {
+        if (prev.some(m => m.medicine_id === medicineId)) {
+            return prev.filter(m => m.medicine_id !== medicineId);
+        }
+        const defaultUnit = med.units[0];
+        return [...prev, {
+            id: Math.random(), // temp id
+            invoice_id: 0,
+            medicine_id: med.id,
+            medicine_unit_id: defaultUnit.id,
+            quantity: 1,
+            price: defaultUnit.price,
+            medicine: med,
+            unit: defaultUnit,
+        }];
+    });
+  };
+
   const subTotal = useMemo(() => {
     return selectedTreatments.reduce((sum, t) => sum + t.cost, 0);
   }, [selectedTreatments]);
@@ -173,9 +205,13 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
     return otherCharges.reduce((sum, charge) => sum + (charge.amount || 0), 0);
   }, [otherCharges]);
 
+  const medicinesTotal = useMemo(() => {
+    return selectedMedicines.reduce((sum, m) => sum + (m.price * m.quantity), 0);
+  }, [selectedMedicines]);
+
   const totalAmount = useMemo(() => {
-    return subTotal + otherChargesTotal;
-  }, [subTotal, otherChargesTotal]);
+    return subTotal + otherChargesTotal + medicinesTotal;
+  }, [subTotal, otherChargesTotal, medicinesTotal]);
 
   const paymentMethods: PaymentMethod[] = ['Cash', 'Credit Card', 'Insurance', 'Bank Transfer'];
 
@@ -275,6 +311,107 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
                                             </TableCell>
                                         </TableRow>
                                     ))}
+                                    </TableBody>
+                                </Table>
+                                </div>
+                            </div>
+                        )}
+                        
+                        <FormItem>
+                            <FormLabel>Prescribed Medicines</FormLabel>
+                            <FormControl>
+                                <div className="rounded-md border h-48 overflow-y-auto">
+                                    <Command>
+                                        <CommandInput placeholder="Search medicines to add..." />
+                                        <CommandList>
+                                            <CommandEmpty>No medicines found.</CommandEmpty>
+                                            <CommandGroup>
+                                                {availableMedicines.map(med => (
+                                                    <CommandItem
+                                                        key={med.id}
+                                                        value={med.name}
+                                                        onSelect={() => handleMedicineSelect(med.id)}
+                                                        className="flex justify-between items-center cursor-pointer"
+                                                    >
+                                                    <div>
+                                                            <span>{med.name}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                            {selectedMedicines.some(m => m.medicine_id === med.id) && <Check className="h-4 w-4 text-primary" />}
+                                                    </div>
+                                                    </CommandItem>
+                                                ))}
+                                            </CommandGroup>
+                                        </CommandList>
+                                    </Command>
+                                </div>
+                            </FormControl>
+                            <FormDescription>
+                               Search and select medicines to add to the invoice.
+                            </FormDescription>
+                        </FormItem>
+
+                        {selectedMedicines.length > 0 && (
+                            <div>
+                                <p className="text-sm font-medium mb-2">Selected Medicines for Invoice</p>
+                                <div className="rounded-md border">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Medicine</TableHead>
+                                            <TableHead>Unit</TableHead>
+                                            <TableHead>Quantity</TableHead>
+                                            <TableHead className="text-right">Price</TableHead>
+                                            <TableHead className="w-[50px]"></TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                    {selectedMedicines.map((medItem, index) => {
+                                        const med = availableMedicines.find(m => m.id === medItem.medicine_id) || medItem.medicine;
+                                        return (
+                                        <TableRow key={medItem.id}>
+                                            <TableCell>{med?.name}</TableCell>
+                                            <TableCell>
+                                                <Select value={String(medItem.medicine_unit_id)} onValueChange={(val) => {
+                                                    const unitId = Number(val);
+                                                    const unit = med?.units.find(u => u.id === unitId);
+                                                    setSelectedMedicines(prev => {
+                                                        const next = [...prev];
+                                                        next[index].medicine_unit_id = unitId;
+                                                        if (unit) next[index].price = unit.price;
+                                                        return next;
+                                                    });
+                                                }}>
+                                                    <SelectTrigger className="w-[120px]">
+                                                        <SelectValue />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {med?.units?.map(u => (
+                                                            <SelectItem key={u.id} value={String(u.id)}>{u.unit_name}</SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            </TableCell>
+                                            <TableCell>
+                                                <Input type="number" min="1" value={medItem.quantity} onChange={(e) => {
+                                                    const qty = Number(e.target.value) || 1;
+                                                    setSelectedMedicines(prev => {
+                                                        const next = [...prev];
+                                                        next[index].quantity = qty;
+                                                        return next;
+                                                    });
+                                                }} className="w-20" />
+                                            </TableCell>
+                                            <TableCell className="text-right">{formatCurrency(medItem.price * medItem.quantity)}</TableCell>
+                                            <TableCell>
+                                                <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => {
+                                                    setSelectedMedicines(prev => prev.filter((_, i) => i !== index));
+                                                }} title="Remove medicine">
+                                                    <X className="h-4 w-4 text-muted-foreground hover:text-destructive" />
+                                                </Button>
+                                            </TableCell>
+                                        </TableRow>
+                                    )})}
                                     </TableBody>
                                 </Table>
                                 </div>
@@ -381,6 +518,10 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
                             <div className="flex justify-between text-sm">
                                 <span className="text-muted-foreground">Subtotal (Other Charges)</span>
                                 <span>{formatCurrency(otherChargesTotal)}</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">Subtotal (Medicines)</span>
+                                <span>{formatCurrency(medicinesTotal)}</span>
                             </div>
                             <div className="flex justify-between font-semibold text-lg border-t pt-2 mt-2">
                                 <span>Total Amount</span>

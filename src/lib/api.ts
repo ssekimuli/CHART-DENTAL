@@ -809,6 +809,7 @@ export const getInvoiceById = async (id: string | number): Promise<Invoice | und
             issue_date: invoiceData.issue_date,
             paid_amount: invoiceData.paid_amount,
             branch_id: invoiceData.branch_id,
+            medicines: invoiceData.medicines || [],
         };
         
         console.log('Mapped invoice:', invoice);
