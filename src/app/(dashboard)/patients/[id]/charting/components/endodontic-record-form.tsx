@@ -53,12 +53,11 @@ const CANAL_NAMES = ["MB", "MB2", "DB", "ML", "DL", "P", "B", "L", "Lingual", "B
 function ToothAnatomy({ toothId, activeCanals }: { toothId: number; activeCanals: string[] }) {
   let type: "anterior" | "premolar" | "molar" = "anterior";
 
-  const anteriors = [6, 7, 8, 9, 10, 11, 22, 23, 24, 25, 26, 27];
-  const premolars = [4, 5, 12, 13, 20, 21, 28, 29];
+  const secondDigit = toothId % 10;
 
-  if (anteriors.includes(toothId)) {
+  if (secondDigit >= 1 && secondDigit <= 3) {
     type = "anterior";
-  } else if (premolars.includes(toothId)) {
+  } else if (secondDigit >= 4 && secondDigit <= 5 && toothId < 50) {
     type = "premolar";
   } else {
     type = "molar";
@@ -284,9 +283,9 @@ export function EndodonticRecordForm({
                 <Input
                   id="toothId"
                   type="number"
-                  min={1}
-                  max={32}
-                  {...register("toothId", { required: true, min: 1, max: 32 })}
+                  min={11}
+                  max={85}
+                  {...register("toothId", { required: true, min: 11, max: 85 })}
                 />
               </div>
 
