@@ -481,7 +481,7 @@ export default function PharmacyPage() {
                           </TableCell>
                           <TableCell>
                             {rx.invoice_id ? (
-                              <Button variant="link" size="sm" className="h-auto p-0 font-normal" onClick={() => window.location.href = `/billing?id=${rx.invoice_id}`}>
+                              <Button variant="link" size="sm" className="h-auto p-0 font-normal" onClick={() => window.location.href = `/billing/${rx.invoice_id}`}>
                                 Invoice #{rx.invoice_id}
                               </Button>
                             ) : (
