@@ -1,9 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 200" fill="none">
-  <!-- Premolar shape with transparent background -->
-  <path d="M 25,60 C 25,25 75,25 75,60 C 75,100 70,130 65,180 C 60,180 52,130 50,110 C 48,130 40,180 35,180 C 30,130 25,100 25,60 Z" fill="#f8fafc" stroke="#64748b" stroke-width="2.5" />
-  <path d="M 29,60 C 29,32 71,32 71,60 C 71,90 66,120 61,165 C 57,165 52,125 50,108 C 48,125 43,165 39,165 C 34,120 29,90 29,60 Z" fill="#f1f5f9" opacity="0.4" />
-  <!-- Pulp Chamber / Canals -->
-  <path d="M 40,60 C 40,45 60,45 60,60 C 60,80 55,95 50,100 C 45,95 40,80 40,60 Z" fill="#fda4af" opacity="0.6" />
-  <path d="M 45,65 Q 48,100 35,175" stroke="#f43f5e" stroke-width="1.5" stroke-dasharray="2,2" fill="none" />
-  <path d="M 55,65 Q 52,100 65,175" stroke="#f43f5e" stroke-width="1.5" stroke-dasharray="2,2" fill="none" />
-</svg>

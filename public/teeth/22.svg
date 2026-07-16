@@ -1,8 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 200" fill="none">
-  <!-- Canine shape (pointed cusp tip) with transparent background -->
-  <path d="M 30,70 Q 50,20 70,70 C 70,120 55,180 50,185 C 45,180 30,120 30,70 Z" fill="#f8fafc" stroke="#64748b" stroke-width="2.5" />
-  <path d="M 34,70 Q 50,28 66,70 C 66,110 54,165 50,170 C 46,165 34,110 34,70 Z" fill="#f1f5f9" opacity="0.4" />
-  <!-- Pulp Chamber / Canal -->
-  <path d="M 45,70 C 45,55 55,55 55,70 C 55,90 52,110 50,120 C 48,110 45,90 45,70 Z" fill="#fda4af" opacity="0.6" />
-  <path d="M 50,70 L 50,178" stroke="#f43f5e" stroke-width="1.5" stroke-dasharray="2,2" fill="none" />
-</svg>
