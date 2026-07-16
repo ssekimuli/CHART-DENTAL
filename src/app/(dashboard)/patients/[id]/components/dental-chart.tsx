@@ -41,6 +41,19 @@ type DentalChartProps = {
 export function DentalChart({ initialRecords, treatmentPlans, onAddTreatment, onLogCondition }: DentalChartProps) {
   const [selectedTooth, setSelectedTooth] = useState<number | null>(null);
 
+  // react-odontogram renders the lower jaw with quadrant 3 (30s) on the left and quadrant 4 (40s) on the right.
+  // In a standard practitioner's view, quadrant 4 should be on the left and quadrant 3 on the right.
+  // We map the FDI numbers transparently to correct this visual anomaly.
+  const mapFdiToOdontogram = (fdi: number) => {
+    if (fdi >= 31 && fdi <= 38) return fdi + 10;
+    if (fdi >= 41 && fdi <= 48) return fdi - 10;
+    return fdi;
+  };
+
+  const mapOdontogramToFdi = (fdi: number) => {
+    return mapFdiToOdontogram(fdi); // it is symmetric
+  };
+
   // Group conditions for react-odontogram
   const teethConditions = useMemo(() => {
     const conditionsMap: Record<string, string[]> = {
@@ -55,13 +68,13 @@ export function DentalChart({ initialRecords, treatmentPlans, onAddTreatment, on
 
     initialRecords.forEach((record) => {
       if (record.condition !== 'Healthy' && conditionsMap[record.condition]) {
-        conditionsMap[record.condition].push(`teeth-${record.toothId}`);
+        conditionsMap[record.condition].push(`teeth-${mapFdiToOdontogram(record.toothId)}`);
       }
     });
 
     treatmentPlans.forEach((plan) => {
       if (plan.tooth && (plan.status === 'Proposed' || plan.status === 'In Progress')) {
-          const toothIdStr = `teeth-${plan.tooth}`;
+          const toothIdStr = `teeth-${mapFdiToOdontogram(plan.tooth)}`;
           // Only add to treatment map if it doesn't already have a strong condition color, 
           // or we can just make a dedicated "Treatment" condition group that has a blue outline.
           // react-odontogram layers conditions by array order.
@@ -111,7 +124,7 @@ export function DentalChart({ initialRecords, treatmentPlans, onAddTreatment, on
             onChange={(teeth: any) => {
               if (teeth && teeth.length > 0) {
                 const fdi = parseInt(teeth[0].notations.fdi, 10);
-                setSelectedTooth(fdi);
+                setSelectedTooth(mapOdontogramToFdi(fdi));
               }
             }}
           />
