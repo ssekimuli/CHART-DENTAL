@@ -103,8 +103,7 @@ export function EmployeesTable({ data, onView, onEdit, onDelete, onBlockToggle }
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={async () => {
                         const { resendEmployeePassword } = await import("@/lib/api");
-                        const res = await resendEmployeePassword(employee.id);
-                        alert(res.message);
+                        await resendEmployeePassword(employee.id);
                     }}>
                         <KeyRound className="mr-2 h-4 w-4" />
                         Resend Password

@@ -86,20 +86,28 @@ export function EmployeeForm({ employee, onSave, onOpenChange }: EmployeeFormPro
 
   useEffect(() => {
     if (employee) {
+      const roleId = roles.length > 0 
+          ? (roles.find(r => r.name === employee.role || String(r.id) === String(employee.role))?.id || employee.role)
+          : employee.role;
+          
+      const capitalizedGender = employee.gender 
+          ? (employee.gender.charAt(0).toUpperCase() + employee.gender.slice(1).toLowerCase()) as any
+          : undefined;
+
       form.reset({
         name: employee.name ?? "",
         email: employee.email ?? "",
-        role: employee.role,
+        role: roleId,
         status: employee.status ?? 'Active',
         salary: Number(employee.salary),
         monthlySalary: Number(employee.salary) / 12,
         hire_date: employee.hire_date ? parseISO(employee.hire_date) : undefined as any,
-        gender: employee.gender,
+        gender: capitalizedGender,
         avatar: employee.avatar ?? "",
         branchId: String(employee.branchId),
       });
     }
-  }, [employee, form]);
+  }, [employee, form, roles]);
 
   useEffect(() => {
     const fetchRoles = async () => {
