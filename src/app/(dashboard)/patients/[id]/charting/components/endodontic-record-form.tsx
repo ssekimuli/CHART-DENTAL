@@ -194,7 +194,7 @@ export function EndodonticRecordForm({
 }: EndodonticRecordFormProps) {
   const { register, control, handleSubmit, reset, setValue, watch } = useForm<Omit<EndodonticRecord, "id" | "date">>({
     defaultValues: {
-      toothId: 1,
+      toothId: 11,
       pulpalDiagnosis: PULPAL_DIAGNOSES[0],
       periapicalDiagnosis: PERIAPICAL_DIAGNOSES[0],
       canals: [{ name: "MB", referencePoint: "Cusp Tip", workingLength: 21, fileSize: "#25", obturationSize: "#25/.04" }],
@@ -222,7 +222,7 @@ export function EndodonticRecordForm({
       });
     } else {
       reset({
-        toothId: 1,
+        toothId: 11,
         pulpalDiagnosis: PULPAL_DIAGNOSES[0],
         periapicalDiagnosis: PERIAPICAL_DIAGNOSES[0],
         canals: [{ name: "MB", referencePoint: "Cusp Tip", workingLength: 21, fileSize: "#25", obturationSize: "#25/.04" }],
