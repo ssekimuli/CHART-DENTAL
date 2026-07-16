@@ -1246,7 +1246,6 @@ export const getStaffAdvances = async (filters?: number | string | GetStaffAdvan
 
         const response = await customAxios.get('/management/staff-advances', { params });
 
-        // Handle both response.data and response.data.data formats
         const dataArray = Array.isArray(response.data) ? response.data : response.data.data;
 
         // Map API response to frontend type
