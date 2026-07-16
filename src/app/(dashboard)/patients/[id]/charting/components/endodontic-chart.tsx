@@ -105,6 +105,17 @@ export function EndodonticChart({
     setIsDeleteAlertOpen(false);
   };
 
+  if (isFormOpen) {
+    return (
+      <EndodonticRecordForm
+        isOpen={isFormOpen}
+        onClose={handleCloseForm}
+        onSave={handleSave}
+        record={selectedRecord}
+      />
+    );
+  }
+
   return (
     <>
       <Card>
@@ -209,15 +220,6 @@ export function EndodonticChart({
           </Table>
         </CardContent>
       </Card>
-
-      {isFormOpen && (
-        <EndodonticRecordForm
-          isOpen={isFormOpen}
-          onClose={handleCloseForm}
-          onSave={handleSave}
-          record={selectedRecord}
-        />
-      )}
 
       <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
         <AlertDialogContent>

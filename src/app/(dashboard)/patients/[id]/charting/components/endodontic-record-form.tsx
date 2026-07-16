@@ -7,20 +7,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 import type { EndodonticRecord, CanalDetail } from "@/lib/types";
 
 type EndodonticRecordFormProps = {
@@ -247,13 +246,22 @@ export function EndodonticRecordForm({
   const watchCanals = watch("canals") || [];
   const activeCanalNames = watchCanals.map((c) => c.name).filter(Boolean);
 
+  if (!isOpen) return null;
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{record ? "Edit Endodontic Record" : "Add Endodontic Record"}</DialogTitle>
-        </DialogHeader>
-        
+    <Card className="w-full shadow-lg border-muted">
+      <CardHeader className="flex flex-row items-center justify-between border-b pb-4">
+        <div>
+          <CardTitle className="text-xl font-bold">
+            {record ? "Edit Endodontic Record" : "Add Endodontic Record"}
+          </CardTitle>
+        </div>
+        <Button variant="outline" size="sm" onClick={onClose}>
+          <ArrowLeft className="mr-2 h-4 w-4" /> Back to Records
+        </Button>
+      </CardHeader>
+      
+      <CardContent className="pt-6">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-stretch">
           {/* Left Column - Tooth Anatomy Visual Representation with Real PNG background */}
           <div className="md:col-span-4 flex flex-col justify-between">
@@ -453,15 +461,15 @@ export function EndodonticRecordForm({
               />
             </div>
 
-            <DialogFooter>
+            <div className="flex items-center justify-end gap-3 pt-4 border-t">
               <Button type="button" variant="outline" onClick={onClose}>
                 Cancel
               </Button>
               <Button type="submit">{record ? "Save Changes" : "Save Record"}</Button>
-            </DialogFooter>
+            </div>
           </form>
         </div>
-      </DialogContent>
-    </Dialog>
+      </CardContent>
+    </Card>
   );
 }
