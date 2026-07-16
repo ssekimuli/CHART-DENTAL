@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 200" fill="none">
+  <!-- Molar shape with transparent background -->
+  <path d="M 20,55 C 20,20 100,20 100,55 C 100,90 95,120 90,180 C 85,180 78,130 75,110 C 72,135 65,190 60,190 C 55,190 48,135 45,110 C 42,130 35,180 30,180 C 25,120 20,90 20,55 Z" fill="#f8fafc" stroke="#64748b" stroke-width="2.5" />
+  <path d="M 24,55 C 24,28 96,28 96,55 C 96,80 91,110 86,165 C 81,165 75,125 72,108 C 69,128 64,175 60,175 C 56,175 51,128 48,108 C 45,125 39,165 34,165 C 29,110 24,80 24,55 Z" fill="#f1f5f9" opacity="0.4" />
+  <!-- Pulp Chamber / Canals path template (represented as styling) -->
+  <path d="M 35,55 C 35,38 85,38 85,55 C 85,75 75,95 60,98 C 45,95 35,75 35,55 Z" fill="#fda4af" opacity="0.6" />
+  <path d="M 45,60 Q 42,100 30,175" stroke="#f43f5e" stroke-width="1.5" stroke-dasharray="2,2" fill="none" />
+  <path d="M 60,60 L 60,185" stroke="#f43f5e" stroke-width="1.5" stroke-dasharray="2,2" fill="none" />
+  <path d="M 75,60 Q 78,100 90,175" stroke="#f43f5e" stroke-width="1.5" stroke-dasharray="2,2" fill="none" />
+</svg>
