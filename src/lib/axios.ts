@@ -3,7 +3,7 @@ import { getAuthToken, clearCurrentUser } from './user';
 import { toast } from '@/hooks/use-toast';
 
 const customAxios = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_BACKEND_URL || 'dentalapi.poslycloud.com/api',
+  baseURL: process.env.NEXT_PUBLIC_BACKEND_URL || 'https://dentalapi.poslycloud.com/api',
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
@@ -26,7 +26,6 @@ customAxios.interceptors.request.use(
 
 customAxios.interceptors.response.use(
   (response) => {
-    // Any status code that lie within the range of 2xx cause this function to trigger
     return response;
   },
   (error) => {
