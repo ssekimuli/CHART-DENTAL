@@ -31,6 +31,7 @@ customAxios.interceptors.response.use(
   },
   (error) => {
     // Handle unauthenticated responses
+    
     if (axios.isAxiosError(error) && error.response) {
       const { status, data } = error.response;
 
