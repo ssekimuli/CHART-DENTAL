@@ -206,6 +206,20 @@ const mapPeriodontalRecords = (records: any[]): PeriodontalRecord => {
     }));
 };
 
+const mapEndodonticRecords = (records: any[]): EndodonticRecord[] => {
+    return (records || []).map((record: any) => ({
+        id: String(record.id),
+        date: record.date || record.created_at?.split('T')[0] || new Date().toISOString().split('T')[0],
+        toothId: Number(record.tooth_id),
+        pulpalDiagnosis: record.pulpal_diagnosis,
+        periapicalDiagnosis: record.periapical_diagnosis,
+        canals: record.canals || [],
+        obturationMaterial: record.obturation_material,
+        postType: record.post_type,
+        notes: record.notes || '',
+    }));
+};
+
 type GetPatientsFilters = {
     branchId?: string | number;
     status?: 'Active' | 'Inactive';
@@ -276,9 +290,7 @@ export const getPatients = async (filters?: string | number | GetPatientsFilters
                 : (patient.occlusal_records || { overbite: 0, overjet: 0, crossbite: 'None', openbite: 'None', malocclusion: 'Class I' }),
             softTissueRecords: patient.soft_tissue_records || [],
             orthodonticRecords: patient.orthodontic_records || [],
-            endodonticRecords: typeof window !== 'undefined'
-                ? JSON.parse(localStorage.getItem(`endo_records_${patient.id}`) || '[]')
-                : [],
+            endodonticRecords: mapEndodonticRecords(patient.endodontic_records || patient.endodonticRecords),
         }));
 
         if (response.data && response.data.meta) {
@@ -402,9 +414,7 @@ export const getPatientById = async (id: string | number): Promise<Patient | und
                 : (patient.occlusal_records || { overbite: 0, overjet: 0, crossbite: 'None', openbite: 'None', malocclusion: 'Class I' }),
             softTissueRecords: patient.soft_tissue_records || [],
             orthodonticRecords: patient.orthodontic_records || [],
-            endodonticRecords: typeof window !== 'undefined'
-                ? JSON.parse(localStorage.getItem(`endo_records_${patient.id}`) || '[]')
-                : [],
+            endodonticRecords: mapEndodonticRecords(patient.endodontic_records || patient.endodonticRecords),
         };
     } catch (error) {
         if (axios.isAxiosError(error)) {
@@ -1817,9 +1827,7 @@ export const createPatient = async (data: BasePatient & { branchId: string | num
                 : (newPatient.occlusal_records || { overbite: 0, overjet: 0, crossbite: 'None', openbite: 'None', malocclusion: 'Class I' }),
             softTissueRecords: newPatient.soft_tissue_records || [],
             orthodonticRecords: newPatient.orthodontic_records || [],
-            endodonticRecords: typeof window !== 'undefined'
-                ? JSON.parse(localStorage.getItem(`endo_records_${newPatient.id}`) || '[]')
-                : [],
+            endodonticRecords: mapEndodonticRecords(newPatient.endodontic_records || newPatient.endodonticRecords),
         };
 
         allPatients.push(fePatient);
@@ -1888,9 +1896,7 @@ export const updatePatient = async (id: string | number, data: Partial<Patient>)
                 : (updatedPatient.occlusal_records || { overbite: 0, overjet: 0, crossbite: 'None', openbite: 'None', malocclusion: 'Class I' }),
             softTissueRecords: updatedPatient.soft_tissue_records || [],
             orthodonticRecords: updatedPatient.orthodontic_records || [],
-            endodonticRecords: typeof window !== 'undefined'
-                ? JSON.parse(localStorage.getItem(`endo_records_${updatedPatient.id}`) || '[]')
-                : [],
+            endodonticRecords: mapEndodonticRecords(updatedPatient.endodontic_records || updatedPatient.endodonticRecords),
         };
 
         // Update local cache
@@ -1987,9 +1993,7 @@ export const addImageToPatient = async (patientId: string | number, image: Omit<
                 : (updatedPatient.occlusal_records || { overbite: 0, overjet: 0, crossbite: 'None', openbite: 'None', malocclusion: 'Class I' }),
             softTissueRecords: updatedPatient.soft_tissue_records || [],
             orthodonticRecords: updatedPatient.orthodontic_records || [],
-            endodonticRecords: typeof window !== 'undefined'
-                ? JSON.parse(localStorage.getItem(`endo_records_${updatedPatient.id}`) || '[]')
-                : [],
+            endodonticRecords: mapEndodonticRecords(updatedPatient.endodontic_records || updatedPatient.endodonticRecords),
         };
     } catch (error) {
         console.error("Error adding image to patient:", error);
@@ -2551,10 +2555,11 @@ export const deleteSoftTissueRecord = async (patientId: string | number, recordI
 }
 
 export const getEndodonticRecords = async (patientId: string | number): Promise<EndodonticRecord[]> => {
-    if (typeof window === 'undefined') return [];
     try {
-        return JSON.parse(localStorage.getItem(`endo_records_${patientId}`) || '[]');
-    } catch {
+        const response = await customAxios.get(`/patients/${patientId}/endodontic-records`);
+        return mapEndodonticRecords(response.data.data || response.data);
+    } catch (error) {
+        console.error('Error fetching endodontic records:', error);
         return [];
     }
 };
@@ -2563,16 +2568,17 @@ export const saveEndodonticRecord = async (
     patientId: string | number, 
     record: Omit<EndodonticRecord, 'id' | 'date'>
 ): Promise<Patient | undefined> => {
-    if (typeof window === 'undefined') return undefined;
     try {
-        const records = await getEndodonticRecords(patientId);
-        const newRecord: EndodonticRecord = {
-            ...record,
-            id: String(Date.now()),
-            date: new Date().toISOString().split('T')[0]
+        const requestBody = {
+            tooth_id: record.toothId,
+            pulpal_diagnosis: record.pulpalDiagnosis,
+            periapical_diagnosis: record.periapicalDiagnosis,
+            canals: record.canals,
+            obturation_material: record.obturationMaterial,
+            post_type: record.postType,
+            notes: record.notes,
         };
-        records.push(newRecord);
-        localStorage.setItem(`endo_records_${patientId}`, JSON.stringify(records));
+        await customAxios.post(`/patients/${patientId}/endodontic-records`, requestBody);
         return getPatientById(patientId);
     } catch (error) {
         console.error('Error saving endodontic record:', error);
@@ -2584,11 +2590,17 @@ export const updateEndodonticRecord = async (
     patientId: string | number, 
     record: EndodonticRecord
 ): Promise<Patient | undefined> => {
-    if (typeof window === 'undefined') return undefined;
     try {
-        const records = await getEndodonticRecords(patientId);
-        const updatedRecords = records.map(r => String(r.id) === String(record.id) ? record : r);
-        localStorage.setItem(`endo_records_${patientId}`, JSON.stringify(updatedRecords));
+        const requestBody = {
+            tooth_id: record.toothId,
+            pulpal_diagnosis: record.pulpalDiagnosis,
+            periapical_diagnosis: record.periapicalDiagnosis,
+            canals: record.canals,
+            obturation_material: record.obturationMaterial,
+            post_type: record.postType,
+            notes: record.notes,
+        };
+        await customAxios.put(`/patients/${patientId}/endodontic-records/${record.id}`, requestBody);
         return getPatientById(patientId);
     } catch (error) {
         console.error('Error updating endodontic record:', error);
@@ -2600,11 +2612,8 @@ export const deleteEndodonticRecord = async (
     patientId: string | number, 
     recordId: string | number
 ): Promise<Patient | undefined> => {
-    if (typeof window === 'undefined') return undefined;
     try {
-        const records = await getEndodonticRecords(patientId);
-        const updatedRecords = records.filter(r => String(r.id) !== String(recordId));
-        localStorage.setItem(`endo_records_${patientId}`, JSON.stringify(updatedRecords));
+        await customAxios.delete(`/patients/${patientId}/endodontic-records/${recordId}`);
         return getPatientById(patientId);
     } catch (error) {
         console.error('Error deleting endodontic record:', error);
