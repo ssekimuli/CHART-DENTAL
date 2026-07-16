@@ -47,20 +47,17 @@ type EndodonticChartProps = {
 };
 
 function MiniToothIcon({ toothId, canalsFilled }: { toothId: number; canalsFilled: boolean }) {
-  const anteriors = [6, 7, 8, 9, 10, 11, 22, 23, 24, 25, 26, 27];
-  const premolars = [4, 5, 12, 13, 20, 21, 28, 29];
-  let d = "";
-  if (anteriors.includes(toothId)) {
-    d = "M 8,15 C 8,5 16,5 16,15 C 16,25 13,36 12,38 C 11,36 8,25 8,15 Z";
-  } else if (premolars.includes(toothId)) {
-    d = "M 6,12 C 6,5 18,5 18,12 C 18,22 17,28 15,38 C 13,38 12,28 12,24 C 12,28 11,38 9,38 C 7,28 6,22 6,12 Z";
-  } else {
-    d = "M 5,12 C 5,5 19,5 19,12 C 19,22 18,28 17,38 C 16,38 15,28 14,24 C 13.5,28 12.5,39 12,39 C 11.5,39 10.5,28 10,24 C 9,28 8,38 7,38 C 6,22 5,12 5,12 Z";
-  }
   return (
-    <svg viewBox="0 0 24 40" className="w-5 h-8 mr-2 drop-shadow-sm inline-block align-middle transition-all duration-300">
-      <path d={d} fill={canalsFilled ? "#fda4af" : "#f8fafc"} stroke={canalsFilled ? "#ef4444" : "#cbd5e1"} strokeWidth="1.5" />
-    </svg>
+    <div className="relative w-6 h-10 mr-2 inline-block align-middle">
+      <img 
+        src={`/teeth/${toothId}.png`} 
+        alt={`Tooth ${toothId}`} 
+        className="w-full h-full object-contain transition-all duration-300"
+        style={{
+          filter: canalsFilled ? "drop-shadow(0 0 2px rgba(239, 68, 68, 0.85)) sepia(0.3) saturate(1.2)" : "none"
+        }}
+      />
+    </div>
   );
 }
 
