@@ -676,7 +676,6 @@ export function PeriodontalChart({
       </g>
     );
   };
-
   return (
     <Card className="border border-[#A3D8E1]/30 rounded-3xl shadow-[0_10px_30px_rgba(44,63,77,0.02)]">
       <CardHeader>
@@ -689,7 +688,8 @@ export function PeriodontalChart({
           </span>
         </CardDescription>
       </CardHeader>
-      <CardContent className="overflow-x-auto">
+      
+      <CardContent className="p-6">
         <div className="mb-6 flex flex-wrap justify-center gap-x-6 gap-y-2 rounded-2xl border border-gray-100 bg-gray-50/50 p-3">
           <div className="flex items-center gap-2">
             <div className="h-3 w-3 rounded-full border bg-red-500 border-red-700"></div>
@@ -709,47 +709,67 @@ export function PeriodontalChart({
           </div>
         </div>
 
-        <svg viewBox="0 0 780 1230" className="w-full max-w-[800px] mx-auto min-w-[760px]">
-          {/* Upper Arch (Maxillary) 2D Graphs */}
-          <PeriodontalGraph arch="upper" type="buccal" />
-          <PeriodontalGraph arch="upper" type="lingual" />
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
+          {/* Left Column: Form to Enter Record (Upper & Lower Inputs) */}
+          <div className="xl:col-span-7 space-y-8 overflow-x-auto min-w-[550px]">
+            <div>
+              <h3 className="text-sm font-bold text-slate-700 mb-2 uppercase tracking-wider">Upper Arch (Maxillary) Records</h3>
+              <svg viewBox="0 0 780 400" className="w-full min-w-[740px]">
+                {/* Upper Arch Inputs Grid */}
+                <g transform="translate(40, 0)">
+                  <text x="0" y="96" className="text-[10px] font-bold fill-muted-foreground" transform="rotate(-90 0 96)">Buccal (Upper)</text>
+                  <text x="0" y="240" className="text-[10px] font-bold fill-muted-foreground" transform="rotate(-90 0 240)">Lingual (Upper)</text>
+                </g>
+                {[...quadrants.upperRight.slice().reverse(), ...quadrants.upperLeft].map((toothId, i) => (
+                  <g key={toothId} transform={`translate(${40 + i * 44}, 0)`}>
+                    <ToothColumn toothId={toothId} arch="upper" col={i} />
+                  </g>
+                ))}
+                <line x1={40 + 8 * 44} y1="0" x2={40 + 8 * 44} y2="400" className="stroke-muted-foreground/40 stroke-2" />
+              </svg>
+            </div>
 
-          {/* Upper Arch Inputs Grid */}
-          <g transform="translate(40, 210)">
-            <text x="0" y="96" className="text-[10px] font-bold fill-muted-foreground" transform="rotate(-90 0 96)">Buccal (Upper)</text>
-            <text x="0" y="240" className="text-[10px] font-bold fill-muted-foreground" transform="rotate(-90 0 240)">Lingual (Upper)</text>
-          </g>
-          {[...quadrants.upperRight.slice().reverse(), ...quadrants.upperLeft].map((toothId, i) => (
-            <g key={toothId} transform={`translate(${40 + i * 44}, 210)`}>
-              <ToothColumn toothId={toothId} arch="upper" col={i} />
-            </g>
-          ))}
-          <line x1={40 + 8 * 44} y1="210" x2={40 + 8 * 44} y2="610" className="stroke-muted-foreground/40 stroke-2" />
+            <div className="border-t pt-6">
+              <h3 className="text-sm font-bold text-slate-700 mb-2 uppercase tracking-wider">Lower Arch (Mandibular) Records</h3>
+              <svg viewBox="0 0 780 400" className="w-full min-w-[740px]">
+                {/* Lower Arch Inputs Grid */}
+                <g transform="translate(40, 0)">
+                  <text x="0" y="96" className="text-[10px] font-bold fill-muted-foreground" transform="rotate(-90 0 96)">Buccal (Lower)</text>
+                  <text x="0" y="240" className="text-[10px] font-bold fill-muted-foreground" transform="rotate(-90 0 240)">Lingual (Lower)</text>
+                </g>
+                {[...quadrants.lowerRight.slice().reverse(), ...quadrants.lowerLeft].map((toothId, i) => (
+                  <g key={toothId} transform={`translate(${40 + i * 44}, 0)`}>
+                    <ToothColumn toothId={toothId} arch="lower" col={i} />
+                  </g>
+                ))}
+                <line x1={40 + 8 * 44} y1="0" x2={40 + 8 * 44} y2="400" className="stroke-muted-foreground/40 stroke-2" />
+              </svg>
+            </div>
+          </div>
 
-          {/* Separator line between arches */}
-          <line x1="0" y1="815" x2="780" y2="815" className="stroke-border stroke-1 stroke-dasharray-[4,4]" />
+          {/* Right Column: Profile Graphs (Buccal/Lingual graphs) */}
+          <div className="xl:col-span-5 space-y-6">
+            <div className="border border-slate-100 rounded-2xl bg-slate-50/30 p-4 space-y-6">
+              <div>
+                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Upper Arch Gum & Bone Profile</h4>
+                <svg viewBox="0 0 780 200" className="w-full min-w-[340px]">
+                  <PeriodontalGraph arch="upper" type="buccal" />
+                  <PeriodontalGraph arch="upper" type="lingual" />
+                </svg>
+              </div>
 
-          {/* Lower Arch (Mandibular) 2D Graphs */}
-          <g transform="translate(0, 640)">
-            <PeriodontalGraph arch="lower" type="buccal" />
-          </g>
-          <g transform="translate(0, 640)">
-            <PeriodontalGraph arch="lower" type="lingual" />
-          </g>
-
-          {/* Lower Arch Inputs Grid */}
-          <g transform="translate(40, 820)">
-            <text x="0" y="96" className="text-[10px] font-bold fill-muted-foreground" transform="rotate(-90 0 96)">Buccal (Lower)</text>
-            <text x="0" y="240" className="text-[10px] font-bold fill-muted-foreground" transform="rotate(-90 0 240)">Lingual (Lower)</text>
-          </g>
-          {[...quadrants.lowerRight.slice().reverse(), ...quadrants.lowerLeft].map((toothId, i) => (
-            <g key={toothId} transform={`translate(${40 + i * 44}, 820)`}>
-              <ToothColumn toothId={toothId} arch="lower" col={i} />
-            </g>
-          ))}
-          <line x1={40 + 8 * 44} y1="820" x2={40 + 8 * 44} y2="1220" className="stroke-muted-foreground/40 stroke-2" />
-        </svg>
+              <div className="border-t pt-4">
+                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Lower Arch Gum & Bone Profile</h4>
+                <svg viewBox="0 0 780 200" className="w-full min-w-[340px]">
+                  <PeriodontalGraph arch="lower" type="buccal" />
+                  <PeriodontalGraph arch="lower" type="lingual" />
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
       </CardContent>
+      
       {canUpdateChart && (
         <CardFooter className="flex justify-end gap-3 border-t border-gray-100/50 p-6">
           <Button onClick={() => onSave(records)} className="bg-[#008B89] hover:bg-[#008B89]/90 text-white rounded-xl px-6">
