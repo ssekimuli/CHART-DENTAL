@@ -63,7 +63,7 @@ export function PeriodontalChart({
 }: PeriodontalChartProps) {
   const [records, setRecords] = useState<PeriodontalRecord>(initialRecords);
   const [selectedTooth, setSelectedTooth] = useState<number | undefined>();
-  const canUpdateChart = hasPermission('charting:update');
+  const canUpdateChart = hasPermission('periodontal:update');
 
   // Helper to compute PSR for a sextant
   const computePSR = (teeth: number[]) => {
