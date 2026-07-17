@@ -100,8 +100,7 @@ export function OrthodonticChart({ initialRecords, onSave, onUpdate, onDelete }:
           <div className="mb-6 grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-muted/50 rounded-lg">
             {(() => {
               const latest = [...initialRecords].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
-              const first = [...initialRecords].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0];
-              const monthsInTreatment = Math.max(0, Math.floor((new Date().getTime() - new Date(first.date).getTime()) / (1000 * 60 * 60 * 24 * 30)));
+              const monthsInTreatment = latest.monthsInTreatment ?? 0;
               
               return (
                 <>

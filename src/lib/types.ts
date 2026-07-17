@@ -346,6 +346,7 @@ export type OrthodonticRecord = {
   brokenBrackets?: string[];
   notes?: string;
   nextVisitGoals?: string;
+  monthsInTreatment?: number;
 };
 
 export type SystemTreatment = {

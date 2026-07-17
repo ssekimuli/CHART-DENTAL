@@ -308,7 +308,7 @@ export const getPatients = async (filters?: string | number | GetPatientsFilters
                 ? JSON.parse(patient.occlusal_records)
                 : (patient.occlusal_records || { overbite: 0, overjet: 0, crossbite: 'None', openbite: 'None', malocclusion: 'Class I' }),
             softTissueRecords: patient.soft_tissue_records || [],
-            orthodonticRecords: patient.orthodontic_records || [],
+            orthodonticRecords: mapOrthodonticRecords(patient.orthodontic_records),
             endodonticRecords: mapEndodonticRecords(patient.endodontic_records || patient.endodonticRecords),
         }));
 
@@ -432,7 +432,7 @@ export const getPatientById = async (id: string | number): Promise<Patient | und
                 ? JSON.parse(patient.occlusal_records)
                 : (patient.occlusal_records || { overbite: 0, overjet: 0, crossbite: 'None', openbite: 'None', malocclusion: 'Class I' }),
             softTissueRecords: patient.soft_tissue_records || [],
-            orthodonticRecords: patient.orthodontic_records || [],
+            orthodonticRecords: mapOrthodonticRecords(patient.orthodontic_records),
             endodonticRecords: mapEndodonticRecords(patient.endodontic_records || patient.endodonticRecords),
         };
     } catch (error) {
@@ -1845,7 +1845,7 @@ export const createPatient = async (data: BasePatient & { branchId: string | num
                 ? JSON.parse(newPatient.occlusal_records)
                 : (newPatient.occlusal_records || { overbite: 0, overjet: 0, crossbite: 'None', openbite: 'None', malocclusion: 'Class I' }),
             softTissueRecords: newPatient.soft_tissue_records || [],
-            orthodonticRecords: newPatient.orthodontic_records || [],
+            orthodonticRecords: mapOrthodonticRecords(newPatient.orthodontic_records),
             endodonticRecords: mapEndodonticRecords(newPatient.endodontic_records || newPatient.endodonticRecords),
         };
 
@@ -1861,6 +1861,51 @@ export const createPatient = async (data: BasePatient & { branchId: string | num
         }
     }
 }
+
+export const updateNextVisit = async (id: string | number, date: string | null): Promise<Patient | undefined> => {
+    console.log('API CALL: updateNextVisit', { id, date });
+    try {
+        const response = await customAxios.put(`/patients/${id}/next-visit`, { next_visit: date });
+        const updatedPatient = response.data;
+
+        const fePatient: Patient = {
+            id: updatedPatient.id,
+            first_name: updatedPatient.first_name,
+            last_name: updatedPatient.last_name,
+            email: updatedPatient.email,
+            phone: updatedPatient.phone,
+            address: updatedPatient.address,
+            gender: updatedPatient.gender,
+            dateOfBirth: updatedPatient.dateOfBirth || updatedPatient.date_of_birth,
+            lastVisit: updatedPatient.lastVisit || updatedPatient.last_visit,
+            nextVisit: updatedPatient.nextVisit || updatedPatient.next_visit,
+            status: updatedPatient.status,
+            branchId: updatedPatient.branchId || updatedPatient.branch_id,
+            avatar: updatedPatient.avatar,
+            dentalRecords: updatedPatient.dental_records || updatedPatient.dentalRecords || [],
+            treatmentPlans: updatedPatient.treatment_plans || updatedPatient.treatmentPlans || [],
+            imaging: updatedPatient.patient_images || updatedPatient.imaging || [],
+            periodontalRecords: mapPeriodontalRecords(updatedPatient.periodontal_records),
+            occlusalRecords: typeof updatedPatient.occlusal_records === 'string'
+                ? JSON.parse(updatedPatient.occlusal_records)
+                : (updatedPatient.occlusal_records || { overbite: 0, overjet: 0, crossbite: 'None', openbite: 'None', malocclusion: 'Class I' }),
+            softTissueRecords: updatedPatient.soft_tissue_records || [],
+            orthodonticRecords: mapOrthodonticRecords(updatedPatient.orthodontic_records),
+            endodonticRecords: mapEndodonticRecords(updatedPatient.endodontic_records || updatedPatient.endodonticRecords),
+        };
+
+        // Update local cache
+        const patientIndex = allPatients.findIndex(p => String(p.id) === String(id));
+        if (patientIndex !== -1) {
+            allPatients[patientIndex] = fePatient;
+        }
+
+        return fePatient;
+    } catch (error) {
+        console.error("Error updating next visit:", error);
+        return undefined;
+    }
+};
 
 export const updatePatient = async (id: string | number, data: Partial<Patient>): Promise<Patient | undefined> => {
     console.log('API CALL: updatePatient', { id, data });
@@ -1914,7 +1959,7 @@ export const updatePatient = async (id: string | number, data: Partial<Patient>)
                 ? JSON.parse(updatedPatient.occlusal_records)
                 : (updatedPatient.occlusal_records || { overbite: 0, overjet: 0, crossbite: 'None', openbite: 'None', malocclusion: 'Class I' }),
             softTissueRecords: updatedPatient.soft_tissue_records || [],
-            orthodonticRecords: updatedPatient.orthodontic_records || [],
+            orthodonticRecords: mapOrthodonticRecords(updatedPatient.orthodontic_records),
             endodonticRecords: mapEndodonticRecords(updatedPatient.endodontic_records || updatedPatient.endodonticRecords),
         };
 
@@ -2011,7 +2056,7 @@ export const addImageToPatient = async (patientId: string | number, image: Omit<
                 ? JSON.parse(updatedPatient.occlusal_records)
                 : (updatedPatient.occlusal_records || { overbite: 0, overjet: 0, crossbite: 'None', openbite: 'None', malocclusion: 'Class I' }),
             softTissueRecords: updatedPatient.soft_tissue_records || [],
-            orthodonticRecords: updatedPatient.orthodontic_records || [],
+            orthodonticRecords: mapOrthodonticRecords(updatedPatient.orthodontic_records),
             endodonticRecords: mapEndodonticRecords(updatedPatient.endodontic_records || updatedPatient.endodonticRecords),
         };
     } catch (error) {
@@ -2379,24 +2424,7 @@ export const getOrthodonticRecords = async (patientId: string | number): Promise
             return [];
         }
 
-        return recordsData.map((record: any) => ({
-            id: record.id,
-            appliance: record.appliance,
-            applianceLocation: record.appliance_location || record.applianceLocation,
-            treatmentPhase: record.treatment_phase || record.treatmentPhase,
-            wireSize: record.wire_size || record.wireSize,
-            wireSizeUpper: record.wire_size_upper || record.wireSizeUpper,
-            wireSizeLower: record.wire_size_lower || record.wireSizeLower,
-            archwireMaterial: record.archwire_material || record.archwireMaterial,
-            elastics: record.elastics,
-            compliance: record.compliance,
-            oralHygiene: record.oral_hygiene || record.oralHygiene,
-            bracketChanges: record.bracket_changes || record.bracketChanges || [],
-            brokenBrackets: record.broken_brackets || record.brokenBrackets || [],
-            nextVisitGoals: record.next_visit_goals || record.nextVisitGoals,
-            notes: record.notes || '',
-            date: record.date || record.created_at || new Date().toISOString().split('T')[0],
-        }));
+        return mapOrthodonticRecords(recordsData);
 
     } catch (error) {
         console.error('Error fetching orthodontic records:', error);
