@@ -23,6 +23,7 @@ import type {
   PeriodontalMeasurement,
   PeriodontalPocketDepth,
   PeriodontalConditions,
+  DentalRecord,
 } from "@/lib/types";
 import { useState, useEffect } from "react";
 import { hasPermission } from "@/lib/user";

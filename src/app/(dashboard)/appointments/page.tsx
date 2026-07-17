@@ -24,7 +24,7 @@ import { Button } from "@/components/ui/button";
 import { MoreHorizontal, PlusCircle, Trash, Pencil, FileText, Send } from "lucide-react";
 import { AppointmentForm } from "./components/appointment-form";
 import { useBranch } from "@/context/branch-context";
-import { currentUser, hasRole } from "@/lib/user";
+import {  hasRole , getCurrentUser } from "@/lib/user";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -80,7 +80,7 @@ export default function AppointmentsPage() {
   }, [selectedBranch]);
 
   const normalizedSelectedBranch = String(selectedBranch || '');
-  const normalizedUserBranch = currentUser.branchId ? String(currentUser.branchId) : '';
+  const normalizedUserBranch = getCurrentUser()?.branchId ? String(getCurrentUser()?.branchId) : '';
 
   const filteredPatients = useMemo(() => {
      if (hasRole('Super Admin')) {
@@ -152,7 +152,7 @@ export default function AppointmentsPage() {
           treatment: data.treatment,
           date: data.date,
           time: data.time,
-          branch_id: selectedBranch || currentUser.branchId,
+          branch_id: selectedBranch || getCurrentUser()?.branchId,
         };
 
         const newAppointment = await createAppointment(payload);

@@ -1177,19 +1177,19 @@ export const getTreatments = async (params?: { search?: string, category?: strin
     }
 }
 
-export const createTreatment = async (data: Omit<SystemTreatment, 'id'>): Promise<SystemTreatment> => {
+export const createSystemTreatment = async (data: Omit<SystemTreatment, 'id'>): Promise<SystemTreatment> => {
     const response = await customAxios.post('/procedures', data);
     treatmentsCache = null; // invalidate cache
     return response.data;
 }
 
-export const updateTreatment = async (id: string | number, data: Partial<SystemTreatment>): Promise<SystemTreatment> => {
+export const updateSystemTreatment = async (id: string | number, data: Partial<SystemTreatment>): Promise<SystemTreatment> => {
     const response = await customAxios.put(`/procedures/${id}`, data);
     treatmentsCache = null; // invalidate cache
     return response.data;
 }
 
-export const deleteTreatment = async (id: string | number): Promise<void> => {
+export const deleteSystemTreatment = async (id: string | number): Promise<void> => {
     await customAxios.delete(`/procedures/${id}`);
     treatmentsCache = null; // invalidate cache
 }

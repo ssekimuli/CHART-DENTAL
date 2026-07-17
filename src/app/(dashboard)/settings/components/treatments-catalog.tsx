@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Edit2, Plus, Trash2, Search } from "lucide-react";
-import { getTreatments, createTreatment, updateTreatment, deleteTreatment } from "@/lib/api";
+import { getTreatments, createSystemTreatment, updateSystemTreatment, deleteSystemTreatment } from "@/lib/api";
 import type { SystemTreatment } from "@/lib/types";
 
 export function TreatmentsCatalog({ currencyCode }: { currencyCode: string }) {
@@ -46,11 +46,10 @@ export function TreatmentsCatalog({ currencyCode }: { currencyCode: string }) {
 
     const handleAdd = async () => {
         try {
-            await createTreatment({
+            await createSystemTreatment({
                 procedure: currentTreatment.procedure || "",
                 cost: currentTreatment.cost || 0,
-                category: currentTreatment.category || "Other",
-                description: currentTreatment.description || ""
+                category: currentTreatment.category || "Other"
             });
             toast({ title: "Success", description: "Treatment added successfully." });
             setIsAddOpen(false);
@@ -64,7 +63,7 @@ export function TreatmentsCatalog({ currencyCode }: { currencyCode: string }) {
     const handleEdit = async () => {
         if (!currentTreatment.id) return;
         try {
-            await updateTreatment(currentTreatment.id, currentTreatment);
+            await updateSystemTreatment(currentTreatment.id, currentTreatment);
             toast({ title: "Success", description: "Treatment updated successfully." });
             setIsEditOpen(false);
             setCurrentTreatment({});
@@ -77,7 +76,7 @@ export function TreatmentsCatalog({ currencyCode }: { currencyCode: string }) {
     const handleDelete = async (id: string | number) => {
         if (!confirm("Are you sure you want to delete this treatment?")) return;
         try {
-            await deleteTreatment(id);
+            await deleteSystemTreatment(id);
             toast({ title: "Deleted", description: "Treatment removed." });
             fetchTreatments();
         } catch (e) {
