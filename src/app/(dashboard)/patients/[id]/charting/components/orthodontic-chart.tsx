@@ -1,6 +1,7 @@
 
 "use client";
 
+import { useRouter, useParams } from "next/navigation";
 import { useState } from "react";
 import {
   Card,
@@ -25,7 +26,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { OrthodonticRecordForm } from "./orthodontic-record-form";
 import type { OrthodonticRecord } from "@/lib/types";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { hasPermission } from "@/lib/user";
@@ -38,31 +38,21 @@ type OrthodonticChartProps = {
 };
 
 export function OrthodonticChart({ initialRecords, onSave, onUpdate, onDelete }: OrthodonticChartProps) {
-  const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<OrthodonticRecord | undefined>(undefined);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const [recordToDelete, setRecordToDelete] = useState<string | number | undefined>(undefined);
   const canUpdateChart = hasPermission('charting:update');
 
+  const router = useRouter();
+  const params = useParams();
 
   const handleOpenForm = (record?: OrthodonticRecord) => {
-    setSelectedRecord(record);
-    setIsFormOpen(true);
-  };
-
-  const handleCloseForm = () => {
-    setSelectedRecord(undefined);
-    setIsFormOpen(false);
-  };
-
-  const handleSave = (data: Omit<OrthodonticRecord, 'id'>) => {
-    if (selectedRecord) {
-        onUpdate({ ...selectedRecord, ...data });
+    if (record) {
+      router.push(`/patients/${params.id}/charting/orthodontic/${record.id}`);
     } else {
-        onSave(data);
+      router.push(`/patients/${params.id}/charting/orthodontic/new`);
     }
-    handleCloseForm();
-  }
+  };
 
   const openDeleteDialog = (recordId: string | number) => {
     setRecordToDelete(recordId);
@@ -178,30 +168,22 @@ export function OrthodonticChart({ initialRecords, onSave, onUpdate, onDelete }:
       </CardContent>
     </Card>
 
-    {isFormOpen && (
-        <OrthodonticRecordForm
-            record={selectedRecord}
-            onSave={handleSave}
-            onOpenChange={handleCloseForm}
-        />
-    )}
-
     <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
         <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+        <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete this orthodontic record.
+            This action cannot be undone. This will permanently delete the orthodontic record
+            and remove the data from our servers.
             </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setRecordToDelete(undefined)}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">Delete</AlertDialogAction>
+        </AlertDialogFooter>
         </AlertDialogContent>
-      </AlertDialog>
+    </AlertDialog>
+
     </>
   );
 }
