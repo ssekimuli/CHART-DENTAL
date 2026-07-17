@@ -65,6 +65,54 @@ export function PeriodontalChart({
   const [selectedTooth, setSelectedTooth] = useState<number | undefined>();
   const canUpdateChart = hasPermission('charting:update');
 
+  // Helper to compute PSR for a sextant
+  const computePSR = (teeth: number[]) => {
+    let maxPocket = 0;
+    let hasBleeding = false;
+    let hasCalculus = false;
+    let hasComplexity = false; // furcation, mobility, mucogingival involvement (recession >=3)
+
+    teeth.forEach(t => {
+      const rec = records.find(r => r.toothId === t);
+      if (rec) {
+        // Max pocket
+        const pockets = Object.values(rec.pockets).filter((p): p is number => p !== undefined);
+        if (pockets.length > 0) {
+          maxPocket = Math.max(maxPocket, ...pockets);
+        }
+        
+        if (rec.conditions?.bleeding) hasBleeding = true;
+        if (rec.conditions?.calculus) hasCalculus = true;
+        
+        if (rec.furcation) hasComplexity = true;
+        if (rec.mobility && rec.mobility !== '0') hasComplexity = true;
+        if (rec.recession && rec.recession >= 3) hasComplexity = true;
+      }
+    });
+
+    let score = "0";
+    if (maxPocket >= 6) {
+      score = "4";
+    } else if (maxPocket >= 4) {
+      score = "3";
+    } else if (hasCalculus) {
+      score = "2";
+    } else if (hasBleeding) {
+      score = "1";
+    }
+
+    return score + (hasComplexity ? "*" : "");
+  };
+
+  const sextants = [
+    { name: "Sextant 1", teeth: [1, 2, 3, 4, 5] },
+    { name: "Sextant 2", teeth: [6, 7, 8, 9, 10, 11] },
+    { name: "Sextant 3", teeth: [12, 13, 14, 15, 16] },
+    { name: "Sextant 6", teeth: [32, 31, 30, 29, 28] }, // Lower Right
+    { name: "Sextant 5", teeth: [27, 26, 25, 24, 23, 22] }, // Lower Anterior
+    { name: "Sextant 4", teeth: [21, 20, 19, 18, 17] } // Lower Left
+  ];
+
   useEffect(() => {
     setRecords(initialRecords);
   }, [initialRecords]);
@@ -590,6 +638,31 @@ export function PeriodontalChart({
             disabled={!canUpdateChart}
           />
         </foreignObject>
+
+        {/* Buccal CAL */}
+        <foreignObject x="0" y={210} width="36" height="12">
+          <div className="w-full flex justify-between px-[2px] opacity-60">
+            {pocketPositions.slice(0, 3).map((pos) => {
+              const p = record.pockets[pos] || 0;
+              const r = record.recession || 0;
+              const cal = p + r;
+              return <span key={pos} className="text-[7px] font-bold" title="Clinical Attachment Level">{cal || "-"}</span>;
+            })}
+          </div>
+        </foreignObject>
+
+        {/* Lingual CAL */}
+        <foreignObject x="0" y={300} width="36" height="12">
+          <div className="w-full flex justify-between px-[2px] opacity-60">
+            {pocketPositions.slice(3, 6).map((pos) => {
+              const p = record.pockets[pos] || 0;
+              const r = record.recession || 0;
+              const cal = p + r;
+              return <span key={pos} className="text-[7px] font-bold" title="Clinical Attachment Level">{cal || "-"}</span>;
+            })}
+          </div>
+        </foreignObject>
+
         <foreignObject x="0" y={312} width="36" height="24">
           <Select
             value={record.mobility}
@@ -738,7 +811,19 @@ export function PeriodontalChart({
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col md:flex-row items-center gap-4">
+            <div className="rounded-xl border bg-white shadow-sm overflow-hidden flex flex-col items-center p-2">
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1 px-2">PSR Scores</p>
+              <div className="grid grid-cols-3 gap-[1px] bg-slate-200">
+                <div className="bg-white px-3 py-1 text-center font-bold text-sm min-w-[36px]">{computePSR(sextants[0].teeth)}</div>
+                <div className="bg-white px-3 py-1 text-center font-bold text-sm min-w-[36px]">{computePSR(sextants[1].teeth)}</div>
+                <div className="bg-white px-3 py-1 text-center font-bold text-sm min-w-[36px]">{computePSR(sextants[2].teeth)}</div>
+                <div className="bg-white px-3 py-1 text-center font-bold text-sm min-w-[36px]">{computePSR(sextants[5].teeth)}</div>
+                <div className="bg-white px-3 py-1 text-center font-bold text-sm min-w-[36px]">{computePSR(sextants[4].teeth)}</div>
+                <div className="bg-white px-3 py-1 text-center font-bold text-sm min-w-[36px]">{computePSR(sextants[3].teeth)}</div>
+              </div>
+            </div>
+
             <div className="rounded-xl border bg-white px-4 py-2 shadow-sm text-center">
               <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-0.5">Bleeding Index</p>
               <p className="text-lg font-black text-red-500">
