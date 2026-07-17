@@ -1,5 +1,3 @@
-
-
 import type { EmployeeRole, CurrentUser, Permission } from "./types";
 
 const allPermissions: Permission[] = [
@@ -18,19 +16,9 @@ const allPermissions: Permission[] = [
     'profile:read', 'profile:update'
 ];
 
-const defaultUser: CurrentUser = {
-  role: 'Super Admin',
-  branchId: '',
-  branchName: '',
-  email: 'lisa.cuddy@example.com',
-  name: 'Dr. Lisa Cuddy',
-  avatar: 'https://picsum.photos/seed/emp1/200/200',
-  permissions: allPermissions
-};
-
 export function getCurrentUser(): CurrentUser | null {
     if (typeof window === 'undefined') {
-        return defaultUser; // Return default for SSR
+        return null;
     }
     const userJson = localStorage.getItem('currentUser');
     if (userJson) {
@@ -43,8 +31,7 @@ export function getCurrentUser(): CurrentUser | null {
     return null;
 }
 
-export function 
-setCurrentUser(user: CurrentUser, token: string): void {
+export function setCurrentUser(user: CurrentUser, token: string): void {
     if (typeof window !== 'undefined') {
         localStorage.setItem('currentUser', JSON.stringify(user));
         localStorage.setItem('authToken', token);
@@ -65,12 +52,9 @@ export function clearCurrentUser(): void {
     }
 }
 
-// Fallback for server-side rendering, although it should ideally be null until client-side hydration
-export const currentUser = getCurrentUser() || defaultUser;
-
 export function hasPermission(permission: Permission): boolean {
     if (typeof window === 'undefined') {
-        return true; // Allow all for SSR to prevent layout shifts
+        return false; // Safest fallback for SSR
     }
     const user = getCurrentUser();
     if (!user) {
@@ -81,7 +65,7 @@ export function hasPermission(permission: Permission): boolean {
 
 export function hasRole(role: EmployeeRole | EmployeeRole[]): boolean {
     if (typeof window === 'undefined') {
-        return true; // Allow all for SSR to prevent layout shifts
+        return false; // Safest fallback for SSR
     }
     const user = getCurrentUser();
     if (!user) {
@@ -96,4 +80,3 @@ export function hasRole(role: EmployeeRole | EmployeeRole[]): boolean {
 export function HasRole(role: EmployeeRole | EmployeeRole[]): boolean {
     return hasRole(role);
 }
-
