@@ -3,7 +3,7 @@
 import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
 import { OrthodonticRecordForm } from "../../components/orthodontic-record-form";
-import { addOrthodonticRecord } from "@/lib/api";
+import { saveOrthodonticRecord } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,7 @@ export default function NewOrthodonticRecordPage({ params }: { params: Promise<{
   const handleSave = async (data: any) => {
     setIsSaving(true);
     try {
-      const patient = await addOrthodonticRecord(resolvedParams.id, data);
+      const patient = await saveOrthodonticRecord(resolvedParams.id, data);
       if (patient) {
         toast({
           title: "Record Added",
