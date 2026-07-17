@@ -1,5 +1,7 @@
 "use client";
 
+import { formatDuration, intervalToDuration } from "date-fns";
+
 import { useRouter, useParams } from "next/navigation";
 import { useState } from "react";
 import {
@@ -87,9 +89,39 @@ export function OrthodonticChart({ initialRecords, onSave, onUpdate, onDelete }:
         {initialRecords.length > 0 && (
           <div className="mb-6 grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-muted/50 rounded-lg">
             {(() => {
-              const latest = [...initialRecords].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
-              const monthsInTreatment = Math.floor(Number(latest.monthsInTreatment ?? 0));
+              const sorted = [...initialRecords].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+              const latest = sorted[0];
+              const earliest = sorted[sorted.length - 1];
               
+              let treatmentTimeStr = "0 Days";
+              if (latest && earliest) {
+                const start = new Date(earliest.date);
+                const end = new Date(latest.date);
+                
+                // If it's the exact same day, intervalToDuration returns 0 for everything
+                if (start.getTime() === end.getTime()) {
+                  treatmentTimeStr = "0 Days";
+                } else {
+                  const duration = intervalToDuration({ start, end });
+                  // We only want to show the most significant 2 units (e.g. Years and Months, or Months and Weeks, or Weeks and Days)
+                  // filter out zero values and select up to 2 units
+                  const formatObj: Record<string, number | undefined> = {
+                    years: duration.years,
+                    months: duration.months,
+                    weeks: duration.days && duration.days >= 7 ? Math.floor(duration.days / 7) : 0,
+                    days: duration.days ? duration.days % 7 : 0
+                  };
+                  
+                  // if no weeks exist natively on older date-fns versions, duration.days might be > 7
+                  if (duration.years === 0 && duration.months === 0 && duration.days && duration.days < 7) {
+                    formatObj.weeks = 0;
+                    formatObj.days = duration.days;
+                  }
+
+                  treatmentTimeStr = formatDuration(formatObj, { format: ['years', 'months', 'weeks', 'days'] }) || "0 Days";
+                }
+              }
+
               return (
                 <>
                   <div>
@@ -102,7 +134,7 @@ export function OrthodonticChart({ initialRecords, onSave, onUpdate, onDelete }:
                   </div>
                   <div>
                     <p className="text-sm font-medium text-muted-foreground mb-1">Treatment Time</p>
-                    <p className="font-semibold">{monthsInTreatment} Months</p>
+                    <p className="font-semibold capitalize">{treatmentTimeStr}</p>
                   </div>
                   <div>
                     <p className="text-sm font-medium text-muted-foreground mb-1">Next Visit Goal</p>
