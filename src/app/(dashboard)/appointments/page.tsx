@@ -152,7 +152,7 @@ export default function AppointmentsPage() {
           treatment: data.treatment,
           date: data.date,
           time: data.time,
-          branch_id: selectedBranch || getCurrentUser()?.branchId,
+          branch_id: Number(selectedBranch || getCurrentUser()?.branchId),
         };
 
         const newAppointment = await createAppointment(payload);
