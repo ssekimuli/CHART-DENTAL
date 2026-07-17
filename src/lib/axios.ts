@@ -30,7 +30,7 @@ customAxios.interceptors.response.use(
     return response;
   },
   (error) => {
-    
+
     // Handle unauthenticated responses
 
     if (axios.isAxiosError(error) && error.response) {
@@ -43,6 +43,7 @@ customAxios.interceptors.response.use(
         clearCurrentUser();
 
         // Show toast notification
+        
         toast({
           variant: "destructive",
           title: "Session Expired",
