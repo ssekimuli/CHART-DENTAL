@@ -716,9 +716,30 @@ export function PeriodontalChart({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
-          {/* Left Column: Form to Enter Record (Upper & Lower Inputs) */}
-          <div className="xl:col-span-7 space-y-8 overflow-x-auto min-w-[550px]">
+        <div className="flex flex-col gap-8 items-start w-full">
+          {/* Top Section: Profile Graphs (Buccal/Lingual graphs) */}
+          <div className="w-full space-y-6">
+            <div className="border border-slate-100 rounded-2xl bg-slate-50/30 p-4 grid grid-cols-1 xl:grid-cols-2 gap-6">
+              <div>
+                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Upper Arch Gum & Bone Profile</h4>
+                <svg viewBox="0 0 780 200" className="w-full min-w-[340px]">
+                  <PeriodontalGraph arch="upper" type="buccal" />
+                  <PeriodontalGraph arch="upper" type="lingual" />
+                </svg>
+              </div>
+
+              <div>
+                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Lower Arch Gum & Bone Profile</h4>
+                <svg viewBox="0 0 780 200" className="w-full min-w-[340px]">
+                  <PeriodontalGraph arch="lower" type="buccal" />
+                  <PeriodontalGraph arch="lower" type="lingual" />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom Section: Form to Enter Record (Upper & Lower Inputs) */}
+          <div className="w-full space-y-8 overflow-x-auto min-w-[550px]">
             <div>
               <h3 className="text-sm font-bold text-slate-700 mb-2 uppercase tracking-wider">Upper Arch (Maxillary) Records</h3>
               <svg viewBox="0 0 780 400" className="w-full min-w-[740px]">
@@ -751,27 +772,6 @@ export function PeriodontalChart({
                 ))}
                 <line x1={40 + 8 * 44} y1="0" x2={40 + 8 * 44} y2="400" className="stroke-muted-foreground/40 stroke-2" />
               </svg>
-            </div>
-          </div>
-
-          {/* Right Column: Profile Graphs (Buccal/Lingual graphs) */}
-          <div className="xl:col-span-5 space-y-6">
-            <div className="border border-slate-100 rounded-2xl bg-slate-50/30 p-4 space-y-6">
-              <div>
-                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Upper Arch Gum & Bone Profile</h4>
-                <svg viewBox="0 0 780 200" className="w-full min-w-[340px]">
-                  <PeriodontalGraph arch="upper" type="buccal" />
-                  <PeriodontalGraph arch="upper" type="lingual" />
-                </svg>
-              </div>
-
-              <div className="border-t pt-4">
-                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Lower Arch Gum & Bone Profile</h4>
-                <svg viewBox="0 0 780 200" className="w-full min-w-[340px]">
-                  <PeriodontalGraph arch="lower" type="buccal" />
-                  <PeriodontalGraph arch="lower" type="lingual" />
-                </svg>
-              </div>
             </div>
           </div>
         </div>
