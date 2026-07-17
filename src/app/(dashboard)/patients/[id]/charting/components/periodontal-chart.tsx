@@ -183,6 +183,31 @@ export function PeriodontalChart({
     });
   };
 
+  const handleMgjChange = (toothId: number, value: string) => {
+    const numericValue = value === "" ? undefined : parseInt(value, 10);
+    setRecords((prev) => {
+      const recordIndex = prev.findIndex((r) => r.toothId === toothId);
+      if (recordIndex > -1) {
+        const record = prev[recordIndex];
+        const updatedRecord = {
+          ...record,
+          mgj: numericValue,
+        };
+        const newRecords = [...prev];
+        newRecords[recordIndex] = updatedRecord;
+        return newRecords;
+      } else {
+        const newRecord = {
+          toothId,
+          pockets: {},
+          mgj: numericValue,
+          conditions: {},
+        };
+        return [...prev, newRecord];
+      }
+    });
+  };
+
   const handleConditionToggle = (
     toothId: number,
     condition: keyof PeriodontalConditions
@@ -269,6 +294,21 @@ export function PeriodontalChart({
     handleRecessionChange(toothId, value);
     
     // Auto-advance on any recession entry
+    if (value.length >= 1) {
+      autoAdvance(arch, col, row);
+    }
+  };
+
+  const handleMgjChangeAndAutoTab = (
+    value: string,
+    toothId: number,
+    arch: "upper" | "lower",
+    col: number,
+    row: number
+  ) => {
+    handleMgjChange(toothId, value);
+    
+    // Auto-advance on any mgj entry
     if (value.length >= 1) {
       autoAdvance(arch, col, row);
     }
@@ -698,12 +738,27 @@ export function PeriodontalChart({
             </SelectContent>
           </Select>
         </foreignObject>
+        <foreignObject x="0" y={368} width="36" height="24">
+          <Input
+            id={`input-mgj-${arch}-${col}`}
+            type="number"
+            min="0"
+            max="20"
+            className="h-full w-full bg-transparent p-1 text-center text-xs border-border/60"
+            placeholder="MGJ"
+            value={record.mgj ?? ""}
+            onChange={(e) => handleMgjChangeAndAutoTab(e.target.value, toothId, arch, col, 7)}
+            onKeyDown={(e) => handleKeyDown(e, arch, col, 7, toothId)}
+            onFocus={() => setSelectedTooth(toothId)}
+            disabled={!canUpdateChart}
+          />
+        </foreignObject>
       </>
     );
 
     return (
       <g transform={`translate(4, 4)`} className={isMissing ? "opacity-40" : ""}>
-        <rect x="-4" y="-4" width="44" height="400" className={cn("fill-transparent transition-colors", selectedTooth === toothId && "fill-blue-500/10")} />
+        <rect x="-4" y="-4" width="44" height="420" className={cn("fill-transparent transition-colors", selectedTooth === toothId && "fill-blue-500/10")} />
         <text x="18" y="24" className="text-xs font-semibold fill-muted-foreground text-anchor-middle">{toothId}</text>
         
         {/* Realistic Transparent PNG Tooth Image representation */}
@@ -743,7 +798,7 @@ export function PeriodontalChart({
 
         {/* Missing Overlay to block clicks */}
         {isMissing && (
-          <rect x="0" y="70" width="36" height="300" fill="transparent" className="cursor-not-allowed" />
+          <rect x="0" y="70" width="36" height="320" fill="transparent" className="cursor-not-allowed" />
         )}
 
         <div className={isMissing ? "pointer-events-none" : ""}>
@@ -767,6 +822,7 @@ export function PeriodontalChart({
         <line x1="0" y1="304" x2="36" y2="304" stroke="hsl(var(--border))" />
         <line x1="0" y1="336" x2="36" y2="336" stroke="hsl(var(--border))" />
         <line x1="0" y1="364" x2="36" y2="364" stroke="hsl(var(--border))" />
+        <line x1="0" y1="392" x2="36" y2="392" stroke="hsl(var(--border))" />
       </g>
     );
   };
@@ -865,7 +921,7 @@ export function PeriodontalChart({
           <div className="w-full space-y-8 overflow-x-auto min-w-[550px]">
             <div>
               <h3 className="text-sm font-bold text-slate-700 mb-2 uppercase tracking-wider">Upper Arch (Maxillary) Records</h3>
-              <svg viewBox="0 0 780 400" className="w-full min-w-[740px]">
+              <svg viewBox="0 0 780 420" className="w-full min-w-[740px]">
                 {/* Upper Arch Inputs Grid */}
                 <g transform="translate(40, 0)">
                   <text x="0" y="96" className="text-[10px] font-bold fill-muted-foreground" transform="rotate(-90 0 96)">Buccal (Upper)</text>
@@ -876,13 +932,13 @@ export function PeriodontalChart({
                     <ToothColumn toothId={toothId} arch="upper" col={i} />
                   </g>
                 ))}
-                <line x1={40 + 8 * 44} y1="0" x2={40 + 8 * 44} y2="400" className="stroke-muted-foreground/40 stroke-2" />
+                <line x1={40 + 8 * 44} y1="0" x2={40 + 8 * 44} y2="420" className="stroke-muted-foreground/40 stroke-2" />
               </svg>
             </div>
 
             <div className="border-t pt-6">
               <h3 className="text-sm font-bold text-slate-700 mb-2 uppercase tracking-wider">Lower Arch (Mandibular) Records</h3>
-              <svg viewBox="0 0 780 400" className="w-full min-w-[740px]">
+              <svg viewBox="0 0 780 420" className="w-full min-w-[740px]">
                 {/* Lower Arch Inputs Grid */}
                 <g transform="translate(40, 0)">
                   <text x="0" y="96" className="text-[10px] font-bold fill-muted-foreground" transform="rotate(-90 0 96)">Buccal (Lower)</text>
@@ -893,7 +949,7 @@ export function PeriodontalChart({
                     <ToothColumn toothId={toothId} arch="lower" col={i} />
                   </g>
                 ))}
-                <line x1={40 + 8 * 44} y1="0" x2={40 + 8 * 44} y2="400" className="stroke-muted-foreground/40 stroke-2" />
+                <line x1={40 + 8 * 44} y1="0" x2={40 + 8 * 44} y2="420" className="stroke-muted-foreground/40 stroke-2" />
               </svg>
             </div>
           </div>

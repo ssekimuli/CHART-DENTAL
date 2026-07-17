@@ -304,6 +304,7 @@ export type PeriodontalMeasurement = {
   toothId: number;
   pockets: PeriodontalPocketDepth;
   recession?: number;
+  mgj?: number;
   mobility?: '0' | '1' | '2' | '3';
   furcation?: 'I' | 'II' | 'III';
   conditions: PeriodontalConditions;
