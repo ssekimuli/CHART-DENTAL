@@ -18,7 +18,7 @@ import {
 import type { PaginatedArray, Patient, Appointment, Invoice, ChartData, PracticeTrendPoint, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, BasePatient, InvoiceTreatment, OtherCharge, SystemTreatment, PaymentMethod, PaymentTransaction, AttendanceRecord, LeaveRequest, StaffAdvance, StaffAdvanceStatus, Expense, ExpenseCategory, ExpenseSummary, IncomeRecord, RolePermissions, Permission, DentalRecord, PeriodontalRecord, OcclusalRecord, SoftTissueRecord, OrthodonticRecord, Treatment, DentalCondition, PatientImage, FinancialSummary, CurrentUser, ProfileData, AppointmentStatus, DashboardSummary, EmployeeRole, ReportsOverview, Medicine, MedicineUnit, Prescription, PrescriptionItem, InvoiceMedicine, EndodonticRecord } from '@/lib/types';
 import { format, parse } from "date-fns";
 import { speak } from '@/ai/flows/speak';
-import { clearCurrentUser, setCurrentUser, currentUser as userDetails } from './user';
+import { clearCurrentUser, setCurrentUser } from './user';
 import customAxios from './axios';
 import axios from 'axios';
 
@@ -247,6 +247,29 @@ type GetPatientsFilters = {
     perPage?: number;
 };
 
+export const mapOrthodonticRecords = (records: any): OrthodonticRecord[] => {
+    if (!records || !Array.isArray(records)) return [];
+    return records.map((record: any) => ({
+        id: record.id,
+        appliance: record.appliance,
+        applianceLocation: record.appliance_location || record.applianceLocation,
+        treatmentPhase: record.treatment_phase || record.treatmentPhase,
+        wireSize: record.wire_size || record.wireSize,
+        wireSizeUpper: record.wire_size_upper || record.wireSizeUpper,
+        wireSizeLower: record.wire_size_lower || record.wireSizeLower,
+        archwireMaterial: record.archwire_material || record.archwireMaterial,
+        elastics: record.elastics,
+        compliance: record.compliance,
+        oralHygiene: record.oral_hygiene || record.oralHygiene,
+        bracketChanges: record.bracket_changes || record.bracketChanges || [],
+        brokenBrackets: record.broken_brackets || record.brokenBrackets || [],
+        nextVisitGoals: record.next_visit_goals || record.nextVisitGoals,
+        monthsInTreatment: record.months_in_treatment ?? record.monthsInTreatment ?? 0,
+        notes: record.notes || '',
+        date: record.date || record.created_at || new Date().toISOString().split('T')[0],
+    }));
+};
+
 export const getPatients = async (filters?: string | number | GetPatientsFilters): Promise<PaginatedArray<Patient>> => {
     console.log('API CALL: getPatients', { filters });
 
@@ -308,7 +331,7 @@ export const getPatients = async (filters?: string | number | GetPatientsFilters
                 ? JSON.parse(patient.occlusal_records)
                 : (patient.occlusal_records || { overbite: 0, overjet: 0, crossbite: 'None', openbite: 'None', malocclusion: 'Class I' }),
             softTissueRecords: patient.soft_tissue_records || [],
-            orthodonticRecords: patient.orthodontic_records || [],
+            orthodonticRecords: mapOrthodonticRecords(patient.orthodontic_records),
             endodonticRecords: mapEndodonticRecords(patient.endodontic_records || patient.endodonticRecords),
         }));
 
@@ -432,7 +455,7 @@ export const getPatientById = async (id: string | number): Promise<Patient | und
                 ? JSON.parse(patient.occlusal_records)
                 : (patient.occlusal_records || { overbite: 0, overjet: 0, crossbite: 'None', openbite: 'None', malocclusion: 'Class I' }),
             softTissueRecords: patient.soft_tissue_records || [],
-            orthodonticRecords: patient.orthodontic_records || [],
+            orthodonticRecords: mapOrthodonticRecords(patient.orthodontic_records),
             endodonticRecords: mapEndodonticRecords(patient.endodontic_records || patient.endodonticRecords),
         };
     } catch (error) {
@@ -1120,24 +1143,29 @@ export const getDashboardSummary = async (branchId?: string | number): Promise<D
     }
 };
 
-export const getTreatments = async (): Promise<SystemTreatment[]> => {
-    if (treatmentsCache) return treatmentsCache;
-    console.log('API CALL: getTreatments');
+export const getTreatments = async (params?: { search?: string, category?: string }): Promise<SystemTreatment[]> => {
+    // Only use cache if no params are provided
+    if (!params?.search && !params?.category && treatmentsCache) return treatmentsCache;
+    console.log('API CALL: getTreatments', params);
     try {
-        const response = await customAxios.get('/procedures');
+        const response = await customAxios.get('/procedures', { params });
         
         // Handle both array and wrapped response formats
         const treatmentData = Array.isArray(response.data) ? response.data : (response.data.data || []);
         
         // Map API response to SystemTreatment type
-        treatmentsCache = treatmentData.map((treatment: any) => ({
+        const results = treatmentData.map((treatment: any) => ({
             id: treatment.id,
             procedure: treatment.procedure || treatment.name || '',
             cost: parseFloat(treatment.cost || treatment.price || '0'),
             description: treatment.description || '',
             category: treatment.category || '',
         }));
-        return treatmentsCache || [];
+        
+        if (!params?.search && !params?.category) {
+            treatmentsCache = results;
+        }
+        return results;
     } catch (error) {
         if (axios.isAxiosError(error)) {
             console.error('Failed to fetch treatments:', error.response?.data);
@@ -1147,6 +1175,23 @@ export const getTreatments = async (): Promise<SystemTreatment[]> => {
         // Fallback to mock data on error
         return [];
     }
+}
+
+export const createSystemTreatment = async (data: Omit<SystemTreatment, 'id'>): Promise<SystemTreatment> => {
+    const response = await customAxios.post('/procedures', data);
+    treatmentsCache = null; // invalidate cache
+    return response.data;
+}
+
+export const updateSystemTreatment = async (id: string | number, data: Partial<SystemTreatment>): Promise<SystemTreatment> => {
+    const response = await customAxios.put(`/procedures/${id}`, data);
+    treatmentsCache = null; // invalidate cache
+    return response.data;
+}
+
+export const deleteSystemTreatment = async (id: string | number): Promise<void> => {
+    await customAxios.delete(`/procedures/${id}`);
+    treatmentsCache = null; // invalidate cache
 }
 
 export const getAttendance = async (branchId?: string | number): Promise<AttendanceRecord[]> => {
@@ -1845,7 +1890,7 @@ export const createPatient = async (data: BasePatient & { branchId: string | num
                 ? JSON.parse(newPatient.occlusal_records)
                 : (newPatient.occlusal_records || { overbite: 0, overjet: 0, crossbite: 'None', openbite: 'None', malocclusion: 'Class I' }),
             softTissueRecords: newPatient.soft_tissue_records || [],
-            orthodonticRecords: newPatient.orthodontic_records || [],
+            orthodonticRecords: mapOrthodonticRecords(newPatient.orthodontic_records),
             endodonticRecords: mapEndodonticRecords(newPatient.endodontic_records || newPatient.endodonticRecords),
         };
 
@@ -1861,6 +1906,51 @@ export const createPatient = async (data: BasePatient & { branchId: string | num
         }
     }
 }
+
+export const updateNextVisit = async (id: string | number, date: string | null): Promise<Patient | undefined> => {
+    console.log('API CALL: updateNextVisit', { id, date });
+    try {
+        const response = await customAxios.put(`/patients/${id}/next-visit`, { next_visit: date });
+        const updatedPatient = response.data;
+
+        const fePatient: Patient = {
+            id: updatedPatient.id,
+            first_name: updatedPatient.first_name,
+            last_name: updatedPatient.last_name,
+            email: updatedPatient.email,
+            phone: updatedPatient.phone,
+            address: updatedPatient.address,
+            gender: updatedPatient.gender,
+            dateOfBirth: updatedPatient.dateOfBirth || updatedPatient.date_of_birth,
+            lastVisit: updatedPatient.lastVisit || updatedPatient.last_visit,
+            nextVisit: updatedPatient.nextVisit || updatedPatient.next_visit,
+            status: updatedPatient.status,
+            branchId: updatedPatient.branchId || updatedPatient.branch_id,
+            avatar: updatedPatient.avatar,
+            dentalRecords: updatedPatient.dental_records || updatedPatient.dentalRecords || [],
+            treatmentPlans: updatedPatient.treatment_plans || updatedPatient.treatmentPlans || [],
+            imaging: updatedPatient.patient_images || updatedPatient.imaging || [],
+            periodontalRecords: mapPeriodontalRecords(updatedPatient.periodontal_records),
+            occlusalRecords: typeof updatedPatient.occlusal_records === 'string'
+                ? JSON.parse(updatedPatient.occlusal_records)
+                : (updatedPatient.occlusal_records || { overbite: 0, overjet: 0, crossbite: 'None', openbite: 'None', malocclusion: 'Class I' }),
+            softTissueRecords: updatedPatient.soft_tissue_records || [],
+            orthodonticRecords: mapOrthodonticRecords(updatedPatient.orthodontic_records),
+            endodonticRecords: mapEndodonticRecords(updatedPatient.endodontic_records || updatedPatient.endodonticRecords),
+        };
+
+        // Update local cache
+        const patientIndex = allPatients.findIndex(p => String(p.id) === String(id));
+        if (patientIndex !== -1) {
+            allPatients[patientIndex] = fePatient;
+        }
+
+        return fePatient;
+    } catch (error) {
+        console.error("Error updating next visit:", error);
+        return undefined;
+    }
+};
 
 export const updatePatient = async (id: string | number, data: Partial<Patient>): Promise<Patient | undefined> => {
     console.log('API CALL: updatePatient', { id, data });
@@ -1914,7 +2004,7 @@ export const updatePatient = async (id: string | number, data: Partial<Patient>)
                 ? JSON.parse(updatedPatient.occlusal_records)
                 : (updatedPatient.occlusal_records || { overbite: 0, overjet: 0, crossbite: 'None', openbite: 'None', malocclusion: 'Class I' }),
             softTissueRecords: updatedPatient.soft_tissue_records || [],
-            orthodonticRecords: updatedPatient.orthodontic_records || [],
+            orthodonticRecords: mapOrthodonticRecords(updatedPatient.orthodontic_records),
             endodonticRecords: mapEndodonticRecords(updatedPatient.endodontic_records || updatedPatient.endodonticRecords),
         };
 
@@ -2011,7 +2101,7 @@ export const addImageToPatient = async (patientId: string | number, image: Omit<
                 ? JSON.parse(updatedPatient.occlusal_records)
                 : (updatedPatient.occlusal_records || { overbite: 0, overjet: 0, crossbite: 'None', openbite: 'None', malocclusion: 'Class I' }),
             softTissueRecords: updatedPatient.soft_tissue_records || [],
-            orthodonticRecords: updatedPatient.orthodontic_records || [],
+            orthodonticRecords: mapOrthodonticRecords(updatedPatient.orthodontic_records),
             endodonticRecords: mapEndodonticRecords(updatedPatient.endodontic_records || updatedPatient.endodonticRecords),
         };
     } catch (error) {
@@ -2332,8 +2422,18 @@ export const saveOrthodonticRecord = async (patientId: string | number, record: 
     try {
         const requestBody = {
             appliance: record.appliance,
+            appliance_location: record.applianceLocation,
+            treatment_phase: record.treatmentPhase,
             wire_size: record.wireSize,
+            wire_size_upper: record.wireSizeUpper,
+            wire_size_lower: record.wireSizeLower,
+            archwire_material: record.archwireMaterial,
+            elastics: record.elastics,
+            compliance: record.compliance,
+            oral_hygiene: record.oralHygiene,
             bracket_changes: record.bracketChanges,
+            broken_brackets: record.brokenBrackets,
+            next_visit_goals: record.nextVisitGoals,
             notes: record.notes,
         };
 
@@ -2369,14 +2469,7 @@ export const getOrthodonticRecords = async (patientId: string | number): Promise
             return [];
         }
 
-        return recordsData.map((record: any) => ({
-            id: record.id,
-            appliance: record.appliance,
-            wireSize: record.wire_size || record.wireSize,
-            bracketChanges: record.bracket_changes || record.bracketChanges || [],
-            notes: record.notes || '',
-            date: record.date || record.created_at || new Date().toISOString().split('T')[0],
-        }));
+        return mapOrthodonticRecords(recordsData);
 
     } catch (error) {
         console.error('Error fetching orthodontic records:', error);
@@ -2525,8 +2618,18 @@ export const updateOrthodonticRecord = async (patientId: string | number, record
     try {
         await customAxios.put(`/patients/${patientId}/orthodontic-records/${record.id}`, {
             appliance: record.appliance,
+            appliance_location: record.applianceLocation,
+            treatment_phase: record.treatmentPhase,
             wire_size: record.wireSize,
+            wire_size_upper: record.wireSizeUpper,
+            wire_size_lower: record.wireSizeLower,
+            archwire_material: record.archwireMaterial,
+            elastics: record.elastics,
+            compliance: record.compliance,
+            oral_hygiene: record.oralHygiene,
             bracket_changes: record.bracketChanges,
+            broken_brackets: record.brokenBrackets,
+            next_visit_goals: record.nextVisitGoals,
             notes: record.notes,
         });
         return getPatientById(patientId);

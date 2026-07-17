@@ -1,6 +1,8 @@
-
 "use client";
 
+import { formatDuration, intervalToDuration } from "date-fns";
+
+import { useRouter, useParams } from "next/navigation";
 import { useState } from "react";
 import {
   Card,
@@ -25,7 +27,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { OrthodonticRecordForm } from "./orthodontic-record-form";
 import type { OrthodonticRecord } from "@/lib/types";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { hasPermission } from "@/lib/user";
@@ -38,31 +39,21 @@ type OrthodonticChartProps = {
 };
 
 export function OrthodonticChart({ initialRecords, onSave, onUpdate, onDelete }: OrthodonticChartProps) {
-  const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<OrthodonticRecord | undefined>(undefined);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const [recordToDelete, setRecordToDelete] = useState<string | number | undefined>(undefined);
   const canUpdateChart = hasPermission('charting:update');
 
+  const router = useRouter();
+  const params = useParams();
 
   const handleOpenForm = (record?: OrthodonticRecord) => {
-    setSelectedRecord(record);
-    setIsFormOpen(true);
-  };
-
-  const handleCloseForm = () => {
-    setSelectedRecord(undefined);
-    setIsFormOpen(false);
-  };
-
-  const handleSave = (data: Omit<OrthodonticRecord, 'id'>) => {
-    if (selectedRecord) {
-        onUpdate({ ...selectedRecord, ...data });
+    if (record) {
+      router.push(`/patients/${params.id}/charting/orthodontic/${record.id}`);
     } else {
-        onSave(data);
+      router.push(`/patients/${params.id}/charting/orthodontic/new`);
     }
-    handleCloseForm();
-  }
+  };
 
   const openDeleteDialog = (recordId: string | number) => {
     setRecordToDelete(recordId);
@@ -76,7 +67,6 @@ export function OrthodonticChart({ initialRecords, onSave, onUpdate, onDelete }:
     setRecordToDelete(undefined);
     setIsDeleteAlertOpen(false);
   }
-
 
   return (
     <>
@@ -96,11 +86,72 @@ export function OrthodonticChart({ initialRecords, onSave, onUpdate, onDelete }:
         )}
       </CardHeader>
       <CardContent>
+        {initialRecords.length > 0 && (
+          <div className="mb-6 grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-muted/50 rounded-lg">
+            {(() => {
+              const sorted = [...initialRecords].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+              const latest = sorted[0];
+              const earliest = sorted[sorted.length - 1];
+              
+              let treatmentTimeStr = "0 Days";
+              if (latest && earliest) {
+                const start = new Date(earliest.date);
+                const end = new Date(latest.date);
+                
+                // If it's the exact same day, intervalToDuration returns 0 for everything
+                if (start.getTime() === end.getTime()) {
+                  treatmentTimeStr = "0 Days";
+                } else {
+                  const duration = intervalToDuration({ start, end });
+                  // We only want to show the most significant 2 units (e.g. Years and Months, or Months and Weeks, or Weeks and Days)
+                  // filter out zero values and select up to 2 units
+                  const formatObj: Record<string, number | undefined> = {
+                    years: duration.years,
+                    months: duration.months,
+                    weeks: duration.days && duration.days >= 7 ? Math.floor(duration.days / 7) : 0,
+                    days: duration.days ? duration.days % 7 : 0
+                  };
+                  
+                  // if no weeks exist natively on older date-fns versions, duration.days might be > 7
+                  if (duration.years === 0 && duration.months === 0 && duration.days && duration.days < 7) {
+                    formatObj.weeks = 0;
+                    formatObj.days = duration.days;
+                  }
+
+                  treatmentTimeStr = formatDuration(formatObj, { format: ['years', 'months', 'weeks', 'days'] }) || "0 Days";
+                }
+              }
+
+              return (
+                <>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground mb-1">Current Appliance</p>
+                    <p className="font-semibold">{latest.appliance} {latest.applianceLocation ? `(${latest.applianceLocation})` : ''}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground mb-1">Current Phase</p>
+                    <p className="font-semibold">{latest.treatmentPhase || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground mb-1">Treatment Time</p>
+                    <p className="font-semibold capitalize">{treatmentTimeStr}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground mb-1">Next Visit Goal</p>
+                    <p className="font-semibold truncate" title={latest.nextVisitGoals || 'N/A'}>{latest.nextVisitGoals || 'N/A'}</p>
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+        )}
         <Table>
             <TableHeader>
                 <TableRow>
                     <TableHead>Date</TableHead>
                     <TableHead>Appliance</TableHead>
+                    <TableHead>Location</TableHead>
+                    <TableHead>Phase</TableHead>
                     <TableHead>Wire Size</TableHead>
                     <TableHead>Notes</TableHead>
                     {canUpdateChart && <TableHead className="text-right">Actions</TableHead>}
@@ -109,14 +160,16 @@ export function OrthodonticChart({ initialRecords, onSave, onUpdate, onDelete }:
             <TableBody>
                 {initialRecords.length === 0 && (
                     <TableRow>
-                        <TableCell colSpan={5} className="h-24 text-center">No orthodontic records found.</TableCell>
+                        <TableCell colSpan={7} className="h-24 text-center">No orthodontic records found.</TableCell>
                     </TableRow>
                 )}
                 {initialRecords.map(record => (
                     <TableRow key={record.id}>
                         <TableCell>{record.date}</TableCell>
                         <TableCell>{record.appliance}</TableCell>
-                        <TableCell>{record.wireSize || 'N/A'}</TableCell>
+                        <TableCell>{record.applianceLocation || 'N/A'}</TableCell>
+                        <TableCell>{record.treatmentPhase || 'N/A'}</TableCell>
+                        <TableCell>{record.wireSize || record.wireSizeUpper || record.wireSizeLower ? `${record.wireSizeUpper || ''} / ${record.wireSizeLower || ''}` : 'N/A'}</TableCell>
                         <TableCell className="max-w-xs truncate">{record.notes}</TableCell>
                         {canUpdateChart && (
                             <TableCell className="text-right">
@@ -145,30 +198,22 @@ export function OrthodonticChart({ initialRecords, onSave, onUpdate, onDelete }:
       </CardContent>
     </Card>
 
-    {isFormOpen && (
-        <OrthodonticRecordForm
-            record={selectedRecord}
-            onSave={handleSave}
-            onOpenChange={handleCloseForm}
-        />
-    )}
-
     <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
         <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+        <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete this orthodontic record.
+            This action cannot be undone. This will permanently delete the orthodontic record
+            and remove the data from our servers.
             </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setRecordToDelete(undefined)}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">Delete</AlertDialogAction>
+        </AlertDialogFooter>
         </AlertDialogContent>
-      </AlertDialog>
+    </AlertDialog>
+
     </>
   );
 }
