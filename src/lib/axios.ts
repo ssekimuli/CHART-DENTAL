@@ -3,7 +3,7 @@ import { getAuthToken, clearCurrentUser } from './user';
 import { toast } from '@/hooks/use-toast';
 
 const customAxios = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_BACKEND_URL ||'https://victoriousdentalapi.poslycloud.com/api',
+  baseURL: process.env.NEXT_PUBLIC_BACKEND_URL || 'https://victoriousdentalapi.poslycloud.com/api',
 
   headers: {
     'Content-Type': 'application/json',
