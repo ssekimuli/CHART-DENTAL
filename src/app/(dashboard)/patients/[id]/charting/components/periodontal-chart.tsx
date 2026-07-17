@@ -801,12 +801,12 @@ export function PeriodontalChart({
           <rect x="0" y="70" width="36" height="320" fill="transparent" className="cursor-not-allowed" />
         )}
 
-        <div className={isMissing ? "pointer-events-none" : ""}>
+        <g className={isMissing ? "pointer-events-none" : ""}>
           {buccalPocketInputs}
           {conditionToggles}
           {otherInputs}
           {lingualPocketInputs}
-        </div>
+        </g>
 
         <line x1="0" y1="32" x2="36" y2="32" stroke="hsl(var(--border))" />
         <line x1="0" y1="68" x2="36" y2="68" stroke="hsl(var(--border))" />
