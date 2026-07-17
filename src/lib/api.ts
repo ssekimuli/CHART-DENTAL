@@ -247,6 +247,29 @@ type GetPatientsFilters = {
     perPage?: number;
 };
 
+export const mapOrthodonticRecords = (records: any): OrthodonticRecord[] => {
+    if (!records || !Array.isArray(records)) return [];
+    return records.map((record: any) => ({
+        id: record.id,
+        appliance: record.appliance,
+        applianceLocation: record.appliance_location || record.applianceLocation,
+        treatmentPhase: record.treatment_phase || record.treatmentPhase,
+        wireSize: record.wire_size || record.wireSize,
+        wireSizeUpper: record.wire_size_upper || record.wireSizeUpper,
+        wireSizeLower: record.wire_size_lower || record.wireSizeLower,
+        archwireMaterial: record.archwire_material || record.archwireMaterial,
+        elastics: record.elastics,
+        compliance: record.compliance,
+        oralHygiene: record.oral_hygiene || record.oralHygiene,
+        bracketChanges: record.bracket_changes || record.bracketChanges || [],
+        brokenBrackets: record.broken_brackets || record.brokenBrackets || [],
+        nextVisitGoals: record.next_visit_goals || record.nextVisitGoals,
+        monthsInTreatment: record.months_in_treatment ?? record.monthsInTreatment ?? 0,
+        notes: record.notes || '',
+        date: record.date || record.created_at || new Date().toISOString().split('T')[0],
+    }));
+};
+
 export const getPatients = async (filters?: string | number | GetPatientsFilters): Promise<PaginatedArray<Patient>> => {
     console.log('API CALL: getPatients', { filters });
 
