@@ -5,7 +5,7 @@ import type { EmployeeRole, CurrentUser, Permission } from "./types";
 const allPermissions: Permission[] = [
     'dashboard:read', 'queue:read', 
     'patients:read', 'patients:create', 'patients:update', 'patients:delete', 
-    'charting:read', 'charting:update', 
+    'charting:read', 'charting:update', 'periodontal:read', 'periodontal:update', 
     'appointments:read', 'appointments:create', 'appointments:update', 'appointments:delete', 
     'billing:read', 'billing:create', 'billing:update', 'billing:delete', 
     'accounting:read', 'accounting:create', 
