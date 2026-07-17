@@ -96,11 +96,43 @@ export function OrthodonticChart({ initialRecords, onSave, onUpdate, onDelete }:
         )}
       </CardHeader>
       <CardContent>
+        {initialRecords.length > 0 && (
+          <div className="mb-6 grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-muted/50 rounded-lg">
+            {(() => {
+              const latest = [...initialRecords].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+              const first = [...initialRecords].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0];
+              const monthsInTreatment = Math.max(0, Math.floor((new Date().getTime() - new Date(first.date).getTime()) / (1000 * 60 * 60 * 24 * 30)));
+              
+              return (
+                <>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground mb-1">Current Appliance</p>
+                    <p className="font-semibold">{latest.appliance} {latest.applianceLocation ? `(${latest.applianceLocation})` : ''}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground mb-1">Current Phase</p>
+                    <p className="font-semibold">{latest.treatmentPhase || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground mb-1">Treatment Time</p>
+                    <p className="font-semibold">{monthsInTreatment} Months</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground mb-1">Next Visit Goal</p>
+                    <p className="font-semibold truncate" title={latest.nextVisitGoals || 'N/A'}>{latest.nextVisitGoals || 'N/A'}</p>
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+        )}
         <Table>
             <TableHeader>
                 <TableRow>
                     <TableHead>Date</TableHead>
                     <TableHead>Appliance</TableHead>
+                    <TableHead>Location</TableHead>
+                    <TableHead>Phase</TableHead>
                     <TableHead>Wire Size</TableHead>
                     <TableHead>Notes</TableHead>
                     {canUpdateChart && <TableHead className="text-right">Actions</TableHead>}
@@ -109,14 +141,16 @@ export function OrthodonticChart({ initialRecords, onSave, onUpdate, onDelete }:
             <TableBody>
                 {initialRecords.length === 0 && (
                     <TableRow>
-                        <TableCell colSpan={5} className="h-24 text-center">No orthodontic records found.</TableCell>
+                        <TableCell colSpan={7} className="h-24 text-center">No orthodontic records found.</TableCell>
                     </TableRow>
                 )}
                 {initialRecords.map(record => (
                     <TableRow key={record.id}>
                         <TableCell>{record.date}</TableCell>
                         <TableCell>{record.appliance}</TableCell>
-                        <TableCell>{record.wireSize || 'N/A'}</TableCell>
+                        <TableCell>{record.applianceLocation || 'N/A'}</TableCell>
+                        <TableCell>{record.treatmentPhase || 'N/A'}</TableCell>
+                        <TableCell>{record.wireSize || record.wireSizeUpper || record.wireSizeLower ? `${record.wireSizeUpper || ''} / ${record.wireSizeLower || ''}` : 'N/A'}</TableCell>
                         <TableCell className="max-w-xs truncate">{record.notes}</TableCell>
                         {canUpdateChart && (
                             <TableCell className="text-right">

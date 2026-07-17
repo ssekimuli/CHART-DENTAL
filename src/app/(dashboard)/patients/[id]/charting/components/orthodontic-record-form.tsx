@@ -40,10 +40,20 @@ import { Textarea } from "@/components/ui/textarea";
 
 const formSchema = z.object({
   date: z.date({ required_error: "A date is required." }),
-  appliance: z.enum(["Braces", "Invisalign", "Retainer"]),
+  appliance: z.string(),
+  applianceLocation: z.string().optional(),
+  treatmentPhase: z.string().optional(),
   wireSize: z.string().optional(),
+  wireSizeUpper: z.string().optional(),
+  wireSizeLower: z.string().optional(),
+  archwireMaterial: z.string().optional(),
+  elastics: z.string().optional(),
+  compliance: z.string().optional(),
+  oralHygiene: z.string().optional(),
   bracketChanges: z.string().optional(),
-  notes: z.string().min(1, "Notes are required."),
+  brokenBrackets: z.string().optional(),
+  nextVisitGoals: z.string().optional(),
+  notes: z.string().optional(),
 });
 
 type OrthodonticRecordFormProps = {
@@ -58,8 +68,18 @@ export function OrthodonticRecordForm({ record, onSave, onOpenChange }: Orthodon
     defaultValues: {
       date: record ? parseISO(record.date) : new Date(),
       appliance: record?.appliance ?? "Braces",
+      applianceLocation: record?.applianceLocation ?? "",
+      treatmentPhase: record?.treatmentPhase ?? "",
       wireSize: record?.wireSize ?? "",
+      wireSizeUpper: record?.wireSizeUpper ?? "",
+      wireSizeLower: record?.wireSizeLower ?? "",
+      archwireMaterial: record?.archwireMaterial ?? "",
+      elastics: record?.elastics ?? "",
+      compliance: record?.compliance ?? "",
+      oralHygiene: record?.oralHygiene ?? "",
       bracketChanges: record?.bracketChanges?.join(', ') ?? "",
+      brokenBrackets: record?.brokenBrackets?.join(', ') ?? "",
+      nextVisitGoals: record?.nextVisitGoals ?? "",
       notes: record?.notes ?? "",
     },
   });
@@ -69,12 +89,13 @@ export function OrthodonticRecordForm({ record, onSave, onOpenChange }: Orthodon
       ...values,
       date: format(values.date, "yyyy-MM-dd"),
       bracketChanges: values.bracketChanges?.split(',').map(s => s.trim()).filter(Boolean),
+      brokenBrackets: values.brokenBrackets?.split(',').map(s => s.trim()).filter(Boolean),
     });
   }
 
   return (
     <Dialog open={true} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[550px]">
+      <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
         <DialogHeader className="flex flex-row items-center justify-between border-b pb-4">
           <div>
             <DialogTitle>{record ? "Edit Orthodontic Record" : "Add Orthodontic Record"}</DialogTitle>
@@ -144,6 +165,7 @@ export function OrthodonticRecordForm({ record, onSave, onOpenChange }: Orthodon
                         <SelectItem value="Braces">Braces</SelectItem>
                         <SelectItem value="Invisalign">Invisalign</SelectItem>
                         <SelectItem value="Retainer">Retainer</SelectItem>
+                        <SelectItem value="Other">Other</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -152,14 +174,62 @@ export function OrthodonticRecordForm({ record, onSave, onOpenChange }: Orthodon
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
+               <FormField
+                  control={form.control}
+                  name="applianceLocation"
+                  render={({ field }) => (
+                      <FormItem>
+                      <FormLabel>Location</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                          <SelectTrigger>
+                              <SelectValue placeholder="Select location" />
+                          </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                          <SelectItem value="Upper">Upper</SelectItem>
+                          <SelectItem value="Lower">Lower</SelectItem>
+                          <SelectItem value="Both">Both</SelectItem>
+                          </SelectContent>
+                      </Select>
+                      <FormMessage />
+                      </FormItem>
+                  )}
+              />
+               <FormField
+                  control={form.control}
+                  name="treatmentPhase"
+                  render={({ field }) => (
+                      <FormItem>
+                      <FormLabel>Treatment Phase</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                          <SelectTrigger>
+                              <SelectValue placeholder="Select phase" />
+                          </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                          <SelectItem value="Observation">Observation</SelectItem>
+                          <SelectItem value="Initial Alignment">Initial Alignment</SelectItem>
+                          <SelectItem value="Space Closure">Space Closure</SelectItem>
+                          <SelectItem value="Finishing">Finishing</SelectItem>
+                          <SelectItem value="Retention">Retention</SelectItem>
+                          </SelectContent>
+                      </Select>
+                      <FormMessage />
+                      </FormItem>
+                  )}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
                 <FormField
                     control={form.control}
-                    name="wireSize"
+                    name="wireSizeUpper"
                     render={({ field }) => (
                         <FormItem>
-                        <FormLabel>Wire Size (optional)</FormLabel>
+                        <FormLabel>Wire Size (Upper)</FormLabel>
                         <FormControl>
-                            <Input placeholder="e.g., .016 x .022" {...field} />
+                            <Input placeholder="e.g., .016 NiTi" {...field} />
                         </FormControl>
                         <FormMessage />
                         </FormItem>
@@ -167,18 +237,135 @@ export function OrthodonticRecordForm({ record, onSave, onOpenChange }: Orthodon
                 />
                  <FormField
                     control={form.control}
-                    name="bracketChanges"
+                    name="wireSizeLower"
                     render={({ field }) => (
                         <FormItem>
-                        <FormLabel>Bracket Changes (optional)</FormLabel>
+                        <FormLabel>Wire Size (Lower)</FormLabel>
                         <FormControl>
-                            <Input placeholder="e.g., #12, #14" {...field} />
+                            <Input placeholder="e.g., .014 NiTi" {...field} />
                         </FormControl>
                         <FormMessage />
                         </FormItem>
                     )}
                 />
             </div>
+            <div className="grid grid-cols-2 gap-4">
+                <FormField
+                    control={form.control}
+                    name="archwireMaterial"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Archwire Material</FormLabel>
+                        <FormControl>
+                            <Input placeholder="e.g., NiTi, SS, TMA" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                <FormField
+                    control={form.control}
+                    name="elastics"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Elastics</FormLabel>
+                        <FormControl>
+                            <Input placeholder="e.g., Class II, Nighttime" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+                 <FormField
+                    control={form.control}
+                    name="bracketChanges"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Bracket Changes</FormLabel>
+                        <FormControl>
+                            <Input placeholder="e.g., 12, 14" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                <FormField
+                    control={form.control}
+                    name="brokenBrackets"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Broken Brackets</FormLabel>
+                        <FormControl>
+                            <Input placeholder="e.g., 44, 45" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+               <FormField
+                  control={form.control}
+                  name="compliance"
+                  render={({ field }) => (
+                      <FormItem>
+                      <FormLabel>Compliance</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                          <SelectTrigger>
+                              <SelectValue placeholder="Select" />
+                          </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                          <SelectItem value="Excellent">Excellent</SelectItem>
+                          <SelectItem value="Good">Good</SelectItem>
+                          <SelectItem value="Fair">Fair</SelectItem>
+                          <SelectItem value="Poor">Poor</SelectItem>
+                          </SelectContent>
+                      </Select>
+                      <FormMessage />
+                      </FormItem>
+                  )}
+              />
+               <FormField
+                  control={form.control}
+                  name="oralHygiene"
+                  render={({ field }) => (
+                      <FormItem>
+                      <FormLabel>Oral Hygiene</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                          <SelectTrigger>
+                              <SelectValue placeholder="Select" />
+                          </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                          <SelectItem value="Excellent">Excellent</SelectItem>
+                          <SelectItem value="Good">Good</SelectItem>
+                          <SelectItem value="Fair">Fair</SelectItem>
+                          <SelectItem value="Poor">Poor</SelectItem>
+                          </SelectContent>
+                      </Select>
+                      <FormMessage />
+                      </FormItem>
+                  )}
+              />
+            </div>
+             <FormField
+                control={form.control}
+                name="nextVisitGoals"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Next Visit Goals</FormLabel>
+                    <FormControl>
+                        <Input placeholder="e.g., Start closing spaces..." {...field} />
+                    </FormControl>
+                    <FormMessage />
+                    </FormItem>
+                )}
+            />
              <FormField
                 control={form.control}
                 name="notes"

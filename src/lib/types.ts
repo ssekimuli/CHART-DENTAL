@@ -332,10 +332,20 @@ export type SoftTissueRecord = {
 export type OrthodonticRecord = {
   id: string | number;
   date: string;
-  appliance: 'Braces' | 'Invisalign' | 'Retainer';
+  appliance: string;
+  applianceLocation?: string;
+  treatmentPhase?: string;
   wireSize?: string;
+  wireSizeUpper?: string;
+  wireSizeLower?: string;
+  archwireMaterial?: string;
+  elastics?: string;
+  compliance?: string;
+  oralHygiene?: string;
   bracketChanges?: string[];
-  notes: string;
+  brokenBrackets?: string[];
+  notes?: string;
+  nextVisitGoals?: string;
 };
 
 export type SystemTreatment = {

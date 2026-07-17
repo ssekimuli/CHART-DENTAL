@@ -2332,8 +2332,18 @@ export const saveOrthodonticRecord = async (patientId: string | number, record: 
     try {
         const requestBody = {
             appliance: record.appliance,
+            appliance_location: record.applianceLocation,
+            treatment_phase: record.treatmentPhase,
             wire_size: record.wireSize,
+            wire_size_upper: record.wireSizeUpper,
+            wire_size_lower: record.wireSizeLower,
+            archwire_material: record.archwireMaterial,
+            elastics: record.elastics,
+            compliance: record.compliance,
+            oral_hygiene: record.oralHygiene,
             bracket_changes: record.bracketChanges,
+            broken_brackets: record.brokenBrackets,
+            next_visit_goals: record.nextVisitGoals,
             notes: record.notes,
         };
 
@@ -2372,8 +2382,18 @@ export const getOrthodonticRecords = async (patientId: string | number): Promise
         return recordsData.map((record: any) => ({
             id: record.id,
             appliance: record.appliance,
+            applianceLocation: record.appliance_location || record.applianceLocation,
+            treatmentPhase: record.treatment_phase || record.treatmentPhase,
             wireSize: record.wire_size || record.wireSize,
+            wireSizeUpper: record.wire_size_upper || record.wireSizeUpper,
+            wireSizeLower: record.wire_size_lower || record.wireSizeLower,
+            archwireMaterial: record.archwire_material || record.archwireMaterial,
+            elastics: record.elastics,
+            compliance: record.compliance,
+            oralHygiene: record.oral_hygiene || record.oralHygiene,
             bracketChanges: record.bracket_changes || record.bracketChanges || [],
+            brokenBrackets: record.broken_brackets || record.brokenBrackets || [],
+            nextVisitGoals: record.next_visit_goals || record.nextVisitGoals,
             notes: record.notes || '',
             date: record.date || record.created_at || new Date().toISOString().split('T')[0],
         }));
@@ -2525,8 +2545,18 @@ export const updateOrthodonticRecord = async (patientId: string | number, record
     try {
         await customAxios.put(`/patients/${patientId}/orthodontic-records/${record.id}`, {
             appliance: record.appliance,
+            appliance_location: record.applianceLocation,
+            treatment_phase: record.treatmentPhase,
             wire_size: record.wireSize,
+            wire_size_upper: record.wireSizeUpper,
+            wire_size_lower: record.wireSizeLower,
+            archwire_material: record.archwireMaterial,
+            elastics: record.elastics,
+            compliance: record.compliance,
+            oral_hygiene: record.oralHygiene,
             bracket_changes: record.bracketChanges,
+            broken_brackets: record.brokenBrackets,
+            next_visit_goals: record.nextVisitGoals,
             notes: record.notes,
         });
         return getPatientById(patientId);
