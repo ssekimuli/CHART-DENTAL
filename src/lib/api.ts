@@ -1143,24 +1143,29 @@ export const getDashboardSummary = async (branchId?: string | number): Promise<D
     }
 };
 
-export const getTreatments = async (): Promise<SystemTreatment[]> => {
-    if (treatmentsCache) return treatmentsCache;
-    console.log('API CALL: getTreatments');
+export const getTreatments = async (params?: { search?: string, category?: string }): Promise<SystemTreatment[]> => {
+    // Only use cache if no params are provided
+    if (!params?.search && !params?.category && treatmentsCache) return treatmentsCache;
+    console.log('API CALL: getTreatments', params);
     try {
-        const response = await customAxios.get('/procedures');
+        const response = await customAxios.get('/procedures', { params });
         
         // Handle both array and wrapped response formats
         const treatmentData = Array.isArray(response.data) ? response.data : (response.data.data || []);
         
         // Map API response to SystemTreatment type
-        treatmentsCache = treatmentData.map((treatment: any) => ({
+        const results = treatmentData.map((treatment: any) => ({
             id: treatment.id,
             procedure: treatment.procedure || treatment.name || '',
             cost: parseFloat(treatment.cost || treatment.price || '0'),
             description: treatment.description || '',
             category: treatment.category || '',
         }));
-        return treatmentsCache || [];
+        
+        if (!params?.search && !params?.category) {
+            treatmentsCache = results;
+        }
+        return results;
     } catch (error) {
         if (axios.isAxiosError(error)) {
             console.error('Failed to fetch treatments:', error.response?.data);
@@ -1170,6 +1175,23 @@ export const getTreatments = async (): Promise<SystemTreatment[]> => {
         // Fallback to mock data on error
         return [];
     }
+}
+
+export const createTreatment = async (data: Omit<SystemTreatment, 'id'>): Promise<SystemTreatment> => {
+    const response = await customAxios.post('/procedures', data);
+    treatmentsCache = null; // invalidate cache
+    return response.data;
+}
+
+export const updateTreatment = async (id: string | number, data: Partial<SystemTreatment>): Promise<SystemTreatment> => {
+    const response = await customAxios.put(`/procedures/${id}`, data);
+    treatmentsCache = null; // invalidate cache
+    return response.data;
+}
+
+export const deleteTreatment = async (id: string | number): Promise<void> => {
+    await customAxios.delete(`/procedures/${id}`);
+    treatmentsCache = null; // invalidate cache
 }
 
 export const getAttendance = async (branchId?: string | number): Promise<AttendanceRecord[]> => {

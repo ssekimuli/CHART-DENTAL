@@ -30,6 +30,7 @@ import { useCurrency } from "@/hooks/use-currency";
 import { CURRENCIES } from "@/lib/currency";
 import { useBranch } from "@/context/branch-context";
 import { DataImporter } from "@/components/dashboard/data-importer";
+import { TreatmentsCatalog } from "./components/treatments-catalog";
 
 const permissionGroups = {
     Dashboard: ['dashboard:read'],
@@ -479,55 +480,8 @@ export default function SettingsPage() {
                 />
             </div>
             
-            <div className="space-y-4 mt-6">
-                <h3 className="text-lg font-medium">Categorized Treatments</h3>
-                {['Preventive', 'Restorative', 'Cosmetic', 'Surgical', 'Other'].map(category => {
-                    const categoryTreatments = treatments.filter(t => {
-                        if (category === 'Other') {
-                            return !t.category || !['preventive', 'restorative', 'cosmetic', 'surgical'].includes(t.category.toLowerCase());
-                        }
-                        return t.category?.toLowerCase() === category.toLowerCase();
-                    });
-                    
-                    if (categoryTreatments.length === 0 && category !== 'Other') return null;
-                    
-                    return (
-                        <Card key={category} className="overflow-hidden">
-                            <CardHeader className="bg-muted/30 pb-4">
-                                <CardTitle className="text-base flex items-center justify-between">
-                                    {category}
-                                    <Badge variant="secondary">{categoryTreatments.length}</Badge>
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="p-0">
-                                {categoryTreatments.length > 0 ? (
-                                    <Table>
-                                        <TableHeader>
-                                            <TableRow>
-                                                <TableHead>Procedure</TableHead>
-                                                <TableHead className="text-right">Cost</TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {categoryTreatments.map(treatment => (
-                                                <TableRow key={treatment.id}>
-                                                    <TableCell className="font-medium">{treatment.procedure}</TableCell>
-                                                    <TableCell className="text-right">
-                                                        {new Intl.NumberFormat('en-US', { style: 'currency', currency: currencyCode }).format(treatment.cost)}
-                                                    </TableCell>
-                                                </TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
-                                ) : (
-                                    <div className="p-4 text-center text-sm text-muted-foreground">
-                                        No treatments in this category.
-                                    </div>
-                                )}
-                            </CardContent>
-                        </Card>
-                    );
-                })}
+            <div className="mt-6">
+                <TreatmentsCatalog currencyCode={currencyCode} />
             </div>
           </CardContent>
         </Card>
