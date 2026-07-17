@@ -52,11 +52,13 @@ const conditionKeys: (keyof PeriodontalConditions)[] = [
 
 type PeriodontalChartProps = {
   initialRecords: PeriodontalRecord;
+  dentalRecords?: DentalRecord[];
   onSave: (records: PeriodontalRecord) => void;
 };
 
 export function PeriodontalChart({
   initialRecords,
+  dentalRecords = [],
   onSave,
 }: PeriodontalChartProps) {
   const [records, setRecords] = useState<PeriodontalRecord>(initialRecords);
@@ -468,6 +470,9 @@ export function PeriodontalChart({
 
   const ToothColumn = ({ toothId, arch, col }: { toothId: number; arch: "upper" | "lower"; col: number }) => {
     const record = getRecord(toothId);
+    
+    // Check if tooth is marked as missing in dental records
+    const isMissing = dentalRecords.some(dr => dr.toothId === toothId && dr.condition === "Missing");
 
     const buccalPocketInputs = (
       <>
@@ -624,7 +629,7 @@ export function PeriodontalChart({
     );
 
     return (
-      <g transform={`translate(4, 4)`}>
+      <g transform={`translate(4, 4)`} className={isMissing ? "opacity-40" : ""}>
         <rect x="-4" y="-4" width="44" height="400" className={cn("fill-transparent transition-colors", selectedTooth === toothId && "fill-blue-500/10")} />
         <text x="18" y="24" className="text-xs font-semibold fill-muted-foreground text-anchor-middle">{toothId}</text>
         
@@ -633,6 +638,7 @@ export function PeriodontalChart({
           <div 
             className={cn(
               "w-full h-full p-0.5 flex items-center justify-center rounded border relative transition-colors duration-200",
+              isMissing ? "bg-slate-200 border-slate-300 dark:bg-slate-800 dark:border-slate-700" :
               record.conditions?.bleeding ? "bg-red-50 border-red-300 dark:bg-red-950/20 dark:border-red-800" :
               record.conditions?.suppuration ? "bg-yellow-50 border-yellow-300 dark:bg-yellow-950/20 dark:border-yellow-800" :
               record.conditions?.plaque ? "bg-blue-50 border-blue-300 dark:bg-blue-950/20 dark:border-blue-800" :
@@ -640,24 +646,39 @@ export function PeriodontalChart({
               "bg-card border-border"
             )}
           >
-            <img 
-              src={`/periodontal/${toothId}.png`} 
-              alt={`Tooth ${toothId}`}
-              className="w-full h-full object-contain"
-              style={{
-                filter: record.conditions?.bleeding ? "drop-shadow(0 0 2px rgba(239, 68, 68, 0.8))" : "none"
-              }}
-            />
+            {!isMissing && (
+              <img 
+                src={`/periodontal/${toothId}.png`} 
+                alt={`Tooth ${toothId}`}
+                className="w-full h-full object-contain"
+                style={{
+                  filter: record.conditions?.bleeding ? "drop-shadow(0 0 2px rgba(239, 68, 68, 0.8))" : "none"
+                }}
+              />
+            )}
             <div className="absolute bottom-0 right-1 text-[8px] font-bold opacity-75 pointer-events-none fill-foreground">
               {toothId}
             </div>
+            {isMissing && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="w-full h-0.5 bg-red-500/50 rotate-45 absolute" />
+                <div className="w-full h-0.5 bg-red-500/50 -rotate-45 absolute" />
+              </div>
+            )}
           </div>
         </foreignObject>
 
-        {buccalPocketInputs}
-        {conditionToggles}
-        {otherInputs}
-        {lingualPocketInputs}
+        {/* Missing Overlay to block clicks */}
+        {isMissing && (
+          <rect x="0" y="70" width="36" height="300" fill="transparent" className="cursor-not-allowed" />
+        )}
+
+        <div className={isMissing ? "pointer-events-none" : ""}>
+          {buccalPocketInputs}
+          {conditionToggles}
+          {otherInputs}
+          {lingualPocketInputs}
+        </div>
 
         <line x1="0" y1="32" x2="36" y2="32" stroke="hsl(var(--border))" />
         <line x1="0" y1="68" x2="36" y2="68" stroke="hsl(var(--border))" />
@@ -697,22 +718,39 @@ export function PeriodontalChart({
       </CardHeader>
       
       <CardContent className="p-6">
-        <div className="mb-6 flex flex-wrap justify-center gap-x-6 gap-y-2 rounded-2xl border border-gray-100 bg-gray-50/50 p-3">
-          <div className="flex items-center gap-2">
-            <div className="h-3 w-3 rounded-full border bg-red-500 border-red-700"></div>
-            <span className="text-xs font-semibold text-gray-700">B - Bleeding</span>
+        <div className="mb-6 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex flex-wrap gap-x-6 gap-y-2 rounded-2xl border border-gray-100 bg-gray-50/50 p-3">
+            <div className="flex items-center gap-2">
+              <div className="h-3 w-3 rounded-full border bg-red-500 border-red-700"></div>
+              <span className="text-xs font-semibold text-gray-700">B - Bleeding</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="h-3 w-3 rounded-full border bg-yellow-400 border-yellow-600"></div>
+              <span className="text-xs font-semibold text-gray-700">S - Suppuration</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="h-3 w-3 rounded-full border bg-blue-400 border-blue-600"></div>
+              <span className="text-xs font-semibold text-gray-700">P - Plaque</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="h-3 w-3 rounded-full border bg-green-500 border-green-700"></div>
+              <span className="text-xs font-semibold text-gray-700">C - Calculus</span>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="h-3 w-3 rounded-full border bg-yellow-400 border-yellow-600"></div>
-            <span className="text-xs font-semibold text-gray-700">S - Suppuration</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="h-3 w-3 rounded-full border bg-blue-400 border-blue-600"></div>
-            <span className="text-xs font-semibold text-gray-700">P - Plaque</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="h-3 w-3 rounded-full border bg-green-500 border-green-700"></div>
-            <span className="text-xs font-semibold text-gray-700">C - Calculus</span>
+
+          <div className="flex items-center gap-4">
+            <div className="rounded-xl border bg-white px-4 py-2 shadow-sm text-center">
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-0.5">Bleeding Index</p>
+              <p className="text-lg font-black text-red-500">
+                {records.length > 0 ? Math.round((records.filter(r => r.conditions?.bleeding).length / 32) * 100) : 0}%
+              </p>
+            </div>
+            <div className="rounded-xl border bg-white px-4 py-2 shadow-sm text-center">
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-0.5">Plaque Index</p>
+              <p className="text-lg font-black text-blue-500">
+                {records.length > 0 ? Math.round((records.filter(r => r.conditions?.plaque).length / 32) * 100) : 0}%
+              </p>
+            </div>
           </div>
         </div>
 
