@@ -23,6 +23,7 @@ import type {
   PeriodontalMeasurement,
   PeriodontalPocketDepth,
   PeriodontalConditions,
+  DentalRecord,
 } from "@/lib/types";
 import { useState, useEffect } from "react";
 import { hasPermission } from "@/lib/user";
@@ -52,16 +53,66 @@ const conditionKeys: (keyof PeriodontalConditions)[] = [
 
 type PeriodontalChartProps = {
   initialRecords: PeriodontalRecord;
+  dentalRecords?: DentalRecord[];
   onSave: (records: PeriodontalRecord) => void;
 };
 
 export function PeriodontalChart({
   initialRecords,
+  dentalRecords = [],
   onSave,
 }: PeriodontalChartProps) {
   const [records, setRecords] = useState<PeriodontalRecord>(initialRecords);
   const [selectedTooth, setSelectedTooth] = useState<number | undefined>();
-  const canUpdateChart = hasPermission('charting:update');
+  const canUpdateChart = hasPermission('periodontal:update') || hasPermission('charting:update');
+
+  // Helper to compute PSR for a sextant
+  const computePSR = (teeth: number[]) => {
+    let maxPocket = 0;
+    let hasBleeding = false;
+    let hasCalculus = false;
+    let hasComplexity = false; // furcation, mobility, mucogingival involvement (recession >=3)
+
+    teeth.forEach(t => {
+      const rec = records.find(r => r.toothId === t);
+      if (rec) {
+        // Max pocket
+        const pockets = Object.values(rec.pockets).filter((p): p is number => p !== undefined);
+        if (pockets.length > 0) {
+          maxPocket = Math.max(maxPocket, ...pockets);
+        }
+        
+        if (rec.conditions?.bleeding) hasBleeding = true;
+        if (rec.conditions?.calculus) hasCalculus = true;
+        
+        if (rec.furcation) hasComplexity = true;
+        if (rec.mobility && rec.mobility !== '0') hasComplexity = true;
+        if (rec.recession && rec.recession >= 3) hasComplexity = true;
+      }
+    });
+
+    let score = "0";
+    if (maxPocket >= 6) {
+      score = "4";
+    } else if (maxPocket >= 4) {
+      score = "3";
+    } else if (hasCalculus) {
+      score = "2";
+    } else if (hasBleeding) {
+      score = "1";
+    }
+
+    return score + (hasComplexity ? "*" : "");
+  };
+
+  const sextants = [
+    { name: "Sextant 1", teeth: [1, 2, 3, 4, 5] },
+    { name: "Sextant 2", teeth: [6, 7, 8, 9, 10, 11] },
+    { name: "Sextant 3", teeth: [12, 13, 14, 15, 16] },
+    { name: "Sextant 6", teeth: [32, 31, 30, 29, 28] }, // Lower Right
+    { name: "Sextant 5", teeth: [27, 26, 25, 24, 23, 22] }, // Lower Anterior
+    { name: "Sextant 4", teeth: [21, 20, 19, 18, 17] } // Lower Left
+  ];
 
   useEffect(() => {
     setRecords(initialRecords);
@@ -126,6 +177,31 @@ export function PeriodontalChart({
           toothId,
           pockets: {},
           recession: numericValue,
+          conditions: {},
+        };
+        return [...prev, newRecord];
+      }
+    });
+  };
+
+  const handleMgjChange = (toothId: number, value: string) => {
+    const numericValue = value === "" ? undefined : parseInt(value, 10);
+    setRecords((prev) => {
+      const recordIndex = prev.findIndex((r) => r.toothId === toothId);
+      if (recordIndex > -1) {
+        const record = prev[recordIndex];
+        const updatedRecord = {
+          ...record,
+          mgj: numericValue,
+        };
+        const newRecords = [...prev];
+        newRecords[recordIndex] = updatedRecord;
+        return newRecords;
+      } else {
+        const newRecord = {
+          toothId,
+          pockets: {},
+          mgj: numericValue,
           conditions: {},
         };
         return [...prev, newRecord];
@@ -219,6 +295,21 @@ export function PeriodontalChart({
     handleRecessionChange(toothId, value);
     
     // Auto-advance on any recession entry
+    if (value.length >= 1) {
+      autoAdvance(arch, col, row);
+    }
+  };
+
+  const handleMgjChangeAndAutoTab = (
+    value: string,
+    toothId: number,
+    arch: "upper" | "lower",
+    col: number,
+    row: number
+  ) => {
+    handleMgjChange(toothId, value);
+    
+    // Auto-advance on any mgj entry
     if (value.length >= 1) {
       autoAdvance(arch, col, row);
     }
@@ -468,6 +559,9 @@ export function PeriodontalChart({
 
   const ToothColumn = ({ toothId, arch, col }: { toothId: number; arch: "upper" | "lower"; col: number }) => {
     const record = getRecord(toothId);
+    
+    // Check if tooth is marked as missing in dental records
+    const isMissing = dentalRecords.some(dr => dr.toothId === toothId && dr.condition === "Missing");
 
     const buccalPocketInputs = (
       <>
@@ -585,6 +679,31 @@ export function PeriodontalChart({
             disabled={!canUpdateChart}
           />
         </foreignObject>
+
+        {/* Buccal CAL */}
+        <foreignObject x="0" y={210} width="36" height="12">
+          <div className="w-full flex justify-between px-[2px] opacity-60">
+            {pocketPositions.slice(0, 3).map((pos) => {
+              const p = record.pockets[pos] || 0;
+              const r = record.recession || 0;
+              const cal = p + r;
+              return <span key={pos} className="text-[7px] font-bold" title="Clinical Attachment Level">{cal || "-"}</span>;
+            })}
+          </div>
+        </foreignObject>
+
+        {/* Lingual CAL */}
+        <foreignObject x="0" y={300} width="36" height="12">
+          <div className="w-full flex justify-between px-[2px] opacity-60">
+            {pocketPositions.slice(3, 6).map((pos) => {
+              const p = record.pockets[pos] || 0;
+              const r = record.recession || 0;
+              const cal = p + r;
+              return <span key={pos} className="text-[7px] font-bold" title="Clinical Attachment Level">{cal || "-"}</span>;
+            })}
+          </div>
+        </foreignObject>
+
         <foreignObject x="0" y={312} width="36" height="24">
           <Select
             value={record.mobility}
@@ -620,12 +739,27 @@ export function PeriodontalChart({
             </SelectContent>
           </Select>
         </foreignObject>
+        <foreignObject x="0" y={368} width="36" height="24">
+          <Input
+            id={`input-mgj-${arch}-${col}`}
+            type="number"
+            min="0"
+            max="20"
+            className="h-full w-full bg-transparent p-1 text-center text-xs border-border/60"
+            placeholder="MGJ"
+            value={record.mgj ?? ""}
+            onChange={(e) => handleMgjChangeAndAutoTab(e.target.value, toothId, arch, col, 7)}
+            onKeyDown={(e) => handleKeyDown(e, arch, col, 7, toothId)}
+            onFocus={() => setSelectedTooth(toothId)}
+            disabled={!canUpdateChart}
+          />
+        </foreignObject>
       </>
     );
 
     return (
-      <g transform={`translate(4, 4)`}>
-        <rect x="-4" y="-4" width="44" height="400" className={cn("fill-transparent transition-colors", selectedTooth === toothId && "fill-blue-500/10")} />
+      <g transform={`translate(4, 4)`} className={isMissing ? "opacity-40" : ""}>
+        <rect x="-4" y="-4" width="44" height="420" className={cn("fill-transparent transition-colors", selectedTooth === toothId && "fill-blue-500/10")} />
         <text x="18" y="24" className="text-xs font-semibold fill-muted-foreground text-anchor-middle">{toothId}</text>
         
         {/* Realistic Transparent PNG Tooth Image representation */}
@@ -633,6 +767,7 @@ export function PeriodontalChart({
           <div 
             className={cn(
               "w-full h-full p-0.5 flex items-center justify-center rounded border relative transition-colors duration-200",
+              isMissing ? "bg-slate-200 border-slate-300 dark:bg-slate-800 dark:border-slate-700" :
               record.conditions?.bleeding ? "bg-red-50 border-red-300 dark:bg-red-950/20 dark:border-red-800" :
               record.conditions?.suppuration ? "bg-yellow-50 border-yellow-300 dark:bg-yellow-950/20 dark:border-yellow-800" :
               record.conditions?.plaque ? "bg-blue-50 border-blue-300 dark:bg-blue-950/20 dark:border-blue-800" :
@@ -640,24 +775,39 @@ export function PeriodontalChart({
               "bg-card border-border"
             )}
           >
-            <img 
-              src={`/periodontal/${toothId}.png`} 
-              alt={`Tooth ${toothId}`}
-              className="w-full h-full object-contain"
-              style={{
-                filter: record.conditions?.bleeding ? "drop-shadow(0 0 2px rgba(239, 68, 68, 0.8))" : "none"
-              }}
-            />
+            {!isMissing && (
+              <img 
+                src={`/periodontal/${toothId}.png`} 
+                alt={`Tooth ${toothId}`}
+                className="w-full h-full object-contain"
+                style={{
+                  filter: record.conditions?.bleeding ? "drop-shadow(0 0 2px rgba(239, 68, 68, 0.8))" : "none"
+                }}
+              />
+            )}
             <div className="absolute bottom-0 right-1 text-[8px] font-bold opacity-75 pointer-events-none fill-foreground">
               {toothId}
             </div>
+            {isMissing && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="w-full h-0.5 bg-red-500/50 rotate-45 absolute" />
+                <div className="w-full h-0.5 bg-red-500/50 -rotate-45 absolute" />
+              </div>
+            )}
           </div>
         </foreignObject>
 
-        {buccalPocketInputs}
-        {conditionToggles}
-        {otherInputs}
-        {lingualPocketInputs}
+        {/* Missing Overlay to block clicks */}
+        {isMissing && (
+          <rect x="0" y="70" width="36" height="320" fill="transparent" className="cursor-not-allowed" />
+        )}
+
+        <g className={isMissing ? "pointer-events-none" : ""}>
+          {buccalPocketInputs}
+          {conditionToggles}
+          {otherInputs}
+          {lingualPocketInputs}
+        </g>
 
         <line x1="0" y1="32" x2="36" y2="32" stroke="hsl(var(--border))" />
         <line x1="0" y1="68" x2="36" y2="68" stroke="hsl(var(--border))" />
@@ -673,6 +823,7 @@ export function PeriodontalChart({
         <line x1="0" y1="304" x2="36" y2="304" stroke="hsl(var(--border))" />
         <line x1="0" y1="336" x2="36" y2="336" stroke="hsl(var(--border))" />
         <line x1="0" y1="364" x2="36" y2="364" stroke="hsl(var(--border))" />
+        <line x1="0" y1="392" x2="36" y2="392" stroke="hsl(var(--border))" />
       </g>
     );
   };
@@ -697,31 +848,81 @@ export function PeriodontalChart({
       </CardHeader>
       
       <CardContent className="p-6">
-        <div className="mb-6 flex flex-wrap justify-center gap-x-6 gap-y-2 rounded-2xl border border-gray-100 bg-gray-50/50 p-3">
-          <div className="flex items-center gap-2">
-            <div className="h-3 w-3 rounded-full border bg-red-500 border-red-700"></div>
-            <span className="text-xs font-semibold text-gray-700">B - Bleeding</span>
+        <div className="mb-6 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex flex-wrap gap-x-6 gap-y-2 rounded-2xl border border-gray-100 bg-gray-50/50 p-3">
+            <div className="flex items-center gap-2">
+              <div className="h-3 w-3 rounded-full border bg-red-500 border-red-700"></div>
+              <span className="text-xs font-semibold text-gray-700">B - Bleeding</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="h-3 w-3 rounded-full border bg-yellow-400 border-yellow-600"></div>
+              <span className="text-xs font-semibold text-gray-700">S - Suppuration</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="h-3 w-3 rounded-full border bg-blue-400 border-blue-600"></div>
+              <span className="text-xs font-semibold text-gray-700">P - Plaque</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="h-3 w-3 rounded-full border bg-green-500 border-green-700"></div>
+              <span className="text-xs font-semibold text-gray-700">C - Calculus</span>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="h-3 w-3 rounded-full border bg-yellow-400 border-yellow-600"></div>
-            <span className="text-xs font-semibold text-gray-700">S - Suppuration</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="h-3 w-3 rounded-full border bg-blue-400 border-blue-600"></div>
-            <span className="text-xs font-semibold text-gray-700">P - Plaque</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="h-3 w-3 rounded-full border bg-green-500 border-green-700"></div>
-            <span className="text-xs font-semibold text-gray-700">C - Calculus</span>
+
+          <div className="flex flex-col md:flex-row items-center gap-4">
+            <div className="rounded-xl border bg-white shadow-sm overflow-hidden flex flex-col items-center p-2">
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1 px-2">PSR Scores</p>
+              <div className="grid grid-cols-3 gap-[1px] bg-slate-200">
+                <div className="bg-white px-3 py-1 text-center font-bold text-sm min-w-[36px]">{computePSR(sextants[0].teeth)}</div>
+                <div className="bg-white px-3 py-1 text-center font-bold text-sm min-w-[36px]">{computePSR(sextants[1].teeth)}</div>
+                <div className="bg-white px-3 py-1 text-center font-bold text-sm min-w-[36px]">{computePSR(sextants[2].teeth)}</div>
+                <div className="bg-white px-3 py-1 text-center font-bold text-sm min-w-[36px]">{computePSR(sextants[5].teeth)}</div>
+                <div className="bg-white px-3 py-1 text-center font-bold text-sm min-w-[36px]">{computePSR(sextants[4].teeth)}</div>
+                <div className="bg-white px-3 py-1 text-center font-bold text-sm min-w-[36px]">{computePSR(sextants[3].teeth)}</div>
+              </div>
+            </div>
+
+            <div className="rounded-xl border bg-white px-4 py-2 shadow-sm text-center">
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-0.5">Bleeding Index</p>
+              <p className="text-lg font-black text-red-500">
+                {records.length > 0 ? Math.round((records.filter(r => r.conditions?.bleeding).length / 32) * 100) : 0}%
+              </p>
+            </div>
+            <div className="rounded-xl border bg-white px-4 py-2 shadow-sm text-center">
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-0.5">Plaque Index</p>
+              <p className="text-lg font-black text-blue-500">
+                {records.length > 0 ? Math.round((records.filter(r => r.conditions?.plaque).length / 32) * 100) : 0}%
+              </p>
+            </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
-          {/* Left Column: Form to Enter Record (Upper & Lower Inputs) */}
-          <div className="xl:col-span-7 space-y-8 overflow-x-auto min-w-[550px]">
+        <div className="flex flex-col gap-8 items-start w-full">
+          {/* Top Section: Profile Graphs (Buccal/Lingual graphs) */}
+          <div className="w-full space-y-6">
+            <div className="border border-slate-100 rounded-2xl bg-slate-50/30 p-4 grid grid-cols-1 xl:grid-cols-2 gap-6">
+              <div>
+                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Upper Arch Gum & Bone Profile</h4>
+                <svg viewBox="0 0 780 200" className="w-full min-w-[340px]">
+                  <PeriodontalGraph arch="upper" type="buccal" />
+                  <PeriodontalGraph arch="upper" type="lingual" />
+                </svg>
+              </div>
+
+              <div>
+                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Lower Arch Gum & Bone Profile</h4>
+                <svg viewBox="0 0 780 200" className="w-full min-w-[340px]">
+                  <PeriodontalGraph arch="lower" type="buccal" />
+                  <PeriodontalGraph arch="lower" type="lingual" />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom Section: Form to Enter Record (Upper & Lower Inputs) */}
+          <div className="w-full space-y-8 overflow-x-auto min-w-[550px]">
             <div>
               <h3 className="text-sm font-bold text-slate-700 mb-2 uppercase tracking-wider">Upper Arch (Maxillary) Records</h3>
-              <svg viewBox="0 0 780 400" className="w-full min-w-[740px]">
+              <svg viewBox="0 0 780 420" className="w-full min-w-[740px]">
                 {/* Upper Arch Inputs Grid */}
                 <g transform="translate(40, 0)">
                   <text x="0" y="96" className="text-[10px] font-bold fill-muted-foreground" transform="rotate(-90 0 96)">Buccal (Upper)</text>
@@ -732,13 +933,13 @@ export function PeriodontalChart({
                     <ToothColumn toothId={toothId} arch="upper" col={i} />
                   </g>
                 ))}
-                <line x1={40 + 8 * 44} y1="0" x2={40 + 8 * 44} y2="400" className="stroke-muted-foreground/40 stroke-2" />
+                <line x1={40 + 8 * 44} y1="0" x2={40 + 8 * 44} y2="420" className="stroke-muted-foreground/40 stroke-2" />
               </svg>
             </div>
 
             <div className="border-t pt-6">
               <h3 className="text-sm font-bold text-slate-700 mb-2 uppercase tracking-wider">Lower Arch (Mandibular) Records</h3>
-              <svg viewBox="0 0 780 400" className="w-full min-w-[740px]">
+              <svg viewBox="0 0 780 420" className="w-full min-w-[740px]">
                 {/* Lower Arch Inputs Grid */}
                 <g transform="translate(40, 0)">
                   <text x="0" y="96" className="text-[10px] font-bold fill-muted-foreground" transform="rotate(-90 0 96)">Buccal (Lower)</text>
@@ -749,29 +950,8 @@ export function PeriodontalChart({
                     <ToothColumn toothId={toothId} arch="lower" col={i} />
                   </g>
                 ))}
-                <line x1={40 + 8 * 44} y1="0" x2={40 + 8 * 44} y2="400" className="stroke-muted-foreground/40 stroke-2" />
+                <line x1={40 + 8 * 44} y1="0" x2={40 + 8 * 44} y2="420" className="stroke-muted-foreground/40 stroke-2" />
               </svg>
-            </div>
-          </div>
-
-          {/* Right Column: Profile Graphs (Buccal/Lingual graphs) */}
-          <div className="xl:col-span-5 space-y-6">
-            <div className="border border-slate-100 rounded-2xl bg-slate-50/30 p-4 space-y-6">
-              <div>
-                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Upper Arch Gum & Bone Profile</h4>
-                <svg viewBox="0 0 780 200" className="w-full min-w-[340px]">
-                  <PeriodontalGraph arch="upper" type="buccal" />
-                  <PeriodontalGraph arch="upper" type="lingual" />
-                </svg>
-              </div>
-
-              <div className="border-t pt-4">
-                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Lower Arch Gum & Bone Profile</h4>
-                <svg viewBox="0 0 780 200" className="w-full min-w-[340px]">
-                  <PeriodontalGraph arch="lower" type="buccal" />
-                  <PeriodontalGraph arch="lower" type="lingual" />
-                </svg>
-              </div>
             </div>
           </div>
         </div>

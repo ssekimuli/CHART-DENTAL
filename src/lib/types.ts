@@ -8,6 +8,13 @@ export type PaginatedArray<T> = T[] & {
     };
 };
 
+export type Business = {
+    id: string | number;
+    name: string;
+    details?: string;
+    createdAt?: string;
+};
+
 export type ExpenseCategory = 'Supplies' | 'Rent' | 'Utilities' | 'Salaries' | 'Marketing' | 'Maintenance' | 'Other' | 'Payroll';
 
 export type Expense = {
@@ -304,6 +311,7 @@ export type PeriodontalMeasurement = {
   toothId: number;
   pockets: PeriodontalPocketDepth;
   recession?: number;
+  mgj?: number;
   mobility?: '0' | '1' | '2' | '3';
   furcation?: 'I' | 'II' | 'III';
   conditions: PeriodontalConditions;
@@ -332,10 +340,21 @@ export type SoftTissueRecord = {
 export type OrthodonticRecord = {
   id: string | number;
   date: string;
-  appliance: 'Braces' | 'Invisalign' | 'Retainer';
+  appliance: string;
+  applianceLocation?: string;
+  treatmentPhase?: string;
   wireSize?: string;
+  wireSizeUpper?: string;
+  wireSizeLower?: string;
+  archwireMaterial?: string;
+  elastics?: string;
+  compliance?: string;
+  oralHygiene?: string;
   bracketChanges?: string[];
-  notes: string;
+  brokenBrackets?: string[];
+  notes?: string;
+  nextVisitGoals?: string;
+  monthsInTreatment?: number;
 };
 
 export type SystemTreatment = {
@@ -387,7 +406,7 @@ export type Permission =
   | 'dashboard:read'
   | 'queue:read'
   | 'patients:read' | 'patients:create' | 'patients:update' | 'patients:delete'
-  | 'charting:read' | 'charting:update'
+  | 'charting:read' | 'charting:update' | 'periodontal:read' | 'periodontal:update'
   | 'appointments:read' | 'appointments:create' | 'appointments:update' | 'appointments:delete'
   | 'billing:read' | 'billing:create' | 'billing:update' | 'billing:delete'
   | 'accounting:read' | 'accounting:create'

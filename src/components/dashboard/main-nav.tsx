@@ -36,7 +36,7 @@ import {
   Pill,
 } from "lucide-react";
 import type { EmployeeRole, Permission } from "@/lib/types";
-import { currentUser, getCurrentUser, hasPermission, hasRole } from "@/lib/user";
+import { getCurrentUser, hasPermission, hasRole } from "@/lib/user";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../ui/collapsible";
 import React, { useEffect, useState } from "react";
 

@@ -36,6 +36,7 @@ customAxios.interceptors.response.use(
       const { status, data } = error.response;
 
       // Check for 401 status or "Unauthenticated" message
+
       if (status === 401 || data?.message === "Unauthenticated.") {
         // Clear user session
         clearCurrentUser();
@@ -57,6 +58,7 @@ customAxios.interceptors.response.use(
     }
 
     // Handle network errors (e.g., ERR_CONNECTION_REFUSED)
+
     if (axios.isAxiosError(error) && !error.response) {
       toast({
         variant: "destructive",
@@ -67,6 +69,7 @@ customAxios.interceptors.response.use(
 
     // Any status codes that falls outside the range of 2xx cause this function to trigger
     return Promise.reject(error);
+    
   }
 );
 

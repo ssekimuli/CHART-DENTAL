@@ -17,7 +17,7 @@ import { LabOrderForm } from "./components/lab-order-form";
 import { useBranch } from "@/context/branch-context";
 import { createLabOrder, getLabOrders, getPatientList } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
-import { currentUser, hasPermission, hasRole } from "@/lib/user";
+import {  hasPermission, hasRole , getCurrentUser } from "@/lib/user";
 import { useRouter } from "next/navigation";
 import { getPatientFullName } from "@/lib/utils";
 import { PaginationControl } from "@/components/ui/pagination-control";
@@ -41,7 +41,7 @@ export default function LaboratoryPage() {
             return;
         }
 
-        const branchToFetch = hasRole('Super Admin') ? selectedBranch : currentUser.branchId;
+        const branchToFetch = hasRole('Super Admin') ? selectedBranch : getCurrentUser()?.branchId;
         const fetchData = async () => {
             setIsLoading(true);
             const [orders, patientsData] = await Promise.all([
@@ -56,7 +56,7 @@ export default function LaboratoryPage() {
     }, [selectedBranch, page, router]);
 
     const normalizedSelectedBranch = String(selectedBranch || '');
-    const normalizedUserBranch = currentUser.branchId ? String(currentUser.branchId) : '';
+    const normalizedUserBranch = getCurrentUser()?.branchId ? String(getCurrentUser()?.branchId) : '';
 
     const filteredPatients = useMemo(() => {
         if (hasRole('Super Admin')) {

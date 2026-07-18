@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import type { Appointment, Employee, AppointmentStatus } from "@/lib/types";
 import { getTodaysQueue, getEmployees, updateAppointment, announcePatientInQueue } from "@/lib/api";
 import { useBranch } from "@/context/branch-context";
-import { currentUser, hasPermission, hasRole } from "@/lib/user";
+import {  hasPermission, hasRole , getCurrentUser } from "@/lib/user";
 import { format } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
 import { 
@@ -124,7 +124,7 @@ export default function QueuePage() {
             const employeesData = await getEmployees();
             setAllEmployees(employeesData);
              if (hasRole('Dentist')) {
-                const currentUserEmployee = employeesData.find(e => e.email === currentUser.email);
+                const currentUserEmployee = employeesData.find(e => e.email === getCurrentUser()?.email);
                 if (currentUserEmployee) {
                     setDoctorFilter(currentUserEmployee.id as string);
                 }
@@ -151,7 +151,7 @@ export default function QueuePage() {
         if (hasRole('Super Admin')) {
             return doctors.filter(d => String(d.branchId || '') === String(selectedBranch));
         }
-        return doctors.filter(d => String(d.branchId || '') === String(currentUser.branchId));
+        return doctors.filter(d => String(d.branchId || '') === String(getCurrentUser()?.branchId));
     }, [allEmployees, selectedBranch]);
     
     const handleAnnounce = (appointment: Appointment) => {

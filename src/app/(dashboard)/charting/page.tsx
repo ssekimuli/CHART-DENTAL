@@ -32,7 +32,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { PatientsTable } from "../patients/components/patients-table";
 import { useBranch } from "@/context/branch-context";
 import { useState, useMemo, useEffect } from "react";
-import { currentUser, hasRole } from "@/lib/user";
+import {  hasRole , getCurrentUser } from "@/lib/user";
 import type { Patient, Appointment, AppointmentStatus } from "@/lib/types";
 import { useRouter } from "next/navigation";
 import { getPatients, getAppointments, updateAppointment, deleteAppointment } from "@/lib/api";
@@ -61,7 +61,7 @@ export default function ChartingOverviewPage() {
     }, [selectedBranch]);
 
     const normalizedSelectedBranch = String(selectedBranch || "");
-    const normalizedUserBranch = currentUser.branchId ? String(currentUser.branchId) : '';
+    const normalizedUserBranch = getCurrentUser()?.branchId ? String(getCurrentUser()?.branchId) : '';
     const branchId = hasRole('Super Admin') ? normalizedSelectedBranch : normalizedUserBranch;
 
     // Fetch appointments with filters when any filter changes
