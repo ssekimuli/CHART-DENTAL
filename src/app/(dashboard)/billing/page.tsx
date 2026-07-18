@@ -25,7 +25,7 @@ import { FileDown, PlusCircle, MoreHorizontal, Pencil, Trash, Eye, HandCoins, Ca
 import type { Invoice, Patient, InvoiceTreatment, PaginatedArray } from "@/lib/types";
 import { InvoiceForm } from "./components/invoice-form";
 import { useBranch } from "@/context/branch-context";
-import { currentUser, hasPermission, hasRole } from "@/lib/user";
+import {  hasPermission, hasRole , getCurrentUser } from "@/lib/user";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -133,7 +133,7 @@ export default function BillingPage() {
     if (hasRole('Super Admin')) {
       return allPatients.filter(p => p.branchId === selectedBranch);
     }
-    return allPatients.filter(p => p.branchId === currentUser.branchId);
+    return allPatients.filter(p => p.branchId === getCurrentUser()?.branchId);
   }, [selectedBranch, allPatients]);
 
   const filteredInvoices = allInvoices;
@@ -186,7 +186,7 @@ export default function BillingPage() {
 
   const handleSaveInvoice = async (data: Omit<Invoice, 'id' | 'paidAmount' | 'patientName' | 'branchId' | 'amount'>, treatments: InvoiceTreatment[]) => {
     const patient = filteredPatients.find(p => String(p.id) === String(data.patientId));
-    const branchId = selectedBranch || currentUser.branchId;
+    const branchId = selectedBranch || getCurrentUser()?.branchId;
     if (!patient || !branchId) {
       console.error('Cannot save invoice: missing patient or branch', { patient, selectedBranch, branchId, data });
       return;

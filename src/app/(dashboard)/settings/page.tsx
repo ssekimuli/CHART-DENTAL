@@ -17,8 +17,8 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Checkbox } from "@/components/ui/checkbox";
-import type { RolePermissions, Permission, EmployeeRole, SystemTreatment } from "@/lib/types";
-import { getRoles, updateRole, updateBranch, getProfileData, updateEmployee, getTreatments, getCurrencies } from "@/lib/api";
+import type { Business, RolePermissions, Permission, EmployeeRole, SystemTreatment } from "@/lib/types";
+import { getRoles, updateRole, updateBranch, getProfileData, updateEmployee, getTreatments, getCurrencies, getBusinesses, addBusiness } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -30,6 +30,7 @@ import { useCurrency } from "@/hooks/use-currency";
 import { CURRENCIES } from "@/lib/currency";
 import { useBranch } from "@/context/branch-context";
 import { DataImporter } from "@/components/dashboard/data-importer";
+import { TreatmentsCatalog } from "./components/treatments-catalog";
 
 const permissionGroups = {
     Dashboard: ['dashboard:read'],
@@ -66,10 +67,37 @@ export default function SettingsPage() {
     const [practiceName, setPracticeName] = useState("");
     const [practiceAddress, setPracticeAddress] = useState("");
     const [treatments, setTreatments] = useState<SystemTreatment[]>([]);
+    
+    const [businesses, setBusinesses] = useState<Business[]>([]);
+    const [newBusinessName, setNewBusinessName] = useState("");
+    const [newBusinessDetails, setNewBusinessDetails] = useState("");
 
     const refreshTreatments = async () => {
         const treatmentsData = await getTreatments();
         setTreatments(treatmentsData);
+    };
+
+    const handleAddBusiness = async () => {
+        if (!newBusinessName.trim()) return;
+        try {
+            const added = await addBusiness({
+                name: newBusinessName,
+                details: newBusinessDetails
+            });
+            setBusinesses([...businesses, added]);
+            setNewBusinessName("");
+            setNewBusinessDetails("");
+            toast({
+                title: "Business Added",
+                description: "The business has been successfully added.",
+            });
+        } catch (error) {
+            toast({
+                title: "Error",
+                description: "Failed to add business.",
+                variant: "destructive",
+            });
+        }
     };
 
     useEffect(() => {
@@ -80,15 +108,19 @@ export default function SettingsPage() {
         const fetchRolesAndProfile = async () => {
             setIsLoading(true);
             try {
-                const [rolesData, profileData, treatmentsData, currenciesData] = await Promise.all([
+                const [rolesData, profileData, treatmentsData, currenciesData, businessesData] = await Promise.all([
                     getRoles(),
                     getProfileData(),
                     getTreatments(),
-                    getCurrencies()
+                    getCurrencies(),
+                    getBusinesses()
                 ]);
                 setRoles(rolesData);
                 setSelectedRole(rolesData[0] || null);
                 setTreatments(treatmentsData);
+                if (businessesData) {
+                    setBusinesses(businessesData);
+                }
                 if (currenciesData && currenciesData.length > 0) {
                     setCurrencies(currenciesData);
                 }
@@ -214,9 +246,10 @@ export default function SettingsPage() {
 
   return (
     <Tabs defaultValue="profile">
-      <TabsList className="grid w-full grid-cols-5">
+      <TabsList className="grid w-full grid-cols-6">
         <TabsTrigger value="profile">Profile</TabsTrigger>
         <TabsTrigger value="practice">Practice</TabsTrigger>
+        <TabsTrigger value="business">Business</TabsTrigger>
         <TabsTrigger value="notifications">Notifications</TabsTrigger>
         <TabsTrigger value="roles">Roles &amp; Permissions</TabsTrigger>
         <TabsTrigger value="treatments">Treatments</TabsTrigger>
@@ -479,55 +512,62 @@ export default function SettingsPage() {
                 />
             </div>
             
-            <div className="space-y-4 mt-6">
-                <h3 className="text-lg font-medium">Categorized Treatments</h3>
-                {['Preventive', 'Restorative', 'Cosmetic', 'Surgical', 'Other'].map(category => {
-                    const categoryTreatments = treatments.filter(t => {
-                        if (category === 'Other') {
-                            return !t.category || !['preventive', 'restorative', 'cosmetic', 'surgical'].includes(t.category.toLowerCase());
-                        }
-                        return t.category?.toLowerCase() === category.toLowerCase();
-                    });
-                    
-                    if (categoryTreatments.length === 0 && category !== 'Other') return null;
-                    
-                    return (
-                        <Card key={category} className="overflow-hidden">
-                            <CardHeader className="bg-muted/30 pb-4">
-                                <CardTitle className="text-base flex items-center justify-between">
-                                    {category}
-                                    <Badge variant="secondary">{categoryTreatments.length}</Badge>
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="p-0">
-                                {categoryTreatments.length > 0 ? (
-                                    <Table>
-                                        <TableHeader>
-                                            <TableRow>
-                                                <TableHead>Procedure</TableHead>
-                                                <TableHead className="text-right">Cost</TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {categoryTreatments.map(treatment => (
-                                                <TableRow key={treatment.id}>
-                                                    <TableCell className="font-medium">{treatment.procedure}</TableCell>
-                                                    <TableCell className="text-right">
-                                                        {new Intl.NumberFormat('en-US', { style: 'currency', currency: currencyCode }).format(treatment.cost)}
-                                                    </TableCell>
-                                                </TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
-                                ) : (
-                                    <div className="p-4 text-center text-sm text-muted-foreground">
-                                        No treatments in this category.
-                                    </div>
-                                )}
-                            </CardContent>
-                        </Card>
-                    );
-                })}
+            <div className="mt-6">
+                <TreatmentsCatalog currencyCode={currencyCode} />
+            </div>
+          </CardContent>
+        </Card>
+      </TabsContent>
+      <TabsContent value="business">
+        <Card>
+          <CardHeader>
+            <CardTitle>Business Details</CardTitle>
+            <CardDescription>
+              Manage your business entities and details.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-4 rounded-lg border p-4">
+              <h4 className="font-semibold">Add New Business</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="new-business-name">Business Name</Label>
+                  <Input id="new-business-name" value={newBusinessName} onChange={(e) => setNewBusinessName(e.target.value)} placeholder="Enter business name" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="new-business-details">Business Details (Optional)</Label>
+                  <Input id="new-business-details" value={newBusinessDetails} onChange={(e) => setNewBusinessDetails(e.target.value)} placeholder="Tax ID, Registration, etc." />
+                </div>
+              </div>
+              <Button onClick={handleAddBusiness} disabled={!newBusinessName.trim()}>Add Business</Button>
+            </div>
+            
+            <div className="mt-6">
+              <h4 className="font-semibold mb-4">Existing Businesses</h4>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Business Name</TableHead>
+                    <TableHead>Details</TableHead>
+                    <TableHead>Created At</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {businesses.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={3} className="text-center text-muted-foreground">No businesses added yet.</TableCell>
+                    </TableRow>
+                  ) : (
+                    businesses.map((business) => (
+                      <TableRow key={business.id}>
+                        <TableCell className="font-medium">{business.name}</TableCell>
+                        <TableCell>{business.details || "-"}</TableCell>
+                        <TableCell>{business.createdAt ? new Date(business.createdAt).toLocaleDateString() : "-"}</TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
             </div>
           </CardContent>
         </Card>

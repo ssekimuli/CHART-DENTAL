@@ -49,6 +49,7 @@ import { deletePatient, getPatientById, updatePatient, addTreatment, updateTreat
 import { ImageUploadForm } from "./components/image-upload-form";
 import { hasPermission, getCurrentUser, hasRole } from "@/lib/user";
 import { getPatientFullName } from "@/lib/utils";
+import { NextVisitButton } from "./components/next-visit-button";
 import { useCurrency } from "@/hooks/use-currency";
 import { useToast } from "@/hooks/use-toast";
 import { PaymentForm } from "../../billing/components/payment-form";
@@ -242,6 +243,9 @@ export default function PatientDetailPage({
                 <span className="text-blue-600 dark:text-blue-400 font-semibold bg-blue-50 dark:bg-blue-950/30 px-2 py-0.5 rounded-md">Next Visit: {patient.nextVisit}</span>
               )}
               <Badge variant={patient.status === 'Active' ? 'default' : 'outline'}>{patient.status}</Badge>
+              {canUpdatePatient && (
+                 <NextVisitButton patient={patient} onUpdate={setPatient} />
+              )}
             </div>
           </div>
           <div className="flex gap-2">

@@ -341,7 +341,11 @@ export default function PatientChartingPage({
             </Card>
         </TabsContent>
         <TabsContent value="periodontal">
-            <PeriodontalChart initialRecords={patient.periodontalRecords} onSave={handleSavePeriodontalRecord} />
+            <PeriodontalChart 
+                initialRecords={patient.periodontalRecords} 
+                dentalRecords={patient.dentalRecords}
+                onSave={handleSavePeriodontalRecord} 
+            />
         </TabsContent>
         <TabsContent value="occlusal">
             <OcclusalChart initialRecord={patient.occlusalRecords} onSave={handleSaveOcclusalRecord} />
