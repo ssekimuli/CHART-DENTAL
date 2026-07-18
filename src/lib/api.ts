@@ -13,9 +13,10 @@ import {
     leaveRequests as allLeaveRequests,
     staffAdvances as allStaffAdvances,
     expenses as allExpenses,
-    roles as mockRoles
+    roles as mockRoles,
+    businesses as mockBusinesses
 } from '@/lib/data';
-import type { PaginatedArray, Patient, Appointment, Invoice, ChartData, PracticeTrendPoint, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, BasePatient, InvoiceTreatment, OtherCharge, SystemTreatment, PaymentMethod, PaymentTransaction, AttendanceRecord, LeaveRequest, StaffAdvance, StaffAdvanceStatus, Expense, ExpenseCategory, ExpenseSummary, IncomeRecord, RolePermissions, Permission, DentalRecord, PeriodontalRecord, OcclusalRecord, SoftTissueRecord, OrthodonticRecord, Treatment, DentalCondition, PatientImage, FinancialSummary, CurrentUser, ProfileData, AppointmentStatus, DashboardSummary, EmployeeRole, ReportsOverview, Medicine, MedicineUnit, Prescription, PrescriptionItem, InvoiceMedicine, EndodonticRecord } from '@/lib/types';
+import type { Business, PaginatedArray, Patient, Appointment, Invoice, ChartData, PracticeTrendPoint, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, BasePatient, InvoiceTreatment, OtherCharge, SystemTreatment, PaymentMethod, PaymentTransaction, AttendanceRecord, LeaveRequest, StaffAdvance, StaffAdvanceStatus, Expense, ExpenseCategory, ExpenseSummary, IncomeRecord, RolePermissions, Permission, DentalRecord, PeriodontalRecord, OcclusalRecord, SoftTissueRecord, OrthodonticRecord, Treatment, DentalCondition, PatientImage, FinancialSummary, CurrentUser, ProfileData, AppointmentStatus, DashboardSummary, EmployeeRole, ReportsOverview, Medicine, MedicineUnit, Prescription, PrescriptionItem, InvoiceMedicine, EndodonticRecord } from '@/lib/types';
 import { format, parse } from "date-fns";
 import { speak } from '@/ai/flows/speak';
 import { clearCurrentUser, setCurrentUser } from './user';
@@ -29,6 +30,7 @@ let branchesCache: Branch[] | null = null;
 let treatmentsCache: SystemTreatment[] | null = null;
 let rolesCache: RolePermissions[] | null = null;
 let rolesListCache: any[] | null = null;
+let businessesCache: Business[] | null = null;
 
 
 // --- READ OPERATIONS ---
@@ -184,7 +186,31 @@ export const getProfileData = async (): Promise<ProfileData | null> => {
     }
 }
 
+export const getBusinesses = async (): Promise<Business[]> => {
+    console.log('API CALL: getBusinesses');
+    try {
+        const response = await customAxios.get('/businesses');
+        businessesCache = response.data.map((business: any) => ({ ...business, id: String(business.id) }));
+        return businessesCache || [];
+    } catch (error) {
+        console.error("Failed to fetch businesses:", error);
+        return [];
+    }
+}
 
+export const addBusiness = async (data: Omit<Business, 'id'>): Promise<Business> => {
+    console.log('API CALL: addBusiness', data);
+    try {
+        const response = await customAxios.post('/businesses', data);
+        const newBusiness = { ...response.data, id: String(response.data.id) };
+        if (!businessesCache) businessesCache = [];
+        businessesCache.push(newBusiness);
+        return newBusiness;
+    } catch (error) {
+        console.error("Failed to add business:", error);
+        throw error;
+    }
+}
 export const getBranches = async (): Promise<Branch[]> => {
     if (branchesCache) return branchesCache;
     console.log('API CALL: getBranches');

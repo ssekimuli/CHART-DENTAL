@@ -8,6 +8,13 @@ export type PaginatedArray<T> = T[] & {
     };
 };
 
+export type Business = {
+    id: string | number;
+    name: string;
+    details?: string;
+    createdAt?: string;
+};
+
 export type ExpenseCategory = 'Supplies' | 'Rent' | 'Utilities' | 'Salaries' | 'Marketing' | 'Maintenance' | 'Other' | 'Payroll';
 
 export type Expense = {
