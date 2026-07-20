@@ -106,10 +106,13 @@ export default function InvoiceDetailPage() {
   };
 
   const getPatientDisplayName = (): string => {
-    console.log('Patient data:', patient);
-    if (!patient) return 'Unknown Patient';
-    const patientAny = patient as any;
-    return patientAny.first_name || patientAny.last_name ? `${patientAny.first_name || ''} ${patientAny.last_name || ''}`.trim() : 'Unknown Patient';
+    if (patient) {
+        const patientAny = patient as any;
+        if (patientAny.first_name || patientAny.last_name) {
+             return `${patientAny.first_name || ''} ${patientAny.last_name || ''}`.trim();
+        }
+    }
+    return invoice?.patientName || 'Unknown Patient';
   };
 
   const formatDate = (date: string) => {
