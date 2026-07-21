@@ -30,9 +30,12 @@ export function ToothModel3D({ toothId = 85 }: { toothId?: number | string }) {
       .map((m) => (
         <div
           key={m.id}
-          className="absolute w-3 h-3 bg-blue-500 rounded-full shadow-[0_0_8px_rgba(59,130,246,0.8)] border border-white/50 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none z-10"
+          className="absolute w-5 h-5 bg-blue-500 rounded-full shadow-[0_0_12px_rgba(59,130,246,1)] border-2 border-white transform -translate-x-1/2 -translate-y-1/2 pointer-events-none z-10 animate-pulse"
           style={{ left: `${m.x}%`, top: `${m.y}%` }}
-        />
+        >
+           {/* Inner dot for extra premium feel */}
+           <div className="absolute inset-0 m-auto w-1.5 h-1.5 bg-white rounded-full opacity-80" />
+        </div>
       ));
   };
 
