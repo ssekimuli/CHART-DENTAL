@@ -10,7 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, TrendingDown, TrendingUp } from "lucide-react";
+import { PlusCircle, TrendingDown, TrendingUp, Download, Calendar as CalendarIcon } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Bar,
@@ -31,7 +31,11 @@ import { ExpenseForm } from "./components/expense-form";
 import { useRouter } from "next/navigation";
 import { hasPermission } from "@/lib/user";
 import { useCurrency } from "@/hooks/use-currency";
-
+import { DateRange } from "react-day-picker";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 const chartConfig = {
     income: { label: "Income", color: "hsl(var(--chart-1))" },
     expense: { label: "Expense", color: "hsl(var(--chart-2))" },
@@ -46,6 +50,7 @@ export default function AccountingPage() {
     const [financialSummary, setFinancialSummary] = useState<FinancialSummary | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isFormOpen, setIsFormOpen] = useState(false);
+    const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
 
     useEffect(() => {
         if (!hasPermission('accounting:read')) {
@@ -54,10 +59,15 @@ export default function AccountingPage() {
         }
         const fetchData = async () => {
           setIsLoading(true);
+          const filters = {
+              branchId: selectedBranch,
+              dateFrom: dateRange?.from?.toISOString(),
+              dateTo: dateRange?.to?.toISOString(),
+          };
           const [incomeRecordsData, expenseSummaryData, summaryData] = await Promise.all([
-            getIncomeRecords({ branchId: selectedBranch }),
-            getExpenseSummary(selectedBranch),
-            getFinancialSummary(selectedBranch),
+            getIncomeRecords(filters),
+            getExpenseSummary(filters),
+            getFinancialSummary(filters),
           ]);
           setIncomeRecords(incomeRecordsData);
           setExpenseSummary(expenseSummaryData);
@@ -65,7 +75,7 @@ export default function AccountingPage() {
           setIsLoading(false);
         };
         fetchData();
-      }, [selectedBranch, router]);
+      }, [selectedBranch, dateRange, router]);
 
     const paidIncomeRecords = useMemo(() => {
         return incomeRecords.filter(record => record.status === 'Paid');
@@ -75,23 +85,85 @@ export default function AccountingPage() {
       const handleSaveExpense = async (data: Omit<Expense, 'id'>) => {
         const newExpense = await createExpense(data);
         if (newExpense) {
-            const summaryData = await getExpenseSummary(selectedBranch);
+            const filters = {
+                branchId: selectedBranch,
+                dateFrom: dateRange?.from?.toISOString(),
+                dateTo: dateRange?.to?.toISOString(),
+            };
+            const summaryData = await getExpenseSummary(filters);
             setExpenseSummary(summaryData);
-            const financialData = await getFinancialSummary(selectedBranch);
+            const financialData = await getFinancialSummary(filters);
             setFinancialSummary(financialData);
         }
         setIsFormOpen(false);
       }
 
+      const downloadCSV = (data: any[], filename: string) => {
+          if (!data || !data.length) return;
+          const headers = Object.keys(data[0]).join(',');
+          const csv = [
+              headers,
+              ...data.map(row => Object.values(row).map(val => `"${val}"`).join(','))
+          ].join('\n');
+          const blob = new Blob([csv], { type: 'text/csv' });
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.setAttribute('href', url);
+          a.setAttribute('download', filename);
+          a.click();
+      };
+
 
     return (
     <>
       <Tabs defaultValue="overview">
-        <TabsList className="grid w-full grid-cols-3">
+      <div className="flex justify-between items-center mb-4">
+        <TabsList className="grid w-[400px] grid-cols-3">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="income">Income</TabsTrigger>
           <TabsTrigger value="expenses">Expenses</TabsTrigger>
         </TabsList>
+
+        <div className="flex items-center gap-2">
+            <Popover>
+                <PopoverTrigger asChild>
+                <Button
+                    id="date"
+                    variant={"outline"}
+                    className={cn(
+                    "w-[300px] justify-start text-left font-normal",
+                    !dateRange && "text-muted-foreground"
+                    )}
+                >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {dateRange?.from ? (
+                    dateRange.to ? (
+                        <>
+                        {format(dateRange.from, "LLL dd, y")} -{" "}
+                        {format(dateRange.to, "LLL dd, y")}
+                        </>
+                    ) : (
+                        format(dateRange.from, "LLL dd, y")
+                    )
+                    ) : (
+                    <span>Filter by date range</span>
+                    )}
+                </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="end">
+                <Calendar
+                    initialFocus
+                    mode="range"
+                    defaultMonth={dateRange?.from}
+                    selected={dateRange}
+                    onSelect={setDateRange}
+                    numberOfMonths={2}
+                />
+                </PopoverContent>
+            </Popover>
+            <Button variant="ghost" onClick={() => setDateRange(undefined)} disabled={!dateRange}>Clear</Button>
+        </div>
+      </div>
         <TabsContent value="overview" className="mt-4">
             <div className="flex flex-col gap-6">
                 <div className="grid gap-4 md:grid-cols-3">
@@ -149,9 +221,15 @@ export default function AccountingPage() {
         </TabsContent>
         <TabsContent value="income" className="mt-4">
              <Card>
-                <CardHeader>
-                    <CardTitle>Income Records</CardTitle>
-                    <CardDescription>All paid invoices for the selected branch.</CardDescription>
+                <CardHeader className="flex flex-row items-center justify-between">
+                    <div>
+                        <CardTitle>Income Records</CardTitle>
+                        <CardDescription>All paid invoices for the selected branch.</CardDescription>
+                    </div>
+                    <Button variant="outline" onClick={() => downloadCSV(paidIncomeRecords, 'income_records.csv')}>
+                        <Download className="mr-2 h-4 w-4"/>
+                        Export CSV
+                    </Button>
                 </CardHeader>
                 <CardContent>
                     <Table>
@@ -189,12 +267,18 @@ export default function AccountingPage() {
                         <CardTitle>Expense Records</CardTitle>
                         <CardDescription>All payroll and operational expenses for the selected branch.</CardDescription>
                     </div>
-                    {hasPermission('accounting:create') && (
-                        <Button onClick={() => setIsFormOpen(true)}>
-                            <PlusCircle className="mr-2 h-4 w-4"/>
-                            Add Expense
+                    <div className="flex gap-2">
+                        <Button variant="outline" onClick={() => downloadCSV(expenseSummary?.records || [], 'expense_records.csv')}>
+                            <Download className="mr-2 h-4 w-4"/>
+                            Export CSV
                         </Button>
-                    )}
+                        {hasPermission('accounting:create') && (
+                            <Button onClick={() => setIsFormOpen(true)}>
+                                <PlusCircle className="mr-2 h-4 w-4"/>
+                                Add Expense
+                            </Button>
+                        )}
+                    </div>
                 </CardHeader>
                 <CardContent>
                     {expenseSummary && !isLoading ? (

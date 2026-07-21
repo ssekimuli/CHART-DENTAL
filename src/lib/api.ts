@@ -1399,14 +1399,16 @@ export const getRolesList = async (): Promise<{id: string, name: string}[]> => {
 }
 
 
-export const getFinancialSummary = async (branchId: string | number): Promise<FinancialSummary> => {
-    console.log('API CALL: getFinancialSummary', { branchId });
+export const getFinancialSummary = async (filters?: { branchId?: string | number; dateFrom?: string; dateTo?: string }): Promise<FinancialSummary> => {
+    console.log('API CALL: getFinancialSummary', { filters });
 
     try {
         const params: Record<string, string | number> = {};
-        if (branchId !== undefined && branchId !== null) {
-            params.branch_id = branchId;
+        if (filters?.branchId !== undefined && filters?.branchId !== null) {
+            params.branch_id = filters.branchId;
         }
+        if (filters?.dateFrom) params.date_from = filters.dateFrom;
+        if (filters?.dateTo) params.date_to = filters.dateTo;
 
         const response = await customAxios.get('/financial-summary', { params });
         let data: any = response.data;
@@ -1652,14 +1654,16 @@ export const getExpenses = async (filters?: string | number | {
     }
 };
 
-export const getExpenseSummary = async (branchId?: string | number): Promise<ExpenseSummary | null> => {
-    console.log('API CALL: getExpenseSummary', { branchId });
+export const getExpenseSummary = async (filters?: { branchId?: string | number; dateFrom?: string; dateTo?: string }): Promise<ExpenseSummary | null> => {
+    console.log('API CALL: getExpenseSummary', { filters });
 
     try {
         const params: Record<string, string | number> = {};
-        if (branchId !== undefined && branchId !== null) {
-            params.branch_id = branchId;
+        if (filters?.branchId !== undefined && filters?.branchId !== null) {
+            params.branch_id = filters.branchId;
         }
+        if (filters?.dateFrom) params.date_from = filters.dateFrom;
+        if (filters?.dateTo) params.date_to = filters.dateTo;
 
         const response = await customAxios.get('/expense-records', { params });
         let data: any = response.data;
