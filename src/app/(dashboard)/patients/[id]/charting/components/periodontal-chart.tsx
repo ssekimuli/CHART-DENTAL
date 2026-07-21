@@ -1,5 +1,7 @@
 "use client";
 
+import { Printer } from "lucide-react";
+
 import {
   Card,
   CardContent,
@@ -8,6 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -24,6 +27,7 @@ import type {
   PeriodontalPocketDepth,
   PeriodontalConditions,
   DentalRecord,
+  Patient,
 } from "@/lib/types";
 import { useState, useEffect } from "react";
 import { hasPermission } from "@/lib/user";
@@ -54,16 +58,20 @@ const conditionKeys: (keyof PeriodontalConditions)[] = [
 type PeriodontalChartProps = {
   initialRecords: PeriodontalRecord;
   dentalRecords?: DentalRecord[];
+  patient?: Patient;
   onSave: (records: PeriodontalRecord) => void;
 };
 
 export function PeriodontalChart({
   initialRecords,
   dentalRecords = [],
+  patient,
   onSave,
 }: PeriodontalChartProps) {
   const [records, setRecords] = useState<PeriodontalRecord>(initialRecords);
   const [selectedTooth, setSelectedTooth] = useState<number | undefined>();
+  const [threeAtATime, setThreeAtATime] = useState(true);
+  const toothSequence = [...quadrants.upperRight.slice().reverse(), ...quadrants.upperLeft, ...quadrants.lowerLeft, ...quadrants.lowerRight.slice().reverse()];
   const canUpdateChart = hasPermission('periodontal:update') || hasPermission('charting:update');
 
   // Helper to compute PSR for a sextant
@@ -130,7 +138,7 @@ export function PeriodontalChart({
 
   const handlePocketChange = (
     toothId: number,
-    position: keyof PeriodontalPocketDepth,
+    position: string,
     value: string
   ) => {
     const numericValue = value === "" ? undefined : parseInt(value, 10);
@@ -488,7 +496,7 @@ export function PeriodontalChart({
     const dangerY = baselineY + 4 * 5;
     
     return (
-      <g>
+<g>
         {/* Background Grid */}
         <rect x="40" y={baselineY} width="704" height="60" className="fill-slate-50/50 stroke-none" />
         {/* Danger zone (>= 4mm) background highlight */}
@@ -557,209 +565,27 @@ export function PeriodontalChart({
     );
   };
 
-  const ToothColumn = ({ toothId, arch, col }: { toothId: number; arch: "upper" | "lower"; col: number }) => {
+  const ToothColumn = ({ toothId, arch, col }: { toothId: number; arch: "upper" | "lower", col: number }) => {
     const record = getRecord(toothId);
+    const isMissing = dentalRecords.find(r => r.toothId === toothId && r.type === "missing");
     
-    // Check if tooth is marked as missing in dental records
-    const isMissing = dentalRecords.some(dr => dr.toothId === toothId && dr.condition === "Missing");
-
-    const buccalPocketInputs = (
-      <>
-        {pocketPositions.slice(0, 3).map((pos, i) => {
-          const rowIdx = i;
-          const isDeep = record.pockets[pos] !== undefined && record.pockets[pos]! >= 4;
-          return (
-            <foreignObject key={pos} x="0" y={80 + i * 28} width="36" height="24">
-              <Input
-                id={`input-${arch}-${col}-${rowIdx}`}
-                type="number"
-                min="0"
-                max="20"
-                className={cn(
-                  "h-full w-full rounded-none border-x-0 border-t-0 bg-transparent p-1 text-center text-xs transition-all",
-                  isDeep 
-                    ? "text-red-600 font-bold bg-red-100/60 border-red-300" 
-                    : "border-border/60 text-foreground"
-                )}
-                value={record.pockets[pos] ?? ""}
-                onChange={(e) => handleInputChangeAndAutoTab(e.target.value, toothId, pos, arch, col, rowIdx)}
-                onKeyDown={(e) => handleKeyDown(e, arch, col, rowIdx, toothId)}
-                onFocus={() => setSelectedTooth(toothId)}
-                disabled={!canUpdateChart}
-              />
-            </foreignObject>
-          );
-        })}
-      </>
-    );
-
-    const lingualPocketInputs = (
-      <>
-        {pocketPositions.slice(3, 6).map((pos, i) => {
-          const rowIdx = i + 4;
-          const isDeep = record.pockets[pos] !== undefined && record.pockets[pos]! >= 4;
-          return (
-            <foreignObject key={pos} x="0" y={220 + i * 28} width="36" height="24">
-              <Input
-                id={`input-${arch}-${col}-${rowIdx}`}
-                type="number"
-                min="0"
-                max="20"
-                className={cn(
-                  "h-full w-full rounded-none border-x-0 border-t-0 bg-transparent p-1 text-center text-xs transition-all",
-                  isDeep 
-                    ? "text-red-600 font-bold bg-red-100/60 border-red-300" 
-                    : "border-border/60 text-foreground"
-                )}
-                value={record.pockets[pos] ?? ""}
-                onChange={(e) => handleInputChangeAndAutoTab(e.target.value, toothId, pos, arch, col, rowIdx)}
-                onKeyDown={(e) => handleKeyDown(e, arch, col, rowIdx, toothId)}
-                onFocus={() => setSelectedTooth(toothId)}
-                disabled={!canUpdateChart}
-              />
-            </foreignObject>
-          );
-        })}
-      </>
-    );
-
-    const conditionToggles = (
-      <g transform="translate(2, 168)" className={cn(canUpdateChart && "cursor-pointer")} onClick={() => canUpdateChart && setSelectedTooth(toothId)}>
-        {conditionKeys.map((con, i) => {
-          const isActive = record.conditions && record.conditions[con];
-          const color = {
-            bleeding: "#ef4444",
-            suppuration: "#eab308",
-            plaque: "#3b82f6",
-            calculus: "#22c55e",
-          }[con];
-          return (
-            <rect
-              key={con}
-              x={i * 8}
-              y="0"
-              width="8"
-              height="8"
-              rx="1.5"
-              fill={isActive ? color : "hsl(var(--card))"}
-              stroke={isActive ? color : "hsl(var(--border))"}
-              strokeWidth="0.5"
-              className="transition-colors duration-200"
-              onClick={(e) => {
-                if (canUpdateChart) {
-                  e.stopPropagation();
-                  handleConditionToggle(toothId, con);
-                }
-              }}
-            >
-              <title>{con.charAt(0).toUpperCase() + con.slice(1)}</title>
-            </rect>
-          );
-        })}
-      </g>
-    );
-
-    const otherInputs = (
-      <>
-        <foreignObject x="0" y={188} width="36" height="24">
-          <Input
-            id={`input-${arch}-${col}-3`}
-            type="number"
-            min="0"
-            max="20"
-            className={cn(
-              "h-full w-full bg-transparent p-1 text-center text-xs border-border/60",
-              record.recession !== undefined && record.recession! >= 4 ? "text-amber-600 font-bold bg-amber-50" : ""
-            )}
-            placeholder="REC"
-            value={record.recession ?? ""}
-            onChange={(e) => handleRecessionChangeAndAutoTab(e.target.value, toothId, arch, col, 3)}
-            onKeyDown={(e) => handleKeyDown(e, arch, col, 3, toothId)}
-            onFocus={() => setSelectedTooth(toothId)}
-            disabled={!canUpdateChart}
-          />
-        </foreignObject>
-
-        {/* Buccal CAL */}
-        <foreignObject x="0" y={210} width="36" height="12">
-          <div className="w-full flex justify-between px-[2px] opacity-60">
-            {pocketPositions.slice(0, 3).map((pos) => {
-              const p = record.pockets[pos] || 0;
-              const r = record.recession || 0;
-              const cal = p + r;
-              return <span key={pos} className="text-[7px] font-bold" title="Clinical Attachment Level">{cal || "-"}</span>;
-            })}
-          </div>
-        </foreignObject>
-
-        {/* Lingual CAL */}
-        <foreignObject x="0" y={300} width="36" height="12">
-          <div className="w-full flex justify-between px-[2px] opacity-60">
-            {pocketPositions.slice(3, 6).map((pos) => {
-              const p = record.pockets[pos] || 0;
-              const r = record.recession || 0;
-              const cal = p + r;
-              return <span key={pos} className="text-[7px] font-bold" title="Clinical Attachment Level">{cal || "-"}</span>;
-            })}
-          </div>
-        </foreignObject>
-
-        <foreignObject x="0" y={312} width="36" height="24">
-          <Select
-            value={record.mobility}
-            onValueChange={(val) => handleSelectChange(toothId, "mobility", val)}
-            onOpenChange={(open) => open && setSelectedTooth(toothId)}
-            disabled={!canUpdateChart}
-          >
-            <SelectTrigger className="h-full w-full text-xs px-1">
-              <SelectValue placeholder="MOB" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="0">0</SelectItem>
-              <SelectItem value="1">1</SelectItem>
-              <SelectItem value="2">2</SelectItem>
-              <SelectItem value="3">3</SelectItem>
-            </SelectContent>
-          </Select>
-        </foreignObject>
-        <foreignObject x="0" y={340} width="36" height="24">
-          <Select
-            value={record.furcation}
-            onValueChange={(val) => handleSelectChange(toothId, "furcation", val)}
-            onOpenChange={(open) => open && setSelectedTooth(toothId)}
-            disabled={!canUpdateChart}
-          >
-            <SelectTrigger className="h-full w-full text-xs px-1">
-              <SelectValue placeholder="FUR" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="I">I</SelectItem>
-              <SelectItem value="II">II</SelectItem>
-              <SelectItem value="III">III</SelectItem>
-            </SelectContent>
-          </Select>
-        </foreignObject>
-        <foreignObject x="0" y={368} width="36" height="24">
-          <Input
-            id={`input-mgj-${arch}-${col}`}
-            type="number"
-            min="0"
-            max="20"
-            className="h-full w-full bg-transparent p-1 text-center text-xs border-border/60"
-            placeholder="MGJ"
-            value={record.mgj ?? ""}
-            onChange={(e) => handleMgjChangeAndAutoTab(e.target.value, toothId, arch, col, 7)}
-            onKeyDown={(e) => handleKeyDown(e, arch, col, 7, toothId)}
-            onFocus={() => setSelectedTooth(toothId)}
-            disabled={!canUpdateChart}
-          />
-        </foreignObject>
-      </>
-    );
-
     return (
-      <g transform={`translate(4, 4)`} className={isMissing ? "opacity-40" : ""}>
+      <g 
+        className={cn("transition-opacity", isMissing && "opacity-40")}
+        style={{ cursor: 'pointer' }}
+        onClick={() => {
+          if (!isMissing && canUpdateChart) {
+            setSelectedTooth(toothId);
+          }
+        }}
+      >
         <rect x="-4" y="-4" width="44" height="420" className={cn("fill-transparent transition-colors", selectedTooth === toothId && "fill-blue-500/10")} />
+        
+        {/* Mobility */}
+        {record.mobility && (
+          <text x="18" y="10" className="text-[10px] font-extrabold fill-slate-700 text-anchor-middle">{record.mobility}</text>
+        )}
+        
         <text x="18" y="24" className="text-xs font-semibold fill-muted-foreground text-anchor-middle">{toothId}</text>
         
         {/* Realistic Transparent PNG Tooth Image representation */}
@@ -768,10 +594,6 @@ export function PeriodontalChart({
             className={cn(
               "w-full h-full p-0.5 flex items-center justify-center rounded border relative transition-colors duration-200",
               isMissing ? "bg-slate-200 border-slate-300 dark:bg-slate-800 dark:border-slate-700" :
-              record.conditions?.bleeding ? "bg-red-50 border-red-300 dark:bg-red-950/20 dark:border-red-800" :
-              record.conditions?.suppuration ? "bg-yellow-50 border-yellow-300 dark:bg-yellow-950/20 dark:border-yellow-800" :
-              record.conditions?.plaque ? "bg-blue-50 border-blue-300 dark:bg-blue-950/20 dark:border-blue-800" :
-              record.conditions?.calculus ? "bg-green-50 border-green-300 dark:bg-green-950/20 dark:border-green-800" :
               "bg-card border-border"
             )}
           >
@@ -797,27 +619,61 @@ export function PeriodontalChart({
           </div>
         </foreignObject>
 
-        {/* Missing Overlay to block clicks */}
-        {isMissing && (
-          <rect x="0" y="70" width="36" height="320" fill="transparent" className="cursor-not-allowed" />
-        )}
-
-        <g className={isMissing ? "pointer-events-none" : ""}>
-          {buccalPocketInputs}
-          {conditionToggles}
-          {otherInputs}
-          {lingualPocketInputs}
-        </g>
-
         <line x1="0" y1="32" x2="36" y2="32" stroke="hsl(var(--border))" />
         <line x1="0" y1="68" x2="36" y2="68" stroke="hsl(var(--border))" />
+        
+        {/* Conditions (B, S, P, C) displayed below the tooth image */}
+        <g className="text-[9px] font-bold pointer-events-none" textAnchor="middle">
+          {record.conditions?.bleeding && <text x="6" y="78" className="fill-red-600">B</text>}
+          {record.conditions?.suppuration && <text x="14" y="78" className="fill-yellow-500">S</text>}
+          {record.conditions?.plaque && <text x="22" y="78" className="fill-blue-500">P</text>}
+          {record.conditions?.calculus && <text x="30" y="78" className="fill-green-600">C</text>}
+        </g>
+        
         <line x1="0" y1="80" x2="36" y2="80" stroke="hsl(var(--border))" />
+        
+        {/* Buccal Data */}
+        <g className="text-[10px] font-bold fill-slate-700 pointer-events-none" textAnchor="middle">
+          {/* Buccal PD */}
+          {record.pockets.mesiobuccal !== undefined && <text x="6" y="98">{record.pockets.mesiobuccal}</text>}
+          {record.pockets.buccal !== undefined && <text x="18" y="98">{record.pockets.buccal}</text>}
+          {record.pockets.distobuccal !== undefined && <text x="30" y="98">{record.pockets.distobuccal}</text>}
+          
+          {/* Buccal GM */}
+          {record.recession !== undefined && <text x="6" y="126">{record.recession}</text>}
+          {record.recession !== undefined && <text x="18" y="126">{record.recession}</text>}
+          {record.recession !== undefined && <text x="30" y="126">{record.recession}</text>}
+          
+          {/* Buccal CAL */}
+          {record.pockets.mesiobuccal !== undefined && <text x="6" y="154" className="fill-slate-400">{(record.pockets.mesiobuccal || 0) + (record.recession || 0)}</text>}
+          {record.pockets.buccal !== undefined && <text x="18" y="154" className="fill-slate-400">{(record.pockets.buccal || 0) + (record.recession || 0)}</text>}
+          {record.pockets.distobuccal !== undefined && <text x="30" y="154" className="fill-slate-400">{(record.pockets.distobuccal || 0) + (record.recession || 0)}</text>}
+        </g>
+
         <line x1="0" y1="108" x2="36" y2="108" stroke="hsl(var(--border))" />
         <line x1="0" y1="136" x2="36" y2="136" stroke="hsl(var(--border))" />
         <line x1="0" y1="164" x2="36" y2="164" stroke="hsl(var(--border))" />
         <line x1="0" y1="184" x2="36" y2="184" stroke="hsl(var(--border))" />
         <line x1="0" y1="216" x2="36" y2="216" stroke="hsl(var(--border))" />
-        <line x1="0" y1="220" x2="36" y2="220" stroke="hsl(var(--border))" />
+        
+        {/* Lingual Data */}
+        <g className="text-[10px] font-bold fill-slate-700 pointer-events-none" textAnchor="middle">
+          {/* Lingual PD */}
+          {record.pockets.mesiolingual !== undefined && <text x="6" y="236">{record.pockets.mesiolingual}</text>}
+          {record.pockets.lingual !== undefined && <text x="18" y="236">{record.pockets.lingual}</text>}
+          {record.pockets.distolingual !== undefined && <text x="30" y="236">{record.pockets.distolingual}</text>}
+          
+          {/* Lingual GM */}
+          {record.recession !== undefined && <text x="6" y="266">{record.recession}</text>}
+          {record.recession !== undefined && <text x="18" y="266">{record.recession}</text>}
+          {record.recession !== undefined && <text x="30" y="266">{record.recession}</text>}
+          
+          {/* Lingual CAL */}
+          {record.pockets.mesiolingual !== undefined && <text x="6" y="294" className="fill-slate-400">{(record.pockets.mesiolingual || 0) + (record.recession || 0)}</text>}
+          {record.pockets.lingual !== undefined && <text x="18" y="294" className="fill-slate-400">{(record.pockets.lingual || 0) + (record.recession || 0)}</text>}
+          {record.pockets.distolingual !== undefined && <text x="30" y="294" className="fill-slate-400">{(record.pockets.distolingual || 0) + (record.recession || 0)}</text>}
+        </g>
+
         <line x1="0" y1="248" x2="36" y2="248" stroke="hsl(var(--border))" />
         <line x1="0" y1="276" x2="36" y2="276" stroke="hsl(var(--border))" />
         <line x1="0" y1="304" x2="36" y2="304" stroke="hsl(var(--border))" />
@@ -828,23 +684,80 @@ export function PeriodontalChart({
     );
   };
   return (
-    <Card className="border border-[#A3D8E1]/30 rounded-3xl shadow-[0_10px_30px_rgba(44,63,77,0.02)]">
-      <CardHeader className="flex flex-row items-center justify-between border-b pb-4">
-        <div>
-          <CardTitle className="text-xl font-extrabold text-[#2C3F4D]">Periodontal Chart</CardTitle>
-          <CardDescription>
-            Assess the health of gums and bone around each tooth. 
-            <span className="block mt-1 text-xs text-amber-600 font-medium">
-              💡 Pro-Tip: Use Up/Down/Left/Right Arrow keys or Enter to navigate the grid. 
-              Press B (Bleeding), S (Suppuration), P (Plaque), or C (Calculus) to quickly toggle conditions on focused tooth!
-            </span>
-          </CardDescription>
-        </div>
-        {canUpdateChart && (
-          <Button onClick={() => onSave(records)} className="bg-[#008B89] hover:bg-[#008B89]/90 text-white rounded-xl px-6">
-            Save Chart
+    <>
+      <style>{`
+        @media print {
+          body * {
+            visibility: hidden;
+          }
+          #periodontal-print-section, #periodontal-print-section * {
+            visibility: visible;
+          }
+          #periodontal-print-section {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+            box-shadow: none !important;
+            border: none !important;
+          }
+        }
+      `}</style>
+      <Card id="periodontal-print-section" className="border border-[#A3D8E1]/30 rounded-3xl shadow-[0_10px_30px_rgba(44,63,77,0.02)] print:border-none print:shadow-none">
+        <CardHeader className="flex flex-row items-center justify-between border-b pb-4 print:border-b-0">
+          <div>
+            <CardTitle className="text-xl font-extrabold text-[#2C3F4D]">
+              Periodontal Chart
+            </CardTitle>
+            
+            {patient && (
+              <div className="hidden print:block mt-4 mb-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-700">Patient Name:</p>
+                    <p className="font-bold text-lg">{patient.first_name} {patient.last_name}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-slate-700">Date of Birth:</p>
+                    <p className="font-bold">{patient.dateOfBirth ? new Date(patient.dateOfBirth).toLocaleDateString() : 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-slate-700">Email:</p>
+                    <p className="font-bold">{patient.email || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-slate-700">Phone:</p>
+                    <p className="font-bold">{patient.phone || 'N/A'}</p>
+                  </div>
+                  <div className="col-span-2">
+                    <p className="text-sm font-semibold text-slate-700">Examination Date:</p>
+                    <p className="font-bold text-teal-700">{new Date().toLocaleDateString()}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            <CardDescription className="print:hidden">
+              Assess the health of gums and bone around each tooth. 
+              <span className="block mt-1 text-xs text-amber-600 font-medium">
+                💡 Pro-Tip: Use Up/Down/Left/Right Arrow keys or Enter to navigate the grid. 
+                Press B (Bleeding), S (Suppuration), P (Plaque), or C (Calculus) to quickly toggle conditions on focused tooth!
+              </span>
+            </CardDescription>
+          </div>
+        <div className="flex items-center gap-3">
+          <Button variant="outline" onClick={() => window.print()} className="rounded-xl px-4 text-slate-600">
+            <Printer className="w-4 h-4 mr-2" />
+            Print Chart
           </Button>
-        )}
+          {canUpdateChart && (
+            <Button onClick={() => onSave(records)} className="bg-[#008B89] hover:bg-[#008B89]/90 text-white rounded-xl px-6">
+              Save Chart
+            </Button>
+          )}
+        </div>
       </CardHeader>
       
       <CardContent className="p-6">
@@ -865,6 +778,22 @@ export function PeriodontalChart({
             <div className="flex items-center gap-2">
               <div className="h-3 w-3 rounded-full border bg-green-500 border-green-700"></div>
               <span className="text-xs font-semibold text-gray-700">C - Calculus</span>
+            </div>
+          </div>
+          
+          <div className="flex flex-wrap gap-x-4 gap-y-2 rounded-2xl border border-gray-100 bg-gray-50/50 p-3 ml-2">
+            <span className="text-xs font-bold text-slate-500 mr-1">Mobility:</span>
+            <div className="flex items-center gap-1">
+              <span className="font-bold text-xs text-slate-700">1</span>
+              <span className="text-[10px] font-medium text-slate-500">Slight (&le;1mm)</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="font-bold text-xs text-slate-700">2</span>
+              <span className="text-[10px] font-medium text-slate-500">Moderate (1-2mm)</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="font-bold text-xs text-slate-700">3</span>
+              <span className="text-[10px] font-medium text-slate-500">Severe (&gt;2mm / vertical)</span>
             </div>
           </div>
 
@@ -956,6 +885,262 @@ export function PeriodontalChart({
           </div>
         </div>
       </CardContent>
+    
+      <Dialog open={selectedTooth !== undefined} onOpenChange={(open) => {
+        if (!open) {
+          setSelectedTooth(undefined);
+          if (canUpdateChart) {
+            onSave(records);
+          }
+        }
+      }}>
+        <DialogContent className="max-w-2xl bg-[#f5f8fa] p-0 overflow-hidden border-[#e0e6eb] gap-0">
+          <DialogHeader className="bg-[#008B89] text-white p-3 flex flex-row justify-between items-center m-0 border-b border-[#007472]">
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-white hover:bg-teal-600 rounded" onClick={() => {
+              if (!selectedTooth) return;
+              const idx = toothSequence.indexOf(selectedTooth);
+              if (idx > 0) setSelectedTooth(toothSequence[idx - 1]);
+            }}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+            </Button>
+            <DialogTitle className="font-bold text-lg text-center m-0 flex items-center gap-4">
+              <span>Tooth {selectedTooth}</span>
+              <div className="flex items-center gap-2 text-sm font-normal bg-white/10 px-3 py-1 rounded-full">
+                <input type="checkbox" checked={threeAtATime} onChange={(e) => setThreeAtATime(e.target.checked)} className="w-3 h-3 rounded border-white text-teal-600 focus:ring-teal-500" />
+                <span>Auto-Advance</span>
+              </div>
+            </DialogTitle>
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-white hover:bg-teal-600 rounded" onClick={() => {
+              if (!selectedTooth) return;
+              const idx = toothSequence.indexOf(selectedTooth);
+              if (idx < toothSequence.length - 1) setSelectedTooth(toothSequence[idx + 1]);
+            }}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+            </Button>
+          </DialogHeader>
+          
+          {selectedTooth && (
+            <div className="flex flex-col p-4 bg-white">
+              
+              <div className="bg-teal-50/50 border border-teal-100/50 rounded-xl p-3 mb-6 flex items-start gap-3">
+                <div className="text-teal-600 font-bold mt-0.5 animate-bounce">💡</div>
+                <div className="text-xs text-teal-800 leading-relaxed">
+                  <strong className="font-extrabold text-teal-900 uppercase tracking-wider text-[10px] mr-1">Fast Charting:</strong> 
+                  Simply type your measurements! The cursor automatically jumps from <strong className="font-semibold">Buccal</strong> to <strong className="font-semibold">Lingual</strong>. 
+                  When <strong className="font-semibold">Auto-Advance</strong> is checked, finishing the Lingual side instantly jumps to the next tooth! No mouse required.
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-8 mb-6">
+                {/* BUCCAL SIDE */}
+                <div>
+                  <h4 className="text-center font-bold text-slate-700 mb-3 border-b pb-1">Buccal / Facial</h4>
+                  <div className="grid grid-cols-[auto_1fr_1fr_1fr] gap-2 items-center text-center">
+                    <div></div>
+                    <div className="text-xs font-bold text-slate-400">M</div>
+                    <div className="text-xs font-bold text-slate-400">F</div>
+                    <div className="text-xs font-bold text-slate-400">D</div>
+                    
+                    <span className="text-xs font-bold text-slate-500 text-right pr-2">PD</span>
+                    {[
+                      { pos: "mesiobuccal", val: getRecord(selectedTooth).pockets.mesiobuccal },
+                      { pos: "buccal", val: getRecord(selectedTooth).pockets.buccal },
+                      { pos: "distobuccal", val: getRecord(selectedTooth).pockets.distobuccal }
+                    ].map((item, idx) => (
+                      <Input key={`b-pd-${idx}`} id={`modal-b-pd-${idx}`}
+                        className="h-9 text-center font-bold text-slate-800 border-2 focus-visible:border-teal-500"
+                        value={item.val ?? ""} 
+                        onChange={e => {
+                          const val = e.target.value;
+                          handlePocketChange(selectedTooth, item.pos, val);
+                          if (val.length >= 1) {
+                            if (idx < 2) document.getElementById(`modal-b-pd-${idx + 1}`)?.focus();
+                            else document.getElementById(`modal-l-pd-0`)?.focus();
+                          }
+                        }} 
+                      />
+                    ))}
+
+                    <span className="text-xs font-bold text-slate-500 text-right pr-2">GM</span>
+                    {[1, 2, 3].map((_, idx) => (
+                      <Input key={`b-gm-${idx}`} id={`modal-b-gm-${idx}`}
+                        className="h-9 text-center font-bold text-slate-800 border-2 focus-visible:border-teal-500"
+                        value={getRecord(selectedTooth).recession ?? ""} 
+                        onChange={e => {
+                          const val = e.target.value;
+                          handleRecessionChange(selectedTooth, val);
+                          if (val.length >= 1) {
+                            if (idx < 2) document.getElementById(`modal-b-gm-${idx + 1}`)?.focus();
+                            else document.getElementById(`modal-l-gm-0`)?.focus();
+                          }
+                        }} 
+                      />
+                    ))}
+
+                    <span className="text-xs font-bold text-slate-500 text-right pr-2">CAL</span>
+                    {[
+                      (getRecord(selectedTooth).pockets.mesiobuccal || 0) + (getRecord(selectedTooth).recession || 0),
+                      (getRecord(selectedTooth).pockets.buccal || 0) + (getRecord(selectedTooth).recession || 0),
+                      (getRecord(selectedTooth).pockets.distobuccal || 0) + (getRecord(selectedTooth).recession || 0)
+                    ].map((cal, idx) => (
+                      <div key={`b-cal-${idx}`} className="h-9 bg-slate-50 flex items-center justify-center font-bold text-slate-400 rounded border border-slate-100">
+                        {cal || "-"}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* LINGUAL SIDE */}
+                <div>
+                  <h4 className="text-center font-bold text-slate-700 mb-3 border-b pb-1">Lingual / Palatal</h4>
+                  <div className="grid grid-cols-[auto_1fr_1fr_1fr] gap-2 items-center text-center">
+                    <div></div>
+                    <div className="text-xs font-bold text-slate-400">M</div>
+                    <div className="text-xs font-bold text-slate-400">L</div>
+                    <div className="text-xs font-bold text-slate-400">D</div>
+                    
+                    <span className="text-xs font-bold text-slate-500 text-right pr-2">PD</span>
+                    {[
+                      { pos: "mesiolingual", val: getRecord(selectedTooth).pockets.mesiolingual },
+                      { pos: "lingual", val: getRecord(selectedTooth).pockets.lingual },
+                      { pos: "distolingual", val: getRecord(selectedTooth).pockets.distolingual }
+                    ].map((item, idx) => (
+                      <Input key={`l-pd-${idx}`} id={`modal-l-pd-${idx}`}
+                        className="h-9 text-center font-bold text-slate-800 border-2 focus-visible:border-teal-500"
+                        value={item.val ?? ""} 
+                        onChange={e => {
+                          const val = e.target.value;
+                          handlePocketChange(selectedTooth, item.pos, val);
+                          if (val.length >= 1) {
+                            if (idx < 2) {
+                              document.getElementById(`modal-l-pd-${idx + 1}`)?.focus();
+                            } else if (threeAtATime) {
+                              const seqIdx = toothSequence.indexOf(selectedTooth);
+                              if (seqIdx < toothSequence.length - 1) {
+                                setSelectedTooth(toothSequence[seqIdx + 1]);
+                                setTimeout(() => document.getElementById('modal-b-pd-0')?.focus(), 50);
+                              }
+                            }
+                          }
+                        }} 
+                      />
+                    ))}
+
+                    <span className="text-xs font-bold text-slate-500 text-right pr-2">GM</span>
+                    {[1, 2, 3].map((_, idx) => (
+                      <Input key={`l-gm-${idx}`} id={`modal-l-gm-${idx}`}
+                        className="h-9 text-center font-bold text-slate-800 border-2 focus-visible:border-teal-500"
+                        value={getRecord(selectedTooth).recession ?? ""} 
+                        onChange={e => {
+                          const val = e.target.value;
+                          handleRecessionChange(selectedTooth, val);
+                          if (val.length >= 1) {
+                            if (idx < 2) {
+                              document.getElementById(`modal-l-gm-${idx + 1}`)?.focus();
+                            } else if (threeAtATime) {
+                              const seqIdx = toothSequence.indexOf(selectedTooth);
+                              if (seqIdx < toothSequence.length - 1) {
+                                setSelectedTooth(toothSequence[seqIdx + 1]);
+                                setTimeout(() => document.getElementById('modal-b-gm-0')?.focus(), 50);
+                              }
+                            }
+                          }
+                        }} 
+                      />
+                    ))}
+
+                    <span className="text-xs font-bold text-slate-500 text-right pr-2">CAL</span>
+                    {[
+                      (getRecord(selectedTooth).pockets.mesiolingual || 0) + (getRecord(selectedTooth).recession || 0),
+                      (getRecord(selectedTooth).pockets.lingual || 0) + (getRecord(selectedTooth).recession || 0),
+                      (getRecord(selectedTooth).pockets.distolingual || 0) + (getRecord(selectedTooth).recession || 0)
+                    ].map((cal, idx) => (
+                      <div key={`l-cal-${idx}`} className="h-9 bg-slate-50 flex items-center justify-center font-bold text-slate-400 rounded border border-slate-100">
+                        {cal || "-"}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="w-full h-px bg-slate-100 mb-4"></div>
+
+              {/* Conditions & Mobility */}
+              <div className="flex flex-wrap gap-x-8 gap-y-4 items-center justify-center">
+                
+                <div className="flex items-center gap-2 bg-slate-50 p-2 rounded-xl border border-slate-100">
+                  <span className="text-xs font-bold text-slate-500 mr-2">CONDITIONS:</span>
+                  {[
+                    { label: "Bleeding", key: "bleeding", color: "bg-red-100 text-red-600 border-red-200 hover:bg-red-200", active: "bg-red-500 text-white border-red-600" },
+                    { label: "Suppuration", key: "suppuration", color: "bg-yellow-100 text-yellow-600 border-yellow-200 hover:bg-yellow-200", active: "bg-yellow-500 text-white border-yellow-600" },
+                    { label: "Plaque", key: "plaque", color: "bg-blue-100 text-blue-600 border-blue-200 hover:bg-blue-200", active: "bg-blue-500 text-white border-blue-600" },
+                    { label: "Calculus", key: "calculus", color: "bg-green-100 text-green-600 border-green-200 hover:bg-green-200", active: "bg-green-500 text-white border-green-600" }
+                  ].map(cond => {
+                    const isActive = getRecord(selectedTooth).conditions[cond.key as keyof PeriodontalConditions];
+                    return (
+                      <button 
+                        key={cond.key}
+                        onClick={() => handleConditionToggle(selectedTooth, cond.key as keyof PeriodontalConditions)} 
+                        className={cn(
+                          "px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors", 
+                          isActive ? cond.active : cond.color
+                        )}
+                      >
+                        {cond.label}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="flex items-center gap-2 bg-slate-50 p-2 rounded-xl border border-slate-100">
+                  <span className="text-xs font-bold text-slate-500 mr-2">MOBILITY:</span>
+                  {["1", "2", "3"].map(val => {
+                    const isSelected = getRecord(selectedTooth).mobility === val;
+                    return (
+                      <button 
+                        key={`mob-${val}`}
+                        onClick={() => {
+                          setRecords(prev => {
+                            const newRecs = [...prev];
+                            const idx = newRecs.findIndex(r => r.toothId === selectedTooth);
+                            const newValue = isSelected ? "" : val;
+                            if (idx > -1) {
+                              newRecs[idx] = { ...newRecs[idx], mobility: newValue };
+                            } else {
+                              newRecs.push({ ...getRecord(selectedTooth), mobility: newValue });
+                            }
+                            return newRecs;
+                          });
+                        }} 
+                        className={cn(
+                          "w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm border transition-colors", 
+                          isSelected ? "bg-slate-700 text-white border-slate-800" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-100"
+                        )}
+                      >
+                        {val}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              <DialogFooter className="mt-6 border-t pt-4">
+                <Button 
+                  className="bg-teal-600 hover:bg-teal-700 text-white font-bold px-6"
+                  onClick={() => {
+                    if (canUpdateChart) onSave(records);
+                    setSelectedTooth(undefined);
+                  }}
+                >
+                  Save & Close
+                </Button>
+              </DialogFooter>
+
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </Card>
+    </>
   );
 }
