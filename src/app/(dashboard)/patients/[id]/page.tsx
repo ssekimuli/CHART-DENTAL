@@ -45,7 +45,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { deletePatient, getPatientById, updatePatient, addTreatment, updateTreatment, deleteTreatment, addImageToPatient, getTreatments, getPatientInvoices, processPayment } from "@/lib/api";
+import { deletePatient, getPatientById, updatePatient, addTreatment, updateTreatment, deleteTreatment, addImageToPatient, getTreatments, getPatientInvoices, processPayment, getPatientPrescriptions, deletePrescription } from "@/lib/api";
 import { ImageUploadForm } from "./components/image-upload-form";
 import { hasPermission, getCurrentUser, hasRole } from "@/lib/user";
 import { getPatientFullName } from "@/lib/utils";
@@ -66,6 +66,7 @@ export default function PatientDetailPage({
   const [patient, setPatient] = useState<Patient | undefined>(undefined);
   const [systemTreatments, setSystemTreatments] = useState<SystemTreatment[]>([]);
   const [invoices, setInvoices] = useState<any[]>([]);
+  const [prescriptions, setPrescriptions] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const [isTreatmentFormOpen, setIsTreatmentFormOpen] = useState(false);
@@ -113,6 +114,18 @@ export default function PatientDetailPage({
     }
   };
 
+  const handleDeletePrescription = async (prescriptionId: string | number) => {
+    if (confirm("Are you sure you want to delete this prescription?")) {
+      const success = await deletePrescription(prescriptionId);
+      if (success) {
+        setPrescriptions(prev => prev.filter(p => String(p.id) !== String(prescriptionId)));
+        toast({ title: "Deleted", description: "Prescription deleted successfully." });
+      } else {
+        toast({ title: "Error", description: "Failed to delete prescription.", variant: "destructive" });
+      }
+    }
+  };
+
   const canUpdatePatient = hasPermission('patients:update');
   const canDeletePatient = hasPermission('patients:delete');
   const currentUser = getCurrentUser();
@@ -122,14 +135,16 @@ export default function PatientDetailPage({
     if (typeof id !== "string") return;
     const fetchData = async () => {
         setIsLoading(true);
-        const [patientData, treatmentsData, invoicesData] = await Promise.all([
+        const [patientData, treatmentsData, invoicesData, prescriptionsData] = await Promise.all([
             getPatientById(id),
             getTreatments(),
-            getPatientInvoices(id)
+            getPatientInvoices(id),
+            getPatientPrescriptions(id)
         ]);
         setPatient(patientData);
         setSystemTreatments(treatmentsData);
         setInvoices(invoicesData);
+        setPrescriptions(prescriptionsData);
         if (patientData && !isReceptionist && patientData.history) {
             summarizePatientHistory({ patientHistory: patientData.history }).then(setHistorySummary);
         }
@@ -279,10 +294,11 @@ export default function PatientDetailPage({
 
       {!isReceptionist && (
         <Tabs defaultValue="imaging">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="imaging">Imaging</TabsTrigger>
             <TabsTrigger value="history">History</TabsTrigger>
             <TabsTrigger value="invoices">Invoices</TabsTrigger>
+            <TabsTrigger value="prescriptions">Prescriptions</TabsTrigger>
           </TabsList>
           
 
@@ -425,6 +441,75 @@ export default function PatientDetailPage({
                         <TableRow>
                           <TableCell colSpan={7} className="h-24 text-center">
                             No invoices found for this patient.
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="prescriptions">
+            <Card>
+              <CardHeader>
+                <CardTitle>Prescriptions</CardTitle>
+                <CardDescription>
+                  View and manage patient's prescription history.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Doctor</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Notes</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {prescriptions.map((rx) => (
+                        <TableRow key={rx.id}>
+                          <TableCell>{rx.prescriptionDate || rx.prescription_date ? moment(rx.prescriptionDate || rx.prescription_date).format("MMM DD, YYYY") : '-'}</TableCell>
+                          <TableCell>{rx.doctorName || rx.doctor_name || '-'}</TableCell>
+                          <TableCell>
+                            <Badge variant={rx.status === 'Dispensed' ? 'secondary' : 'outline'}>{rx.status}</Badge>
+                          </TableCell>
+                          <TableCell className="max-w-xs truncate">{rx.notes || '-'}</TableCell>
+                          <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" className="h-8 w-8 p-0">
+                                  <span className="sr-only">Open menu</span>
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                <DropdownMenuItem onClick={() => {
+                                  // Edit functionality placeholder or real logic later
+                                  toast({ description: "Edit functionality coming soon!" });
+                                }}>
+                                  <Pencil className="mr-2 h-4 w-4" />
+                                  Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleDeletePrescription(rx.id)} className="text-destructive focus:text-destructive">
+                                  <Trash className="mr-2 h-4 w-4" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      {prescriptions.length === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={5} className="h-24 text-center">
+                            No prescriptions found for this patient.
                           </TableCell>
                         </TableRow>
                       )}

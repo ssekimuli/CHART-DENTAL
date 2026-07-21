@@ -4083,6 +4083,34 @@ export const updatePrescriptionStatus = async (
     return response.data;
 };
 
+export const updatePrescription = async (
+    id: string | number,
+    prescriptionData: Partial<Prescription> & {
+        items?: Array<{
+            medicine_id: string | number;
+            medicine_unit_id: string | number;
+            dosage: string;
+            quantity: number;
+            price: number;
+        }>
+    }
+): Promise<Prescription> => {
+    console.log('API CALL: updatePrescription', { id, prescriptionData });
+    const response = await customAxios.put(`/pharmacy/prescriptions/${id}`, prescriptionData);
+    return response.data;
+};
+
+export const deletePrescription = async (id: string | number): Promise<boolean> => {
+    console.log('API CALL: deletePrescription', { id });
+    try {
+        await customAxios.delete(`/pharmacy/prescriptions/${id}`);
+        return true;
+    } catch (error) {
+        console.error('Error deleting prescription:', error);
+        return false;
+    }
+};
+
 export const getPatientPrescriptions = async (patientId: string | number): Promise<Prescription[]> => {
     console.log('API CALL: getPatientPrescriptions', { patientId });
     try {
