@@ -185,10 +185,10 @@ export default function BillingPage() {
   }
 
   const handleSaveInvoice = async (data: Omit<Invoice, 'id' | 'paidAmount' | 'patientName' | 'branchId' | 'amount'>, treatments: InvoiceTreatment[]) => {
-    const patient = filteredPatients.find(p => String(p.id) === String(data.patientId));
+    const patient = data.patientId ? filteredPatients.find(p => String(p.id) === String(data.patientId)) : undefined;
     const branchId = selectedBranch || getCurrentUser()?.branchId;
-    if (!patient || !branchId) {
-      console.error('Cannot save invoice: missing patient or branch', { patient, selectedBranch, branchId, data });
+    if (!branchId) {
+      console.error('Cannot save invoice: missing branch', { selectedBranch, branchId, data });
       return;
     }
 
@@ -199,7 +199,7 @@ export default function BillingPage() {
         // Update existing invoice
         const updated = await updateInvoice(selectedInvoice.id, {
           ...data,
-          patientName: patient.first_name + ' ' + patient.last_name,
+          patientName: patient ? patient.first_name + ' ' + patient.last_name : null,
           treatments,
         });
         if (updated) {
@@ -213,7 +213,7 @@ export default function BillingPage() {
         // Create new invoice using new API helper
         const newInvoice = await createNewInvoice({
           ...data,
-          patientName: `${patient.first_name} ${patient.last_name}`,
+          patientName: patient ? `${patient.first_name} ${patient.last_name}` : null,
           branchId,
           treatments,
         });
@@ -335,7 +335,7 @@ export default function BillingPage() {
               {paginatedInvoices.map((invoice) => (
                 <TableRow key={invoice.id} onClick={() => handleViewInvoice(invoice.id)} className="cursor-pointer">
                   <TableCell className="font-medium">{invoice.id}</TableCell>
-                  <TableCell>{invoice.patientName}</TableCell>
+                  <TableCell>{invoice.patientName || 'N/A'}</TableCell>
                   <TableCell>
                     <Badge variant={getStatusVariant(invoice.status)}>
                       {invoice.status}
