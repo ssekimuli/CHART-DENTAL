@@ -1,26 +1,36 @@
 "use client";
 
-import { Canvas } from "@react-three/fiber";
-import { OrbitControls, useGLTF, Stage } from "@react-three/drei";
-import { Suspense } from "react";
+import "@google/model-viewer";
+import React from "react";
 
-function Model() {
-  // Use the downloaded GLB model
-  const { scene } = useGLTF("/teeth/3D_teeth/tooth_11.glb");
-  return <primitive object={scene} />;
+// Register model-viewer in JSX elements for TypeScript
+declare global {
+  namespace JSX {
+    interface IntrinsicElements {
+      "model-viewer": React.DetailedHTMLProps<
+        React.HTMLAttributes<HTMLElement> & {
+          src?: string;
+          alt?: string;
+          "auto-rotate"?: boolean;
+          "camera-controls"?: boolean;
+        },
+        HTMLElement
+      >;
+    }
+  }
 }
 
 export function ToothModel3D() {
   return (
-    <div className="w-full h-[400px] bg-muted/20 rounded-md border overflow-hidden">
-      <Canvas shadows camera={{ position: [0, 0, 150], fov: 50 }}>
-        <Suspense fallback={null}>
-          <Stage environment="city" intensity={0.6}>
-            <Model />
-          </Stage>
-        </Suspense>
-        <OrbitControls autoRotate enablePan={false} enableZoom={true} />
-      </Canvas>
+    <div className="w-full h-[400px] bg-muted/20 rounded-md border overflow-hidden flex items-center justify-center">
+      {/* @ts-ignore */}
+      <model-viewer
+        src="/teeth/3D_teeth/tooth_11.glb"
+        alt="A 3D model of a tooth"
+        auto-rotate
+        camera-controls
+        style={{ width: "100%", height: "100%" }}
+      ></model-viewer>
     </div>
   );
 }
