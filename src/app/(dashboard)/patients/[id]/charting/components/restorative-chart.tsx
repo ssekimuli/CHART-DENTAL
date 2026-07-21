@@ -76,6 +76,7 @@ export function RestorativeChart({ initialRecords, onSave, onUpdate, onDelete }:
              </Button>
           )}
         </CardHeader>
+        <CardContent className="space-y-8">
           {/* Teeth Chart Layout */}
           <div className="w-full space-y-12 overflow-x-auto pb-8">
             
