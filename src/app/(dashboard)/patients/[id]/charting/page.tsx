@@ -39,6 +39,7 @@ import { ConditionLogger } from "../components/condition-logger";
 import { getPatientById, addTreatment, updateTreatment, saveDentalRecord, savePeriodontalRecord, saveOcclusalRecord, saveOrthodonticRecord, updateOrthodonticRecord, deleteOrthodonticRecord, saveSoftTissueRecord, updateSoftTissueRecord, deleteSoftTissueRecord, saveEndodonticRecord, updateEndodonticRecord, deleteEndodonticRecord } from "@/lib/api";
 import { getCurrentUser, hasRole, hasPermission } from "@/lib/user";
 import { getPatientFullName } from "@/lib/utils";
+import { useCurrency } from "@/hooks/use-currency";
 
 export default function PatientChartingPage({
   params,
@@ -49,6 +50,7 @@ export default function PatientChartingPage({
   const router = useRouter();
   const [patient, setPatient] = useState<Patient | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(true);
+  const { formatCurrency } = useCurrency();
   const [systemTreatments, setSystemTreatments] = useState<SystemTreatment[]>([]);
   const canUpdatePatient = hasPermission('patients:update');
   const [selectedTreatment, setSelectedTreatment] = useState<Treatment | undefined>(undefined);
@@ -414,7 +416,7 @@ export default function PatientChartingPage({
                             <Badge variant="outline">{plan.status}</Badge>
                           </TableCell>
                           <TableCell>
-                            ${Number(plan.cost).toFixed(2)}
+                            {formatCurrency(Number(plan.cost))}
                           </TableCell>
                           {canUpdatePatient && (
                               <TableCell className="text-right">
