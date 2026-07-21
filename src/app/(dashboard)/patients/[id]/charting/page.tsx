@@ -26,7 +26,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DentalChart } from "../components/dental-chart";
 import { useState, useEffect, use } from "react";
-import type { Patient, DentalRecord, Treatment, PeriodontalRecord, OcclusalRecord, OrthodonticRecord, SoftTissueRecord, DentalCondition, EndodonticRecord } from "@/lib/types";
+import type { Patient, DentalRecord, Treatment, PeriodontalRecord, OcclusalRecord, OrthodonticRecord, SoftTissueRecord, DentalCondition, EndodonticRecord, RestorativeRecord } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { PeriodontalChart } from "./components/periodontal-chart";
@@ -35,8 +35,9 @@ import { SoftTissueChart } from "./components/soft-tissue-chart";
 import { TreatmentPlanForm } from "../components/treatment-plan-form";
 import { OrthodonticChart } from "./components/orthodontic-chart";
 import { EndodonticChart } from "./components/endodontic-chart";
+import { RestorativeChart } from "./components/restorative-chart";
 import { ConditionLogger } from "../components/condition-logger";
-import { getPatientById, addTreatment, updateTreatment, saveDentalRecord, savePeriodontalRecord, saveOcclusalRecord, saveOrthodonticRecord, updateOrthodonticRecord, deleteOrthodonticRecord, saveSoftTissueRecord, updateSoftTissueRecord, deleteSoftTissueRecord, saveEndodonticRecord, updateEndodonticRecord, deleteEndodonticRecord } from "@/lib/api";
+import { getPatientById, addTreatment, updateTreatment, saveDentalRecord, savePeriodontalRecord, saveOcclusalRecord, saveOrthodonticRecord, updateOrthodonticRecord, deleteOrthodonticRecord, saveSoftTissueRecord, updateSoftTissueRecord, deleteSoftTissueRecord, saveEndodonticRecord, updateEndodonticRecord, deleteEndodonticRecord, saveRestorativeRecord, updateRestorativeRecord, deleteRestorativeRecord } from "@/lib/api";
 import { getCurrentUser, hasRole, hasPermission } from "@/lib/user";
 import { getPatientFullName } from "@/lib/utils";
 import { useCurrency } from "@/hooks/use-currency";
@@ -282,6 +283,30 @@ export default function PatientChartingPage({
     }
   }
 
+  const handleSaveRestorativeRecord = async (record: Omit<RestorativeRecord, 'id' | 'createdAt' | 'updatedAt'>) => {
+    if (!patient) return;
+    const updatedPatient = await saveRestorativeRecord(patient.id, record);
+    if (updatedPatient) {
+        setPatient(updatedPatient);
+    }
+  }
+
+  const handleUpdateRestorativeRecord = async (record: RestorativeRecord) => {
+    if (!patient) return;
+    const updatedPatient = await updateRestorativeRecord(patient.id, record);
+    if (updatedPatient) {
+        setPatient(updatedPatient);
+    }
+  }
+
+  const handleDeleteRestorativeRecord = async (recordId: string | number) => {
+    if (!patient) return;
+    const updatedPatient = await deleteRestorativeRecord(patient.id, recordId);
+     if (updatedPatient) {
+        setPatient(updatedPatient);
+    }
+  }
+
   const handleOpenTreatmentForm = (toothId: number) => {
     setSelectedToothForTreatment(toothId);
     setIsTreatmentFormOpen(true);
@@ -322,13 +347,14 @@ export default function PatientChartingPage({
         </h1>
       </div>
       <Tabs defaultValue="odontogram">
-        <TabsList className="grid w-full grid-cols-7">
+        <TabsList className="grid w-full grid-cols-8">
           <TabsTrigger value="odontogram">Odontogram</TabsTrigger>
           <TabsTrigger value="periodontal">Periodontal</TabsTrigger>
           <TabsTrigger value="occlusal">Occlusal</TabsTrigger>
           <TabsTrigger value="soft-tissue">Soft Tissue</TabsTrigger>
           <TabsTrigger value="orthodontic">Orthodontic</TabsTrigger>
           <TabsTrigger value="endodontic">Endodontic</TabsTrigger>
+          <TabsTrigger value="restorative">Restorative</TabsTrigger>
           <TabsTrigger value="treatment">Treatment Plan</TabsTrigger>
         </TabsList>
 
@@ -384,6 +410,14 @@ export default function PatientChartingPage({
               onSave={handleSaveEndoRecord}
               onUpdate={handleUpdateEndoRecord}
               onDelete={handleDeleteEndoRecord}
+            />
+        </TabsContent>
+        <TabsContent value="restorative">
+            <RestorativeChart 
+              initialRecords={patient.restorativeRecords || []} 
+              onSave={handleSaveRestorativeRecord}
+              onUpdate={handleUpdateRestorativeRecord}
+              onDelete={handleDeleteRestorativeRecord}
             />
         </TabsContent>
         <TabsContent value="treatment">

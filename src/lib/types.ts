@@ -63,6 +63,7 @@ export type Patient = {
   softTissueRecords: SoftTissueRecord[];
   orthodonticRecords: OrthodonticRecord[];
   endodonticRecords?: EndodonticRecord[];
+  restorativeRecords?: RestorativeRecord[];
 };
 
 export type PatientImage = {
@@ -79,6 +80,16 @@ export type DentalRecord = {
   toothId: number;
   condition: DentalCondition;
   notes: string;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export type RestorativeRecord = {
+  id?: string | number;
+  toothId: number;
+  surface: string;
+  material: string;
+  notes?: string;
   createdAt?: string;
   updatedAt?: string;
 };

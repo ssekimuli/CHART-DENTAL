@@ -16,7 +16,7 @@ import {
     roles as mockRoles,
     businesses as mockBusinesses
 } from '@/lib/data';
-import type { Business, PaginatedArray, Patient, Appointment, Invoice, ChartData, PracticeTrendPoint, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, BasePatient, InvoiceTreatment, OtherCharge, SystemTreatment, PaymentMethod, PaymentTransaction, AttendanceRecord, LeaveRequest, StaffAdvance, StaffAdvanceStatus, Expense, ExpenseCategory, ExpenseSummary, IncomeRecord, RolePermissions, Permission, DentalRecord, PeriodontalRecord, OcclusalRecord, SoftTissueRecord, OrthodonticRecord, Treatment, DentalCondition, PatientImage, FinancialSummary, CurrentUser, ProfileData, AppointmentStatus, DashboardSummary, EmployeeRole, ReportsOverview, Medicine, MedicineUnit, Prescription, PrescriptionItem, InvoiceMedicine, EndodonticRecord } from '@/lib/types';
+import type { Business, PaginatedArray, Patient, Appointment, Invoice, ChartData, PracticeTrendPoint, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, BasePatient, InvoiceTreatment, OtherCharge, SystemTreatment, PaymentMethod, PaymentTransaction, AttendanceRecord, LeaveRequest, StaffAdvance, StaffAdvanceStatus, Expense, ExpenseCategory, ExpenseSummary, IncomeRecord, RolePermissions, Permission, DentalRecord, PeriodontalRecord, OcclusalRecord, SoftTissueRecord, OrthodonticRecord, Treatment, DentalCondition, PatientImage, FinancialSummary, CurrentUser, ProfileData, AppointmentStatus, DashboardSummary, EmployeeRole, ReportsOverview, Medicine, MedicineUnit, Prescription, PrescriptionItem, InvoiceMedicine, EndodonticRecord, RestorativeRecord } from '@/lib/types';
 import { format, parse } from "date-fns";
 import { speak } from '@/ai/flows/speak';
 import { clearCurrentUser, setCurrentUser } from './user';
@@ -2781,6 +2781,57 @@ export const deleteEndodonticRecord = async (
         return getPatientById(patientId);
     } catch (error) {
         console.error('Error deleting endodontic record:', error);
+        return undefined;
+    }
+};
+
+export const saveRestorativeRecord = async (
+    patientId: string | number, 
+    record: Omit<RestorativeRecord, 'id' | 'createdAt' | 'updatedAt'>
+): Promise<Patient | undefined> => {
+    try {
+        const requestBody = {
+            tooth_id: record.toothId,
+            surface: record.surface,
+            material: record.material,
+            notes: record.notes,
+        };
+        await customAxios.post(`/patients/${patientId}/restorative-records`, requestBody);
+        return getPatientById(patientId);
+    } catch (error) {
+        console.error('Error saving restorative record:', error);
+        return undefined;
+    }
+};
+
+export const updateRestorativeRecord = async (
+    patientId: string | number, 
+    record: RestorativeRecord
+): Promise<Patient | undefined> => {
+    try {
+        const requestBody = {
+            tooth_id: record.toothId,
+            surface: record.surface,
+            material: record.material,
+            notes: record.notes,
+        };
+        await customAxios.put(`/patients/${patientId}/restorative-records/${record.id}`, requestBody);
+        return getPatientById(patientId);
+    } catch (error) {
+        console.error('Error updating restorative record:', error);
+        return undefined;
+    }
+};
+
+export const deleteRestorativeRecord = async (
+    patientId: string | number, 
+    recordId: string | number
+): Promise<Patient | undefined> => {
+    try {
+        await customAxios.delete(`/patients/${patientId}/restorative-records/${recordId}`);
+        return getPatientById(patientId);
+    } catch (error) {
+        console.error('Error deleting restorative record:', error);
         return undefined;
     }
 };
