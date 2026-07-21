@@ -153,7 +153,7 @@ export type OtherCharge = {
   amount: number;
 };
 
-export type PaymentMethod = 'Cash' | 'Credit Card' | 'Insurance' | 'Bank Transfer';
+export type PaymentMethod = 'Cash' | 'Credit Card' | 'Insurance' | 'Bank Transfer' | 'Refund';
 
 export type PaymentTransaction = {
   id: string | number;
@@ -178,6 +178,9 @@ export type Invoice = {
   transactions?: PaymentTransaction[];
   branch?: Branch;
   medicines?: InvoiceMedicine[];
+  discount?: number;
+  tax?: number;
+  insuranceCoverage?: number;
 };
 
 export type ChartData = {

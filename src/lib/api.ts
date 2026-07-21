@@ -771,6 +771,9 @@ export const getInvoices = async (filters?: {
             patientId: inv.patient_id ?? inv.patientId,
             issueDate: inv.issue_date,
             branchId: inv.branch_id,
+            discount: Number(inv.discount || 0),
+            tax: Number(inv.tax || 0),
+            insuranceCoverage: Number(inv.insurance_coverage || 0),
             branch: inv.branch ? {
                 id: inv.branch.id,
                 name: inv.branch.name,
@@ -848,6 +851,9 @@ export const getInvoiceById = async (id: string | number): Promise<Invoice | und
             issueDate: invoiceData.issue_date || invoiceData.issueDate || new Date().toISOString(),
             dueDate: invoiceData.due_date || invoiceData.dueDate || new Date().toISOString(),
             paymentMethod: invoiceData.payment_method || invoiceData.paymentMethod || null,
+            discount: Number(invoiceData.discount || 0),
+            tax: Number(invoiceData.tax || 0),
+            insuranceCoverage: Number(invoiceData.insurance_coverage || 0),
             branchId: invoiceData.branch_id || invoiceData.branchId,
             branch: invoiceData.branch ? {
                 id: invoiceData.branch.id,
@@ -2869,13 +2875,20 @@ export const createNewInvoice = async (data: Omit<Invoice, 'id' | 'amount' | 'pa
         // ✅ Calculate totals
         const treatmentsTotal = data.treatments.reduce((sum, t) => sum + (Number(t.cost) || 0), 0);
         const otherChargesTotal = (data.otherCharges || []).reduce((sum, charge) => sum + (Number(charge.amount) || 0), 0);
-        const amount = treatmentsTotal + otherChargesTotal;
+        const subtotal = treatmentsTotal + otherChargesTotal;
+        const discountAmount = data.discount ? (data.discount <= 100 ? (subtotal * data.discount / 100) : data.discount) : 0;
+        const subtotalAfterDiscount = subtotal - discountAmount;
+        const taxAmount = data.tax ? (subtotalAfterDiscount * data.tax / 100) : 0;
+        const amount = subtotalAfterDiscount + taxAmount;
 
         // ✅ Prepare payload for API
         const payload = {
             patient_id: data.patientId,
             patient_name: data.patientName,
             amount: amount,
+            discount: data.discount || 0,
+            tax: data.tax || 0,
+            insurance_coverage: data.insuranceCoverage || 0,
             issue_date: data.issueDate,
             due_date: data.dueDate,
             status: data.status || 'Pending',
@@ -2940,6 +2953,9 @@ export const createNewInvoice = async (data: Omit<Invoice, 'id' | 'amount' | 'pa
             transactions: invoiceData.transactions || [],
             paymentMethod: invoiceData.payment_method || invoiceData.paymentMethod || data.paymentMethod,
             notes: invoiceData.notes || data.notes || '',
+            discount: Number(invoiceData.discount || data.discount || 0),
+            tax: Number(invoiceData.tax || data.tax || 0),
+            insuranceCoverage: Number(invoiceData.insurance_coverage || data.insuranceCoverage || 0),
         };
 
         console.log('Created invoice:', invoice);
@@ -2966,7 +2982,11 @@ export const updateInvoice = async (id: string | number, data: InvoiceUpdateData
         
         const otherCharges = data.otherCharges || [];
         const otherChargesTotal = otherCharges.reduce((sum, charge) => sum + (Number(charge.amount) || 0), 0);
-        const amount = treatmentsTotal + otherChargesTotal;
+        const subtotal = treatmentsTotal + otherChargesTotal;
+        const discountAmount = data.discount ? (data.discount <= 100 ? (subtotal * data.discount / 100) : data.discount) : 0;
+        const subtotalAfterDiscount = subtotal - discountAmount;
+        const taxAmount = data.tax ? (subtotalAfterDiscount * data.tax / 100) : 0;
+        const amount = subtotalAfterDiscount + taxAmount;
 
         // ✅ Prepare payload for API
         const payload: any = {};
@@ -2979,6 +2999,9 @@ export const updateInvoice = async (id: string | number, data: InvoiceUpdateData
         if (data.branchId !== undefined) payload.branch_id = data.branchId;
         if (data.paymentMethod !== undefined) payload.payment_method = data.paymentMethod;
         if (data.notes !== undefined) payload.notes = data.notes;
+        if (data.discount !== undefined) payload.discount = data.discount;
+        if (data.tax !== undefined) payload.tax = data.tax;
+        if (data.insuranceCoverage !== undefined) payload.insurance_coverage = data.insuranceCoverage;
         
         // Handle treatments
         if (data.treatments !== undefined) {
@@ -3049,6 +3072,9 @@ export const updateInvoice = async (id: string | number, data: InvoiceUpdateData
             transactions: invoiceData.transactions || [],
             paymentMethod: invoiceData.payment_method || invoiceData.paymentMethod || data.paymentMethod,
             notes: invoiceData.notes || data.notes || '',
+            discount: Number(invoiceData.discount || data.discount || 0),
+            tax: Number(invoiceData.tax || data.tax || 0),
+            insuranceCoverage: Number(invoiceData.insurance_coverage || data.insuranceCoverage || 0),
         };
 
         console.log('Updated invoice:', invoice);

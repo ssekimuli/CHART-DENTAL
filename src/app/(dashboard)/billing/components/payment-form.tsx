@@ -36,8 +36,8 @@ import type { Invoice, PaymentMethod } from "@/lib/types";
 
 
 const formSchema = z.object({
-  paymentAmount: z.coerce.number().positive("Payment amount must be positive."),
-  paymentMethod: z.enum(['Cash', 'Credit Card', 'Insurance', 'Bank Transfer']),
+  paymentAmount: z.coerce.number(),
+  paymentMethod: z.enum(['Cash', 'Credit Card', 'Insurance', 'Bank Transfer', 'Refund']),
 });
 
 type PaymentFormProps = {
@@ -62,7 +62,7 @@ export function PaymentForm({ invoice, onSave, onOpenChange }: PaymentFormProps)
     onSave(String(invoice.id), values.paymentAmount, values.paymentMethod);
   }
 
-  const paymentMethods: PaymentMethod[] = ['Cash', 'Credit Card', 'Insurance', 'Bank Transfer'];
+  const paymentMethods: PaymentMethod[] = ['Cash', 'Credit Card', 'Insurance', 'Bank Transfer', 'Refund'];
 
   return (
     <Dialog open={true} onOpenChange={onOpenChange}>
