@@ -76,12 +76,31 @@ export function RestorativeChart({ initialRecords, onSave, onUpdate, onDelete }:
              </Button>
           )}
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="md:col-span-1">
-              <ToothModel3D />
+        <CardContent className="space-y-8">
+          {/* Teeth Grid */}
+          <div className="w-full">
+            <h3 className="text-lg font-semibold text-slate-200 mb-4">Adult Teeth Overview</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-4 overflow-x-auto pb-4">
+              {[
+                // Upper Right
+                18, 17, 16, 15, 14, 13, 12, 11,
+                // Upper Left
+                21, 22, 23, 24, 25, 26, 27, 28,
+                // Lower Right
+                48, 47, 46, 45, 44, 43, 42, 41,
+                // Lower Left
+                31, 32, 33, 34, 35, 36, 37, 38
+              ].map((toothId) => (
+                <div key={toothId} className="min-w-[200px]">
+                  <ToothModel3D toothId={toothId} />
+                </div>
+              ))}
             </div>
-            <div className="md:col-span-2">
+          </div>
+
+          <div className="w-full">
+            <h3 className="text-lg font-semibold text-slate-200 mb-4">Restorative Records</h3>
+            <div className="rounded-md border border-slate-800 bg-slate-950/50">
               <Table>
                 <TableHeader>
                   <TableRow>
