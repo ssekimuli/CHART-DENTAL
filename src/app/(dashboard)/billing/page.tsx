@@ -205,7 +205,7 @@ export default function BillingPage() {
         // Update existing invoice
         const updated = await updateInvoice(selectedInvoice.id, {
           ...data,
-          patientName: patient ? patient.first_name + ' ' + patient.last_name : null,
+          patientName: patient ? patient.first_name + ' ' + patient.last_name : undefined,
           treatments,
         });
         if (updated) {
@@ -219,7 +219,7 @@ export default function BillingPage() {
         // Create new invoice using new API helper
         const newInvoice = await createNewInvoice({
           ...data,
-          patientName: patient ? `${patient.first_name} ${patient.last_name}` : null,
+          patientName: patient ? `${patient.first_name} ${patient.last_name}` : 'Unknown',
           branchId,
           treatments,
         });

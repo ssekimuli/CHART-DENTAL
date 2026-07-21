@@ -1450,9 +1450,10 @@ export const getFinancialSummary = async (filters?: { branchId?: string | number
         // Fallback to mocked summary if the real API call fails.
         await delay(300);
 
-        const branchInvoices = allInvoices.filter(i => String(i.branchId) === String(branchId));
-        const branchPayrolls = mockPayrolls.filter(p => String(p.branchId) === String(branchId));
-        const branchExpenses = allExpenses.filter(e => String(e.branchId) === String(branchId));
+        const branchId = filters?.branchId;
+        const branchInvoices = branchId ? allInvoices.filter(i => String(i.branchId) === String(branchId)) : allInvoices;
+        const branchPayrolls = branchId ? mockPayrolls.filter(p => String(p.branchId) === String(branchId)) : mockPayrolls;
+        const branchExpenses = branchId ? allExpenses.filter(e => String(e.branchId) === String(branchId)) : allExpenses;
 
         const paidInvoices = branchInvoices.filter(i => i.status === 'Paid');
         const totalIncome = paidInvoices.reduce((sum, i) => sum + i.amount, 0);

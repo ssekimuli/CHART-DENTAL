@@ -55,7 +55,7 @@ const formSchema = z.object({
     required_error: "A due date is required.",
   }),
   status: z.enum(['Paid', 'Pending', 'Overdue']),
-  paymentMethod: z.enum(['Cash', 'Credit Card', 'Insurance', 'Bank Transfer']).optional(),
+  paymentMethod: z.enum(['Cash', 'Credit Card', 'Insurance', 'Bank Transfer', 'Refund']).optional(),
   otherCharges: z.array(z.object({
     description: z.string().min(1, "Description is required."),
     amount: z.coerce.number().min(0, "Amount must be zero or more."),
@@ -160,6 +160,7 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
   function onSubmit(values: z.infer<typeof formSchema>) {
     onSave({
         ...values,
+        patientId: values.patientId || '',
         otherCharges: values.otherCharges || [],
         treatments: selectedTreatments,
         medicines: selectedMedicines,
@@ -234,7 +235,7 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
      return Math.max(b, 0);
   }, [totalAmount, invoice, watchInsurance]);
 
-  const paymentMethods: PaymentMethod[] = ['Cash', 'Credit Card', 'Insurance', 'Bank Transfer'];
+  const paymentMethods: PaymentMethod[] = ['Cash', 'Credit Card', 'Insurance', 'Bank Transfer', 'Refund'];
 
   return (
     <Dialog open={true} onOpenChange={onOpenChange}>
@@ -584,8 +585,6 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
                             </div>
                             <div className="flex justify-between text-sm">
                                 <span className="text-muted-foreground">Subtotal (Medicines)</span>
-                                <span>{formatCurrency(medicinesTotal)}</span>
-                            </div>
                                 <span>{formatCurrency(medicinesTotal)}</span>
                             </div>
                             {watchDiscount > 0 && (
