@@ -2293,7 +2293,12 @@ export const savePeriodontalRecord = async (patientId: string | number, records:
                 recession: record.recession ?? 0,
                 mobility: record.mobility || '0',
                 furcation: record.furcation || null,
-                conditions: record.conditions,
+                conditions: {
+                    bleeding: record.conditions?.bleeding || false,
+                    suppuration: record.conditions?.suppuration || false,
+                    plaque: record.conditions?.plaque || false,
+                    calculus: record.conditions?.calculus || false
+                },
             }))
         };
 

@@ -344,6 +344,7 @@ export default function PatientChartingPage({
             <PeriodontalChart 
                 initialRecords={patient.periodontalRecords} 
                 dentalRecords={patient.dentalRecords}
+                patient={patient}
                 onSave={handleSavePeriodontalRecord} 
             />
         </TabsContent>
