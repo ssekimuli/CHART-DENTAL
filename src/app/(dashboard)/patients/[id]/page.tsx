@@ -28,6 +28,7 @@ import { PlusCircle, Trash, Pencil, FileText, Loader2, Upload, MoreHorizontal, H
 import { TreatmentPlanForm } from "./components/treatment-plan-form";
 import { PatientForm } from "../components/patient-form";
 import { PrescriptionForm } from "./components/prescription-form";
+import { EditPrescriptionForm } from "./components/edit-prescription-form";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -80,6 +81,8 @@ export default function PatientDetailPage({
   const [selectedInvoice, setSelectedInvoice] = useState<any | undefined>(undefined);
   const [isPaymentFormOpen, setIsPaymentFormOpen] = useState(false);
   const [isRxFormOpen, setIsRxFormOpen] = useState(false);
+  const [isEditRxFormOpen, setIsEditRxFormOpen] = useState(false);
+  const [selectedPrescription, setSelectedPrescription] = useState<any | null>(null);
 
   const handleOpenPaymentForm = (invoice: any) => {
     setSelectedInvoice(invoice);
@@ -491,8 +494,8 @@ export default function PatientDetailPage({
                               <DropdownMenuContent align="end">
                                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
                                 <DropdownMenuItem onClick={() => {
-                                  // Edit functionality placeholder or real logic later
-                                  toast({ description: "Edit functionality coming soon!" });
+                                  setSelectedPrescription(rx);
+                                  setIsEditRxFormOpen(true);
                                 }}>
                                   <Pencil className="mr-2 h-4 w-4" />
                                   Edit
@@ -575,7 +578,27 @@ export default function PatientDetailPage({
               const invList = await getPatientInvoices(patient.id);
               setInvoices(invList);
             };
+            const fetchRx = async () => {
+              const rxList = await getPatientPrescriptions(patient.id);
+              setPrescriptions(rxList);
+            };
             fetchInvoices();
+            fetchRx();
+          }}
+        />
+      )}
+      {isEditRxFormOpen && selectedPrescription && patient && (
+        <EditPrescriptionForm
+          prescription={selectedPrescription}
+          patientName={getPatientFullName(patient)}
+          branchId={patient.branchId}
+          onOpenChange={setIsEditRxFormOpen}
+          onSave={() => {
+            const fetchRx = async () => {
+              const rxList = await getPatientPrescriptions(patient.id);
+              setPrescriptions(rxList);
+            };
+            fetchRx();
           }}
         />
       )}
