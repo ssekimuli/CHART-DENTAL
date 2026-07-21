@@ -258,7 +258,7 @@ export default function PharmacyPage() {
     e.preventDefault();
     try {
       const payload = {
-        patient_id: Number(rxForm.patient_id),
+        patient_id: rxForm.patient_id ? Number(rxForm.patient_id) : undefined,
         doctor_id: rxForm.doctor_id ? Number(rxForm.doctor_id) : undefined,
         prescription_date: rxForm.prescription_date,
         notes: rxForm.notes,
@@ -469,7 +469,7 @@ export default function PharmacyPage() {
                       {prescriptions.map((rx) => (
                         <TableRow key={rx.id} className="hover:bg-muted/10 transition-colors">
                           <TableCell>{new Date(rx.prescription_date).toLocaleDateString()}</TableCell>
-                          <TableCell className="font-semibold">{rx.patient_name}</TableCell>
+                          <TableCell className="font-semibold">{rx.patient_name || 'N/A'}</TableCell>
                           <TableCell>{rx.doctor_name || "N/A"}</TableCell>
                           <TableCell>
                             <Badge 
@@ -638,7 +638,6 @@ export default function PharmacyPage() {
                 <Label htmlFor="rx-patient">Patient</Label>
                 <select
                   id="rx-patient"
-                  required
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                   value={rxForm.patient_id}
                   onChange={(e) => setRxForm(prev => ({ ...prev, patient_id: e.target.value }))}
@@ -786,7 +785,7 @@ export default function PharmacyPage() {
               <div className="grid grid-cols-2 gap-4 border-b border-border/10 pb-4">
                 <div>
                   <div className="text-xs text-muted-foreground">Patient</div>
-                  <div className="font-semibold">{selectedRx.patient_name}</div>
+                  <div className="font-semibold">{selectedRx.patient_name || "N/A"}</div>
                 </div>
                 <div>
                   <div className="text-xs text-muted-foreground">Doctor</div>

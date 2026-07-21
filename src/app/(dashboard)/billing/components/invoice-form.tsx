@@ -47,7 +47,7 @@ import { useCurrency } from "@/hooks/use-currency";
 
 
 const formSchema = z.object({
-  patientId: z.string({ required_error: "Please select a patient."}),
+  patientId: z.string().optional(),
   issueDate: z.date({
     required_error: "An issue date is required.",
   }),
