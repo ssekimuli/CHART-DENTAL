@@ -40,7 +40,7 @@ export function ToothModel3D({ toothId = 85 }: { toothId?: number | string }) {
   };
 
   return (
-    <div className="relative w-full overflow-hidden rounded-xl border border-slate-800 bg-slate-950 p-8 flex flex-col items-center justify-center gap-10 shadow-2xl group select-none">
+    <div className="relative w-full rounded-xl border border-slate-800 bg-slate-950 p-8 pb-12 flex flex-col items-center justify-center gap-10 shadow-2xl group select-none">
       {/* Subtle glowing radial background */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(59,130,246,0.08)_0%,rgba(0,0,0,0)_100%)] pointer-events-none transition-opacity duration-700 opacity-50 group-hover:opacity-100" />
       
