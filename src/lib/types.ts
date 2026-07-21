@@ -69,6 +69,7 @@ export type PatientImage = {
   url: string;
   description: string;
   date: string;
+  category?: 'Image' | 'X-Ray' | 'Other Doc';
 };
 
 export type DentalCondition = 'Healthy' | 'Caries' | 'Filling' | 'Crown' | 'Missing' | 'Fracture';
@@ -359,6 +360,7 @@ export type OrthodonticRecord = {
 
 export type SystemTreatment = {
     id: string | number;
+    treatment_code?: string;
     procedure: string;
     cost: number;
     category?: string;

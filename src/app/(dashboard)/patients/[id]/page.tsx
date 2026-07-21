@@ -296,53 +296,64 @@ export default function PatientDetailPage({
       </Card>
 
       {!isReceptionist && (
-        <Tabs defaultValue="imaging">
+        <Tabs defaultValue="documents">
           <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="imaging">Imaging</TabsTrigger>
+            <TabsTrigger value="documents">Patient documents</TabsTrigger>
             <TabsTrigger value="history">History</TabsTrigger>
             <TabsTrigger value="invoices">Invoices</TabsTrigger>
             <TabsTrigger value="prescriptions">Prescriptions</TabsTrigger>
           </TabsList>
           
 
-          <TabsContent value="imaging">
+          <TabsContent value="documents">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
-                  <CardTitle>Patient Imaging</CardTitle>
+                  <CardTitle>Patient Documents</CardTitle>
                   <CardDescription>
-                    X-Rays and other patient images.
+                    Images, X-Rays, and other patient documents.
                   </CardDescription>
                 </div>
                  {canUpdatePatient && (
                       <Button size="sm" onClick={() => setIsImageFormOpen(true)}>
                       <Upload className="mr-2 h-4 w-4" />
-                      Upload Image
+                      Upload Document
                       </Button>
                  )}
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
-                  {patient.imaging.map((image, index) => (
-                    <div key={index} className="overflow-hidden rounded-lg border group relative">
-                      <img
-                        src={image.url}
-                        alt={image.description || `Patient image ${index + 1}`}
-                        className="aspect-video h-auto w-full object-cover"
-                        data-ai-hint="dental xray"
-                      />
-                       <div className="absolute bottom-0 left-0 right-0 bg-black/50 p-2 text-white opacity-0 transition-opacity group-hover:opacity-100">
-                          <p className="text-xs font-bold">{image.description}</p>
-                          <p className="text-xs">{image.date}</p>
+                <Tabs defaultValue="Image">
+                  <TabsList className="mb-4">
+                    <TabsTrigger value="Image">Images</TabsTrigger>
+                    <TabsTrigger value="X-Ray">X-Rays</TabsTrigger>
+                    <TabsTrigger value="Other Doc">Other Docs</TabsTrigger>
+                  </TabsList>
+                  {['Image', 'X-Ray', 'Other Doc'].map((cat) => (
+                    <TabsContent key={cat} value={cat}>
+                      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+                        {patient.imaging.filter(img => (img.category || 'Image') === cat).map((image, index) => (
+                          <div key={index} className="overflow-hidden rounded-lg border group relative">
+                            <img
+                              src={image.url}
+                              alt={image.description || `Patient document ${index + 1}`}
+                              className="aspect-video h-auto w-full object-cover"
+                              data-ai-hint="dental xray"
+                            />
+                             <div className="absolute bottom-0 left-0 right-0 bg-black/50 p-2 text-white opacity-0 transition-opacity group-hover:opacity-100">
+                                <p className="text-xs font-bold">{image.description}</p>
+                                <p className="text-xs">{image.date}</p>
+                            </div>
+                          </div>
+                        ))}
+                         {patient.imaging.filter(img => (img.category || 'Image') === cat).length === 0 && (
+                              <div className="col-span-full h-48 flex items-center justify-center">
+                                <p className="text-muted-foreground">No {cat.toLowerCase()}s found.</p>
+                              </div>
+                            )}
                       </div>
-                    </div>
+                    </TabsContent>
                   ))}
-                   {patient.imaging.length === 0 && (
-                        <div className="col-span-full h-48 flex items-center justify-center">
-                          <p className="text-muted-foreground">No images found.</p>
-                        </div>
-                      )}
-                </div>
+                </Tabs>
               </CardContent>
             </Card>
           </TabsContent>

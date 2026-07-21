@@ -25,11 +25,13 @@ import {
 } from "@/components/ui/dialog";
 import type { PatientImage } from "@/lib/types";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const formSchema = z.object({
   // The file input is not directly validated by Zod in this basic setup.
   // We'll add a description validation.
   description: z.string().min(1, "Description is required."),
+  category: z.enum(['Image', 'X-Ray', 'Other Doc']),
 });
 
 type ImageUploadFormProps = {
@@ -42,6 +44,7 @@ export function ImageUploadForm({ onSave, onOpenChange }: ImageUploadFormProps) 
     resolver: zodResolver(formSchema),
     defaultValues: {
       description: "",
+      category: "Image",
     },
   });
 
@@ -51,6 +54,7 @@ export function ImageUploadForm({ onSave, onOpenChange }: ImageUploadFormProps) 
     onSave({
       url: `https://picsum.photos/seed/newxray${Date.now()}/800/600`,
       description: values.description,
+      category: values.category,
     });
   }
 
@@ -58,9 +62,9 @@ export function ImageUploadForm({ onSave, onOpenChange }: ImageUploadFormProps) 
     <Dialog open={true} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Upload New Image</DialogTitle>
+          <DialogTitle>Upload Patient Document</DialogTitle>
           <DialogDescription>
-            Add a new X-ray or image to the patient's record.
+            Add a new image, X-ray, or other document to the patient's record.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -72,6 +76,28 @@ export function ImageUploadForm({ onSave, onOpenChange }: ImageUploadFormProps) 
               </FormControl>
               <FormMessage />
             </FormItem>
+            <FormField
+              control={form.control}
+              name="category"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Document Category</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a category" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="Image">Image</SelectItem>
+                      <SelectItem value="X-Ray">X-Ray</SelectItem>
+                      <SelectItem value="Other Doc">Other Doc</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <FormField
               control={form.control}
               name="description"
