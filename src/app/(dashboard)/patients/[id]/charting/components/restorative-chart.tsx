@@ -32,7 +32,11 @@ import {
 } from "@/components/ui/table";
 import { format } from "date-fns";
 import { RestorativeRecordForm } from "./restorative-record-form";
-import { ToothModel3D } from "./tooth-model-3d";
+import dynamic from "next/dynamic";
+
+const ToothModel3D = dynamic(() => import("./tooth-model-3d").then((mod) => mod.ToothModel3D), {
+  ssr: false,
+});
 
 type RestorativeChartProps = {
   initialRecords: RestorativeRecord[];
