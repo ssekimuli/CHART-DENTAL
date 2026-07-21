@@ -516,7 +516,7 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
                                 name="insuranceCoverage"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Insurance Coverage ($)</FormLabel>
+                                        <FormLabel>Insurance Coverage (Amount)</FormLabel>
                                         <FormControl>
                                             <Input type="number" placeholder="0" {...field} />
                                         </FormControl>

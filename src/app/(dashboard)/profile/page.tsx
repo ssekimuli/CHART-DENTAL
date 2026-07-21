@@ -26,6 +26,7 @@ import { Badge } from "@/components/ui/badge";
 import { LeaveRequestForm } from "../hrm/components/leave-request-form";
 import { PayrollTable } from "../payroll/components/payroll-table";
 import { useRouter } from "next/navigation";
+import { useCurrency } from "@/hooks/use-currency";
 
 export default function ProfilePage() {
     const { toast } = useToast();
@@ -35,6 +36,7 @@ export default function ProfilePage() {
     const [isLoading, setIsLoading] = useState(true);
     const [isLeaveFormOpen, setIsLeaveFormOpen] = useState(false);
     const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+    const { formatCurrency } = useCurrency();
 
 
     useEffect(() => {
@@ -155,7 +157,7 @@ export default function ProfilePage() {
                                     <DollarSign className="h-4 w-4 text-muted-foreground" />
                                 </CardHeader>
                                 <CardContent>
-                                    <div className="text-2xl font-bold">${stats.totalPaid.toLocaleString()}</div>
+                                    <div className="text-2xl font-bold">{formatCurrency(stats.totalPaid)}</div>
                                     <p className="text-xs text-muted-foreground">Total net salary paid to date</p>
                                 </CardContent>
                             </Card>
