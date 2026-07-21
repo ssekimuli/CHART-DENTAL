@@ -7,12 +7,12 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { FilePen, Plus } from "lucide-react";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
 import { Odontogram } from "react-odontogram";
 import "react-odontogram/style.css";
 
@@ -36,9 +36,10 @@ type DentalChartProps = {
   treatmentPlans: Treatment[];
   onAddTreatment: (toothId: number) => void;
   onLogCondition: (toothId: number) => void;
+  onQuickLogCondition?: (toothId: number, condition: DentalCondition) => void;
 };
 
-export function DentalChart({ initialRecords, treatmentPlans, onAddTreatment, onLogCondition }: DentalChartProps) {
+export function DentalChart({ initialRecords, treatmentPlans, onAddTreatment, onLogCondition, onQuickLogCondition }: DentalChartProps) {
   const [selectedTooth, setSelectedTooth] = useState<number | null>(null);
 
   // react-odontogram renders the lower jaw with quadrant 3 (30s) on the left and quadrant 4 (40s) on the right.
@@ -148,51 +149,79 @@ export function DentalChart({ initialRecords, treatmentPlans, onAddTreatment, on
         </div>
       </div>
 
-      <Dialog open={selectedTooth !== null} onOpenChange={(open) => !open && setSelectedTooth(null)}>
-        <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
+      <Sheet open={selectedTooth !== null} onOpenChange={(open) => !open && setSelectedTooth(null)}>
+        <SheetContent side="right" className="sm:max-w-md overflow-y-auto">
+            <SheetHeader className="mb-6">
+                <SheetTitle className="flex items-center gap-2">
                     <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary font-bold text-sm">
                         {selectedTooth}
                     </span>
                     Tooth #{selectedTooth}
-                </DialogTitle>
-                <DialogDescription>
-                    Select an action to perform on this tooth.
-                </DialogDescription>
-            </DialogHeader>
-            <div className="flex flex-col sm:flex-row gap-3 mt-4">
-                <Button 
-                    variant="outline" 
-                    className="flex-1"
-                    onClick={() => {
-                        if (selectedTooth) onLogCondition(selectedTooth);
-                        setSelectedTooth(null);
-                    }}
-                >
-                    <FilePen className="mr-2 h-4 w-4" /> Log Condition
-                </Button>
-                <Button 
-                    variant="secondary"
-                    className="flex-1"
-                    onClick={() => {
+                </SheetTitle>
+                <SheetDescription>
+                    Quickly log a condition or treatment for this tooth.
+                </SheetDescription>
+            </SheetHeader>
+            <div className="flex flex-col gap-6">
+                <div>
+                    <h4 className="text-sm font-medium mb-3">Quick Log Condition</h4>
+                    <div className="grid grid-cols-2 gap-2">
+                        {conditionInfo.map(({ condition, twColor }) => (
+                           <Button 
+                                key={condition}
+                                variant="outline" 
+                                size="sm" 
+                                className="justify-start"
+                                onClick={() => {
+                                    if (selectedTooth && onQuickLogCondition) onQuickLogCondition(selectedTooth, condition);
+                                    setSelectedTooth(null);
+                                }}
+                            >
+                                <div className={cn('mr-2 h-3 w-3 rounded-full border', twColor, {'border-gray-400': condition === 'Healthy'})}></div>
+                                {condition}
+                            </Button>
+                        ))}
+                    </div>
+                    <Button 
+                        variant="ghost" 
+                        size="sm"
+                        className="w-full mt-2"
+                        onClick={() => {
+                            if (selectedTooth) onLogCondition(selectedTooth);
+                            setSelectedTooth(null);
+                        }}
+                    >
+                        <FilePen className="mr-2 h-4 w-4" /> Add Detailed Note
+                    </Button>
+                </div>
+                
+                <div className="border-t pt-4">
+                     <h4 className="text-sm font-medium mb-3">Treatment Plan</h4>
+                     <Button 
+                        className="w-full"
+                        onClick={() => {
+                            if (selectedTooth) onAddTreatment(selectedTooth);
+                            setSelectedTooth(null);
+                        }}
+                    >
+                        <Plus className="mr-2 h-4 w-4" /> Add Treatment
+                    </Button>
+                </div>
+                
+                <div className="border-t pt-4">
+                    <Button 
+                        variant="secondary"
+                        className="w-full"
+                        onClick={() => {
                             window.location.href = `/patients/${window.location.pathname.split('/')[2]}/charting/tooth/${selectedTooth}`;
-                    }}
-                >
-                    <FilePen className="mr-2 h-4 w-4" /> View History
-                </Button>
-                <Button 
-                    className="flex-1"
-                    onClick={() => {
-                        if (selectedTooth) onAddTreatment(selectedTooth);
-                        setSelectedTooth(null);
-                    }}
-                >
-                    <Plus className="mr-2 h-4 w-4" /> Add Treatment
-                </Button>
+                        }}
+                    >
+                        <FilePen className="mr-2 h-4 w-4" /> View Full History
+                    </Button>
+                </div>
             </div>
-        </DialogContent>
-      </Dialog>
+        </SheetContent>
+      </Sheet>
 
       <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 mt-4">
         <div className="flex items-center gap-2">

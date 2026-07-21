@@ -297,6 +297,14 @@ export default function PatientChartingPage({
     setIsConditionLoggerOpen(true);
   }
 
+  const handleQuickLogCondition = async (toothId: number, condition: DentalCondition) => {
+    handleSaveDentalRecord({
+        toothId,
+        condition,
+        notes: ''
+    });
+  }
+
 
   return (
     <div className="flex flex-col gap-6">
@@ -338,6 +346,7 @@ export default function PatientChartingPage({
                         treatmentPlans={patient.treatmentPlans}
                         onAddTreatment={handleOpenTreatmentForm}
                         onLogCondition={handleOpenConditionLogger}
+                        onQuickLogCondition={handleQuickLogCondition}
                     />
                 </CardContent>
             </Card>
