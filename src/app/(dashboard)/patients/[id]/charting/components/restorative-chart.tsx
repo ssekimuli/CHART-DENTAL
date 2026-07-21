@@ -76,26 +76,69 @@ export function RestorativeChart({ initialRecords, onSave, onUpdate, onDelete }:
              </Button>
           )}
         </CardHeader>
-        <CardContent className="space-y-8">
-          {/* Teeth Grid */}
-          <div className="w-full">
-            <h3 className="text-lg font-semibold text-slate-200 mb-4">Adult Teeth Overview</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-4 overflow-x-auto pb-4">
-              {[
-                // Upper Right
-                18, 17, 16, 15, 14, 13, 12, 11,
-                // Upper Left
-                21, 22, 23, 24, 25, 26, 27, 28,
-                // Lower Right
-                48, 47, 46, 45, 44, 43, 42, 41,
-                // Lower Left
-                31, 32, 33, 34, 35, 36, 37, 38
-              ].map((toothId) => (
-                <div key={toothId} className="min-w-[200px]">
-                  <ToothModel3D toothId={toothId} />
+          {/* Teeth Chart Layout */}
+          <div className="w-full space-y-12 overflow-x-auto pb-8">
+            
+            {/* UPPER TEETH ROW */}
+            <div className="w-max min-w-full">
+              <div className="flex items-center justify-between mb-2 px-4">
+                <span className="text-sm font-semibold text-slate-400 tracking-widest uppercase">Upper Right (18-11)</span>
+                <span className="text-sm font-semibold text-slate-400 tracking-widest uppercase">Upper Left (21-28)</span>
+              </div>
+              <div className="flex gap-4 items-stretch p-4 bg-slate-900/50 rounded-2xl border border-slate-800/60 shadow-inner">
+                {/* Upper Right Quadrant */}
+                <div className="flex gap-4">
+                  {[18, 17, 16, 15, 14, 13, 12, 11].map(id => (
+                    <div key={id} className="w-[300px] flex-shrink-0">
+                      <ToothModel3D toothId={id} />
+                    </div>
+                  ))}
                 </div>
-              ))}
+                
+                {/* Midline Divider */}
+                <div className="w-px bg-slate-700/50 mx-2 self-stretch" />
+                
+                {/* Upper Left Quadrant */}
+                <div className="flex gap-4">
+                  {[21, 22, 23, 24, 25, 26, 27, 28].map(id => (
+                    <div key={id} className="w-[300px] flex-shrink-0">
+                      <ToothModel3D toothId={id} />
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
+
+            {/* LOWER TEETH ROW */}
+            <div className="w-max min-w-full">
+              <div className="flex items-center justify-between mb-2 px-4">
+                <span className="text-sm font-semibold text-slate-400 tracking-widest uppercase">Lower Right (48-41)</span>
+                <span className="text-sm font-semibold text-slate-400 tracking-widest uppercase">Lower Left (31-38)</span>
+              </div>
+              <div className="flex gap-4 items-stretch p-4 bg-slate-900/50 rounded-2xl border border-slate-800/60 shadow-inner">
+                {/* Lower Right Quadrant */}
+                <div className="flex gap-4">
+                  {[48, 47, 46, 45, 44, 43, 42, 41].map(id => (
+                    <div key={id} className="w-[300px] flex-shrink-0">
+                      <ToothModel3D toothId={id} />
+                    </div>
+                  ))}
+                </div>
+                
+                {/* Midline Divider */}
+                <div className="w-px bg-slate-700/50 mx-2 self-stretch" />
+                
+                {/* Lower Left Quadrant */}
+                <div className="flex gap-4">
+                  {[31, 32, 33, 34, 35, 36, 37, 38].map(id => (
+                    <div key={id} className="w-[300px] flex-shrink-0">
+                      <ToothModel3D toothId={id} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
           </div>
 
           <div className="w-full">
