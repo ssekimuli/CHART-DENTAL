@@ -35,7 +35,6 @@ import { SoftTissueChart } from "./components/soft-tissue-chart";
 import { TreatmentPlanForm } from "../components/treatment-plan-form";
 import { OrthodonticChart } from "./components/orthodontic-chart";
 import { EndodonticChart } from "./components/endodontic-chart";
-import { RestorativeChart } from "./components/restorative-chart";
 import { RestorativeRecordForm } from "./components/restorative-record-form";
 import { ConditionLogger } from "../components/condition-logger";
 import { getPatientById, addTreatment, updateTreatment, saveDentalRecord, savePeriodontalRecord, saveOcclusalRecord, saveOrthodonticRecord, updateOrthodonticRecord, deleteOrthodonticRecord, saveSoftTissueRecord, updateSoftTissueRecord, deleteSoftTissueRecord, saveEndodonticRecord, updateEndodonticRecord, deleteEndodonticRecord, saveRestorativeRecord, updateRestorativeRecord, deleteRestorativeRecord } from "@/lib/api";
@@ -362,7 +361,6 @@ export default function PatientChartingPage({
           <TabsTrigger value="soft-tissue">Soft Tissue</TabsTrigger>
           <TabsTrigger value="orthodontic">Orthodontic</TabsTrigger>
           <TabsTrigger value="endodontic">Endodontic</TabsTrigger>
-          <TabsTrigger value="restorative">Restorative</TabsTrigger>
           <TabsTrigger value="treatment">Treatment Plan</TabsTrigger>
         </TabsList>
 
@@ -422,14 +420,7 @@ export default function PatientChartingPage({
               onDelete={handleDeleteEndoRecord}
             />
         </TabsContent>
-        <TabsContent value="restorative">
-            <RestorativeChart 
-              initialRecords={patient.restorativeRecords || []} 
-              onSave={handleSaveRestorativeRecord}
-              onUpdate={handleUpdateRestorativeRecord}
-              onDelete={handleDeleteRestorativeRecord}
-            />
-        </TabsContent>
+
         <TabsContent value="treatment">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
