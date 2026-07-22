@@ -32,14 +32,17 @@ const conditionInfo: { condition: DentalCondition; color: string; twColor: strin
 type DentalChartProps = {
   initialRecords: DentalRecord[];
   treatmentPlans: Treatment[];
+  restorativeRecords?: RestorativeRecord[];
   onAddTreatment: (toothId: number) => void;
   onLogCondition: (toothId: number) => void;
   onQuickLogCondition?: (toothId: number, condition: DentalCondition) => void;
+  onAddRestorativeRecord?: (toothId: number) => void;
 };
 
 import { Odontogram } from "../charting/components/odontogram";
+import type { RestorativeRecord } from "@/lib/types";
 
-export function DentalChart({ initialRecords, treatmentPlans, onAddTreatment, onLogCondition, onQuickLogCondition }: DentalChartProps) {
+export function DentalChart({ initialRecords, treatmentPlans, restorativeRecords = [], onAddTreatment, onLogCondition, onQuickLogCondition, onAddRestorativeRecord }: DentalChartProps) {
   const [selectedTooth, setSelectedTooth] = useState<number | null>(null);
 
   return (
@@ -47,6 +50,7 @@ export function DentalChart({ initialRecords, treatmentPlans, onAddTreatment, on
       <div className="rounded-lg bg-muted/10 p-6 border overflow-x-auto flex justify-center items-center min-h-[450px]">
         <div className="w-full scale-100 origin-center py-4 flex flex-col relative">
           <Odontogram 
+            records={restorativeRecords}
             dentalRecords={initialRecords}
             treatmentPlans={treatmentPlans}
             onToothClick={(toothId) => setSelectedTooth(toothId)}
@@ -64,7 +68,7 @@ export function DentalChart({ initialRecords, treatmentPlans, onAddTreatment, on
                     Tooth #{selectedTooth}
                 </SheetTitle>
                 <SheetDescription>
-                    Quickly log a condition or treatment for this tooth.
+                    Quickly log a condition, treatment, or restorative procedure for this tooth.
                 </SheetDescription>
             </SheetHeader>
             <div className="flex flex-col gap-6">
@@ -101,6 +105,20 @@ export function DentalChart({ initialRecords, treatmentPlans, onAddTreatment, on
                 </div>
                 
                 <div className="border-t pt-4">
+                     <h4 className="text-sm font-medium mb-3">Restorative Record</h4>
+                     <Button 
+                        variant="secondary"
+                        className="w-full"
+                        onClick={() => {
+                            if (selectedTooth && onAddRestorativeRecord) onAddRestorativeRecord(selectedTooth);
+                            setSelectedTooth(null);
+                        }}
+                    >
+                        <Plus className="mr-2 h-4 w-4" /> Add Restorative Procedure
+                    </Button>
+                </div>
+
+                <div className="border-t pt-4">
                      <h4 className="text-sm font-medium mb-3">Treatment Plan</h4>
                      <Button 
                         className="w-full"
@@ -115,7 +133,7 @@ export function DentalChart({ initialRecords, treatmentPlans, onAddTreatment, on
                 
                 <div className="border-t pt-4">
                     <Button 
-                        variant="secondary"
+                        variant="outline"
                         className="w-full"
                         onClick={() => {
                             window.location.href = `/patients/${window.location.pathname.split('/')[2]}/charting/tooth/${selectedTooth}`;

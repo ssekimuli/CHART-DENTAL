@@ -36,6 +36,7 @@ import { TreatmentPlanForm } from "../components/treatment-plan-form";
 import { OrthodonticChart } from "./components/orthodontic-chart";
 import { EndodonticChart } from "./components/endodontic-chart";
 import { RestorativeChart } from "./components/restorative-chart";
+import { RestorativeRecordForm } from "./components/restorative-record-form";
 import { ConditionLogger } from "../components/condition-logger";
 import { getPatientById, addTreatment, updateTreatment, saveDentalRecord, savePeriodontalRecord, saveOcclusalRecord, saveOrthodonticRecord, updateOrthodonticRecord, deleteOrthodonticRecord, saveSoftTissueRecord, updateSoftTissueRecord, deleteSoftTissueRecord, saveEndodonticRecord, updateEndodonticRecord, deleteEndodonticRecord, saveRestorativeRecord, updateRestorativeRecord, deleteRestorativeRecord } from "@/lib/api";
 import { getCurrentUser, hasRole, hasPermission } from "@/lib/user";
@@ -77,6 +78,13 @@ export default function PatientChartingPage({
   const [isConditionLoggerOpen, setIsConditionLoggerOpen] = useState(false);
   const [selectedToothForCondition, setSelectedToothForCondition] = useState<number | undefined>(undefined);
 
+  const [isRestorativeFormOpen, setIsRestorativeFormOpen] = useState(false);
+  const [selectedToothForRestorative, setSelectedToothForRestorative] = useState<number | undefined>(undefined);
+
+  const handleOpenRestorativeForm = (toothId: number) => {
+    setSelectedToothForRestorative(toothId);
+    setIsRestorativeFormOpen(true);
+  };
 
   useEffect(() => {
     const user = getCurrentUser();
@@ -370,9 +378,11 @@ export default function PatientChartingPage({
                     <DentalChart 
                         initialRecords={patient.dentalRecords}
                         treatmentPlans={patient.treatmentPlans}
+                        restorativeRecords={patient.restorativeRecords || []}
                         onAddTreatment={handleOpenTreatmentForm}
                         onLogCondition={handleOpenConditionLogger}
                         onQuickLogCondition={handleQuickLogCondition}
+                        onAddRestorativeRecord={handleOpenRestorativeForm}
                     />
                 </CardContent>
             </Card>
@@ -514,6 +524,13 @@ export default function PatientChartingPage({
             onOpenChange={setIsConditionLoggerOpen}
         />
       )}
+      <RestorativeRecordForm
+         open={isRestorativeFormOpen}
+         onOpenChange={setIsRestorativeFormOpen}
+         initialData={{ toothId: selectedToothForRestorative || 1, surface: '', material: '' } as RestorativeRecord}
+         onSave={handleSaveRestorativeRecord}
+         onUpdate={handleUpdateRestorativeRecord}
+      />
     </div>
   );
 }
