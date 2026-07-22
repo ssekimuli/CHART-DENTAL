@@ -29,6 +29,7 @@ import {
     SelectTrigger,
     SelectValue,
   } from "@/components/ui/select";
+import { Combobox } from "@/components/ui/combobox";
 import type { RestorativeRecord } from "@/lib/types";
 
 const formSchema = z.object({
@@ -185,7 +186,13 @@ const procedureGroups = [
   }
 ];
 
-import { SelectGroup, SelectLabel } from "@/components/ui/select";
+const comboboxOptions = procedureGroups.flatMap(group => 
+  group.options.map(opt => ({
+    label: opt,
+    value: opt,
+    category: group.label
+  }))
+);
 
 export function RestorativeRecordForm({
   open,
@@ -238,7 +245,7 @@ export function RestorativeRecordForm({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>{initialData ? "Edit Procedure" : "Add Procedure"}</DialogTitle>
+          <DialogTitle>{initialData && initialData.id ? "Edit Procedure" : "Add Procedure"}</DialogTitle>
           <DialogDescription>
             Record clinical procedures and surface locations.
           </DialogDescription>
@@ -294,25 +301,16 @@ export function RestorativeRecordForm({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Procedure</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select clinical procedure" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent className="max-h-[300px]">
-                      {procedureGroups.map((group) => (
-                        <SelectGroup key={group.label}>
-                          <SelectLabel className="font-bold text-blue-400 mt-2">{group.label}</SelectLabel>
-                          {group.options.map((option) => (
-                            <SelectItem key={option} value={option} className="ml-2">
-                              {option}
-                            </SelectItem>
-                          ))}
-                        </SelectGroup>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <FormControl>
+                    <Combobox
+                      options={comboboxOptions}
+                      value={field.value}
+                      onChange={field.onChange}
+                      placeholder="Select clinical procedure..."
+                      searchPlaceholder="Search procedures..."
+                      emptyMessage="No procedures found."
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}

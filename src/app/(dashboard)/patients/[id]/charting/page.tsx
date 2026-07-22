@@ -79,9 +79,11 @@ export default function PatientChartingPage({
 
   const [isRestorativeFormOpen, setIsRestorativeFormOpen] = useState(false);
   const [selectedToothForRestorative, setSelectedToothForRestorative] = useState<number | undefined>(undefined);
+  const [selectedSurfaceForRestorative, setSelectedSurfaceForRestorative] = useState<string | undefined>(undefined);
 
-  const handleOpenRestorativeForm = (toothId: number) => {
+  const handleOpenRestorativeForm = (toothId: number, surface?: string) => {
     setSelectedToothForRestorative(toothId);
+    setSelectedSurfaceForRestorative(surface);
     setIsRestorativeFormOpen(true);
   };
 
@@ -518,7 +520,7 @@ export default function PatientChartingPage({
       <RestorativeRecordForm
          open={isRestorativeFormOpen}
          onOpenChange={setIsRestorativeFormOpen}
-         initialData={{ toothId: selectedToothForRestorative || 1, surface: '', material: '' } as RestorativeRecord}
+         initialData={{ toothId: selectedToothForRestorative || 1, surface: selectedSurfaceForRestorative || 'Whole Tooth', material: '' } as RestorativeRecord}
          onSave={handleSaveRestorativeRecord}
          onUpdate={handleUpdateRestorativeRecord}
       />

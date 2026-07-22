@@ -36,14 +36,16 @@ type DentalChartProps = {
   onAddTreatment: (toothId: number) => void;
   onLogCondition: (toothId: number) => void;
   onQuickLogCondition?: (toothId: number, condition: DentalCondition) => void;
-  onAddRestorativeRecord?: (toothId: number) => void;
+  onAddRestorativeRecord?: (toothId: number, surface?: string) => void;
 };
 
 import { Odontogram } from "../charting/components/odontogram";
 import type { RestorativeRecord } from "@/lib/types";
 
 export function DentalChart({ initialRecords, treatmentPlans, restorativeRecords = [], onAddTreatment, onLogCondition, onQuickLogCondition, onAddRestorativeRecord }: DentalChartProps) {
-  const [selectedTooth, setSelectedTooth] = useState<number | null>(null);
+  const [selectedToothData, setSelectedToothData] = useState<{id: number, surface?: string} | null>(null);
+  
+  const selectedTooth = selectedToothData?.id || null;
 
   return (
     <div className="flex flex-col gap-6">
@@ -53,12 +55,12 @@ export function DentalChart({ initialRecords, treatmentPlans, restorativeRecords
             records={restorativeRecords}
             dentalRecords={initialRecords}
             treatmentPlans={treatmentPlans}
-            onToothClick={(toothId) => setSelectedTooth(toothId)}
+            onToothClick={(toothId, surface) => setSelectedToothData({ id: toothId, surface })}
           />
         </div>
       </div>
 
-      <Sheet open={selectedTooth !== null} onOpenChange={(open) => !open && setSelectedTooth(null)}>
+      <Sheet open={selectedTooth !== null} onOpenChange={(open) => !open && setSelectedToothData(null)}>
         <SheetContent side="right" className="sm:max-w-md overflow-y-auto">
             <SheetHeader className="mb-6">
                 <SheetTitle className="flex items-center gap-2">
@@ -69,6 +71,7 @@ export function DentalChart({ initialRecords, treatmentPlans, restorativeRecords
                 </SheetTitle>
                 <SheetDescription>
                     Quickly log a condition, treatment, or restorative procedure for this tooth.
+                    {selectedToothData?.surface && <span className="block mt-1 font-medium text-primary">Selected View: {selectedToothData.surface}</span>}
                 </SheetDescription>
             </SheetHeader>
             <div className="flex flex-col gap-6">
@@ -83,7 +86,7 @@ export function DentalChart({ initialRecords, treatmentPlans, restorativeRecords
                                 className="justify-start"
                                 onClick={() => {
                                     if (selectedTooth && onQuickLogCondition) onQuickLogCondition(selectedTooth, condition);
-                                    setSelectedTooth(null);
+                                    setSelectedToothData(null);
                                 }}
                             >
                                 <div className={cn('mr-2 h-3 w-3 rounded-full border', twColor, {'border-gray-400': condition === 'Healthy'})}></div>
@@ -97,7 +100,7 @@ export function DentalChart({ initialRecords, treatmentPlans, restorativeRecords
                         className="w-full mt-2"
                         onClick={() => {
                             if (selectedTooth) onLogCondition(selectedTooth);
-                            setSelectedTooth(null);
+                            setSelectedToothData(null);
                         }}
                     >
                         <FilePen className="mr-2 h-4 w-4" /> Add Detailed Note
@@ -110,8 +113,8 @@ export function DentalChart({ initialRecords, treatmentPlans, restorativeRecords
                         variant="secondary"
                         className="w-full"
                         onClick={() => {
-                            if (selectedTooth && onAddRestorativeRecord) onAddRestorativeRecord(selectedTooth);
-                            setSelectedTooth(null);
+                            if (selectedTooth && onAddRestorativeRecord) onAddRestorativeRecord(selectedTooth, selectedToothData?.surface);
+                            setSelectedToothData(null);
                         }}
                     >
                         <Plus className="mr-2 h-4 w-4" /> Add Restorative Procedure

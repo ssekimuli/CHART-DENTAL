@@ -10,7 +10,7 @@ type OdontogramToothImageProps = {
   records: RestorativeRecord[];
   dentalRecord?: DentalRecord;
   hasTreatment?: boolean;
-  onClick?: (toothId: number) => void;
+  onClick?: (toothId: number, surface?: string) => void;
 };
 
 function OdontogramToothImage({ toothId, records, dentalRecord, hasTreatment, onClick }: OdontogramToothImageProps) {
@@ -144,17 +144,18 @@ function OdontogramToothImage({ toothId, records, dentalRecord, hasTreatment, on
                       conditionColor === '#60A5FA' ? '96, 165, 250' : // Filling
                       conditionColor === '#A78BFA' ? '167, 139, 250' : // Crown
                       conditionColor === '#EF4444' ? '239, 68, 68' : '255, 255, 255';
-                      
-          overlays.push(
-            <div 
-               key={`cond-${dentalRecord.id}`} 
-               className="absolute inset-1 pointer-events-none z-20 rounded-[40%]" 
-               style={{ 
-                  background: `radial-gradient(circle, rgba(${rgb}, 0.7) 10%, rgba(${rgb}, 0.2) 60%, transparent 80%)`,
-                  mixBlendMode: 'multiply'
-               }} 
-            />
-          );
+          if (dentalRecord.condition !== 'Healthy') {
+            overlays.push(
+              <div 
+                 key={`cond-${dentalRecord.id}`} 
+                 className="absolute inset-1 pointer-events-none z-20 rounded-[40%]" 
+                 style={{ 
+                    background: `radial-gradient(circle, rgba(${rgb}, 0.95) 20%, rgba(${rgb}, 0.7) 50%, transparent 80%)`,
+                    mixBlendMode: 'normal'
+                 }} 
+              />
+            );
+          }
         }
       }
 
@@ -179,7 +180,10 @@ function OdontogramToothImage({ toothId, records, dentalRecord, hasTreatment, on
       {isUpper && (
           <>
             {/* Front View (Facial Root pointing UP) */}
-            <div className="relative w-12 h-14 sm:w-14 sm:h-16 md:w-16 md:h-20 lg:w-20 lg:h-24 transition-transform hover:scale-110 z-0 -mb-2 md:-mb-3">
+            <div 
+                className="relative w-12 h-14 sm:w-14 sm:h-16 md:w-16 md:h-20 lg:w-20 lg:h-24 transition-transform hover:scale-110 z-0 -mb-2 md:-mb-3"
+                onClick={(e) => { e.stopPropagation(); onClick && onClick(toothId, "F (Facial)"); }}
+            >
                 <Image
                 src={`/teeth/restore/tooth_${toothId}/front.png`}
                 alt={`Tooth ${toothId} Front`}
@@ -191,7 +195,10 @@ function OdontogramToothImage({ toothId, records, dentalRecord, hasTreatment, on
             </div>
 
             {/* Top View (Occlusal) */}
-            <div className="relative w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 transition-transform hover:scale-110 z-10">
+            <div 
+                className="relative w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 transition-transform hover:scale-110 z-10"
+                onClick={(e) => { e.stopPropagation(); onClick && onClick(toothId, "O (Occlusal)"); }}
+            >
                 {/* Surface Badges */}
                 <div className="absolute inset-0 z-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
                     <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-4 h-4 rounded-full border border-slate-600 bg-slate-800 text-[8px] flex items-center justify-center text-slate-300 shadow-sm">F</div>
@@ -212,7 +219,10 @@ function OdontogramToothImage({ toothId, records, dentalRecord, hasTreatment, on
             </div>
 
             {/* Back View (Palatal Root pointing DOWN) */}
-            <div className="relative w-12 h-14 sm:w-14 sm:h-16 md:w-16 md:h-20 lg:w-20 lg:h-24 transition-transform hover:scale-110 z-0 -mt-2 md:-mt-3">
+            <div 
+                className="relative w-12 h-14 sm:w-14 sm:h-16 md:w-16 md:h-20 lg:w-20 lg:h-24 transition-transform hover:scale-110 z-0 -mt-2 md:-mt-3"
+                onClick={(e) => { e.stopPropagation(); onClick && onClick(toothId, "L (Lingual)"); }}
+            >
                 <Image
                 src={`/teeth/restore/tooth_${toothId}/back.png`}
                 alt={`Tooth ${toothId} Back`}
@@ -229,7 +239,10 @@ function OdontogramToothImage({ toothId, records, dentalRecord, hasTreatment, on
       {!isUpper && (
           <>
             {/* Back View (Lingual Root pointing UP) */}
-            <div className="relative w-12 h-14 sm:w-14 sm:h-16 md:w-16 md:h-20 lg:w-20 lg:h-24 transition-transform hover:scale-110 z-0 -mb-2 md:-mb-3">
+            <div 
+                className="relative w-12 h-14 sm:w-14 sm:h-16 md:w-16 md:h-20 lg:w-20 lg:h-24 transition-transform hover:scale-110 z-0 -mb-2 md:-mb-3"
+                onClick={(e) => { e.stopPropagation(); onClick && onClick(toothId, "L (Lingual)"); }}
+            >
                 <Image
                 src={`/teeth/restore/tooth_${toothId}/back.png`}
                 alt={`Tooth ${toothId} Back`}
@@ -241,7 +254,10 @@ function OdontogramToothImage({ toothId, records, dentalRecord, hasTreatment, on
             </div>
 
             {/* Top View (Occlusal) */}
-            <div className="relative w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 transition-transform hover:scale-110 z-10">
+            <div 
+                className="relative w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 transition-transform hover:scale-110 z-10"
+                onClick={(e) => { e.stopPropagation(); onClick && onClick(toothId, "O (Occlusal)"); }}
+            >
                 {/* Surface Badges */}
                 <div className="absolute inset-0 z-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
                     <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-4 h-4 rounded-full border border-slate-600 bg-slate-800 text-[8px] flex items-center justify-center text-slate-300 shadow-sm">F</div>
@@ -262,7 +278,10 @@ function OdontogramToothImage({ toothId, records, dentalRecord, hasTreatment, on
             </div>
 
             {/* Front View (Facial Root pointing DOWN) */}
-            <div className="relative w-12 h-14 sm:w-14 sm:h-16 md:w-16 md:h-20 lg:w-20 lg:h-24 transition-transform hover:scale-110 z-0 -mt-2 md:-mt-3">
+            <div 
+                className="relative w-12 h-14 sm:w-14 sm:h-16 md:w-16 md:h-20 lg:w-20 lg:h-24 transition-transform hover:scale-110 z-0 -mt-2 md:-mt-3"
+                onClick={(e) => { e.stopPropagation(); onClick && onClick(toothId, "F (Facial)"); }}
+            >
                 <Image
                 src={`/teeth/restore/tooth_${toothId}/front.png`}
                 alt={`Tooth ${toothId} Front`}
@@ -289,7 +308,7 @@ export function Odontogram({
   records?: RestorativeRecord[],
   dentalRecords?: DentalRecord[],
   treatmentPlans?: Treatment[],
-  onToothClick?: (toothId: number) => void
+  onToothClick?: (toothId: number, surface?: string) => void
 }) {
   const upperRight = [18, 17, 16, 15, 14, 13, 12, 11];
   const upperLeft = [21, 22, 23, 24, 25, 26, 27, 28];
