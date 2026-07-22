@@ -93,11 +93,7 @@ export function Odontogram() {
   const lowerLeft = [31, 32, 33, 34, 35, 36, 37, 38];
 
   return (
-    <div className="w-full flex flex-col items-center bg-slate-950 p-6 rounded-xl border border-slate-800 shadow-2xl relative select-none">
-      
-      {/* Subtle background effects */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(59,130,246,0.05)_0%,rgba(0,0,0,0)_80%)] pointer-events-none" />
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,#1e293b_1px,transparent_1px),linear-gradient(to_bottom,#1e293b_1px,transparent_1px)] bg-[size:2rem_2rem] [mask-image:radial-gradient(ellipse_60%_60%_at_50%_50%,#000_20%,transparent_100%)] pointer-events-none opacity-20" />
+    <div className="w-full flex flex-col items-center p-6 relative select-none">
 
       <div className="flex justify-between items-center w-full mb-8 relative z-10">
         <h3 className="text-xl font-bold text-slate-200">Interactive Odontogram</h3>
