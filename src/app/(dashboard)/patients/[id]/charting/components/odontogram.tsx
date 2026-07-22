@@ -178,7 +178,7 @@ function OdontogramToothImage({ toothId, records, dentalRecord, hasTreatment, on
       {/* Upper Arch: Root on Top, Occlusal on Bottom */}
       {isUpper && (
           <>
-            {/* Front View (Root pointing UP) */}
+            {/* Front View (Facial Root pointing UP) */}
             <div className="relative w-12 h-14 sm:w-14 sm:h-16 md:w-16 md:h-20 lg:w-20 lg:h-24 transition-transform hover:scale-110 z-0 -mb-2 md:-mb-3">
                 <Image
                 src={`/teeth/restore/tooth_${toothId}/front.png`}
@@ -210,14 +210,38 @@ function OdontogramToothImage({ toothId, records, dentalRecord, hasTreatment, on
                 />
                 {renderVisualProcedures("Top")}
             </div>
+
+            {/* Back View (Palatal Root pointing DOWN) */}
+            <div className="relative w-12 h-14 sm:w-14 sm:h-16 md:w-16 md:h-20 lg:w-20 lg:h-24 transition-transform hover:scale-110 z-0 -mt-2 md:-mt-3">
+                <Image
+                src={`/teeth/restore/tooth_${toothId}/back.png`}
+                alt={`Tooth ${toothId} Back`}
+                fill
+                className="object-contain drop-shadow-md opacity-90 hover:opacity-100 transition-opacity rotate-180"
+                onError={(e) => { e.currentTarget.style.opacity = '0'; }}
+                />
+                {renderVisualProcedures("Back")}
+            </div>
           </>
       )}
 
       {/* Lower Arch: Occlusal on Top, Root on Bottom */}
       {!isUpper && (
           <>
+            {/* Back View (Lingual Root pointing UP) */}
+            <div className="relative w-12 h-14 sm:w-14 sm:h-16 md:w-16 md:h-20 lg:w-20 lg:h-24 transition-transform hover:scale-110 z-0 -mb-2 md:-mb-3">
+                <Image
+                src={`/teeth/restore/tooth_${toothId}/back.png`}
+                alt={`Tooth ${toothId} Back`}
+                fill
+                className="object-contain drop-shadow-md opacity-90 hover:opacity-100 transition-opacity"
+                onError={(e) => { e.currentTarget.style.opacity = '0'; }}
+                />
+                {renderVisualProcedures("Back")}
+            </div>
+
             {/* Top View (Occlusal) */}
-            <div className="relative w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 transition-transform hover:scale-110 z-10 -mb-2 md:-mb-3">
+            <div className="relative w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 transition-transform hover:scale-110 z-10">
                 {/* Surface Badges */}
                 <div className="absolute inset-0 z-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
                     <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-4 h-4 rounded-full border border-slate-600 bg-slate-800 text-[8px] flex items-center justify-center text-slate-300 shadow-sm">F</div>
@@ -237,8 +261,8 @@ function OdontogramToothImage({ toothId, records, dentalRecord, hasTreatment, on
                 {renderVisualProcedures("Top")}
             </div>
 
-            {/* Front View (Root pointing DOWN) */}
-            <div className="relative w-12 h-14 sm:w-14 sm:h-16 md:w-16 md:h-20 lg:w-20 lg:h-24 transition-transform hover:scale-110 z-0">
+            {/* Front View (Facial Root pointing DOWN) */}
+            <div className="relative w-12 h-14 sm:w-14 sm:h-16 md:w-16 md:h-20 lg:w-20 lg:h-24 transition-transform hover:scale-110 z-0 -mt-2 md:-mt-3">
                 <Image
                 src={`/teeth/restore/tooth_${toothId}/front.png`}
                 alt={`Tooth ${toothId} Front`}
