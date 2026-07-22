@@ -14,6 +14,7 @@ type OdontogramToothImageProps = {
 };
 
 function OdontogramToothImage({ toothId, records, dentalRecord, hasTreatment, onClick }: OdontogramToothImageProps) {
+  const isUpper = toothId <= 28;
   const renderVisualProcedures = (view: "Back" | "Top" | "Front" | "Whole Tooth") => {
     // 1. Render RestorativeRecords (Visual Procedures)
     const toothRecords = records.filter(
@@ -130,56 +131,88 @@ function OdontogramToothImage({ toothId, records, dentalRecord, hasTreatment, on
 
   return (
     <div 
-      className={`flex flex-col items-center gap-2 group w-20 md:w-24 lg:w-28 ${onClick ? 'cursor-pointer hover:bg-slate-800/50 p-2 rounded-lg transition-colors' : ''}`}
+      className={`flex flex-col items-center group w-14 sm:w-16 md:w-20 lg:w-24 ${onClick ? 'cursor-pointer hover:bg-slate-800/50 p-1 rounded-lg transition-colors' : ''}`}
       onClick={() => onClick && onClick(toothId)}
     >
-      <span className="text-xs md:text-sm font-bold text-slate-400 group-hover:text-slate-200 transition-colors mb-2">{toothId}</span>
+      {isUpper && <span className="text-[10px] sm:text-xs md:text-sm font-bold text-slate-400 group-hover:text-slate-200 transition-colors mb-1">{toothId}</span>}
       
-      {/* Back View */}
-      <div className="relative w-16 h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 transition-transform hover:scale-110">
-        <Image
-          src={`/teeth/restore/tooth_${toothId}/back.png`}
-          alt={`Tooth ${toothId} Back`}
-          fill
-          className="object-contain drop-shadow-md opacity-80 hover:opacity-100 transition-opacity rotate-180"
-          onError={(e) => { e.currentTarget.style.opacity = '0'; }}
-        />
-        {renderVisualProcedures("Back")}
-      </div>
+      {/* Upper Arch: Root on Top, Occlusal on Bottom */}
+      {isUpper && (
+          <>
+            {/* Front View (Root pointing UP) */}
+            <div className="relative w-12 h-14 sm:w-14 sm:h-16 md:w-16 md:h-20 lg:w-20 lg:h-24 transition-transform hover:scale-110 z-0 -mb-2 md:-mb-3">
+                <Image
+                src={`/teeth/restore/tooth_${toothId}/front.png`}
+                alt={`Tooth ${toothId} Front`}
+                fill
+                className="object-contain drop-shadow-md opacity-90 hover:opacity-100 transition-opacity"
+                onError={(e) => { e.currentTarget.style.opacity = '0'; }}
+                />
+                {renderVisualProcedures("Front")}
+            </div>
 
-      {/* Top View */}
-      <div className="relative w-20 h-20 md:w-24 md:h-24 lg:w-28 lg:h-28 transition-transform hover:scale-110 z-10">
-        
-        {/* Surface Badges (M, D, F, L, O) shown on hover or always for context */}
-        <div className="absolute inset-0 z-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-           <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-4 h-4 rounded-full border border-slate-600 bg-slate-800 text-[8px] flex items-center justify-center text-slate-300 shadow-sm">F</div>
-           <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-4 h-4 rounded-full border border-slate-600 bg-slate-800 text-[8px] flex items-center justify-center text-slate-300 shadow-sm">L</div>
-           <div className="absolute top-1/2 -left-3 -translate-y-1/2 w-4 h-4 rounded-full border border-slate-600 bg-slate-800 text-[8px] flex items-center justify-center text-slate-300 shadow-sm">{(toothId >= 11 && toothId <= 18) || (toothId >= 41 && toothId <= 48) ? 'M' : 'D'}</div>
-           <div className="absolute top-1/2 -right-3 -translate-y-1/2 w-4 h-4 rounded-full border border-slate-600 bg-slate-800 text-[8px] flex items-center justify-center text-slate-300 shadow-sm">{(toothId >= 11 && toothId <= 18) || (toothId >= 41 && toothId <= 48) ? 'D' : 'M'}</div>
-           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 rounded-full border border-slate-600/50 bg-slate-800/50 text-[8px] flex items-center justify-center text-slate-300 shadow-sm">O</div>
-        </div>
+            {/* Top View (Occlusal) */}
+            <div className="relative w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 transition-transform hover:scale-110 z-10">
+                {/* Surface Badges */}
+                <div className="absolute inset-0 z-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-4 h-4 rounded-full border border-slate-600 bg-slate-800 text-[8px] flex items-center justify-center text-slate-300 shadow-sm">F</div>
+                    <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-4 h-4 rounded-full border border-slate-600 bg-slate-800 text-[8px] flex items-center justify-center text-slate-300 shadow-sm">L</div>
+                    <div className="absolute top-1/2 -left-3 -translate-y-1/2 w-4 h-4 rounded-full border border-slate-600 bg-slate-800 text-[8px] flex items-center justify-center text-slate-300 shadow-sm">{(toothId >= 11 && toothId <= 18) || (toothId >= 41 && toothId <= 48) ? 'M' : 'D'}</div>
+                    <div className="absolute top-1/2 -right-3 -translate-y-1/2 w-4 h-4 rounded-full border border-slate-600 bg-slate-800 text-[8px] flex items-center justify-center text-slate-300 shadow-sm">{(toothId >= 11 && toothId <= 18) || (toothId >= 41 && toothId <= 48) ? 'D' : 'M'}</div>
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 rounded-full border border-slate-600/50 bg-slate-800/50 text-[8px] flex items-center justify-center text-slate-300 shadow-sm">O</div>
+                </div>
 
-        <Image
-          src={`/teeth/restore/tooth_${toothId}/top.png`}
-          alt={`Tooth ${toothId} Top`}
-          fill
-          className="object-contain drop-shadow-lg relative z-10"
-          onError={(e) => { e.currentTarget.src = `/teeth/${toothId}.png`; }}
-        />
-        {renderVisualProcedures("Top")}
-      </div>
+                <Image
+                src={`/teeth/restore/tooth_${toothId}/top.png`}
+                alt={`Tooth ${toothId} Top`}
+                fill
+                className="object-contain drop-shadow-lg relative z-10"
+                onError={(e) => { e.currentTarget.src = `/teeth/${toothId}.png`; }}
+                />
+                {renderVisualProcedures("Top")}
+            </div>
+          </>
+      )}
 
-      {/* Front View */}
-      <div className="relative w-16 h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 transition-transform hover:scale-110">
-        <Image
-          src={`/teeth/restore/tooth_${toothId}/front.png`}
-          alt={`Tooth ${toothId} Front`}
-          fill
-          className="object-contain drop-shadow-md opacity-80 hover:opacity-100 transition-opacity"
-          onError={(e) => { e.currentTarget.style.opacity = '0'; }}
-        />
-        {renderVisualProcedures("Front")}
-      </div>
+      {/* Lower Arch: Occlusal on Top, Root on Bottom */}
+      {!isUpper && (
+          <>
+            {/* Top View (Occlusal) */}
+            <div className="relative w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 transition-transform hover:scale-110 z-10 -mb-2 md:-mb-3">
+                {/* Surface Badges */}
+                <div className="absolute inset-0 z-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-4 h-4 rounded-full border border-slate-600 bg-slate-800 text-[8px] flex items-center justify-center text-slate-300 shadow-sm">F</div>
+                    <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-4 h-4 rounded-full border border-slate-600 bg-slate-800 text-[8px] flex items-center justify-center text-slate-300 shadow-sm">L</div>
+                    <div className="absolute top-1/2 -left-3 -translate-y-1/2 w-4 h-4 rounded-full border border-slate-600 bg-slate-800 text-[8px] flex items-center justify-center text-slate-300 shadow-sm">{(toothId >= 11 && toothId <= 18) || (toothId >= 41 && toothId <= 48) ? 'M' : 'D'}</div>
+                    <div className="absolute top-1/2 -right-3 -translate-y-1/2 w-4 h-4 rounded-full border border-slate-600 bg-slate-800 text-[8px] flex items-center justify-center text-slate-300 shadow-sm">{(toothId >= 11 && toothId <= 18) || (toothId >= 41 && toothId <= 48) ? 'D' : 'M'}</div>
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 rounded-full border border-slate-600/50 bg-slate-800/50 text-[8px] flex items-center justify-center text-slate-300 shadow-sm">O</div>
+                </div>
+
+                <Image
+                src={`/teeth/restore/tooth_${toothId}/top.png`}
+                alt={`Tooth ${toothId} Top`}
+                fill
+                className="object-contain drop-shadow-lg relative z-10 rotate-180"
+                onError={(e) => { e.currentTarget.src = `/teeth/${toothId}.png`; }}
+                />
+                {renderVisualProcedures("Top")}
+            </div>
+
+            {/* Front View (Root pointing DOWN) */}
+            <div className="relative w-12 h-14 sm:w-14 sm:h-16 md:w-16 md:h-20 lg:w-20 lg:h-24 transition-transform hover:scale-110 z-0">
+                <Image
+                src={`/teeth/restore/tooth_${toothId}/front.png`}
+                alt={`Tooth ${toothId} Front`}
+                fill
+                className="object-contain drop-shadow-md opacity-90 hover:opacity-100 transition-opacity rotate-180"
+                onError={(e) => { e.currentTarget.style.opacity = '0'; }}
+                />
+                {renderVisualProcedures("Front")}
+            </div>
+          </>
+      )}
+
+      {!isUpper && <span className="text-[10px] sm:text-xs md:text-sm font-bold text-slate-400 group-hover:text-slate-200 transition-colors mt-1">{toothId}</span>}
     </div>
   );
 }
