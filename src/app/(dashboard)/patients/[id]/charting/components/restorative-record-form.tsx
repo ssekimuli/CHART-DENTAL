@@ -49,7 +49,7 @@ type RestorativeRecordFormProps = {
 const commonSurfaces = ["Top", "Front", "Back", "Whole Tooth"];
 
 // Grouped procedures for the select dropdown
-const procedureGroups = [
+export const procedureGroups = [
   {
     label: "Direct Restorations",
     options: [

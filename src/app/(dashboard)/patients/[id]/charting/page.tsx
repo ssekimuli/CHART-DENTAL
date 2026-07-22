@@ -383,6 +383,7 @@ export default function PatientChartingPage({
                         onLogCondition={handleOpenConditionLogger}
                         onQuickLogCondition={handleQuickLogCondition}
                         onAddRestorativeRecord={handleOpenRestorativeForm}
+                        onQuickLogRestorative={(toothId, surface, material) => handleSaveRestorativeRecord({ toothId, surface, material })}
                     />
                 </CardContent>
             </Card>

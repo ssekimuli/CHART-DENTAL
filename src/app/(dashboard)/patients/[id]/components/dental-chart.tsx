@@ -37,23 +37,107 @@ type DentalChartProps = {
   onLogCondition: (toothId: number) => void;
   onQuickLogCondition?: (toothId: number, condition: DentalCondition) => void;
   onAddRestorativeRecord?: (toothId: number) => void;
+  onQuickLogRestorative?: (toothId: number, surface: string, material: string) => void;
 };
 
 import { Odontogram } from "../charting/components/odontogram";
 import type { RestorativeRecord } from "@/lib/types";
+import { procedureGroups } from "../charting/components/restorative-record-form";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectGroup,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Paintbrush } from "lucide-react";
 
-export function DentalChart({ initialRecords, treatmentPlans, restorativeRecords = [], onAddTreatment, onLogCondition, onQuickLogCondition, onAddRestorativeRecord }: DentalChartProps) {
+export function DentalChart({ initialRecords, treatmentPlans, restorativeRecords = [], onAddTreatment, onLogCondition, onQuickLogCondition, onAddRestorativeRecord, onQuickLogRestorative }: DentalChartProps) {
   const [selectedTooth, setSelectedTooth] = useState<number | null>(null);
+  
+  // Rapid Paint Mode states
+  const [isPaintMode, setIsPaintMode] = useState(false);
+  const [paintSurface, setPaintSurface] = useState("Top");
+  const [paintMaterial, setPaintMaterial] = useState("Composite (tooth-colored) fillings");
+
+  const handleToothClick = (toothId: number) => {
+    if (isPaintMode && onQuickLogRestorative) {
+      onQuickLogRestorative(toothId, paintSurface, paintMaterial);
+    } else {
+      setSelectedTooth(toothId);
+    }
+  };
 
   return (
     <div className="flex flex-col gap-6">
+      
+      {/* Rapid Paint Mode Toolbar */}
+      <div className="flex flex-col gap-4 bg-slate-900/60 p-4 rounded-lg border border-slate-800 shadow-sm transition-all duration-300">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                 <Switch checked={isPaintMode} onCheckedChange={setIsPaintMode} id="paint-mode" />
+                 <Label htmlFor="paint-mode" className="font-bold text-slate-200 flex items-center gap-2 cursor-pointer">
+                    <Paintbrush className={cn("h-4 w-4", isPaintMode ? "text-blue-400" : "text-slate-500")} />
+                    Rapid Paint Mode
+                 </Label>
+              </div>
+              
+              {isPaintMode && (
+                  <div className="flex items-center gap-3 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
+                     <Select value={paintSurface} onValueChange={setPaintSurface}>
+                        <SelectTrigger className="w-[140px] shrink-0 border-blue-900/50 bg-blue-950/30 text-blue-200">
+                            <SelectValue placeholder="Surface" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="Top">Top View</SelectItem>
+                            <SelectItem value="Front">Front View</SelectItem>
+                            <SelectItem value="Back">Back View</SelectItem>
+                            <SelectItem value="Whole Tooth">Whole Tooth</SelectItem>
+                        </SelectContent>
+                     </Select>
+                     
+                     <Select value={paintMaterial} onValueChange={setPaintMaterial}>
+                        <SelectTrigger className="w-[280px] shrink-0 border-blue-900/50 bg-blue-950/30 text-blue-200">
+                            <SelectValue placeholder="Procedure" />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-[300px]">
+                           {procedureGroups.map((group) => (
+                                <SelectGroup key={group.label}>
+                                <SelectLabel className="font-bold text-blue-400 mt-2">{group.label}</SelectLabel>
+                                {group.options.map((option) => (
+                                    <SelectItem key={option} value={option} className="ml-2">
+                                    {option}
+                                    </SelectItem>
+                                ))}
+                                </SelectGroup>
+                            ))}
+                        </SelectContent>
+                     </Select>
+                  </div>
+              )}
+          </div>
+          {isPaintMode && (
+              <div className="text-sm text-blue-400/80 bg-blue-950/20 px-3 py-2 rounded-md border border-blue-900/30 flex items-center gap-2 animate-in fade-in zoom-in duration-300">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+                  </span>
+                  Click any tooth on the odontogram to instantly record: <strong>{paintMaterial}</strong> on the <strong>{paintSurface}</strong>.
+              </div>
+          )}
+      </div>
+
       <div className="rounded-lg bg-muted/10 p-6 border overflow-x-auto flex justify-center items-center min-h-[450px]">
         <div className="w-full scale-100 origin-center py-4 flex flex-col relative">
           <Odontogram 
             records={restorativeRecords}
             dentalRecords={initialRecords}
             treatmentPlans={treatmentPlans}
-            onToothClick={(toothId) => setSelectedTooth(toothId)}
+            onToothClick={handleToothClick}
           />
         </div>
       </div>
