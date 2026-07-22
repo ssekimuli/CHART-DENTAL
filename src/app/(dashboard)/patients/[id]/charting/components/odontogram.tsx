@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Image from "next/image";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 import type { RestorativeRecord, DentalRecord, Treatment } from "@/lib/types";
 
@@ -19,9 +20,18 @@ function OdontogramToothImage({ toothId, records, dentalRecord, hasTreatment, on
     // 1. Render RestorativeRecords (Visual Procedures)
     const toothRecords = records.filter(
       (r) => 
-        r.surface === view || 
-        (r.surface === "Whole Tooth" && view === "Top") ||
-        (view === "Top" && (r.surface.includes("M") || r.surface.includes("D") || r.surface.includes("F") || r.surface.includes("L") || r.surface.includes("O")))
+        (view === "Front" && (r.surface === "F (Facial)" || r.surface === "Front")) ||
+        (view === "Back" && (r.surface === "L (Lingual)" || r.surface === "Back")) ||
+        (view === "Top" && (
+            r.surface === "O (Occlusal)" || 
+            r.surface === "Top" || 
+            r.surface === "Whole Tooth" || 
+            r.surface.includes("M") || 
+            r.surface.includes("D") || 
+            r.surface.includes("F") || 
+            r.surface.includes("L") || 
+            r.surface.includes("O")
+        ))
     );
 
     const overlays: React.ReactNode[] = [];
@@ -40,7 +50,7 @@ function OdontogramToothImage({ toothId, records, dentalRecord, hasTreatment, on
       } else if (proc.includes("veneer")) {
         style = { border: "2px solid #8b5cf6", borderRadius: "10%", width: "80%", height: "80%", left: "10%", top: "10%", backgroundColor: "rgba(139, 92, 246, 0.2)" };
       } else if (proc.includes("implant")) {
-        style = { border: "2px dashed #10b981", borderRadius: "50%", width: "60%", height: "60%", left: "20%", top: "20%", display: "flex", alignItems: "center", justifyContent: "center" };
+        style = { border: "2px dashed #9ca3af", borderRadius: "50%", width: "60%", height: "60%", left: "20%", top: "20%", display: "flex", alignItems: "center", justifyContent: "center" };
         label = "I";
       } else if (proc.includes("root canal") || proc.includes("endodontic")) {
         style = { backgroundColor: "#ef4444", width: "10%", height: "60%", left: "45%", top: "20%", borderRadius: "10px" };
@@ -71,17 +81,17 @@ function OdontogramToothImage({ toothId, records, dentalRecord, hasTreatment, on
          const dSide = isRight ? 'right' : 'left';
 
          overlays.push(
-           <svg key={`surf-${record.id || index}`} viewBox="0 0 100 100" className="absolute inset-0 w-[90%] h-[90%] left-[5%] top-[5%] z-15 opacity-90 pointer-events-none drop-shadow-sm">
+           <svg key={`surf-${record.id || index}`} viewBox="0 0 100 100" className="absolute inset-0 w-[90%] h-[90%] left-[5%] top-[5%] z-20 opacity-90 pointer-events-none drop-shadow-sm">
              {/* O (Center) */}
-             <path d="M 30,30 L 70,30 L 70,70 L 30,70 Z" fill={oColor} stroke={oColor !== 'transparent' ? '#1e293b' : 'none'} strokeWidth="1" />
+             <path d="M 30,30 L 70,30 L 70,70 L 30,70 Z" fill="transparent" stroke={oColor !== 'transparent' ? oColor : 'none'} strokeWidth="4" strokeDasharray="6 4" strokeLinecap="round" strokeLinejoin="round" />
              {/* F (Top) */}
-             <path d="M 10,10 Q 50,0 90,10 L 70,30 L 30,30 Z" fill={fColor} stroke={fColor !== 'transparent' ? '#1e293b' : 'none'} strokeWidth="1" />
+             <path d="M 10,10 Q 50,0 90,10 L 70,30 L 30,30 Z" fill="transparent" stroke={fColor !== 'transparent' ? fColor : 'none'} strokeWidth="4" strokeDasharray="6 4" strokeLinecap="round" strokeLinejoin="round" />
              {/* L (Bottom) */}
-             <path d="M 30,70 L 70,70 L 90,90 Q 50,100 10,90 Z" fill={lColor} stroke={lColor !== 'transparent' ? '#1e293b' : 'none'} strokeWidth="1" />
+             <path d="M 30,70 L 70,70 L 90,90 Q 50,100 10,90 Z" fill="transparent" stroke={lColor !== 'transparent' ? lColor : 'none'} strokeWidth="4" strokeDasharray="6 4" strokeLinecap="round" strokeLinejoin="round" />
              {/* Left Side */}
-             <path d="M 10,10 L 30,30 L 30,70 L 10,90 Q 0,50 10,10 Z" fill={mSide === 'left' ? mColor : dColor} stroke={(mSide === 'left' ? mColor : dColor) !== 'transparent' ? '#1e293b' : 'none'} strokeWidth="1" />
+             <path d="M 10,10 L 30,30 L 30,70 L 10,90 Q 0,50 10,10 Z" fill="transparent" stroke={(mSide === 'left' ? mColor : dColor) !== 'transparent' ? (mSide === 'left' ? mColor : dColor) : 'none'} strokeWidth="4" strokeDasharray="6 4" strokeLinecap="round" strokeLinejoin="round" />
              {/* Right Side */}
-             <path d="M 90,10 L 70,30 L 70,70 L 90,90 Q 100,50 90,10 Z" fill={mSide === 'right' ? mColor : dColor} stroke={(mSide === 'right' ? mColor : dColor) !== 'transparent' ? '#1e293b' : 'none'} strokeWidth="1" />
+             <path d="M 90,10 L 70,30 L 70,70 L 90,90 Q 100,50 90,10 Z" fill="transparent" stroke={(mSide === 'right' ? mColor : dColor) !== 'transparent' ? (mSide === 'right' ? mColor : dColor) : 'none'} strokeWidth="4" strokeDasharray="6 4" strokeLinecap="round" strokeLinejoin="round" />
            </svg>
          );
       } else {
@@ -96,11 +106,33 @@ function OdontogramToothImage({ toothId, records, dentalRecord, hasTreatment, on
                             '14, 165, 233'; // #0ea5e9
 
           if (proc.includes("implant")) {
-              overlays.push(
-                <div key={`proc-${record.id || index}`} className="absolute pointer-events-none z-10 flex items-center justify-center text-emerald-500 font-bold text-xs" style={{ border: "2px dashed #10b981", borderRadius: "50%", width: "60%", height: "60%", left: "20%", top: "20%" }}>
-                  I
-                </div>
-              );
+              if (view === "Back") {
+                  const maskUrl = `url(/teeth/restore/tooth_${toothId}/back.png)`;
+                  const needsRotate = isUpper;
+                  const bgGradient = 'repeating-linear-gradient(10deg, #9ca3af 0px, #9ca3af 3px, #4b5563 3px, #4b5563 5px)';
+                      
+                  overlays.push(
+                    <div 
+                       key={`proc-${record.id || index}`} 
+                       className={`absolute inset-0 pointer-events-none z-10 ${needsRotate ? 'rotate-180' : ''}`} 
+                       style={{ 
+                          backgroundImage: bgGradient,
+                          backgroundSize: '100% 57%',
+                          backgroundPosition: 'bottom',
+                          backgroundRepeat: 'no-repeat',
+                          WebkitMaskImage: maskUrl,
+                          WebkitMaskSize: 'contain',
+                          WebkitMaskPosition: 'center',
+                          WebkitMaskRepeat: 'no-repeat',
+                          maskImage: maskUrl,
+                          maskSize: 'contain',
+                          maskPosition: 'center',
+                          maskRepeat: 'no-repeat',
+                          mixBlendMode: 'multiply'
+                       }} 
+                    />
+                  );
+              }
           } else if (proc.includes("root canal") || proc.includes("endodontic")) {
               overlays.push(
                 <div key={`proc-${record.id || index}`} className="absolute pointer-events-none z-10" style={{ backgroundColor: "#ef4444", width: "10%", height: "60%", left: "45%", top: "20%", borderRadius: "10px" }} />
@@ -109,10 +141,11 @@ function OdontogramToothImage({ toothId, records, dentalRecord, hasTreatment, on
               overlays.push(
                 <div 
                    key={`proc-${record.id || index}`} 
-                   className="absolute inset-1 pointer-events-none z-10 rounded-[40%]" 
+                   className="absolute inset-[-2px] pointer-events-none z-10 rounded-full border-[3px]" 
                    style={{ 
-                      background: `radial-gradient(circle, rgba(${procColor}, 0.5) 10%, rgba(${procColor}, 0.15) 70%, transparent 90%)`,
-                      mixBlendMode: 'multiply'
+                      borderColor: `rgb(${procColor})`,
+                      borderStyle: 'dashed',
+                      opacity: 0.8
                    }} 
                 />
               );
@@ -120,15 +153,20 @@ function OdontogramToothImage({ toothId, records, dentalRecord, hasTreatment, on
       }
     });
 
-    // 2. Render DentalCondition overlays (only on Top view to keep it clean)
-    if (view === "Top") {
-      if (dentalRecord && dentalRecord.condition !== 'Healthy') {
+    // 2. Render DentalCondition overlays
+    if (dentalRecord && dentalRecord.condition !== 'Healthy') {
+      const isImplantCond = dentalRecord.condition === 'Implant';
+      
+      // Implant on Back, Others on Top
+      if ((!isImplantCond && view === "Top") || (isImplantCond && view === "Back")) {
         let conditionColor = "";
-        if (dentalRecord.condition === 'Caries') conditionColor = "#FBBF24";
-        if (dentalRecord.condition === 'Filling') conditionColor = "#60A5FA";
-        if (dentalRecord.condition === 'Crown') conditionColor = "#A78BFA";
-        if (dentalRecord.condition === 'Missing') conditionColor = "#6B7280";
-        if (dentalRecord.condition === 'Fracture') conditionColor = "#EF4444";
+        if (dentalRecord.condition === 'Caries') conditionColor = "#EA580C";
+        if (dentalRecord.condition === 'Filling') conditionColor = "#0284C7";
+        if (dentalRecord.condition === 'Crown') conditionColor = "#9333EA";
+        if (dentalRecord.condition === 'Missing') conditionColor = "#334155";
+        if (dentalRecord.condition === 'Fracture') conditionColor = "#DC2626";
+        if (dentalRecord.condition === 'Implant') conditionColor = "#9CA3AF";
+        if (dentalRecord.condition === 'Bridge') conditionColor = "#D946EF";
 
         if (dentalRecord.condition === 'Missing') {
           // Draw an X
@@ -138,32 +176,65 @@ function OdontogramToothImage({ toothId, records, dentalRecord, hasTreatment, on
                <div className="w-full h-1 bg-red-600 -rotate-45 absolute opacity-80" />
             </div>
           );
-        } else {
-          // Beautiful full-tooth radial shading instead of a dot
-          const rgb = conditionColor === '#FBBF24' ? '251, 191, 36' : // Caries
-                      conditionColor === '#60A5FA' ? '96, 165, 250' : // Filling
-                      conditionColor === '#A78BFA' ? '167, 139, 250' : // Crown
-                      conditionColor === '#EF4444' ? '239, 68, 68' : '255, 255, 255';
-          if (dentalRecord.condition !== 'Healthy') {
+        } else if (isImplantCond) {
+            const maskUrl = `url(/teeth/restore/tooth_${toothId}/back.png)`;
+            const needsRotate = isUpper;
+            const bgGradient = 'repeating-linear-gradient(10deg, #9ca3af 0px, #9ca3af 3px, #4b5563 3px, #4b5563 5px)';
+            
             overlays.push(
               <div 
                  key={`cond-${dentalRecord.id}`} 
-                 className="absolute inset-1 pointer-events-none z-20 rounded-[40%]" 
+                 className={`absolute inset-0 pointer-events-none z-20 ${needsRotate ? 'rotate-180' : ''}`} 
                  style={{ 
-                    background: `radial-gradient(circle, rgba(${rgb}, 0.95) 20%, rgba(${rgb}, 0.7) 50%, transparent 80%)`,
-                    mixBlendMode: 'normal'
+                    backgroundImage: bgGradient,
+                    backgroundSize: '100% 57%',
+                    backgroundPosition: 'bottom',
+                    backgroundRepeat: 'no-repeat',
+                    WebkitMaskImage: maskUrl,
+                    WebkitMaskSize: 'contain',
+                    WebkitMaskPosition: 'center',
+                    WebkitMaskRepeat: 'no-repeat',
+                    maskImage: maskUrl,
+                    maskSize: 'contain',
+                    maskPosition: 'center',
+                    maskRepeat: 'no-repeat',
+                    mixBlendMode: 'multiply'
                  }} 
               />
             );
-          }
+        } else {
+          // Beautiful full-tooth radial shading instead of a dot
+          const rgb = conditionColor === '#EA580C' ? '234, 88, 12' : // Caries
+                      conditionColor === '#0284C7' ? '2, 132, 199' : // Filling
+                      conditionColor === '#9333EA' ? '147, 51, 234' : // Crown
+                      conditionColor === '#D946EF' ? '217, 70, 239' : // Bridge
+                      conditionColor === '#DC2626' ? '220, 38, 38' : '16, 185, 129'; // Fracture / Healthy
+          overlays.push(
+            <div 
+               key={`cond-${dentalRecord.id}`} 
+               className="absolute inset-0 pointer-events-none z-20" 
+               style={{ 
+                  backgroundColor: `rgba(${rgb}, 0.65)`,
+                  WebkitMaskImage: `url(/teeth/restore/tooth_${toothId}/top.png)`,
+                  WebkitMaskSize: 'contain',
+                  WebkitMaskPosition: 'center',
+                  WebkitMaskRepeat: 'no-repeat',
+                  maskImage: `url(/teeth/restore/tooth_${toothId}/top.png)`,
+                  maskSize: 'contain',
+                  maskPosition: 'center',
+                  maskRepeat: 'no-repeat',
+                  mixBlendMode: 'multiply'
+               }} 
+            />
+          );
         }
       }
+    }
 
-      if (hasTreatment) {
-        overlays.push(
-          <div key="treatment" className="absolute inset-0 pointer-events-none z-30 border-[3px] border-blue-500 rounded-full border-dashed opacity-80" />
-        );
-      }
+    if (view === "Top" && hasTreatment) {
+      overlays.push(
+        <div key="treatment" className="absolute inset-0 pointer-events-none z-30 border-[3px] border-blue-500 rounded-full border-dashed opacity-80" />
+      );
     }
 
     return overlays;
@@ -223,13 +294,15 @@ function OdontogramToothImage({ toothId, records, dentalRecord, hasTreatment, on
                 className="relative w-12 h-14 sm:w-14 sm:h-16 md:w-16 md:h-20 lg:w-20 lg:h-24 transition-transform hover:scale-110 z-0 -mt-2 md:-mt-3"
                 onClick={(e) => { e.stopPropagation(); onClick && onClick(toothId, "L (Lingual)"); }}
             >
-                <Image
-                src={`/teeth/restore/tooth_${toothId}/back.png`}
-                alt={`Tooth ${toothId} Back`}
-                fill
-                className="object-contain drop-shadow-md opacity-90 hover:opacity-100 transition-opacity rotate-180"
-                onError={(e) => { e.currentTarget.style.opacity = '0'; }}
-                />
+                <div className="absolute inset-0 drop-shadow-md">
+                  <Image
+                  src={`/teeth/restore/tooth_${toothId}/back.png`}
+                  alt={`Tooth ${toothId} Back`}
+                  fill
+                  className="object-contain opacity-90 hover:opacity-100 transition-opacity rotate-180"
+                  onError={(e) => { e.currentTarget.style.opacity = '0'; }}
+                  />
+                </div>
                 {renderVisualProcedures("Back")}
             </div>
           </>
@@ -267,13 +340,15 @@ function OdontogramToothImage({ toothId, records, dentalRecord, hasTreatment, on
                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 rounded-full border border-slate-600/50 bg-slate-800/50 text-[8px] flex items-center justify-center text-slate-300 shadow-sm">O</div>
                 </div>
 
-                <Image
-                src={`/teeth/restore/tooth_${toothId}/top.png`}
-                alt={`Tooth ${toothId} Top`}
-                fill
-                className="object-contain drop-shadow-lg relative z-10 rotate-180"
-                onError={(e) => { e.currentTarget.src = `/teeth/${toothId}.png`; }}
-                />
+                <div className="absolute inset-0 drop-shadow-lg z-10">
+                  <Image
+                  src={`/teeth/restore/tooth_${toothId}/top.png`}
+                  alt={`Tooth ${toothId} Top`}
+                  fill
+                  className="object-contain rotate-180"
+                  onError={(e) => { e.currentTarget.src = `/teeth/${toothId}.png`; }}
+                  />
+                </div>
                 {renderVisualProcedures("Top")}
             </div>
 
@@ -282,13 +357,15 @@ function OdontogramToothImage({ toothId, records, dentalRecord, hasTreatment, on
                 className="relative w-12 h-14 sm:w-14 sm:h-16 md:w-16 md:h-20 lg:w-20 lg:h-24 transition-transform hover:scale-110 z-0 -mt-2 md:-mt-3"
                 onClick={(e) => { e.stopPropagation(); onClick && onClick(toothId, "F (Facial)"); }}
             >
-                <Image
-                src={`/teeth/restore/tooth_${toothId}/front.png`}
-                alt={`Tooth ${toothId} Front`}
-                fill
-                className="object-contain drop-shadow-md opacity-90 hover:opacity-100 transition-opacity rotate-180"
-                onError={(e) => { e.currentTarget.style.opacity = '0'; }}
-                />
+                <div className="absolute inset-0 drop-shadow-md">
+                  <Image
+                  src={`/teeth/restore/tooth_${toothId}/front.png`}
+                  alt={`Tooth ${toothId} Front`}
+                  fill
+                  className="object-contain opacity-90 hover:opacity-100 transition-opacity rotate-180"
+                  onError={(e) => { e.currentTarget.style.opacity = '0'; }}
+                  />
+                </div>
                 {renderVisualProcedures("Front")}
             </div>
           </>
@@ -318,15 +395,50 @@ export function Odontogram({
   const renderTooth = (id: number) => {
     const dentalRecord = dentalRecords.find(r => r.toothId === id);
     const hasTreatment = treatmentPlans.some(p => p.tooth === id && (p.status === 'Proposed' || p.status === 'In Progress'));
+    const toothRecords = records.filter(r => r.toothId == id);
+    
     return (
-      <OdontogramToothImage 
-        key={id} 
-        toothId={id} 
-        records={records.filter(r => r.toothId == id)} 
-        dentalRecord={dentalRecord}
-        hasTreatment={hasTreatment}
-        onClick={onToothClick}
-      />
+      <TooltipProvider key={id}>
+        <Tooltip delayDuration={300}>
+          <TooltipTrigger asChild>
+            <div className="flex justify-center">
+              <OdontogramToothImage 
+                toothId={id} 
+                records={toothRecords} 
+                dentalRecord={dentalRecord}
+                hasTreatment={hasTreatment}
+                onClick={onToothClick}
+              />
+            </div>
+          </TooltipTrigger>
+          <TooltipContent className="max-w-[250px] z-[100] bg-slate-800 text-slate-200 border-slate-700">
+            <div className="font-bold border-b border-slate-700 pb-1 mb-1">Tooth {id}</div>
+            {dentalRecord && dentalRecord.condition !== 'Healthy' && (
+              <div className="text-sm">
+                <span className="font-semibold text-slate-400">Condition:</span> {dentalRecord.condition}
+              </div>
+            )}
+            {toothRecords.length > 0 && (
+              <div className="text-sm mt-1">
+                <span className="font-semibold text-slate-400">Restorations:</span>
+                <ul className="list-disc pl-4 mt-1">
+                  {toothRecords.map((r, i) => (
+                    <li key={i}>{r.surface !== 'Whole Tooth' ? `${r.surface}: ` : ''}{r.material}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {hasTreatment && (
+              <div className="text-sm mt-1 text-blue-400">
+                Has pending treatment plan
+              </div>
+            )}
+            {(!dentalRecord || dentalRecord.condition === 'Healthy') && toothRecords.length === 0 && !hasTreatment && (
+               <div className="text-xs text-slate-500 italic">No records</div>
+            )}
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
     );
   };
 

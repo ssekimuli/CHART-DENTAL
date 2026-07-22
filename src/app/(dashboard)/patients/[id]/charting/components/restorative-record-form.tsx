@@ -93,6 +93,7 @@ const procedureGroups = [
   {
     label: "Implant Restorations",
     options: [
+      "Implant",
       "Single implant crown",
       "Implant-supported overdenture",
       "Full-arch implant restoration (All-on-4/All-on-6)"

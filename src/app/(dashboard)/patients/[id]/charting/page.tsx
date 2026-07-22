@@ -28,7 +28,7 @@ import { DentalChart } from "../components/dental-chart";
 import { useState, useEffect, use } from "react";
 import type { Patient, DentalRecord, Treatment, PeriodontalRecord, OcclusalRecord, OrthodonticRecord, SoftTissueRecord, DentalCondition, EndodonticRecord, RestorativeRecord } from "@/lib/types";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2, Pill } from "lucide-react";
 import { PeriodontalChart } from "./components/periodontal-chart";
 import { OcclusalChart } from "./components/occlusal-chart";
 import { SoftTissueChart } from "./components/soft-tissue-chart";
@@ -36,6 +36,7 @@ import { TreatmentPlanForm } from "../components/treatment-plan-form";
 import { OrthodonticChart } from "./components/orthodontic-chart";
 import { EndodonticChart } from "./components/endodontic-chart";
 import { RestorativeRecordForm } from "./components/restorative-record-form";
+import { PrescriptionForm } from "../components/prescription-form";
 import { ConditionLogger } from "../components/condition-logger";
 import { getPatientById, addTreatment, updateTreatment, saveDentalRecord, savePeriodontalRecord, saveOcclusalRecord, saveOrthodonticRecord, updateOrthodonticRecord, deleteOrthodonticRecord, saveSoftTissueRecord, updateSoftTissueRecord, deleteSoftTissueRecord, saveEndodonticRecord, updateEndodonticRecord, deleteEndodonticRecord, saveRestorativeRecord, updateRestorativeRecord, deleteRestorativeRecord } from "@/lib/api";
 import { getCurrentUser, hasRole, hasPermission } from "@/lib/user";
@@ -80,6 +81,7 @@ export default function PatientChartingPage({
   const [isRestorativeFormOpen, setIsRestorativeFormOpen] = useState(false);
   const [selectedToothForRestorative, setSelectedToothForRestorative] = useState<number | undefined>(undefined);
   const [selectedSurfaceForRestorative, setSelectedSurfaceForRestorative] = useState<string | undefined>(undefined);
+  const [isPrescriptionFormOpen, setIsPrescriptionFormOpen] = useState(false);
 
   const handleOpenRestorativeForm = (toothId: number, surface?: string) => {
     setSelectedToothForRestorative(toothId);
@@ -339,8 +341,7 @@ export default function PatientChartingPage({
     });
   }
 
-
-  return (
+  return (
     <div className="flex flex-col gap-6">
        <div className="flex items-center gap-4">
         <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => router.push(`/patients/${patient.id}`)}>
@@ -351,9 +352,13 @@ export default function PatientChartingPage({
             <AvatarImage src={patient.avatar} />
             <AvatarFallback>{patient.first_name.charAt(0)}</AvatarFallback>
         </Avatar>
-        <h1 className="flex-1 shrink-0 whitespace-nowrap text-xl font-semibold tracking-tight sm:grow-0">
+        <h1 className="shrink-0 whitespace-nowrap text-xl font-semibold tracking-tight">
           {getPatientFullName(patient)} - Charting
         </h1>
+        <Button size="sm" onClick={() => setIsPrescriptionFormOpen(true)} className="ml-2">
+          <Pill className="mr-2 h-4 w-4" />
+          Give prescription
+        </Button>
       </div>
       <Tabs defaultValue="odontogram">
         <TabsList className="grid w-full grid-cols-8">
@@ -524,6 +529,17 @@ export default function PatientChartingPage({
          onSave={handleSaveRestorativeRecord}
          onUpdate={handleUpdateRestorativeRecord}
       />
+      {isPrescriptionFormOpen && (
+        <PrescriptionForm
+          patientId={patient.id}
+          patientName={getPatientFullName(patient)}
+          branchId={patient.branch_id || getCurrentUser()?.branchId || 1}
+          onOpenChange={setIsPrescriptionFormOpen}
+          onSave={() => {
+            setIsPrescriptionFormOpen(false);
+          }}
+        />
+      )}
     </div>
   );
 }

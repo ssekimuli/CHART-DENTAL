@@ -21,12 +21,14 @@ const lowerLeftQuadrant = [31, 32, 33, 34, 35, 36, 37, 38];
 const lowerRightQuadrant = [48, 47, 46, 45, 44, 43, 42, 41];
 
 const conditionInfo: { condition: DentalCondition; color: string; twColor: string }[] = [
-    { condition: 'Healthy', color: '#FFFFFF', twColor: 'bg-white' },
-    { condition: 'Caries', color: '#FBBF24', twColor: 'bg-yellow-400' },
-    { condition: 'Filling', color: '#60A5FA', twColor: 'bg-blue-400' },
-    { condition: 'Crown', color: '#A78BFA', twColor: 'bg-purple-400' },
-    { condition: 'Missing', color: '#6B7280', twColor: 'bg-gray-500' },
-    { condition: 'Fracture', color: '#EF4444', twColor: 'bg-red-500' },
+    { condition: 'Healthy', color: 'transparent', twColor: 'bg-transparent border border-gray-400 border-dashed' },
+    { condition: 'Caries', color: '#EA580C', twColor: 'bg-orange-600' },
+    { condition: 'Filling', color: '#0284C7', twColor: 'bg-sky-600' },
+    { condition: 'Crown', color: '#9333EA', twColor: 'bg-purple-600' },
+    { condition: 'Missing', color: '#334155', twColor: 'bg-slate-700' },
+    { condition: 'Fracture', color: '#DC2626', twColor: 'bg-red-600' },
+    { condition: 'Implant', color: '#9CA3AF', twColor: 'bg-gray-400' },
+    { condition: 'Bridge', color: '#D946EF', twColor: 'bg-fuchsia-500' },
 ];
 
 type DentalChartProps = {

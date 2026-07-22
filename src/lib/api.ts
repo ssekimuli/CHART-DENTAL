@@ -359,6 +359,15 @@ export const getPatients = async (filters?: string | number | GetPatientsFilters
             softTissueRecords: patient.soft_tissue_records || [],
             orthodonticRecords: mapOrthodonticRecords(patient.orthodontic_records),
             endodonticRecords: mapEndodonticRecords(patient.endodontic_records || patient.endodonticRecords),
+            restorativeRecords: (patient.restorative_records || patient.restorativeRecords || []).map((record: any) => ({
+                id: String(record.id),
+                toothId: Number(record.tooth_id || record.toothId),
+                surface: record.surface,
+                material: record.material,
+                notes: record.notes || '',
+                createdAt: record.created_at || record.createdAt,
+                updatedAt: record.updated_at || record.updatedAt,
+            })),
         }));
 
         if (response.data && response.data.meta) {
@@ -483,6 +492,15 @@ export const getPatientById = async (id: string | number): Promise<Patient | und
             softTissueRecords: patient.soft_tissue_records || [],
             orthodonticRecords: mapOrthodonticRecords(patient.orthodontic_records),
             endodonticRecords: mapEndodonticRecords(patient.endodontic_records || patient.endodonticRecords),
+            restorativeRecords: (patient.restorative_records || patient.restorativeRecords || []).map((record: any) => ({
+                id: String(record.id),
+                toothId: Number(record.tooth_id || record.toothId),
+                surface: record.surface,
+                material: record.material,
+                notes: record.notes || '',
+                createdAt: record.created_at || record.createdAt,
+                updatedAt: record.updated_at || record.updatedAt,
+            })),
         };
     } catch (error) {
         if (axios.isAxiosError(error)) {
