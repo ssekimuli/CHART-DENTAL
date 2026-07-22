@@ -49,7 +49,7 @@ function OdontogramToothImage({ toothId, marks, onAddMark }: OdontogramToothImag
           src={`/teeth/restore/tooth_${toothId}/back.png`}
           alt={`Tooth ${toothId} Back`}
           fill
-          className="object-contain drop-shadow-md opacity-80 hover:opacity-100 transition-opacity"
+          className="object-contain drop-shadow-md opacity-80 hover:opacity-100 transition-opacity rotate-180"
           onError={(e) => { e.currentTarget.style.opacity = '0'; }}
         />
         {renderMarks("back")}
