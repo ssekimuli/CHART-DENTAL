@@ -11,21 +11,48 @@ type OdontogramToothImageProps = {
 };
 
 function OdontogramToothImage({ toothId, records }: OdontogramToothImageProps) {
-  const renderProcedureBadge = (view: "Back" | "Top" | "Front" | "Whole Tooth") => {
-    // If view is Whole Tooth, we can render on all or just top. But user specified Top/Front/Back.
+  const renderVisualProcedures = (view: "Back" | "Top" | "Front" | "Whole Tooth") => {
     const toothRecords = records.filter(
       (r) => r.surface === view || (r.surface === "Whole Tooth" && view === "Top")
     );
 
     if (toothRecords.length === 0) return null;
 
-    return (
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-        <div className="bg-blue-500/80 text-white text-[8px] md:text-[10px] font-bold px-1 py-0.5 rounded shadow-lg text-center leading-tight truncate max-w-[90%]">
-          {toothRecords.length} Proc
+    return toothRecords.map((record, index) => {
+      const proc = record.material.toLowerCase();
+      let style = {};
+      let label = "";
+
+      if (proc.includes("amalgam")) {
+        // Silver filling
+        style = { backgroundColor: "#94a3b8", border: "1px solid #475569", borderRadius: "40%", width: "40%", height: "40%", left: "30%", top: "30%" };
+      } else if (proc.includes("composite") && proc.includes("filling")) {
+        // White filling
+        style = { backgroundColor: "#fef08a", border: "1px solid #ca8a04", borderRadius: "40%", width: "35%", height: "35%", left: "32.5%", top: "32.5%", opacity: 0.8 };
+      } else if (proc.includes("crown")) {
+        // Crown overlay
+        style = { border: "3px solid #3b82f6", borderRadius: "20%", width: "90%", height: "90%", left: "5%", top: "5%", backgroundColor: "rgba(59, 130, 246, 0.2)" };
+      } else if (proc.includes("veneer")) {
+        // Veneer
+        style = { border: "2px solid #8b5cf6", borderRadius: "10%", width: "80%", height: "80%", left: "10%", top: "10%", backgroundColor: "rgba(139, 92, 246, 0.2)" };
+      } else if (proc.includes("implant")) {
+        // Implant
+        style = { border: "2px dashed #10b981", borderRadius: "50%", width: "60%", height: "60%", left: "20%", top: "20%", display: "flex", alignItems: "center", justifyContent: "center" };
+        label = "I";
+      } else if (proc.includes("root canal") || proc.includes("endodontic")) {
+        // Root canal
+        style = { backgroundColor: "#ef4444", width: "10%", height: "60%", left: "45%", top: "20%", borderRadius: "10px" };
+      } else {
+        // Generic procedure
+        style = { backgroundColor: "#0ea5e9", width: "30%", height: "30%", left: "35%", top: "35%", borderRadius: "50%", opacity: 0.7 };
+      }
+
+      return (
+        <div key={record.id || index} className="absolute pointer-events-none z-10 flex items-center justify-center text-white font-bold text-[10px]" style={style}>
+          {label}
         </div>
-      </div>
-    );
+      );
+    });
   };
 
   return (
@@ -41,7 +68,7 @@ function OdontogramToothImage({ toothId, records }: OdontogramToothImageProps) {
           className="object-contain drop-shadow-md opacity-80 hover:opacity-100 transition-opacity rotate-180"
           onError={(e) => { e.currentTarget.style.opacity = '0'; }}
         />
-        {renderProcedureBadge("Back")}
+        {renderVisualProcedures("Back")}
       </div>
 
       {/* Top View */}
@@ -53,7 +80,7 @@ function OdontogramToothImage({ toothId, records }: OdontogramToothImageProps) {
           className="object-contain drop-shadow-lg"
           onError={(e) => { e.currentTarget.src = `/teeth/${toothId}.png`; }}
         />
-        {renderProcedureBadge("Top")}
+        {renderVisualProcedures("Top")}
       </div>
 
       {/* Front View */}
@@ -65,7 +92,7 @@ function OdontogramToothImage({ toothId, records }: OdontogramToothImageProps) {
           className="object-contain drop-shadow-md opacity-80 hover:opacity-100 transition-opacity"
           onError={(e) => { e.currentTarget.style.opacity = '0'; }}
         />
-        {renderProcedureBadge("Front")}
+        {renderVisualProcedures("Front")}
       </div>
     </div>
   );
