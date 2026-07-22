@@ -46,7 +46,7 @@ type RestorativeRecordFormProps = {
   onUpdate: (record: RestorativeRecord) => void;
 };
 
-const commonSurfaces = ["Top", "Front", "Back", "Whole Tooth"];
+const commonSurfaces = ["O (Occlusal)", "M (Mesial)", "D (Distal)", "F (Facial)", "L (Lingual)", "MO", "DO", "MOD", "Whole Tooth"];
 
 // Grouped procedures for the select dropdown
 const procedureGroups = [

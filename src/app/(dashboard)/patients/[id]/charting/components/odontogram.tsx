@@ -17,7 +17,10 @@ function OdontogramToothImage({ toothId, records, dentalRecord, hasTreatment, on
   const renderVisualProcedures = (view: "Back" | "Top" | "Front" | "Whole Tooth") => {
     // 1. Render RestorativeRecords (Visual Procedures)
     const toothRecords = records.filter(
-      (r) => r.surface === view || (r.surface === "Whole Tooth" && view === "Top")
+      (r) => 
+        r.surface === view || 
+        (r.surface === "Whole Tooth" && view === "Top") ||
+        (view === "Top" && (r.surface.includes("M") || r.surface.includes("D") || r.surface.includes("F") || r.surface.includes("L") || r.surface.includes("O")))
     );
 
     const overlays: React.ReactNode[] = [];
@@ -44,11 +47,49 @@ function OdontogramToothImage({ toothId, records, dentalRecord, hasTreatment, on
         style = { backgroundColor: "#0ea5e9", width: "30%", height: "30%", left: "35%", top: "35%", borderRadius: "50%", opacity: 0.7 };
       }
 
-      overlays.push(
-        <div key={`proc-${record.id || index}`} className="absolute pointer-events-none z-10 flex items-center justify-center text-white font-bold text-[10px]" style={style}>
-          {label}
-        </div>
-      );
+      // SVG Polygon rendering for specific surfaces
+      const s = record.surface.toUpperCase();
+      const isSpecificSurface = s.includes("M ") || s.includes("D ") || s.includes("F ") || s.includes("L ") || s.includes("O ") || ["MOD", "MO", "DO"].includes(s);
+      
+      if (view === "Top" && isSpecificSurface) {
+         const isRight = toothId >= 11 && toothId <= 18 || toothId >= 41 && toothId <= 48;
+         
+         const surfaceColor = proc.includes("amalgam") ? "#475569" : 
+                              proc.includes("composite") ? "#60A5FA" : 
+                              proc.includes("glass") ? "#FBBF24" :
+                              proc.includes("temporary") ? "#D1D5DB" :
+                              proc.includes("inlay") || proc.includes("onlay") ? "#A78BFA" : "#0ea5e9";
+
+         const mColor = s.includes('M') ? surfaceColor : 'transparent';
+         const dColor = s.includes('D') ? surfaceColor : 'transparent';
+         const oColor = s.includes('O') ? surfaceColor : 'transparent';
+         const fColor = s.includes('F') ? surfaceColor : 'transparent';
+         const lColor = s.includes('L') ? surfaceColor : 'transparent';
+
+         const mSide = isRight ? 'left' : 'right';
+         const dSide = isRight ? 'right' : 'left';
+
+         overlays.push(
+           <svg key={`surf-${record.id || index}`} viewBox="0 0 100 100" className="absolute inset-0 w-[90%] h-[90%] left-[5%] top-[5%] z-15 opacity-90 pointer-events-none drop-shadow-sm">
+             {/* O (Center) */}
+             <path d="M 30,30 L 70,30 L 70,70 L 30,70 Z" fill={oColor} stroke={oColor !== 'transparent' ? '#1e293b' : 'none'} strokeWidth="1" />
+             {/* F (Top) */}
+             <path d="M 10,10 Q 50,0 90,10 L 70,30 L 30,30 Z" fill={fColor} stroke={fColor !== 'transparent' ? '#1e293b' : 'none'} strokeWidth="1" />
+             {/* L (Bottom) */}
+             <path d="M 30,70 L 70,70 L 90,90 Q 50,100 10,90 Z" fill={lColor} stroke={lColor !== 'transparent' ? '#1e293b' : 'none'} strokeWidth="1" />
+             {/* Left Side */}
+             <path d="M 10,10 L 30,30 L 30,70 L 10,90 Q 0,50 10,10 Z" fill={mSide === 'left' ? mColor : dColor} stroke={(mSide === 'left' ? mColor : dColor) !== 'transparent' ? '#1e293b' : 'none'} strokeWidth="1" />
+             {/* Right Side */}
+             <path d="M 90,10 L 70,30 L 70,70 L 90,90 Q 100,50 90,10 Z" fill={mSide === 'right' ? mColor : dColor} stroke={(mSide === 'right' ? mColor : dColor) !== 'transparent' ? '#1e293b' : 'none'} strokeWidth="1" />
+           </svg>
+         );
+      } else {
+          overlays.push(
+            <div key={`proc-${record.id || index}`} className="absolute pointer-events-none z-10 flex items-center justify-center text-white font-bold text-[10px]" style={style}>
+              {label}
+            </div>
+          );
+      }
     });
 
     // 2. Render DentalCondition overlays (only on Top view to keep it clean)
@@ -108,11 +149,21 @@ function OdontogramToothImage({ toothId, records, dentalRecord, hasTreatment, on
 
       {/* Top View */}
       <div className="relative w-20 h-20 md:w-24 md:h-24 lg:w-28 lg:h-28 transition-transform hover:scale-110 z-10">
+        
+        {/* Surface Badges (M, D, F, L, O) shown on hover or always for context */}
+        <div className="absolute inset-0 z-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+           <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-4 h-4 rounded-full border border-slate-600 bg-slate-800 text-[8px] flex items-center justify-center text-slate-300 shadow-sm">F</div>
+           <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-4 h-4 rounded-full border border-slate-600 bg-slate-800 text-[8px] flex items-center justify-center text-slate-300 shadow-sm">L</div>
+           <div className="absolute top-1/2 -left-3 -translate-y-1/2 w-4 h-4 rounded-full border border-slate-600 bg-slate-800 text-[8px] flex items-center justify-center text-slate-300 shadow-sm">{(toothId >= 11 && toothId <= 18) || (toothId >= 41 && toothId <= 48) ? 'M' : 'D'}</div>
+           <div className="absolute top-1/2 -right-3 -translate-y-1/2 w-4 h-4 rounded-full border border-slate-600 bg-slate-800 text-[8px] flex items-center justify-center text-slate-300 shadow-sm">{(toothId >= 11 && toothId <= 18) || (toothId >= 41 && toothId <= 48) ? 'D' : 'M'}</div>
+           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 rounded-full border border-slate-600/50 bg-slate-800/50 text-[8px] flex items-center justify-center text-slate-300 shadow-sm">O</div>
+        </div>
+
         <Image
           src={`/teeth/restore/tooth_${toothId}/top.png`}
           alt={`Tooth ${toothId} Top`}
           fill
-          className="object-contain drop-shadow-lg"
+          className="object-contain drop-shadow-lg relative z-10"
           onError={(e) => { e.currentTarget.src = `/teeth/${toothId}.png`; }}
         />
         {renderVisualProcedures("Top")}
