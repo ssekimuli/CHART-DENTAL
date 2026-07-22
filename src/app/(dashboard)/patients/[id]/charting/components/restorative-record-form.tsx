@@ -198,7 +198,7 @@ export function RestorativeRecordForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
       toothId: initialData?.toothId || 1,
-      surface: initialData?.surface || "",
+      surface: initialData?.surface || "Whole Tooth",
       material: initialData?.material || "",
       notes: initialData?.notes || "",
     },
@@ -208,14 +208,14 @@ export function RestorativeRecordForm({
     if (initialData) {
       form.reset({
         toothId: initialData.toothId,
-        surface: initialData.surface,
+        surface: initialData.surface || "Whole Tooth",
         material: initialData.material,
         notes: initialData.notes || "",
       });
     } else {
       form.reset({
-        toothId: 1,
-        surface: "",
+        toothId: 1, // Will be overridden dynamically when opening
+        surface: "Whole Tooth",
         material: "",
         notes: "",
       });
