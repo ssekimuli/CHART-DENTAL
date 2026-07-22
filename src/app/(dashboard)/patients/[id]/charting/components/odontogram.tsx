@@ -5,6 +5,7 @@ import Image from "next/image";
 
 type Mark = {
   id: string;
+  view: "back" | "top" | "front";
   x: number; // percentage
   y: number; // percentage
 };
@@ -12,39 +13,76 @@ type Mark = {
 type OdontogramToothImageProps = {
   toothId: number;
   marks: Mark[];
-  onAddMark: (toothId: number, x: number, y: number) => void;
+  onAddMark: (toothId: number, view: "back" | "top" | "front", x: number, y: number) => void;
 };
 
 function OdontogramToothImage({ toothId, marks, onAddMark }: OdontogramToothImageProps) {
-  const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handleClick = (e: React.MouseEvent<HTMLDivElement>, view: "back" | "top" | "front") => {
     const rect = e.currentTarget.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * 100;
     const y = ((e.clientY - rect.top) / rect.height) * 100;
-    onAddMark(toothId, x, y);
+    onAddMark(toothId, view, x, y);
+  };
+
+  const renderMarks = (view: "back" | "top" | "front") => {
+    return marks
+      .filter((m) => m.view === view)
+      .map((m) => (
+        <div
+          key={m.id}
+          className="absolute w-2.5 h-2.5 bg-blue-500 rounded-full shadow-[0_0_8px_rgba(59,130,246,0.8)] border-[1.5px] border-white pointer-events-none transform -translate-x-1/2 -translate-y-1/2 animate-pulse z-10"
+          style={{ left: `${m.x}%`, top: `${m.y}%` }}
+        />
+      ));
   };
 
   return (
-    <div className="flex flex-col items-center gap-2 group w-[50px]">
-      <span className="text-xs font-bold text-slate-400 group-hover:text-slate-200 transition-colors">{toothId}</span>
+    <div className="flex flex-col items-center gap-1 group w-[50px]">
+      <span className="text-[10px] font-bold text-slate-400 group-hover:text-slate-200 transition-colors mb-1">{toothId}</span>
+      
+      {/* Back View */}
       <div 
-        className="relative w-[46px] h-[46px] cursor-crosshair transition-transform hover:scale-110"
-        onClick={handleClick}
+        className="relative w-[36px] h-[36px] cursor-crosshair transition-transform hover:scale-110"
+        onClick={(e) => handleClick(e, "back")}
+      >
+        <Image
+          src={`/teeth/restore/tooth_${toothId}/back.png`}
+          alt={`Tooth ${toothId} Back`}
+          fill
+          className="object-contain drop-shadow-md opacity-80 hover:opacity-100 transition-opacity"
+          onError={(e) => { e.currentTarget.style.opacity = '0'; }}
+        />
+        {renderMarks("back")}
+      </div>
+
+      {/* Top View */}
+      <div 
+        className="relative w-[46px] h-[46px] cursor-crosshair transition-transform hover:scale-110 z-10"
+        onClick={(e) => handleClick(e, "top")}
       >
         <Image
           src={`/teeth/restore/tooth_${toothId}/top.png`}
-          alt={`Tooth ${toothId}`}
+          alt={`Tooth ${toothId} Top`}
           fill
-          className="object-contain drop-shadow-md"
+          className="object-contain drop-shadow-lg"
           onError={(e) => { e.currentTarget.src = `/teeth/${toothId}.png`; }}
         />
-        {/* Render Marks */}
-        {marks.map((m) => (
-          <div
-            key={m.id}
-            className="absolute w-3 h-3 bg-blue-500 rounded-full shadow-[0_0_10px_rgba(59,130,246,0.8)] border-[1.5px] border-white pointer-events-none transform -translate-x-1/2 -translate-y-1/2 animate-pulse"
-            style={{ left: `${m.x}%`, top: `${m.y}%` }}
-          />
-        ))}
+        {renderMarks("top")}
+      </div>
+
+      {/* Front View */}
+      <div 
+        className="relative w-[36px] h-[36px] cursor-crosshair transition-transform hover:scale-110"
+        onClick={(e) => handleClick(e, "front")}
+      >
+        <Image
+          src={`/teeth/restore/tooth_${toothId}/front.png`}
+          alt={`Tooth ${toothId} Front`}
+          fill
+          className="object-contain drop-shadow-md opacity-80 hover:opacity-100 transition-opacity"
+          onError={(e) => { e.currentTarget.style.opacity = '0'; }}
+        />
+        {renderMarks("front")}
       </div>
     </div>
   );
@@ -53,11 +91,12 @@ function OdontogramToothImage({ toothId, marks, onAddMark }: OdontogramToothImag
 export function Odontogram() {
   const [marks, setMarks] = useState<Record<string, Mark[]>>({});
 
-  const handleAddMark = (toothId: number, x: number, y: number) => {
+  const handleAddMark = (toothId: number, view: "back" | "top" | "front", x: number, y: number) => {
     setMarks(prev => {
       const existing = prev[toothId.toString()] || [];
       const newMark: Mark = {
         id: Math.random().toString(36).substring(7),
+        view,
         x,
         y
       };
