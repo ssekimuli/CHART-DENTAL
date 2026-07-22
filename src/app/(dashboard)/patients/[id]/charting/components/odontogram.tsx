@@ -124,11 +124,10 @@ export function Odontogram() {
         </button>
       </div>
 
-      {/* Horizontally scrollable area strictly for teeth */}
-      <div className="w-full max-w-full overflow-x-auto pb-6">
-        <div className="flex flex-col gap-10 min-w-max px-4 mx-auto">
-          
-          {/* UPPER ARCH */}
+      {/* Teeth Arches */}
+      <div className="flex flex-col gap-10 min-w-max px-4 mx-auto w-full pb-6">
+        
+        {/* UPPER ARCH */}
           <div className="flex flex-col items-center w-full">
             <div className="flex items-center justify-between w-full px-8 mb-3">
                <span className="text-[10px] font-bold text-slate-500 tracking-widest uppercase">Maxillary Right</span>
@@ -180,9 +179,7 @@ export function Odontogram() {
                <span className="text-[10px] font-bold text-slate-500 tracking-widest uppercase">Mandibular Left</span>
             </div>
           </div>
-
         </div>
-      </div>
     </div>
   );
 }

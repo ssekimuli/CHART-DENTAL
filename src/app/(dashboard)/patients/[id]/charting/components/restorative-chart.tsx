@@ -60,8 +60,8 @@ export function RestorativeChart({ initialRecords, onSave, onUpdate, onDelete }:
 
   return (
     <>
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+      <Card className="overflow-x-auto w-full">
+        <CardHeader className="flex flex-row items-center justify-between min-w-max">
           <div>
               <CardTitle>Restorative Chart</CardTitle>
               <CardDescription>
@@ -74,7 +74,7 @@ export function RestorativeChart({ initialRecords, onSave, onUpdate, onDelete }:
              </Button>
           )}
         </CardHeader>
-        <CardContent className="space-y-8">
+        <CardContent className="space-y-8 min-w-max">
           <div className="w-full pb-8">
             <Odontogram />
           </div>
