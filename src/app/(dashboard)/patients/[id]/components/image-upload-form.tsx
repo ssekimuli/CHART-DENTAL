@@ -1,9 +1,9 @@
-
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -23,23 +23,22 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import type { PatientImage } from "@/lib/types";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const formSchema = z.object({
-  // The file input is not directly validated by Zod in this basic setup.
-  // We'll add a description validation.
   description: z.string().min(1, "Description is required."),
   category: z.enum(['Image', 'X-Ray', 'Other Doc']),
 });
 
 type ImageUploadFormProps = {
-  onSave: (data: Omit<PatientImage, 'date'>) => void;
+  onSave: (data: FormData) => void;
   onOpenChange: (open: boolean) => void;
 };
 
 export function ImageUploadForm({ onSave, onOpenChange }: ImageUploadFormProps) {
+  const [file, setFile] = useState<File | null>(null);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -49,13 +48,17 @@ export function ImageUploadForm({ onSave, onOpenChange }: ImageUploadFormProps) 
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    // In a real app, you would handle the file upload here.
-    // For this prototype, we'll use a placeholder URL.
-    onSave({
-      url: `https://picsum.photos/seed/newxray${Date.now()}/800/600`,
-      description: values.description,
-      category: values.category,
-    });
+    if (!file) {
+      alert("Please select a file to upload.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("description", values.description);
+    formData.append("category", values.category);
+
+    onSave(formData);
   }
 
   return (
@@ -70,9 +73,9 @@ export function ImageUploadForm({ onSave, onOpenChange }: ImageUploadFormProps) 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
              <FormItem>
-              <FormLabel>Image File</FormLabel>
+              <FormLabel>Document File</FormLabel>
               <FormControl>
-                <Input type="file" />
+                <Input type="file" onChange={(e) => setFile(e.target.files?.[0] || null)} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -118,7 +121,7 @@ export function ImageUploadForm({ onSave, onOpenChange }: ImageUploadFormProps) 
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
-              <Button type="submit">Add Image</Button>
+              <Button type="submit">Upload Document</Button>
             </DialogFooter>
           </form>
         </Form>

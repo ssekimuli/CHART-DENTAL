@@ -36,6 +36,7 @@ let businessesCache: Business[] | null = null;
 // --- READ OPERATIONS ---
 
 export const login = async (email: string, password?: string): Promise<CurrentUser | null> => {
+    
     console.log('API CALL: login', { email });
     
     try {
@@ -43,26 +44,33 @@ export const login = async (email: string, password?: string): Promise<CurrentUs
         const { user, token } = response.data;
         setCurrentUser(user, token);
         return user;
+
     } catch (error) {
         if (axios.isAxiosError(error)) {
             console.error('Login failed:', error.response?.data || error.message || error);
         } else {
             console.error("An unexpected error occurred during login:", error);
         }
+
         clearCurrentUser();
+
         return null;
     }
 }
 
 export const logout = async (): Promise<void> => {
+
     console.log('API CALL: logout');
+    
     try {
         await customAxios.post('/logout');
     } catch (error) {
         if (axios.isAxiosError(error)) {
             console.error('Logout failed:', error.response?.data);
         } else {
+
             console.error('An unexpected error occurred during logout:', error);
+
         }
         // We still clear the local session even if server logout fails
     }
@@ -123,7 +131,9 @@ export const resendEmployeePassword = async (id: string | number): Promise<{ suc
 };
 
 export const resetPassword = async (identifier: string, password?: string): Promise<{ success: boolean; message: string }> => {
+    
     console.log('API CALL: resetPassword', { identifier });
+    
     try {
         const response = await customAxios.post('/reset-password', { identifier, password });
         return {
@@ -2084,6 +2094,16 @@ export const updatePatient = async (id: string | number, data: Partial<Patient>)
     }
 }
 
+export const getPatientImages = async (patientId: string | number, filters?: { category?: string; search?: string }): Promise<PatientImage[]> => {
+    try {
+        const response = await customAxios.get(`/patients/${patientId}/images`, { params: filters });
+        return response.data.data || [];
+    } catch (error) {
+        console.error('Failed to fetch patient images:', error);
+        return [];
+    }
+};
+
 export const deletePatient = async (id: string | number): Promise<{ success: boolean }> => {
     console.log('API CALL: deletePatient', { id });
 
@@ -2111,12 +2131,13 @@ export const deletePatient = async (id: string | number): Promise<{ success: boo
     }
 }
 
-export const addImageToPatient = async (patientId: string | number, image: Omit<PatientImage, 'date'>): Promise<Patient | undefined> => {
-    console.log('API CALL: addImageToPatient', { patientId, image });
+export const addImageToPatient = async (patientId: string | number, imageFormData: FormData): Promise<Patient | undefined> => {
+    console.log('API CALL: addImageToPatient', { patientId });
     try {
-        const response = await customAxios.post(`/patients/${patientId}/images`, {
-            url: image.url,
-            description: image.description,
+        const response = await customAxios.post(`/patients/${patientId}/images`, imageFormData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
         });
         const updatedPatient = response.data;
 
