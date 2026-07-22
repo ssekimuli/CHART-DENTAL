@@ -112,9 +112,9 @@ export function Odontogram() {
   const lowerLeft = [31, 32, 33, 34, 35, 36, 37, 38];
 
   return (
-    <div className="w-full max-w-full flex flex-col relative select-none">
+    <div className="w-full max-w-full flex flex-col select-none">
       
-      <div className="flex justify-between items-center w-full mb-6 relative z-10 px-2">
+      <div className="flex justify-between items-center w-full mb-6 px-2">
         <h3 className="text-lg md:text-xl font-bold text-slate-200">Interactive Odontogram</h3>
         <button 
           onClick={clearMarks}
@@ -126,7 +126,7 @@ export function Odontogram() {
 
       {/* Horizontally scrollable area strictly for teeth */}
       <div className="w-full max-w-full overflow-x-auto pb-6">
-        <div className="flex flex-col gap-10 relative z-10 min-w-max px-4 mx-auto">
+        <div className="flex flex-col gap-10 min-w-max px-4 mx-auto">
           
           {/* UPPER ARCH */}
           <div className="flex flex-col items-center w-full">
