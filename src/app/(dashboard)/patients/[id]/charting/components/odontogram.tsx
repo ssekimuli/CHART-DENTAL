@@ -112,73 +112,76 @@ export function Odontogram() {
   const lowerLeft = [31, 32, 33, 34, 35, 36, 37, 38];
 
   return (
-    <div className="w-full flex flex-col items-center p-6 relative select-none">
+    <div className="w-full max-w-full flex flex-col relative select-none">
       
-      <div className="flex justify-between items-center w-full mb-8 relative z-10">
-        <h3 className="text-xl font-bold text-slate-200">Interactive Odontogram</h3>
+      <div className="flex justify-between items-center w-full mb-6 relative z-10 px-2">
+        <h3 className="text-lg md:text-xl font-bold text-slate-200">Interactive Odontogram</h3>
         <button 
           onClick={clearMarks}
-          className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-full transition-colors border border-slate-700 hover:border-slate-500"
+          className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-full transition-colors border border-slate-700 hover:border-slate-500 shrink-0"
         >
           Clear All Marks
         </button>
       </div>
 
-      <div className="flex flex-col gap-10 relative z-10 w-full overflow-x-auto pb-4">
-        
-        {/* UPPER ARCH */}
-        <div className="flex flex-col items-center min-w-max mx-auto">
-          <div className="flex items-center justify-between w-full px-12 mb-3">
-             <span className="text-[10px] font-bold text-slate-500 tracking-widest uppercase">Maxillary Right</span>
-             <span className="text-[10px] font-bold text-slate-500 tracking-widest uppercase">Maxillary Left</span>
-          </div>
-          <div className="flex items-center gap-3">
-            {/* Quadrant 1 */}
-            <div className="flex gap-2">
-              {upperRight.map(id => (
-                <OdontogramToothImage key={id} toothId={id} marks={marks[id.toString()] || []} onAddMark={handleAddMark} />
-              ))}
+      {/* Horizontally scrollable area strictly for teeth */}
+      <div className="w-full max-w-full overflow-x-auto pb-6">
+        <div className="flex flex-col gap-10 relative z-10 min-w-max px-4 mx-auto">
+          
+          {/* UPPER ARCH */}
+          <div className="flex flex-col items-center w-full">
+            <div className="flex items-center justify-between w-full px-8 mb-3">
+               <span className="text-[10px] font-bold text-slate-500 tracking-widest uppercase">Maxillary Right</span>
+               <span className="text-[10px] font-bold text-slate-500 tracking-widest uppercase">Maxillary Left</span>
             </div>
-            
-            <div className="w-0.5 h-16 bg-slate-700/60 mx-2 rounded-full" />
-            
-            {/* Quadrant 2 */}
-            <div className="flex gap-2">
-              {upperLeft.map(id => (
-                <OdontogramToothImage key={id} toothId={id} marks={marks[id.toString()] || []} onAddMark={handleAddMark} />
-              ))}
+            <div className="flex items-center gap-2 md:gap-3">
+              {/* Quadrant 1 */}
+              <div className="flex gap-1 md:gap-2">
+                {upperRight.map(id => (
+                  <OdontogramToothImage key={id} toothId={id} marks={marks[id.toString()] || []} onAddMark={handleAddMark} />
+                ))}
+              </div>
+              
+              <div className="w-0.5 h-16 bg-slate-700/60 mx-1 md:mx-2 rounded-full" />
+              
+              {/* Quadrant 2 */}
+              <div className="flex gap-1 md:gap-2">
+                {upperLeft.map(id => (
+                  <OdontogramToothImage key={id} toothId={id} marks={marks[id.toString()] || []} onAddMark={handleAddMark} />
+                ))}
+              </div>
             </div>
           </div>
+
+          {/* ARCH DIVIDER */}
+          <div className="w-full max-w-4xl mx-auto h-px bg-gradient-to-r from-transparent via-slate-700 to-transparent opacity-50" />
+
+          {/* LOWER ARCH */}
+          <div className="flex flex-col items-center w-full">
+            <div className="flex items-center gap-2 md:gap-3">
+              {/* Quadrant 4 */}
+              <div className="flex gap-1 md:gap-2">
+                {lowerRight.map(id => (
+                  <OdontogramToothImage key={id} toothId={id} marks={marks[id.toString()] || []} onAddMark={handleAddMark} />
+                ))}
+              </div>
+              
+              <div className="w-0.5 h-16 bg-slate-700/60 mx-1 md:mx-2 rounded-full" />
+              
+              {/* Quadrant 3 */}
+              <div className="flex gap-1 md:gap-2">
+                {lowerLeft.map(id => (
+                  <OdontogramToothImage key={id} toothId={id} marks={marks[id.toString()] || []} onAddMark={handleAddMark} />
+                ))}
+              </div>
+            </div>
+            <div className="flex items-center justify-between w-full px-8 mt-3">
+               <span className="text-[10px] font-bold text-slate-500 tracking-widest uppercase">Mandibular Right</span>
+               <span className="text-[10px] font-bold text-slate-500 tracking-widest uppercase">Mandibular Left</span>
+            </div>
+          </div>
+
         </div>
-
-        {/* ARCH DIVIDER */}
-        <div className="w-full max-w-4xl mx-auto h-px bg-gradient-to-r from-transparent via-slate-700 to-transparent opacity-50" />
-
-        {/* LOWER ARCH */}
-        <div className="flex flex-col items-center min-w-max mx-auto">
-          <div className="flex items-center gap-3">
-            {/* Quadrant 4 */}
-            <div className="flex gap-2">
-              {lowerRight.map(id => (
-                <OdontogramToothImage key={id} toothId={id} marks={marks[id.toString()] || []} onAddMark={handleAddMark} />
-              ))}
-            </div>
-            
-            <div className="w-0.5 h-16 bg-slate-700/60 mx-2 rounded-full" />
-            
-            {/* Quadrant 3 */}
-            <div className="flex gap-2">
-              {lowerLeft.map(id => (
-                <OdontogramToothImage key={id} toothId={id} marks={marks[id.toString()] || []} onAddMark={handleAddMark} />
-              ))}
-            </div>
-          </div>
-          <div className="flex items-center justify-between w-full px-12 mt-3">
-             <span className="text-[10px] font-bold text-slate-500 tracking-widest uppercase">Mandibular Right</span>
-             <span className="text-[10px] font-bold text-slate-500 tracking-widest uppercase">Mandibular Left</span>
-          </div>
-        </div>
-
       </div>
     </div>
   );
