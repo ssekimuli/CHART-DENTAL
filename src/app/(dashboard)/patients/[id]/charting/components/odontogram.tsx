@@ -85,11 +85,38 @@ function OdontogramToothImage({ toothId, records, dentalRecord, hasTreatment, on
            </svg>
          );
       } else {
-          overlays.push(
-            <div key={`proc-${record.id || index}`} className="absolute pointer-events-none z-10 flex items-center justify-center text-white font-bold text-[10px]" style={style}>
-              {label}
-            </div>
-          );
+          // If it's a generic full-tooth record (not a specific M/D/F/L/O surface)
+          // We apply a soft full-tooth tint shading instead of crude geometric blocks/circles
+          const procColor = proc.includes("amalgam") ? '71, 85, 105' : // #475569
+                            proc.includes("composite") ? '96, 165, 250' : // #60A5FA
+                            proc.includes("glass") ? '251, 191, 36' : // #FBBF24
+                            proc.includes("crown") ? '167, 139, 250' : // #A78BFA
+                            proc.includes("veneer") ? '139, 92, 246' : // #8b5cf6
+                            proc.includes("temporary") ? '209, 213, 219' : // #d1d5db
+                            '14, 165, 233'; // #0ea5e9
+
+          if (proc.includes("implant")) {
+              overlays.push(
+                <div key={`proc-${record.id || index}`} className="absolute pointer-events-none z-10 flex items-center justify-center text-emerald-500 font-bold text-xs" style={{ border: "2px dashed #10b981", borderRadius: "50%", width: "60%", height: "60%", left: "20%", top: "20%" }}>
+                  I
+                </div>
+              );
+          } else if (proc.includes("root canal") || proc.includes("endodontic")) {
+              overlays.push(
+                <div key={`proc-${record.id || index}`} className="absolute pointer-events-none z-10" style={{ backgroundColor: "#ef4444", width: "10%", height: "60%", left: "45%", top: "20%", borderRadius: "10px" }} />
+              );
+          } else {
+              overlays.push(
+                <div 
+                   key={`proc-${record.id || index}`} 
+                   className="absolute inset-1 pointer-events-none z-10 rounded-[40%]" 
+                   style={{ 
+                      background: `radial-gradient(circle, rgba(${procColor}, 0.5) 10%, rgba(${procColor}, 0.15) 70%, transparent 90%)`,
+                      mixBlendMode: 'multiply'
+                   }} 
+                />
+              );
+          }
       }
     });
 
@@ -112,9 +139,21 @@ function OdontogramToothImage({ toothId, records, dentalRecord, hasTreatment, on
             </div>
           );
         } else {
-          // Draw a colored overlay dot
+          // Beautiful full-tooth radial shading instead of a dot
+          const rgb = conditionColor === '#FBBF24' ? '251, 191, 36' : // Caries
+                      conditionColor === '#60A5FA' ? '96, 165, 250' : // Filling
+                      conditionColor === '#A78BFA' ? '167, 139, 250' : // Crown
+                      conditionColor === '#EF4444' ? '239, 68, 68' : '255, 255, 255';
+                      
           overlays.push(
-            <div key={`cond-${dentalRecord.id}`} className="absolute pointer-events-none z-20 flex items-center justify-center" style={{ backgroundColor: conditionColor, width: "30%", height: "30%", left: "35%", top: "35%", borderRadius: "50%", opacity: 0.9, border: "2px solid rgba(0,0,0,0.2)" }} />
+            <div 
+               key={`cond-${dentalRecord.id}`} 
+               className="absolute inset-1 pointer-events-none z-20 rounded-[40%]" 
+               style={{ 
+                  background: `radial-gradient(circle, rgba(${rgb}, 0.7) 10%, rgba(${rgb}, 0.2) 60%, transparent 80%)`,
+                  mixBlendMode: 'multiply'
+               }} 
+            />
           );
         }
       }
