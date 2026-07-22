@@ -1,87 +1,67 @@
 "use client";
 
 import React, { useState } from "react";
+import Image from "next/image";
 
-type Surface = "T" | "B" | "L" | "R" | "C";
-
-type OdontogramToothProps = {
-  toothId: number;
-  marks: Record<string, string[]>; // { [toothId]: ['T', 'C', ...] }
-  onSurfaceClick: (toothId: number, surface: Surface) => void;
+type Mark = {
+  id: string;
+  x: number; // percentage
+  y: number; // percentage
 };
 
-function OdontogramTooth({ toothId, marks, onSurfaceClick }: OdontogramToothProps) {
-  const toothMarks = marks[toothId.toString()] || [];
+type OdontogramToothImageProps = {
+  toothId: number;
+  marks: Mark[];
+  onAddMark: (toothId: number, x: number, y: number) => void;
+};
 
-  const getFill = (surface: Surface) => {
-    return toothMarks.includes(surface) ? "#3b82f6" : "transparent"; // blue-500
+function OdontogramToothImage({ toothId, marks, onAddMark }: OdontogramToothImageProps) {
+  const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    onAddMark(toothId, x, y);
   };
 
   return (
-    <div className="flex flex-col items-center gap-2 group">
+    <div className="flex flex-col items-center gap-2 group w-[50px]">
       <span className="text-xs font-bold text-slate-400 group-hover:text-slate-200 transition-colors">{toothId}</span>
-      <svg width="46" height="46" viewBox="0 0 50 50" className="cursor-pointer drop-shadow-md">
-        {/* Top */}
-        <polygon 
-          points="0,0 50,0 35,15 15,15" 
-          fill={getFill("T")} 
-          stroke="#475569" 
-          strokeWidth="2" 
-          className="hover:fill-slate-600 transition-colors" 
-          onClick={() => onSurfaceClick(toothId, "T")} 
+      <div 
+        className="relative w-[46px] h-[46px] cursor-crosshair transition-transform hover:scale-110"
+        onClick={handleClick}
+      >
+        <Image
+          src={`/teeth/restore/tooth_${toothId}/top.png`}
+          alt={`Tooth ${toothId}`}
+          fill
+          className="object-contain drop-shadow-md"
+          onError={(e) => { e.currentTarget.src = `/teeth/${toothId}.png`; }}
         />
-        {/* Right */}
-        <polygon 
-          points="50,0 50,50 35,35 35,15" 
-          fill={getFill("R")} 
-          stroke="#475569" 
-          strokeWidth="2" 
-          className="hover:fill-slate-600 transition-colors" 
-          onClick={() => onSurfaceClick(toothId, "R")} 
-        />
-        {/* Bottom */}
-        <polygon 
-          points="0,50 50,50 35,35 15,35" 
-          fill={getFill("B")} 
-          stroke="#475569" 
-          strokeWidth="2" 
-          className="hover:fill-slate-600 transition-colors" 
-          onClick={() => onSurfaceClick(toothId, "B")} 
-        />
-        {/* Left */}
-        <polygon 
-          points="0,0 15,15 15,35 0,50" 
-          fill={getFill("L")} 
-          stroke="#475569" 
-          strokeWidth="2" 
-          className="hover:fill-slate-600 transition-colors" 
-          onClick={() => onSurfaceClick(toothId, "L")} 
-        />
-        {/* Center */}
-        <polygon 
-          points="15,15 35,15 35,35 15,35" 
-          fill={getFill("C")} 
-          stroke="#475569" 
-          strokeWidth="2" 
-          className="hover:fill-slate-600 transition-colors" 
-          onClick={() => onSurfaceClick(toothId, "C")} 
-        />
-      </svg>
+        {/* Render Marks */}
+        {marks.map((m) => (
+          <div
+            key={m.id}
+            className="absolute w-3 h-3 bg-blue-500 rounded-full shadow-[0_0_10px_rgba(59,130,246,0.8)] border-[1.5px] border-white pointer-events-none transform -translate-x-1/2 -translate-y-1/2 animate-pulse"
+            style={{ left: `${m.x}%`, top: `${m.y}%` }}
+          />
+        ))}
+      </div>
     </div>
   );
 }
 
 export function Odontogram() {
-  const [marks, setMarks] = useState<Record<string, string[]>>({});
+  const [marks, setMarks] = useState<Record<string, Mark[]>>({});
 
-  const handleSurfaceClick = (toothId: number, surface: Surface) => {
+  const handleAddMark = (toothId: number, x: number, y: number) => {
     setMarks(prev => {
       const existing = prev[toothId.toString()] || [];
-      const updated = existing.includes(surface) 
-        ? existing.filter(s => s !== surface) 
-        : [...existing, surface];
-        
-      return { ...prev, [toothId.toString()]: updated };
+      const newMark: Mark = {
+        id: Math.random().toString(36).substring(7),
+        x,
+        y
+      };
+      return { ...prev, [toothId.toString()]: [...existing, newMark] };
     });
   };
 
@@ -94,7 +74,7 @@ export function Odontogram() {
 
   return (
     <div className="w-full flex flex-col items-center p-6 relative select-none">
-
+      
       <div className="flex justify-between items-center w-full mb-8 relative z-10">
         <h3 className="text-xl font-bold text-slate-200">Interactive Odontogram</h3>
         <button 
@@ -117,7 +97,7 @@ export function Odontogram() {
             {/* Quadrant 1 */}
             <div className="flex gap-2">
               {upperRight.map(id => (
-                <OdontogramTooth key={id} toothId={id} marks={marks} onSurfaceClick={handleSurfaceClick} />
+                <OdontogramToothImage key={id} toothId={id} marks={marks[id.toString()] || []} onAddMark={handleAddMark} />
               ))}
             </div>
             
@@ -126,7 +106,7 @@ export function Odontogram() {
             {/* Quadrant 2 */}
             <div className="flex gap-2">
               {upperLeft.map(id => (
-                <OdontogramTooth key={id} toothId={id} marks={marks} onSurfaceClick={handleSurfaceClick} />
+                <OdontogramToothImage key={id} toothId={id} marks={marks[id.toString()] || []} onAddMark={handleAddMark} />
               ))}
             </div>
           </div>
@@ -141,7 +121,7 @@ export function Odontogram() {
             {/* Quadrant 4 */}
             <div className="flex gap-2">
               {lowerRight.map(id => (
-                <OdontogramTooth key={id} toothId={id} marks={marks} onSurfaceClick={handleSurfaceClick} />
+                <OdontogramToothImage key={id} toothId={id} marks={marks[id.toString()] || []} onAddMark={handleAddMark} />
               ))}
             </div>
             
@@ -150,7 +130,7 @@ export function Odontogram() {
             {/* Quadrant 3 */}
             <div className="flex gap-2">
               {lowerLeft.map(id => (
-                <OdontogramTooth key={id} toothId={id} marks={marks} onSurfaceClick={handleSurfaceClick} />
+                <OdontogramToothImage key={id} toothId={id} marks={marks[id.toString()] || []} onAddMark={handleAddMark} />
               ))}
             </div>
           </div>
