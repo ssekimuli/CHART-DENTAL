@@ -37,12 +37,12 @@ function OdontogramToothImage({ toothId, marks, onAddMark }: OdontogramToothImag
   };
 
   return (
-    <div className="flex flex-col items-center gap-2 group w-[100px]">
-      <span className="text-xs font-bold text-slate-400 group-hover:text-slate-200 transition-colors mb-2">{toothId}</span>
+    <div className="flex flex-col items-center gap-1 group w-14 md:w-16 lg:w-20">
+      <span className="text-[10px] md:text-xs font-bold text-slate-400 group-hover:text-slate-200 transition-colors mb-1 md:mb-2">{toothId}</span>
       
       {/* Back View */}
       <div 
-        className="relative w-[72px] h-[72px] cursor-crosshair transition-transform hover:scale-110"
+        className="relative w-10 h-10 md:w-12 md:h-12 lg:w-14 lg:h-14 cursor-crosshair transition-transform hover:scale-110"
         onClick={(e) => handleClick(e, "back")}
       >
         <Image
@@ -57,7 +57,7 @@ function OdontogramToothImage({ toothId, marks, onAddMark }: OdontogramToothImag
 
       {/* Top View */}
       <div 
-        className="relative w-[92px] h-[92px] cursor-crosshair transition-transform hover:scale-110 z-10"
+        className="relative w-12 h-12 md:w-16 md:h-16 lg:w-20 lg:h-20 cursor-crosshair transition-transform hover:scale-110 z-10"
         onClick={(e) => handleClick(e, "top")}
       >
         <Image
@@ -72,7 +72,7 @@ function OdontogramToothImage({ toothId, marks, onAddMark }: OdontogramToothImag
 
       {/* Front View */}
       <div 
-        className="relative w-[72px] h-[72px] cursor-crosshair transition-transform hover:scale-110"
+        className="relative w-10 h-10 md:w-12 md:h-12 lg:w-14 lg:h-14 cursor-crosshair transition-transform hover:scale-110"
         onClick={(e) => handleClick(e, "front")}
       >
         <Image
