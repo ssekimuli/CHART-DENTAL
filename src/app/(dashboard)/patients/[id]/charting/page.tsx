@@ -28,7 +28,7 @@ import { DentalChart } from "../components/dental-chart";
 import { useState, useEffect, use } from "react";
 import type { Patient, DentalRecord, Treatment, PeriodontalRecord, OcclusalRecord, OrthodonticRecord, SoftTissueRecord, DentalCondition, EndodonticRecord, RestorativeRecord } from "@/lib/types";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Loader2, Pill } from "lucide-react";
+import { ArrowLeft, Loader2, Pill, Upload } from "lucide-react";
 import { PeriodontalChart } from "./components/periodontal-chart";
 import { OcclusalChart } from "./components/occlusal-chart";
 import { SoftTissueChart } from "./components/soft-tissue-chart";
@@ -358,6 +358,10 @@ export default function PatientChartingPage({
         <Button size="sm" onClick={() => setIsPrescriptionFormOpen(true)} className="ml-2">
           <Pill className="mr-2 h-4 w-4" />
           Give prescription
+        </Button>
+        <Button size="sm" onClick={() => router.push(`/patients/${patient.id}`)} className="ml-2 bg-emerald-600 hover:bg-emerald-700 text-white">
+          <Upload className="mr-2 h-4 w-4" />
+          Upload documents
         </Button>
       </div>
       <Tabs defaultValue="odontogram">

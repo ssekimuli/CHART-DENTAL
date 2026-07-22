@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useState } from "react";
+import { X, FileIcon, Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -32,12 +33,13 @@ const formSchema = z.object({
 });
 
 type ImageUploadFormProps = {
-  onSave: (data: FormData) => void;
+  onSave: (data: FormData) => Promise<void> | void;
   onOpenChange: (open: boolean) => void;
 };
 
 export function ImageUploadForm({ onSave, onOpenChange }: ImageUploadFormProps) {
   const [files, setFiles] = useState<File[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -47,20 +49,37 @@ export function ImageUploadForm({ onSave, onOpenChange }: ImageUploadFormProps) 
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      setFiles((prev) => [...prev, ...Array.from(e.target.files!)]);
+    }
+    // Reset the input value so the same files can be selected again if needed
+    e.target.value = '';
+  };
+
+  const removeFile = (indexToRemove: number) => {
+    setFiles((prev) => prev.filter((_, index) => index !== indexToRemove));
+  };
+
+  async function onSubmit(values: z.infer<typeof formSchema>) {
     if (files.length === 0) {
       alert("Please select at least one file to upload.");
       return;
     }
 
-    const formData = new FormData();
-    files.forEach((file) => {
-      formData.append("files[]", file);
-    });
-    formData.append("description", values.description);
-    formData.append("category", values.category);
+    setIsSubmitting(true);
+    try {
+      const formData = new FormData();
+      files.forEach((file) => {
+        formData.append("files[]", file);
+      });
+      formData.append("description", values.description);
+      formData.append("category", values.category);
 
-    onSave(formData);
+      await onSave(formData);
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -77,9 +96,40 @@ export function ImageUploadForm({ onSave, onOpenChange }: ImageUploadFormProps) 
              <FormItem>
               <FormLabel>Document File</FormLabel>
               <FormControl>
-                <Input type="file" multiple onChange={(e) => setFiles(Array.from(e.target.files || []))} />
+                <Input type="file" multiple onChange={handleFileChange} />
               </FormControl>
               <FormMessage />
+              
+              {files.length > 0 && (
+                <div className="w-full max-w-[450px] overflow-hidden">
+                  <div className="flex w-full overflow-x-auto gap-3 mt-4 pb-2 pr-2 snap-x scrollbar-thin">
+                    {files.map((file, index) => (
+                    <div key={`${file.name}-${index}`} className="relative group border rounded-md p-2 flex flex-col items-center justify-center bg-muted/20 min-w-[120px] max-w-[120px] snap-center flex-shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => removeFile(index)}
+                        className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1 shadow-sm opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity z-10 hover:bg-destructive/90"
+                        title="Remove file"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                      {file.type.startsWith('image/') ? (
+                        <img
+                          src={URL.createObjectURL(file)}
+                          alt={file.name}
+                          className="h-16 w-full object-cover rounded-md mb-1"
+                        />
+                      ) : (
+                        <FileIcon className="h-10 w-10 text-muted-foreground mb-1" />
+                      )}
+                      <span className="text-[10px] truncate w-full text-center" title={file.name}>
+                        {file.name}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                </div>
+              )}
             </FormItem>
             <FormField
               control={form.control}
@@ -120,10 +170,19 @@ export function ImageUploadForm({ onSave, onOpenChange }: ImageUploadFormProps) 
               )}
             />
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
                 Cancel
               </Button>
-              <Button type="submit">Upload Document</Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Uploading...
+                  </>
+                ) : (
+                  "Upload Document(s)"
+                )}
+              </Button>
             </DialogFooter>
           </form>
         </Form>
