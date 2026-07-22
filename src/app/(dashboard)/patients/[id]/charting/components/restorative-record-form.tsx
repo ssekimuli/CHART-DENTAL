@@ -37,13 +37,14 @@ const formSchema = z.object({
   surface: z.string().min(1, "Surface is required"),
   material: z.string().min(1, "Material is required"),
   notes: z.string().optional(),
+  cost: z.coerce.number().min(0, "Cost must be a positive number").optional(),
 });
 
 type RestorativeRecordFormProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   initialData?: RestorativeRecord;
-  onSave: (record: Omit<RestorativeRecord, "id" | "createdAt" | "updatedAt">) => void;
+  onSave: (record: Omit<RestorativeRecord, "id" | "createdAt" | "updatedAt"> & { cost?: number }) => void;
   onUpdate: (record: RestorativeRecord) => void;
 };
 
@@ -209,6 +210,7 @@ export function RestorativeRecordForm({
       surface: initialData?.surface || "Whole Tooth",
       material: initialData?.material || "",
       notes: initialData?.notes || "",
+      cost: undefined,
     },
   });
 
@@ -226,6 +228,7 @@ export function RestorativeRecordForm({
         surface: "Whole Tooth",
         material: "",
         notes: "",
+        cost: undefined,
       });
     }
   }, [initialData, form, open]);
@@ -334,6 +337,21 @@ export function RestorativeRecordForm({
                 </FormItem>
               )}
             />
+            {!initialData && (
+                <FormField
+                  control={form.control}
+                  name="cost"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Cost ($) (Optional - Bills Patient)</FormLabel>
+                      <FormControl>
+                        <Input type="number" step="0.01" min="0" placeholder="0.00" {...field} value={field.value ?? ''} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+            )}
             <div className="flex justify-end gap-2 pt-4">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancel

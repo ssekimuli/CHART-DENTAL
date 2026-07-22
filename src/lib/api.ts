@@ -2826,7 +2826,7 @@ export const deleteEndodonticRecord = async (
 
 export const saveRestorativeRecord = async (
     patientId: string | number, 
-    record: Omit<RestorativeRecord, 'id' | 'createdAt' | 'updatedAt'>
+    record: Omit<RestorativeRecord, 'id' | 'createdAt' | 'updatedAt'> & { cost?: number }
 ): Promise<Patient | undefined> => {
     try {
         const requestBody = {
@@ -2834,6 +2834,7 @@ export const saveRestorativeRecord = async (
             surface: record.surface,
             material: record.material,
             notes: record.notes,
+            cost: record.cost,
         };
         await customAxios.post(`/patients/${patientId}/restorative-records`, requestBody);
         return getPatientById(patientId);
