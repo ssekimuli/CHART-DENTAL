@@ -37,7 +37,7 @@ type ImageUploadFormProps = {
 };
 
 export function ImageUploadForm({ onSave, onOpenChange }: ImageUploadFormProps) {
-  const [file, setFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -48,13 +48,15 @@ export function ImageUploadForm({ onSave, onOpenChange }: ImageUploadFormProps) 
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    if (!file) {
-      alert("Please select a file to upload.");
+    if (files.length === 0) {
+      alert("Please select at least one file to upload.");
       return;
     }
 
     const formData = new FormData();
-    formData.append("file", file);
+    files.forEach((file) => {
+      formData.append("files[]", file);
+    });
     formData.append("description", values.description);
     formData.append("category", values.category);
 
@@ -75,7 +77,7 @@ export function ImageUploadForm({ onSave, onOpenChange }: ImageUploadFormProps) 
              <FormItem>
               <FormLabel>Document File</FormLabel>
               <FormControl>
-                <Input type="file" onChange={(e) => setFile(e.target.files?.[0] || null)} />
+                <Input type="file" multiple onChange={(e) => setFiles(Array.from(e.target.files || []))} />
               </FormControl>
               <FormMessage />
             </FormItem>
