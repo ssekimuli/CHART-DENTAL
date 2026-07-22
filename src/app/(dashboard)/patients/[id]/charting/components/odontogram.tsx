@@ -3,11 +3,31 @@
 import React, { useState } from "react";
 import Image from "next/image";
 
+import type { RestorativeRecord } from "@/lib/types";
+
 type OdontogramToothImageProps = {
   toothId: number;
+  records: RestorativeRecord[];
 };
 
-function OdontogramToothImage({ toothId }: OdontogramToothImageProps) {
+function OdontogramToothImage({ toothId, records }: OdontogramToothImageProps) {
+  const renderProcedureBadge = (view: "Back" | "Top" | "Front" | "Whole Tooth") => {
+    // If view is Whole Tooth, we can render on all or just top. But user specified Top/Front/Back.
+    const toothRecords = records.filter(
+      (r) => r.surface === view || (r.surface === "Whole Tooth" && view === "Top")
+    );
+
+    if (toothRecords.length === 0) return null;
+
+    return (
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+        <div className="bg-blue-500/80 text-white text-[8px] md:text-[10px] font-bold px-1 py-0.5 rounded shadow-lg text-center leading-tight truncate max-w-[90%]">
+          {toothRecords.length} Proc
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="flex flex-col items-center gap-2 group w-20 md:w-24 lg:w-28">
       <span className="text-xs md:text-sm font-bold text-slate-400 group-hover:text-slate-200 transition-colors mb-2">{toothId}</span>
@@ -21,6 +41,7 @@ function OdontogramToothImage({ toothId }: OdontogramToothImageProps) {
           className="object-contain drop-shadow-md opacity-80 hover:opacity-100 transition-opacity rotate-180"
           onError={(e) => { e.currentTarget.style.opacity = '0'; }}
         />
+        {renderProcedureBadge("Back")}
       </div>
 
       {/* Top View */}
@@ -32,6 +53,7 @@ function OdontogramToothImage({ toothId }: OdontogramToothImageProps) {
           className="object-contain drop-shadow-lg"
           onError={(e) => { e.currentTarget.src = `/teeth/${toothId}.png`; }}
         />
+        {renderProcedureBadge("Top")}
       </div>
 
       {/* Front View */}
@@ -43,12 +65,13 @@ function OdontogramToothImage({ toothId }: OdontogramToothImageProps) {
           className="object-contain drop-shadow-md opacity-80 hover:opacity-100 transition-opacity"
           onError={(e) => { e.currentTarget.style.opacity = '0'; }}
         />
+        {renderProcedureBadge("Front")}
       </div>
     </div>
   );
 }
 
-export function Odontogram() {
+export function Odontogram({ records = [] }: { records?: RestorativeRecord[] }) {
   const upperRight = [18, 17, 16, 15, 14, 13, 12, 11];
   const upperLeft = [21, 22, 23, 24, 25, 26, 27, 28];
   const lowerRight = [48, 47, 46, 45, 44, 43, 42, 41];
@@ -74,7 +97,7 @@ export function Odontogram() {
               {/* Quadrant 1 */}
               <div className="flex gap-1 md:gap-2">
                 {upperRight.map(id => (
-                  <OdontogramToothImage key={id} toothId={id} />
+                  <OdontogramToothImage key={id} toothId={id} records={records.filter(r => r.toothId == id)} />
                 ))}
               </div>
               
@@ -83,7 +106,7 @@ export function Odontogram() {
               {/* Quadrant 2 */}
               <div className="flex gap-1 md:gap-2">
                 {upperLeft.map(id => (
-                  <OdontogramToothImage key={id} toothId={id} />
+                  <OdontogramToothImage key={id} toothId={id} records={records.filter(r => r.toothId == id)} />
                 ))}
               </div>
             </div>
@@ -98,7 +121,7 @@ export function Odontogram() {
               {/* Quadrant 4 */}
               <div className="flex gap-1 md:gap-2">
                 {lowerRight.map(id => (
-                  <OdontogramToothImage key={id} toothId={id} />
+                  <OdontogramToothImage key={id} toothId={id} records={records.filter(r => r.toothId == id)} />
                 ))}
               </div>
               
@@ -107,7 +130,7 @@ export function Odontogram() {
               {/* Quadrant 3 */}
               <div className="flex gap-1 md:gap-2">
                 {lowerLeft.map(id => (
-                  <OdontogramToothImage key={id} toothId={id} />
+                  <OdontogramToothImage key={id} toothId={id} records={records.filter(r => r.toothId == id)} />
                 ))}
               </div>
             </div>

@@ -76,7 +76,7 @@ export function RestorativeChart({ initialRecords, onSave, onUpdate, onDelete }:
         </CardHeader>
         <CardContent className="space-y-8 min-w-max">
           <div className="w-full pb-8">
-            <Odontogram />
+            <Odontogram records={initialRecords} />
           </div>
 
           <div className="w-full">

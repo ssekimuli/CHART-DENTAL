@@ -46,8 +46,146 @@ type RestorativeRecordFormProps = {
   onUpdate: (record: RestorativeRecord) => void;
 };
 
-const commonSurfaces = ["O", "M", "D", "B", "L", "MO", "DO", "MOD", "MODB", "MODL"];
-const commonMaterials = ["Composite", "Amalgam", "Glass Ionomer", "Gold", "Porcelain", "Ceramic"];
+const commonSurfaces = ["Top", "Front", "Back", "Whole Tooth"];
+
+// Grouped procedures for the select dropdown
+const procedureGroups = [
+  {
+    label: "Direct Restorations",
+    options: [
+      "Composite (tooth-colored) fillings",
+      "Amalgam (silver) fillings",
+      "Glass ionomer cement (GIC) fillings",
+      "Resin-modified glass ionomer (RMGIC) fillings",
+      "Temporary fillings"
+    ]
+  },
+  {
+    label: "Indirect Restorations",
+    options: [
+      "Dental inlays",
+      "Dental onlays",
+      "Porcelain veneers",
+      "Composite veneers"
+    ]
+  },
+  {
+    label: "Crowns",
+    options: [
+      "Full metal crowns",
+      "Porcelain-fused-to-metal (PFM) crowns",
+      "All-ceramic crowns",
+      "Zirconia crowns",
+      "E-max (lithium disilicate) crowns",
+      "Stainless steel crowns (primarily pediatric)"
+    ]
+  },
+  {
+    label: "Bridge Procedures",
+    options: [
+      "Traditional dental bridge",
+      "Cantilever bridge",
+      "Maryland bridge (resin-bonded bridge)",
+      "Implant-supported bridge"
+    ]
+  },
+  {
+    label: "Implant Restorations",
+    options: [
+      "Single implant crown",
+      "Implant-supported overdenture",
+      "Full-arch implant restoration (All-on-4/All-on-6)"
+    ]
+  },
+  {
+    label: "Denture Restorations",
+    options: [
+      "Complete dentures",
+      "Partial dentures",
+      "Immediate dentures",
+      "Flexible dentures",
+      "Implant-retained dentures",
+      "Denture relining",
+      "Denture rebasing",
+      "Denture repair"
+    ]
+  },
+  {
+    label: "Endodontic Restorations",
+    options: [
+      "Core buildup",
+      "Post and core restoration",
+      "Crown after root canal treatment",
+      "Endocrown"
+    ]
+  },
+  {
+    label: "Pediatric Restorations",
+    options: [
+      "Composite restorations",
+      "Glass ionomer restorations",
+      "Stainless steel crowns",
+      "Strip crowns",
+      "Hall technique crowns"
+    ]
+  },
+  {
+    label: "Cosmetic Restorations",
+    options: [
+      "Direct composite bonding",
+      "Diastema (gap) closure",
+      "Tooth reshaping (enameloplasty)",
+      "Composite veneers",
+      "Porcelain veneers"
+    ]
+  },
+  {
+    label: "Tooth Reconstruction",
+    options: [
+      "Cusp replacement",
+      "Fractured tooth restoration",
+      "Worn tooth rehabilitation",
+      "Full mouth rehabilitation",
+      "Occlusal reconstruction"
+    ]
+  },
+  {
+    label: "Repair and Replacement",
+    options: [
+      "Filling replacement",
+      "Crown replacement",
+      "Bridge replacement",
+      "Veneer replacement",
+      "Composite restoration repair",
+      "Crown repair"
+    ]
+  },
+  {
+    label: "Additional Restorative Procedures",
+    options: [
+      "Pin-retained restoration",
+      "Foundation restoration",
+      "Caries excavation and restoration",
+      "Deep margin elevation",
+      "Indirect pulp capping before restoration",
+      "Direct pulp capping before restoration",
+      "Temporary crown placement",
+      "Temporary bridge placement",
+      "Occlusal adjustment after restoration"
+    ]
+  },
+  {
+    label: "Digital Restorative Procedures",
+    options: [
+      "Digital intraoral scanning",
+      "CAD/CAM same-day crowns",
+      "Chairside milled inlays/onlays",
+      "Digital smile design for restorations"
+    ]
+  }
+];
+
+import { SelectGroup, SelectLabel } from "@/components/ui/select";
 
 export function RestorativeRecordForm({
   open,
@@ -98,11 +236,11 @@ export function RestorativeRecordForm({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>{initialData ? "Edit Restorative Record" : "Add Restorative Record"}</DialogTitle>
+          <DialogTitle>{initialData ? "Edit Procedure" : "Add Procedure"}</DialogTitle>
           <DialogDescription>
-            Record details about dental restorations.
+            Record clinical procedures and surface locations.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -130,11 +268,11 @@ export function RestorativeRecordForm({
               name="surface"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Surface</FormLabel>
+                  <FormLabel>Location / View</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select surface (e.g. MOD)" />
+                        <SelectValue placeholder="Select view (e.g. Top)" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
@@ -155,18 +293,23 @@ export function RestorativeRecordForm({
               name="material"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Material</FormLabel>
+                  <FormLabel>Procedure</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select material" />
+                        <SelectValue placeholder="Select clinical procedure" />
                       </SelectTrigger>
                     </FormControl>
-                    <SelectContent>
-                      {commonMaterials.map((material) => (
-                        <SelectItem key={material} value={material}>
-                          {material}
-                        </SelectItem>
+                    <SelectContent className="max-h-[300px]">
+                      {procedureGroups.map((group) => (
+                        <SelectGroup key={group.label}>
+                          <SelectLabel className="font-bold text-blue-400 mt-2">{group.label}</SelectLabel>
+                          {group.options.map((option) => (
+                            <SelectItem key={option} value={option} className="ml-2">
+                              {option}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
                       ))}
                     </SelectContent>
                   </Select>
