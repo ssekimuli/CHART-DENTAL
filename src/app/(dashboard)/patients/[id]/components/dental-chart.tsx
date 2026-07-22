@@ -13,8 +13,6 @@ import {
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet";
-import { Odontogram } from "react-odontogram";
-import "react-odontogram/style.css";
 
 
 const upperRightQuadrant = [18, 17, 16, 15, 14, 13, 12, 11];
@@ -39,113 +37,20 @@ type DentalChartProps = {
   onQuickLogCondition?: (toothId: number, condition: DentalCondition) => void;
 };
 
+import { Odontogram } from "../charting/components/odontogram";
+
 export function DentalChart({ initialRecords, treatmentPlans, onAddTreatment, onLogCondition, onQuickLogCondition }: DentalChartProps) {
   const [selectedTooth, setSelectedTooth] = useState<number | null>(null);
-
-  // react-odontogram renders the lower jaw with quadrant 3 (30s) on the left and quadrant 4 (40s) on the right.
-  // In a standard practitioner's view, quadrant 4 should be on the left and quadrant 3 on the right.
-  // We map the FDI numbers transparently to correct this visual anomaly.
-  const mapFdiToOdontogram = (fdi: number) => {
-    if (fdi >= 31 && fdi <= 38) return fdi + 10;
-    if (fdi >= 41 && fdi <= 48) return fdi - 10;
-    return fdi;
-  };
-
-  const mapOdontogramToFdi = (fdi: number) => {
-    return mapFdiToOdontogram(fdi); // it is symmetric
-  };
-
-  // Group conditions for react-odontogram
-  const teethConditions = useMemo(() => {
-    const conditionsMap: Record<string, string[]> = {
-      Caries: [],
-      Filling: [],
-      Crown: [],
-      Missing: [],
-      Fracture: [],
-    };
-    
-    const treatmentMap: string[] = []; // Teeth with treatments but no specific condition style
-
-    initialRecords.forEach((record) => {
-      if (record.condition !== 'Healthy' && conditionsMap[record.condition]) {
-        conditionsMap[record.condition].push(`teeth-${mapFdiToOdontogram(record.toothId)}`);
-      }
-    });
-
-    treatmentPlans.forEach((plan) => {
-      if (plan.tooth && (plan.status === 'Proposed' || plan.status === 'In Progress')) {
-          const toothIdStr = `teeth-${mapFdiToOdontogram(plan.tooth)}`;
-          // Only add to treatment map if it doesn't already have a strong condition color, 
-          // or we can just make a dedicated "Treatment" condition group that has a blue outline.
-          // react-odontogram layers conditions by array order.
-          treatmentMap.push(toothIdStr);
-      }
-    });
-
-    const groups = [];
-    
-    if (conditionsMap.Caries.length > 0) groups.push({ label: 'Caries', teeth: conditionsMap.Caries, fillColor: '#FBBF24', outlineColor: '#B45309' });
-    if (conditionsMap.Filling.length > 0) groups.push({ label: 'Filling', teeth: conditionsMap.Filling, fillColor: '#60A5FA', outlineColor: '#1D4ED8' });
-    if (conditionsMap.Crown.length > 0) groups.push({ label: 'Crown', teeth: conditionsMap.Crown, fillColor: '#A78BFA', outlineColor: '#6D28D9' });
-    if (conditionsMap.Missing.length > 0) groups.push({ label: 'Missing', teeth: conditionsMap.Missing, fillColor: '#6B7280', outlineColor: '#374151' });
-    if (conditionsMap.Fracture.length > 0) groups.push({ label: 'Fracture', teeth: conditionsMap.Fracture, fillColor: '#EF4444', outlineColor: '#B91C1C' });
-
-    // Treatments (blue outline)
-    if (treatmentMap.length > 0) {
-        groups.push({
-            label: 'Treatment Plan',
-            teeth: treatmentMap,
-            fillColor: 'transparent',
-            outlineColor: '#3B82F6', // Blue outline for treatments
-        });
-    }
-
-    return groups;
-  }, [initialRecords, treatmentPlans]);
 
   return (
     <div className="flex flex-col gap-6">
       <div className="rounded-lg bg-muted/10 p-6 border overflow-x-auto flex justify-center items-center min-h-[450px]">
-        <div className="w-full max-w-[900px] min-w-[800px] scale-105 origin-center py-4 flex flex-col relative">
-          
-          {/* Top Row Numbers */}
-          <div className="flex w-full justify-between text-xs font-semibold text-muted-foreground mb-2 px-1">
-            {[...upperRightQuadrant, ...upperLeftQuadrant].map(num => (
-              <div key={`top-${num}`} className="flex-1 text-center">
-                {num}
-              </div>
-            ))}
-          </div>
-
+        <div className="w-full scale-100 origin-center py-4 flex flex-col relative">
           <Odontogram 
-            singleSelect 
-            layout="square"
-            teethConditions={teethConditions}
-            tooltip={{
-              content: (tooth: any) => {
-                if (!tooth) return null;
-                const fdi = parseInt(tooth.notations.fdi, 10);
-                return `Tooth #${mapOdontogramToFdi(fdi)}`;
-              }
-            }}
-            onChange={(teeth: any) => {
-              if (teeth && teeth.length > 0) {
-                const fdi = parseInt(teeth[0].notations.fdi, 10);
-                setSelectedTooth(mapOdontogramToFdi(fdi));
-              }
-            }}
+            dentalRecords={initialRecords}
+            treatmentPlans={treatmentPlans}
+            onToothClick={(toothId) => setSelectedTooth(toothId)}
           />
-
-          {/* Bottom Row Numbers */}
-          <div className="flex w-full justify-between text-xs font-semibold text-muted-foreground mt-2 px-1">
-            {[...lowerRightQuadrant, ...lowerLeftQuadrant].map(num => (
-              <div key={`bottom-${num}`} className="flex-1 text-center">
-                {num}
-              </div>
-            ))}
-          </div>
-          
         </div>
       </div>
 
