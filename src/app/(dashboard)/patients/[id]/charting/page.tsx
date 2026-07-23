@@ -24,20 +24,26 @@ import {
 } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DentalChart } from "../components/dental-chart";
+import dynamic from "next/dynamic";
+import { Skeleton } from "@/components/ui/skeleton";
+
+const ChartLoader = () => <Skeleton className="w-full h-[400px] rounded-lg" />;
+
+const DentalChart = dynamic(() => import("../components/dental-chart").then(mod => mod.DentalChart), { ssr: false, loading: ChartLoader });
+const PeriodontalChart = dynamic(() => import("./components/periodontal-chart").then(mod => mod.PeriodontalChart), { ssr: false, loading: ChartLoader });
+const OcclusalChart = dynamic(() => import("./components/occlusal-chart").then(mod => mod.OcclusalChart), { ssr: false, loading: ChartLoader });
+const SoftTissueChart = dynamic(() => import("./components/soft-tissue-chart").then(mod => mod.SoftTissueChart), { ssr: false, loading: ChartLoader });
+const OrthodonticChart = dynamic(() => import("./components/orthodontic-chart").then(mod => mod.OrthodonticChart), { ssr: false, loading: ChartLoader });
+const EndodonticChart = dynamic(() => import("./components/endodontic-chart").then(mod => mod.EndodonticChart), { ssr: false, loading: ChartLoader });
+
+const TreatmentPlanForm = dynamic(() => import("../components/treatment-plan-form").then(mod => mod.TreatmentPlanForm), { ssr: false });
+const RestorativeRecordForm = dynamic(() => import("./components/restorative-record-form").then(mod => mod.RestorativeRecordForm), { ssr: false });
+const PrescriptionForm = dynamic(() => import("../components/prescription-form").then(mod => mod.PrescriptionForm), { ssr: false });
+const ConditionLogger = dynamic(() => import("../components/condition-logger").then(mod => mod.ConditionLogger), { ssr: false });
 import { useState, useEffect, use } from "react";
 import type { Patient, DentalRecord, Treatment, PeriodontalRecord, OcclusalRecord, OrthodonticRecord, SoftTissueRecord, DentalCondition, EndodonticRecord, RestorativeRecord } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Loader2, Pill, Upload } from "lucide-react";
-import { PeriodontalChart } from "./components/periodontal-chart";
-import { OcclusalChart } from "./components/occlusal-chart";
-import { SoftTissueChart } from "./components/soft-tissue-chart";
-import { TreatmentPlanForm } from "../components/treatment-plan-form";
-import { OrthodonticChart } from "./components/orthodontic-chart";
-import { EndodonticChart } from "./components/endodontic-chart";
-import { RestorativeRecordForm } from "./components/restorative-record-form";
-import { PrescriptionForm } from "../components/prescription-form";
-import { ConditionLogger } from "../components/condition-logger";
 import { getPatientById, addTreatment, updateTreatment, saveDentalRecord, savePeriodontalRecord, saveOcclusalRecord, saveOrthodonticRecord, updateOrthodonticRecord, deleteOrthodonticRecord, saveSoftTissueRecord, updateSoftTissueRecord, deleteSoftTissueRecord, saveEndodonticRecord, updateEndodonticRecord, deleteEndodonticRecord, saveRestorativeRecord, updateRestorativeRecord, deleteRestorativeRecord } from "@/lib/api";
 import { getCurrentUser, hasRole, hasPermission } from "@/lib/user";
 import { getPatientFullName } from "@/lib/utils";
