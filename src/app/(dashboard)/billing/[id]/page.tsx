@@ -124,10 +124,22 @@ export default function InvoiceDetailPage() {
     window.print();
   };
 
-  const handleDownload = () => {
-    // Implement PDF download logic here
-    // You might want to use a library like html2pdf.js or jsPDF
-    console.log('Download PDF');
+  const handleDownload = async () => {
+    try {
+        const html2pdf = (await import('html2pdf.js')).default;
+        const element = document.getElementById('invoice-content');
+        if (!element) return;
+        const opt = {
+          margin:       0.5,
+          filename:     `invoice_${invoice?.id || 'unknown'}.pdf`,
+          image:        { type: 'jpeg' as const, quality: 0.98 },
+          html2canvas:  { scale: 2 },
+          jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' as const }
+        };
+        html2pdf().set(opt).from(element).save();
+    } catch (e) {
+        console.error("PDF generation failed", e);
+    }
   };
 
   if (isLoading) {
@@ -165,8 +177,8 @@ export default function InvoiceDetailPage() {
         Back
       </Button>
 
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+      <Card id="invoice-content">
+        <CardHeader className="flex flex-row items-center justify-between" data-html2canvas-ignore="true">
           <div>
               <p className="text-sm text-muted-foreground">Invoice #{invoice.id}</p>
               <CardTitle className="text-3xl">Invoice Details</CardTitle>
@@ -180,7 +192,13 @@ export default function InvoiceDetailPage() {
               </Button>
           </div>
         </CardHeader>
-        <CardContent className="space-y-8">
+        <div className="hidden print:block text-2xl font-bold p-6 border-b" data-html2canvas-show="true">
+             <div className="flex justify-between items-center">
+                 <span>CHART DENTAL</span>
+                 <span className="text-xl">Invoice #{invoice.id}</span>
+             </div>
+        </div>
+        <CardContent className="space-y-8 mt-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                   <h4 className="font-semibold mb-2">Billed To </h4>
@@ -324,18 +342,36 @@ export default function InvoiceDetailPage() {
                        <div className="border-t border-dashed my-1"></div>
                    </>
               )}
-              <div className="flex justify-between font-semibold text-lg border-t pt-2 mt-2">
-                  <span>Total:</span>
-                  <span>{formatCurrency(invoice.amount)}</span>
-              </div>
-              <div className="flex justify-between text-muted-foreground">
-                  <span>Paid:</span>
-                  <span>-{formatCurrency(invoice.paidAmount)}</span>
-              </div>
-              <div className="flex justify-between font-semibold text-lg border-t pt-2 mt-2">
-                  <span>Balance Due:</span>
-                  <span>{formatCurrency(getNumber(invoice.amount) - getNumber(invoice.paidAmount))}</span>
-              </div>
+              {invoice.discount !== undefined && invoice.discount > 0 && (
+                  <div className="flex justify-between text-green-600">
+                      <span>Discount ({invoice.discount}%):</span>
+                      <span>-{formatCurrency((subtotal + otherChargesTotal + (invoice.medicines?.reduce((s, m) => s + (Number(m.price) * Number(m.quantity)), 0) || 0)) * (invoice.discount / 100))}</span>
+                  </div>
+               )}
+               {invoice.tax !== undefined && invoice.tax > 0 && (
+                  <div className="flex justify-between text-red-600">
+                      <span>Tax ({invoice.tax}%):</span>
+                      <span>+{formatCurrency(((subtotal + otherChargesTotal + (invoice.medicines?.reduce((s, m) => s + (Number(m.price) * Number(m.quantity)), 0) || 0)) * (1 - (invoice.discount || 0) / 100)) * (invoice.tax / 100))}</span>
+                  </div>
+               )}
+               <div className="flex justify-between font-semibold text-lg border-t pt-2 mt-2">
+                   <span>Total:</span>
+                   <span>{formatCurrency(invoice.amount)}</span>
+               </div>
+               {invoice.insuranceCoverage !== undefined && invoice.insuranceCoverage > 0 && (
+                  <div className="flex justify-between text-blue-600">
+                      <span>Insurance Coverage:</span>
+                      <span>-{formatCurrency(invoice.insuranceCoverage)}</span>
+                  </div>
+               )}
+               <div className="flex justify-between text-muted-foreground">
+                   <span>Paid:</span>
+                   <span>-{formatCurrency(invoice.paidAmount)}</span>
+               </div>
+               <div className="flex justify-between font-semibold text-lg border-t pt-2 mt-2">
+                   <span>Balance Due:</span>
+                   <span>{formatCurrency(Math.max(getNumber(invoice.amount) - getNumber(invoice.paidAmount) - getNumber(invoice.insuranceCoverage || 0), 0))}</span>
+               </div>
           </div>
         </CardFooter>
       </Card>

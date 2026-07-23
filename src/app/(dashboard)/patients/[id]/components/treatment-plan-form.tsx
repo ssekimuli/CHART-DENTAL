@@ -35,6 +35,7 @@ import {
 import type { Treatment, DentalCondition, SystemTreatment } from "@/lib/types";
 import { Combobox } from "@/components/ui/combobox";
 import { getTreatments } from "@/lib/api";
+import { useCurrency } from "@/hooks/use-currency";
 
 const formSchema = z.object({
   procedureId: z.preprocess((value) => String(value), z.string().min(1, "Procedure is required.")),
@@ -55,6 +56,7 @@ type TreatmentPlanFormProps = {
 
 export function TreatmentPlanForm({ treatment, onSave, onOpenChange, toothId, currentCondition }: TreatmentPlanFormProps) {
   const [systemTreatments, setSystemTreatments] = useState<SystemTreatment[]>([]);
+  const { formatCurrency } = useCurrency();
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -146,7 +148,7 @@ export function TreatmentPlanForm({ treatment, onSave, onOpenChange, toothId, cu
                             <Combobox
                                 options={systemTreatments.map(t => ({ 
                                     value: t.id, 
-                                    label: `${t.procedure} ($${t.cost})`,
+                                    label: `${t.procedure} (${formatCurrency(t.cost)})`,
                                     category: t.category 
                                 }))}
                                 value={field.value}

@@ -258,7 +258,7 @@ export default function PharmacyPage() {
     e.preventDefault();
     try {
       const payload = {
-        patient_id: rxForm.patient_id ? Number(rxForm.patient_id) : undefined,
+        patient_id: rxForm.patient_id ? Number(rxForm.patient_id) : 0,
         doctor_id: rxForm.doctor_id ? Number(rxForm.doctor_id) : undefined,
         prescription_date: rxForm.prescription_date,
         notes: rxForm.notes,

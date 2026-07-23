@@ -16,7 +16,7 @@ import {
     roles as mockRoles,
     businesses as mockBusinesses
 } from '@/lib/data';
-import type { Business, PaginatedArray, Patient, Appointment, Invoice, ChartData, PracticeTrendPoint, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, BasePatient, InvoiceTreatment, OtherCharge, SystemTreatment, PaymentMethod, PaymentTransaction, AttendanceRecord, LeaveRequest, StaffAdvance, StaffAdvanceStatus, Expense, ExpenseCategory, ExpenseSummary, IncomeRecord, RolePermissions, Permission, DentalRecord, PeriodontalRecord, OcclusalRecord, SoftTissueRecord, OrthodonticRecord, Treatment, DentalCondition, PatientImage, FinancialSummary, CurrentUser, ProfileData, AppointmentStatus, DashboardSummary, EmployeeRole, ReportsOverview, Medicine, MedicineUnit, Prescription, PrescriptionItem, InvoiceMedicine, EndodonticRecord } from '@/lib/types';
+import type { Business, PaginatedArray, Patient, Appointment, Invoice, ChartData, PracticeTrendPoint, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, BasePatient, InvoiceTreatment, OtherCharge, SystemTreatment, PaymentMethod, PaymentTransaction, AttendanceRecord, LeaveRequest, StaffAdvance, StaffAdvanceStatus, Expense, ExpenseCategory, ExpenseSummary, IncomeRecord, RolePermissions, Permission, DentalRecord, PeriodontalRecord, OcclusalRecord, SoftTissueRecord, OrthodonticRecord, Treatment, DentalCondition, PatientImage, FinancialSummary, CurrentUser, ProfileData, AppointmentStatus, DashboardSummary, EmployeeRole, ReportsOverview, Medicine, MedicineUnit, Prescription, PrescriptionItem, InvoiceMedicine, EndodonticRecord, RestorativeRecord } from '@/lib/types';
 import { format, parse } from "date-fns";
 import { speak } from '@/ai/flows/speak';
 import { clearCurrentUser, setCurrentUser } from './user';
@@ -36,6 +36,7 @@ let businessesCache: Business[] | null = null;
 // --- READ OPERATIONS ---
 
 export const login = async (email: string, password?: string): Promise<CurrentUser | null> => {
+    
     console.log('API CALL: login', { email });
     
     try {
@@ -43,26 +44,33 @@ export const login = async (email: string, password?: string): Promise<CurrentUs
         const { user, token } = response.data;
         setCurrentUser(user, token);
         return user;
+
     } catch (error) {
         if (axios.isAxiosError(error)) {
             console.error('Login failed:', error.response?.data || error.message || error);
         } else {
             console.error("An unexpected error occurred during login:", error);
         }
+
         clearCurrentUser();
+
         return null;
     }
 }
 
 export const logout = async (): Promise<void> => {
+
     console.log('API CALL: logout');
+    
     try {
         await customAxios.post('/logout');
     } catch (error) {
         if (axios.isAxiosError(error)) {
             console.error('Logout failed:', error.response?.data);
         } else {
+
             console.error('An unexpected error occurred during logout:', error);
+
         }
         // We still clear the local session even if server logout fails
     }
@@ -123,7 +131,9 @@ export const resendEmployeePassword = async (id: string | number): Promise<{ suc
 };
 
 export const resetPassword = async (identifier: string, password?: string): Promise<{ success: boolean; message: string }> => {
+    
     console.log('API CALL: resetPassword', { identifier });
+    
     try {
         const response = await customAxios.post('/reset-password', { identifier, password });
         return {
@@ -359,6 +369,15 @@ export const getPatients = async (filters?: string | number | GetPatientsFilters
             softTissueRecords: patient.soft_tissue_records || [],
             orthodonticRecords: mapOrthodonticRecords(patient.orthodontic_records),
             endodonticRecords: mapEndodonticRecords(patient.endodontic_records || patient.endodonticRecords),
+            restorativeRecords: (patient.restorative_records || patient.restorativeRecords || []).map((record: any) => ({
+                id: String(record.id),
+                toothId: Number(record.tooth_id || record.toothId),
+                surface: record.surface,
+                material: record.material,
+                notes: record.notes || '',
+                createdAt: record.created_at || record.createdAt,
+                updatedAt: record.updated_at || record.updatedAt,
+            })),
         }));
 
         if (response.data && response.data.meta) {
@@ -483,6 +502,15 @@ export const getPatientById = async (id: string | number): Promise<Patient | und
             softTissueRecords: patient.soft_tissue_records || [],
             orthodonticRecords: mapOrthodonticRecords(patient.orthodontic_records),
             endodonticRecords: mapEndodonticRecords(patient.endodontic_records || patient.endodonticRecords),
+            restorativeRecords: (patient.restorative_records || patient.restorativeRecords || []).map((record: any) => ({
+                id: String(record.id),
+                toothId: Number(record.tooth_id || record.toothId),
+                surface: record.surface,
+                material: record.material,
+                notes: record.notes || '',
+                createdAt: record.created_at || record.createdAt,
+                updatedAt: record.updated_at || record.updatedAt,
+            })),
         };
     } catch (error) {
         if (axios.isAxiosError(error)) {
@@ -771,6 +799,9 @@ export const getInvoices = async (filters?: {
             patientId: inv.patient_id ?? inv.patientId,
             issueDate: inv.issue_date,
             branchId: inv.branch_id,
+            discount: Number(inv.discount || 0),
+            tax: Number(inv.tax || 0),
+            insuranceCoverage: Number(inv.insurance_coverage || 0),
             branch: inv.branch ? {
                 id: inv.branch.id,
                 name: inv.branch.name,
@@ -848,6 +879,9 @@ export const getInvoiceById = async (id: string | number): Promise<Invoice | und
             issueDate: invoiceData.issue_date || invoiceData.issueDate || new Date().toISOString(),
             dueDate: invoiceData.due_date || invoiceData.dueDate || new Date().toISOString(),
             paymentMethod: invoiceData.payment_method || invoiceData.paymentMethod || null,
+            discount: Number(invoiceData.discount || 0),
+            tax: Number(invoiceData.tax || 0),
+            insuranceCoverage: Number(invoiceData.insurance_coverage || 0),
             branchId: invoiceData.branch_id || invoiceData.branchId,
             branch: invoiceData.branch ? {
                 id: invoiceData.branch.id,
@@ -1399,14 +1433,16 @@ export const getRolesList = async (): Promise<{id: string, name: string}[]> => {
 }
 
 
-export const getFinancialSummary = async (branchId: string | number): Promise<FinancialSummary> => {
-    console.log('API CALL: getFinancialSummary', { branchId });
+export const getFinancialSummary = async (filters?: { branchId?: string | number; dateFrom?: string; dateTo?: string }): Promise<FinancialSummary> => {
+    console.log('API CALL: getFinancialSummary', { filters });
 
     try {
         const params: Record<string, string | number> = {};
-        if (branchId !== undefined && branchId !== null) {
-            params.branch_id = branchId;
+        if (filters?.branchId !== undefined && filters?.branchId !== null) {
+            params.branch_id = filters.branchId;
         }
+        if (filters?.dateFrom) params.date_from = filters.dateFrom;
+        if (filters?.dateTo) params.date_to = filters.dateTo;
 
         const response = await customAxios.get('/financial-summary', { params });
         let data: any = response.data;
@@ -1442,9 +1478,10 @@ export const getFinancialSummary = async (branchId: string | number): Promise<Fi
         // Fallback to mocked summary if the real API call fails.
         await delay(300);
 
-        const branchInvoices = allInvoices.filter(i => String(i.branchId) === String(branchId));
-        const branchPayrolls = mockPayrolls.filter(p => String(p.branchId) === String(branchId));
-        const branchExpenses = allExpenses.filter(e => String(e.branchId) === String(branchId));
+        const branchId = filters?.branchId;
+        const branchInvoices = branchId ? allInvoices.filter(i => String(i.branchId) === String(branchId)) : allInvoices;
+        const branchPayrolls = branchId ? mockPayrolls.filter(p => String(p.branchId) === String(branchId)) : mockPayrolls;
+        const branchExpenses = branchId ? allExpenses.filter(e => String(e.branchId) === String(branchId)) : allExpenses;
 
         const paidInvoices = branchInvoices.filter(i => i.status === 'Paid');
         const totalIncome = paidInvoices.reduce((sum, i) => sum + i.amount, 0);
@@ -1652,14 +1689,16 @@ export const getExpenses = async (filters?: string | number | {
     }
 };
 
-export const getExpenseSummary = async (branchId?: string | number): Promise<ExpenseSummary | null> => {
-    console.log('API CALL: getExpenseSummary', { branchId });
+export const getExpenseSummary = async (filters?: { branchId?: string | number; dateFrom?: string; dateTo?: string }): Promise<ExpenseSummary | null> => {
+    console.log('API CALL: getExpenseSummary', { filters });
 
     try {
         const params: Record<string, string | number> = {};
-        if (branchId !== undefined && branchId !== null) {
-            params.branch_id = branchId;
+        if (filters?.branchId !== undefined && filters?.branchId !== null) {
+            params.branch_id = filters.branchId;
         }
+        if (filters?.dateFrom) params.date_from = filters.dateFrom;
+        if (filters?.dateTo) params.date_to = filters.dateTo;
 
         const response = await customAxios.get('/expense-records', { params });
         let data: any = response.data;
@@ -2055,6 +2094,16 @@ export const updatePatient = async (id: string | number, data: Partial<Patient>)
     }
 }
 
+export const getPatientImages = async (patientId: string | number, filters?: { category?: string; search?: string }): Promise<PatientImage[]> => {
+    try {
+        const response = await customAxios.get(`/patients/${patientId}/images`, { params: filters });
+        return response.data.data || [];
+    } catch (error) {
+        console.error('Failed to fetch patient images:', error);
+        return [];
+    }
+};
+
 export const deletePatient = async (id: string | number): Promise<{ success: boolean }> => {
     console.log('API CALL: deletePatient', { id });
 
@@ -2082,12 +2131,13 @@ export const deletePatient = async (id: string | number): Promise<{ success: boo
     }
 }
 
-export const addImageToPatient = async (patientId: string | number, image: Omit<PatientImage, 'date'>): Promise<Patient | undefined> => {
-    console.log('API CALL: addImageToPatient', { patientId, image });
+export const addImageToPatient = async (patientId: string | number, imageFormData: FormData): Promise<Patient | undefined> => {
+    console.log('API CALL: addImageToPatient', { patientId });
     try {
-        const response = await customAxios.post(`/patients/${patientId}/images`, {
-            url: image.url,
-            description: image.description,
+        const response = await customAxios.post(`/patients/${patientId}/images`, imageFormData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
         });
         const updatedPatient = response.data;
 
@@ -2774,6 +2824,58 @@ export const deleteEndodonticRecord = async (
     }
 };
 
+export const saveRestorativeRecord = async (
+    patientId: string | number, 
+    record: Omit<RestorativeRecord, 'id' | 'createdAt' | 'updatedAt'> & { cost?: number }
+): Promise<Patient | undefined> => {
+    try {
+        const requestBody = {
+            tooth_id: record.toothId,
+            surface: record.surface,
+            material: record.material,
+            notes: record.notes,
+            cost: record.cost,
+        };
+        await customAxios.post(`/patients/${patientId}/restorative-records`, requestBody);
+        return getPatientById(patientId);
+    } catch (error) {
+        console.error('Error saving restorative record:', error);
+        return undefined;
+    }
+};
+
+export const updateRestorativeRecord = async (
+    patientId: string | number, 
+    record: RestorativeRecord
+): Promise<Patient | undefined> => {
+    try {
+        const requestBody = {
+            tooth_id: record.toothId,
+            surface: record.surface,
+            material: record.material,
+            notes: record.notes,
+        };
+        await customAxios.put(`/patients/${patientId}/restorative-records/${record.id}`, requestBody);
+        return getPatientById(patientId);
+    } catch (error) {
+        console.error('Error updating restorative record:', error);
+        return undefined;
+    }
+};
+
+export const deleteRestorativeRecord = async (
+    patientId: string | number, 
+    recordId: string | number
+): Promise<Patient | undefined> => {
+    try {
+        await customAxios.delete(`/patients/${patientId}/restorative-records/${recordId}`);
+        return getPatientById(patientId);
+    } catch (error) {
+        console.error('Error deleting restorative record:', error);
+        return undefined;
+    }
+};
+
 
 
 export const updateAppointment = async (id: string | number, data: Partial<Appointment>): Promise<Appointment | undefined> => {
@@ -2865,13 +2967,20 @@ export const createNewInvoice = async (data: Omit<Invoice, 'id' | 'amount' | 'pa
         // ✅ Calculate totals
         const treatmentsTotal = data.treatments.reduce((sum, t) => sum + (Number(t.cost) || 0), 0);
         const otherChargesTotal = (data.otherCharges || []).reduce((sum, charge) => sum + (Number(charge.amount) || 0), 0);
-        const amount = treatmentsTotal + otherChargesTotal;
+        const subtotal = treatmentsTotal + otherChargesTotal;
+        const discountAmount = data.discount ? (data.discount <= 100 ? (subtotal * data.discount / 100) : data.discount) : 0;
+        const subtotalAfterDiscount = subtotal - discountAmount;
+        const taxAmount = data.tax ? (subtotalAfterDiscount * data.tax / 100) : 0;
+        const amount = subtotalAfterDiscount + taxAmount;
 
         // ✅ Prepare payload for API
         const payload = {
             patient_id: data.patientId,
             patient_name: data.patientName,
             amount: amount,
+            discount: data.discount || 0,
+            tax: data.tax || 0,
+            insurance_coverage: data.insuranceCoverage || 0,
             issue_date: data.issueDate,
             due_date: data.dueDate,
             status: data.status || 'Pending',
@@ -2936,6 +3045,9 @@ export const createNewInvoice = async (data: Omit<Invoice, 'id' | 'amount' | 'pa
             transactions: invoiceData.transactions || [],
             paymentMethod: invoiceData.payment_method || invoiceData.paymentMethod || data.paymentMethod,
             notes: invoiceData.notes || data.notes || '',
+            discount: Number(invoiceData.discount || data.discount || 0),
+            tax: Number(invoiceData.tax || data.tax || 0),
+            insuranceCoverage: Number(invoiceData.insurance_coverage || data.insuranceCoverage || 0),
         };
 
         console.log('Created invoice:', invoice);
@@ -2962,7 +3074,11 @@ export const updateInvoice = async (id: string | number, data: InvoiceUpdateData
         
         const otherCharges = data.otherCharges || [];
         const otherChargesTotal = otherCharges.reduce((sum, charge) => sum + (Number(charge.amount) || 0), 0);
-        const amount = treatmentsTotal + otherChargesTotal;
+        const subtotal = treatmentsTotal + otherChargesTotal;
+        const discountAmount = data.discount ? (data.discount <= 100 ? (subtotal * data.discount / 100) : data.discount) : 0;
+        const subtotalAfterDiscount = subtotal - discountAmount;
+        const taxAmount = data.tax ? (subtotalAfterDiscount * data.tax / 100) : 0;
+        const amount = subtotalAfterDiscount + taxAmount;
 
         // ✅ Prepare payload for API
         const payload: any = {};
@@ -2975,6 +3091,9 @@ export const updateInvoice = async (id: string | number, data: InvoiceUpdateData
         if (data.branchId !== undefined) payload.branch_id = data.branchId;
         if (data.paymentMethod !== undefined) payload.payment_method = data.paymentMethod;
         if (data.notes !== undefined) payload.notes = data.notes;
+        if (data.discount !== undefined) payload.discount = data.discount;
+        if (data.tax !== undefined) payload.tax = data.tax;
+        if (data.insuranceCoverage !== undefined) payload.insurance_coverage = data.insuranceCoverage;
         
         // Handle treatments
         if (data.treatments !== undefined) {
@@ -3045,6 +3164,9 @@ export const updateInvoice = async (id: string | number, data: InvoiceUpdateData
             transactions: invoiceData.transactions || [],
             paymentMethod: invoiceData.payment_method || invoiceData.paymentMethod || data.paymentMethod,
             notes: invoiceData.notes || data.notes || '',
+            discount: Number(invoiceData.discount || data.discount || 0),
+            tax: Number(invoiceData.tax || data.tax || 0),
+            insuranceCoverage: Number(invoiceData.insurance_coverage || data.insuranceCoverage || 0),
         };
 
         console.log('Updated invoice:', invoice);

@@ -253,7 +253,11 @@ export default function DashboardPage() {
                     </TableHeader>
                     <TableBody>
                     {appointments.slice(0, 5).map((appointment) => (
-                        <TableRow key={appointment.id}>
+                        <TableRow 
+                          key={appointment.id}
+                          className="cursor-pointer hover:bg-muted/50"
+                          onDoubleClick={() => router.push(`/patients/${appointment.patientId}/charting`)}
+                        >
                         <TableCell>{appointment.time}</TableCell>
                         <TableCell>
                             <div className="font-medium">{appointment.patientName}</div>
@@ -311,7 +315,11 @@ export default function DashboardPage() {
                     const fullName = isSummaryPatient ? `${patient.firstName} ${patient.lastName}` : `${patient.first_name} ${patient.last_name}`;
 
                     return (
-                        <div className="flex items-center" key={patient.id}>
+                        <div 
+                          className="flex items-center cursor-pointer hover:bg-muted/50 p-2 -mx-2 rounded-lg transition-colors" 
+                          key={patient.id}
+                          onDoubleClick={() => router.push(`/patients/${patient.id}/charting`)}
+                        >
                             {isSummaryPatient ? (
                                 <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-sm font-semibold text-white">
                                     {patient.firstName.charAt(0)}
