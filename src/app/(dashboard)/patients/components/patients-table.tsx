@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { hasPermission } from "@/lib/user";
 import { getPatientFullName } from "@/lib/utils";
+import { useRouter } from "next/navigation";
 
 type PatientsTableProps = {
     data: Patient[];
@@ -34,6 +35,7 @@ type PatientsTableProps = {
 };
 
 export function PatientsTable({ data, onView, onEdit, onDelete }: PatientsTableProps) {
+  const router = useRouter();
   const canUpdate = hasPermission('patients:update');
   const canDelete = hasPermission('patients:delete');
 
@@ -54,6 +56,8 @@ export function PatientsTable({ data, onView, onEdit, onDelete }: PatientsTableP
           {data.map((patient) => (
             <TableRow
               key={patient.id}
+              onDoubleClick={() => router.push(`/patients/${patient.id}/charting`)}
+              className="cursor-pointer hover:bg-muted/50"
             >
               <TableCell>
                 <div className="flex items-center gap-3">

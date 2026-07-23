@@ -295,7 +295,11 @@ export default function AppointmentsPage() {
                 </TableHeader>
                 <TableBody>
                   {appointmentsForDate.map((appointment) => (
-                    <TableRow key={appointment.id}>
+                    <TableRow 
+                      key={appointment.id}
+                      onDoubleClick={() => handleGoToChart(appointment.patientId)}
+                      className="cursor-pointer hover:bg-muted/50"
+                    >
                        <TableCell>
                         <div className="font-bold">{appointment.tokenNumber}</div>
                       </TableCell>

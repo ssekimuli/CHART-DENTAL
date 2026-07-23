@@ -12,8 +12,10 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import type { InventoryItem } from "@/lib/types";
+import { useCurrency } from "@/hooks/use-currency";
 
 export function InventoryTable({ data }: { data: InventoryItem[] }) {
+    const { formatCurrency } = useCurrency();
     const getStatusVariant = (status: "In Stock" | "Low Stock" | "Out of Stock") => {
         switch (status) {
           case "In Stock":
@@ -59,7 +61,7 @@ export function InventoryTable({ data }: { data: InventoryItem[] }) {
               </TableCell>
               <TableCell>{item.stock}</TableCell>
               <TableCell className="text-right">
-                ${item.price.toFixed(2)}
+                {formatCurrency(item.price)}
               </TableCell>
             </TableRow>
           ))}
