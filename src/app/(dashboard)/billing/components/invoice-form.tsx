@@ -55,11 +55,14 @@ const formSchema = z.object({
     required_error: "A due date is required.",
   }),
   status: z.enum(['Paid', 'Pending', 'Overdue']),
-  paymentMethod: z.enum(['Cash', 'Credit Card', 'Insurance', 'Bank Transfer']).optional(),
+  paymentMethod: z.enum(['Cash', 'Credit Card', 'Insurance', 'Bank Transfer', 'Refund']).optional(),
   otherCharges: z.array(z.object({
     description: z.string().min(1, "Description is required."),
     amount: z.coerce.number().min(0, "Amount must be zero or more."),
   })).optional(),
+  discount: z.coerce.number().min(0).max(100).optional(),
+  tax: z.coerce.number().min(0).max(100).optional(),
+  insuranceCoverage: z.coerce.number().min(0).optional(),
 });
 
 type InvoiceFormProps = {
@@ -108,6 +111,9 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
         status: invoice?.status ?? 'Pending',
         paymentMethod: invoice?.paymentMethod,
         otherCharges: invoice?.otherCharges ?? [],
+        discount: invoice?.discount ?? 0,
+        tax: invoice?.tax ?? 0,
+        insuranceCoverage: invoice?.insuranceCoverage ?? 0,
     },
   });
 
@@ -118,6 +124,9 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
 
   const patientId = form.watch('patientId');
   const otherCharges = form.watch('otherCharges') || [];
+  const watchDiscount = form.watch('discount') || 0;
+  const watchTax = form.watch('tax') || 0;
+  const watchInsurance = form.watch('insuranceCoverage') || 0;
   
   useEffect(() => {
     if (invoice) {
@@ -151,6 +160,7 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
   function onSubmit(values: z.infer<typeof formSchema>) {
     onSave({
         ...values,
+        patientId: values.patientId || '',
         otherCharges: values.otherCharges || [],
         treatments: selectedTreatments,
         medicines: selectedMedicines,
@@ -210,10 +220,22 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
   }, [selectedMedicines]);
 
   const totalAmount = useMemo(() => {
-    return subTotal + otherChargesTotal + medicinesTotal;
-  }, [subTotal, otherChargesTotal, medicinesTotal]);
+    const sub = subTotal + otherChargesTotal + medicinesTotal;
+    const afterDiscount = sub - (sub * (watchDiscount / 100));
+    const finalAmount = afterDiscount + (afterDiscount * (watchTax / 100));
+    return finalAmount;
+  }, [subTotal, otherChargesTotal, medicinesTotal, watchDiscount, watchTax]);
 
-  const paymentMethods: PaymentMethod[] = ['Cash', 'Credit Card', 'Insurance', 'Bank Transfer'];
+  const balance = useMemo(() => {
+     let b = totalAmount;
+     if (invoice) {
+        b = totalAmount - invoice.paidAmount;
+     }
+     b = b - watchInsurance;
+     return Math.max(b, 0);
+  }, [totalAmount, invoice, watchInsurance]);
+
+  const paymentMethods: PaymentMethod[] = ['Cash', 'Credit Card', 'Insurance', 'Bank Transfer', 'Refund'];
 
   return (
     <Dialog open={true} onOpenChange={onOpenChange}>
@@ -462,6 +484,48 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
                             </Button>
                         </div>
                         
+                        <div className="grid grid-cols-3 gap-4">
+                            <FormField
+                                control={form.control}
+                                name="discount"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Discount (%)</FormLabel>
+                                        <FormControl>
+                                            <Input type="number" placeholder="0" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="tax"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Tax (%)</FormLabel>
+                                        <FormControl>
+                                            <Input type="number" placeholder="0" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="insuranceCoverage"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Insurance Coverage (Amount)</FormLabel>
+                                        <FormControl>
+                                            <Input type="number" placeholder="0" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        </div>
+
                         <div className="grid grid-cols-2 gap-4">
                             <FormField
                                 control={form.control}
@@ -523,9 +587,37 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
                                 <span className="text-muted-foreground">Subtotal (Medicines)</span>
                                 <span>{formatCurrency(medicinesTotal)}</span>
                             </div>
+                            {watchDiscount > 0 && (
+                                <div className="flex justify-between text-sm text-green-600">
+                                    <span>Discount ({watchDiscount}%)</span>
+                                    <span>-{formatCurrency((subTotal + otherChargesTotal + medicinesTotal) * (watchDiscount / 100))}</span>
+                                </div>
+                            )}
+                            {watchTax > 0 && (
+                                <div className="flex justify-between text-sm text-red-600">
+                                    <span>Tax ({watchTax}%)</span>
+                                    <span>+{formatCurrency(((subTotal + otherChargesTotal + medicinesTotal) - ((subTotal + otherChargesTotal + medicinesTotal) * (watchDiscount / 100))) * (watchTax / 100))}</span>
+                                </div>
+                            )}
                             <div className="flex justify-between font-semibold text-lg border-t pt-2 mt-2">
                                 <span>Total Amount</span>
                                 <span>{formatCurrency(totalAmount)}</span>
+                            </div>
+                            {watchInsurance > 0 && (
+                                <div className="flex justify-between text-sm text-blue-600">
+                                    <span>Insurance Coverage</span>
+                                    <span>-{formatCurrency(watchInsurance)}</span>
+                                </div>
+                            )}
+                            {invoice && invoice.paidAmount > 0 && (
+                                <div className="flex justify-between text-sm text-green-600">
+                                    <span>Already Paid</span>
+                                    <span>-{formatCurrency(invoice.paidAmount)}</span>
+                                </div>
+                            )}
+                            <div className="flex justify-between font-bold text-xl border-t pt-2 mt-2">
+                                <span>Balance Due</span>
+                                <span>{formatCurrency(balance)}</span>
                             </div>
                         </div>
                         

@@ -63,21 +63,33 @@ export type Patient = {
   softTissueRecords: SoftTissueRecord[];
   orthodonticRecords: OrthodonticRecord[];
   endodonticRecords?: EndodonticRecord[];
+  restorativeRecords?: RestorativeRecord[];
 };
 
 export type PatientImage = {
   url: string;
   description: string;
   date: string;
+  category?: 'Image' | 'X-Ray' | 'Other Doc';
 };
 
-export type DentalCondition = 'Healthy' | 'Caries' | 'Filling' | 'Crown' | 'Missing' | 'Fracture';
+export type DentalCondition = 'Healthy' | 'Caries' | 'Filling' | 'Crown' | 'Missing' | 'Fracture' | 'Implant' | 'Bridge';
 
 export type DentalRecord = {
   id?: string | number;
   toothId: number;
   condition: DentalCondition;
   notes: string;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export type RestorativeRecord = {
+  id?: string | number;
+  toothId: number;
+  surface: string;
+  material: string;
+  notes?: string;
   createdAt?: string;
   updatedAt?: string;
 };
@@ -152,7 +164,7 @@ export type OtherCharge = {
   amount: number;
 };
 
-export type PaymentMethod = 'Cash' | 'Credit Card' | 'Insurance' | 'Bank Transfer';
+export type PaymentMethod = 'Cash' | 'Credit Card' | 'Insurance' | 'Bank Transfer' | 'Refund';
 
 export type PaymentTransaction = {
   id: string | number;
@@ -177,6 +189,9 @@ export type Invoice = {
   transactions?: PaymentTransaction[];
   branch?: Branch;
   medicines?: InvoiceMedicine[];
+  discount?: number;
+  tax?: number;
+  insuranceCoverage?: number;
 };
 
 export type ChartData = {
@@ -359,6 +374,7 @@ export type OrthodonticRecord = {
 
 export type SystemTreatment = {
     id: string | number;
+    treatment_code?: string;
     procedure: string;
     cost: number;
     category?: string;

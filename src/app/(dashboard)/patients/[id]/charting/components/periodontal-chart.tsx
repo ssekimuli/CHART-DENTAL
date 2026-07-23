@@ -567,7 +567,7 @@ export function PeriodontalChart({
 
   const ToothColumn = ({ toothId, arch, col }: { toothId: number; arch: "upper" | "lower", col: number }) => {
     const record = getRecord(toothId);
-    const isMissing = dentalRecords.find(r => r.toothId === toothId && r.type === "missing");
+    const isMissing = dentalRecords.find(r => r.toothId === toothId && r.condition === "Missing");
     
     return (
       <g 
@@ -1103,7 +1103,7 @@ export function PeriodontalChart({
                           setRecords(prev => {
                             const newRecs = [...prev];
                             const idx = newRecs.findIndex(r => r.toothId === selectedTooth);
-                            const newValue = isSelected ? "" : val;
+                            const newValue = isSelected ? undefined : (val as any);
                             if (idx > -1) {
                               newRecs[idx] = { ...newRecs[idx], mobility: newValue };
                             } else {

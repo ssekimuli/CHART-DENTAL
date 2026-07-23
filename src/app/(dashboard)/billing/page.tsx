@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, useCallback } from "react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import moment from "moment";
 import {
@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FileDown, PlusCircle, MoreHorizontal, Pencil, Trash, Eye, HandCoins, Calendar as CalendarIcon, Search } from "lucide-react";
+import { FileDown, PlusCircle, MoreHorizontal, Pencil, Trash, Eye, HandCoins, Calendar as CalendarIcon, Search, ChevronRight, ChevronDown } from "lucide-react";
 import type { Invoice, Patient, InvoiceTreatment, PaginatedArray } from "@/lib/types";
 import { InvoiceForm } from "./components/invoice-form";
 import { useBranch } from "@/context/branch-context";
@@ -70,6 +70,12 @@ export default function BillingPage() {
   const [isPaymentFormOpen, setIsPaymentFormOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | undefined>(undefined);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
+  const [expandedInvoiceId, setExpandedInvoiceId] = useState<string | number | null>(null);
+
+  const toggleExpand = (e: React.MouseEvent, id: string | number) => {
+    e.stopPropagation();
+    setExpandedInvoiceId(prev => prev === id ? null : id);
+  };
   
   // Pagination and filtering state
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
@@ -199,7 +205,7 @@ export default function BillingPage() {
         // Update existing invoice
         const updated = await updateInvoice(selectedInvoice.id, {
           ...data,
-          patientName: patient ? patient.first_name + ' ' + patient.last_name : null,
+          patientName: patient ? patient.first_name + ' ' + patient.last_name : undefined,
           treatments,
         });
         if (updated) {
@@ -213,7 +219,7 @@ export default function BillingPage() {
         // Create new invoice using new API helper
         const newInvoice = await createNewInvoice({
           ...data,
-          patientName: patient ? `${patient.first_name} ${patient.last_name}` : null,
+          patientName: patient ? `${patient.first_name} ${patient.last_name}` : 'Unknown',
           branchId,
           treatments,
         });
@@ -333,8 +339,16 @@ export default function BillingPage() {
             </TableHeader>
             <TableBody>
               {paginatedInvoices.map((invoice) => (
-                <TableRow key={invoice.id} onClick={() => handleViewInvoice(invoice.id)} className="cursor-pointer">
-                  <TableCell className="font-medium">{invoice.id}</TableCell>
+                <React.Fragment key={invoice.id}>
+                <TableRow onClick={() => handleViewInvoice(invoice.id)} className="cursor-pointer">
+                  <TableCell className="font-medium">
+                    <div className="flex items-center">
+                        <Button variant="ghost" size="icon" className="h-6 w-6 mr-2" onClick={(e) => toggleExpand(e, invoice.id)}>
+                        {expandedInvoiceId === invoice.id ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                        </Button>
+                        {invoice.id}
+                    </div>
+                  </TableCell>
                   <TableCell>{invoice.patientName || 'N/A'}</TableCell>
                   <TableCell>
                     <Badge variant={getStatusVariant(invoice.status)}>
@@ -384,6 +398,40 @@ export default function BillingPage() {
                     </DropdownMenu>
                   </TableCell>
                 </TableRow>
+                {expandedInvoiceId === invoice.id && (
+                  <TableRow className="bg-muted/30 hover:bg-muted/30">
+                    <TableCell colSpan={8} className="p-0">
+                      <div className="p-4 border-b">
+                        <h4 className="font-semibold mb-2 text-sm">Payment Transactions</h4>
+                        {invoice.transactions && invoice.transactions.length > 0 ? (
+                          <div className="rounded-md border bg-background">
+                              <Table>
+                                <TableHeader>
+                                  <TableRow>
+                                    <TableHead className="h-8">Date</TableHead>
+                                    <TableHead className="h-8">Method</TableHead>
+                                    <TableHead className="text-right h-8">Amount</TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {invoice.transactions.map((txn: any) => (
+                                    <TableRow key={txn.id}>
+                                      <TableCell className="py-2">{formatDate(txn.date)}</TableCell>
+                                      <TableCell className="py-2">{txn.method}</TableCell>
+                                      <TableCell className="text-right py-2">{formatCurrency(txn.amount)}</TableCell>
+                                    </TableRow>
+                                  ))}
+                                </TableBody>
+                              </Table>
+                          </div>
+                        ) : (
+                          <p className="text-sm text-muted-foreground">No payment transactions found for this invoice.</p>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )}
+                </React.Fragment>
               ))}
               {paginatedInvoices.length === 0 && !isLoading && (
                  <TableRow>
