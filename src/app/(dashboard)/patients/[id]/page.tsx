@@ -24,7 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { useEffect, useState, use } from "react";
 import type { Patient, Treatment, BasePatient, PatientImage, DentalCondition, SystemTreatment } from "@/lib/types";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Trash, Pencil, FileText, Loader2, Upload, MoreHorizontal, HandCoins } from "lucide-react";
+import { PlusCircle, Trash, Pencil, FileText, Loader2, Upload, MoreHorizontal, HandCoins, Search } from "lucide-react";
 import { TreatmentPlanForm } from "./components/treatment-plan-form";
 import { PatientForm } from "../components/patient-form";
 import { PrescriptionForm } from "./components/prescription-form";
@@ -46,7 +46,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { deletePatient, getPatientById, updatePatient, addTreatment, updateTreatment, deleteTreatment, addImageToPatient, getTreatments, getPatientInvoices, processPayment, getPatientPrescriptions, deletePrescription } from "@/lib/api";
+import { deletePatient, getPatientById, updatePatient, addTreatment, updateTreatment, deleteTreatment, addImageToPatient, getTreatments, getPatientInvoices, processPayment, getPatientPrescriptions, deletePrescription, getPatientImages } from "@/lib/api";
+import { Input } from "@/components/ui/input";
 import { ImageUploadForm } from "./components/image-upload-form";
 import { hasPermission, getCurrentUser, hasRole } from "@/lib/user";
 import { getPatientFullName } from "@/lib/utils";
@@ -68,6 +69,8 @@ export default function PatientDetailPage({
   const [systemTreatments, setSystemTreatments] = useState<SystemTreatment[]>([]);
   const [invoices, setInvoices] = useState<any[]>([]);
   const [prescriptions, setPrescriptions] = useState<any[]>([]);
+  const [patientImages, setPatientImages] = useState<PatientImage[]>([]);
+  const [imageSearchQuery, setImageSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
 
   const [isTreatmentFormOpen, setIsTreatmentFormOpen] = useState(false);
@@ -138,16 +141,18 @@ export default function PatientDetailPage({
     if (typeof id !== "string") return;
     const fetchData = async () => {
         setIsLoading(true);
-        const [patientData, treatmentsData, invoicesData, prescriptionsData] = await Promise.all([
+        const [patientData, treatmentsData, invoicesData, prescriptionsData, imagesData] = await Promise.all([
             getPatientById(id),
             getTreatments(),
             getPatientInvoices(id),
-            getPatientPrescriptions(id)
+            getPatientPrescriptions(id),
+            getPatientImages(id)
         ]);
         setPatient(patientData);
         setSystemTreatments(treatmentsData);
         setInvoices(invoicesData);
         setPrescriptions(prescriptionsData);
+        setPatientImages(imagesData);
         if (patientData && !isReceptionist && patientData.history) {
             summarizePatientHistory({ patientHistory: patientData.history }).then(setHistorySummary);
         }
@@ -155,6 +160,16 @@ export default function PatientDetailPage({
     }
     fetchData();
   }, [id, isReceptionist]);
+
+  useEffect(() => {
+    if (!id || typeof id !== "string") return;
+    const fetchImages = async () => {
+        const images = await getPatientImages(id, { search: imageSearchQuery });
+        setPatientImages(images);
+    };
+    const timeoutId = setTimeout(fetchImages, 300);
+    return () => clearTimeout(timeoutId);
+  }, [imageSearchQuery, id]);
 
 
   if (isLoading) {
@@ -222,11 +237,14 @@ export default function PatientDetailPage({
     }
   }
 
-  const handleAddImage = async (newImage: Omit<PatientImage, 'date'>) => {
+  const handleAddImage = async (newImage: FormData) => {
     if (!patient) return;
     const updatedPatient = await addImageToPatient(patient.id, newImage);
      if (updatedPatient) {
         setPatient(updatedPatient);
+        // refresh images
+        const images = await getPatientImages(patient.id, { search: imageSearchQuery });
+        setPatientImages(images);
     }
     setIsImageFormOpen(false);
   };
@@ -296,53 +314,75 @@ export default function PatientDetailPage({
       </Card>
 
       {!isReceptionist && (
-        <Tabs defaultValue="imaging">
+        <Tabs defaultValue="documents">
           <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="imaging">Imaging</TabsTrigger>
+            <TabsTrigger value="documents">Patient documents</TabsTrigger>
             <TabsTrigger value="history">History</TabsTrigger>
             <TabsTrigger value="invoices">Invoices</TabsTrigger>
             <TabsTrigger value="prescriptions">Prescriptions</TabsTrigger>
           </TabsList>
           
 
-          <TabsContent value="imaging">
+          <TabsContent value="documents">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
-                  <CardTitle>Patient Imaging</CardTitle>
+                  <CardTitle>Patient Documents</CardTitle>
                   <CardDescription>
-                    X-Rays and other patient images.
+                    Images, X-Rays, and other patient documents.
                   </CardDescription>
                 </div>
                  {canUpdatePatient && (
                       <Button size="sm" onClick={() => setIsImageFormOpen(true)}>
                       <Upload className="mr-2 h-4 w-4" />
-                      Upload Image
+                      Upload Document
                       </Button>
                  )}
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
-                  {patient.imaging.map((image, index) => (
-                    <div key={index} className="overflow-hidden rounded-lg border group relative">
-                      <img
-                        src={image.url}
-                        alt={image.description || `Patient image ${index + 1}`}
-                        className="aspect-video h-auto w-full object-cover"
-                        data-ai-hint="dental xray"
-                      />
-                       <div className="absolute bottom-0 left-0 right-0 bg-black/50 p-2 text-white opacity-0 transition-opacity group-hover:opacity-100">
-                          <p className="text-xs font-bold">{image.description}</p>
-                          <p className="text-xs">{image.date}</p>
-                      </div>
-                    </div>
-                  ))}
-                   {patient.imaging.length === 0 && (
-                        <div className="col-span-full h-48 flex items-center justify-center">
-                          <p className="text-muted-foreground">No images found.</p>
+                <Tabs defaultValue="Image">
+                  <TabsList className="mb-4">
+                    <TabsTrigger value="Image">Images</TabsTrigger>
+                    <TabsTrigger value="X-Ray">X-Rays</TabsTrigger>
+                    <TabsTrigger value="Other Doc">Other Docs</TabsTrigger>
+                  </TabsList>
+                  {['Image', 'X-Ray', 'Other Doc'].map((cat) => (
+                    <TabsContent key={cat} value={cat}>
+                      <div className="flex items-center gap-2 mb-4">
+                        <div className="relative flex-1">
+                          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            placeholder={`Search ${cat.toLowerCase()}s...`}
+                            className="pl-8"
+                            value={imageSearchQuery}
+                            onChange={(e) => setImageSearchQuery(e.target.value)}
+                          />
                         </div>
-                      )}
-                </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+                        {patientImages.filter(img => (img.category || 'Image') === cat).map((image, index) => (
+                          <div key={index} className="overflow-hidden rounded-lg border group relative">
+                            <img
+                              src={image.url}
+                              alt={image.description || `Patient document ${index + 1}`}
+                              className="aspect-video h-auto w-full object-cover"
+                              data-ai-hint="dental xray"
+                            />
+                             <div className="absolute bottom-0 left-0 right-0 bg-black/50 p-2 text-white opacity-0 transition-opacity group-hover:opacity-100">
+                                <p className="text-xs font-bold">{image.description}</p>
+                                <p className="text-xs">{image.date}</p>
+                            </div>
+                          </div>
+                        ))}
+                         {patientImages.filter(img => (img.category || 'Image') === cat).length === 0 && (
+                              <div className="col-span-full h-48 flex items-center justify-center">
+                                <p className="text-muted-foreground">No {cat.toLowerCase()}s found.</p>
+                              </div>
+                            )}
+                      </div>
+                    </TabsContent>
+                  ))}
+                </Tabs>
               </CardContent>
             </Card>
           </TabsContent>

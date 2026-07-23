@@ -47,6 +47,7 @@ export function TreatmentsCatalog({ currencyCode }: { currencyCode: string }) {
     const handleAdd = async () => {
         try {
             await createSystemTreatment({
+                treatment_code: currentTreatment.treatment_code || "",
                 procedure: currentTreatment.procedure || "",
                 cost: currentTreatment.cost || 0,
                 category: currentTreatment.category || "Other"
@@ -121,6 +122,10 @@ export function TreatmentsCatalog({ currencyCode }: { currencyCode: string }) {
                         </DialogHeader>
                         <div className="grid gap-4 py-4">
                             <div className="grid gap-2">
+                                <Label>Treatment Code</Label>
+                                <Input value={currentTreatment.treatment_code || ''} onChange={e => setCurrentTreatment({...currentTreatment, treatment_code: e.target.value})} placeholder="e.g. D0120" />
+                            </div>
+                            <div className="grid gap-2">
                                 <Label>Procedure Name</Label>
                                 <Input value={currentTreatment.procedure || ''} onChange={e => setCurrentTreatment({...currentTreatment, procedure: e.target.value})} />
                             </div>
@@ -154,6 +159,7 @@ export function TreatmentsCatalog({ currencyCode }: { currencyCode: string }) {
                 <Table>
                     <TableHeader>
                         <TableRow>
+                            <TableHead>Code</TableHead>
                             <TableHead>Procedure</TableHead>
                             <TableHead>Category</TableHead>
                             <TableHead className="text-right">Cost</TableHead>
@@ -168,6 +174,7 @@ export function TreatmentsCatalog({ currencyCode }: { currencyCode: string }) {
                         ) : (
                             treatments.map((t) => (
                                 <TableRow key={t.id}>
+                                    <TableCell>{t.treatment_code || '-'}</TableCell>
                                     <TableCell className="font-medium">{t.procedure}</TableCell>
                                     <TableCell>{t.category}</TableCell>
                                     <TableCell className="text-right">{new Intl.NumberFormat('en-US', { style: 'currency', currency: currencyCode }).format(t.cost)}</TableCell>
@@ -194,6 +201,10 @@ export function TreatmentsCatalog({ currencyCode }: { currencyCode: string }) {
                         <DialogTitle>Edit Treatment</DialogTitle>
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
+                        <div className="grid gap-2">
+                            <Label>Treatment Code</Label>
+                            <Input value={currentTreatment.treatment_code || ''} onChange={e => setCurrentTreatment({...currentTreatment, treatment_code: e.target.value})} placeholder="e.g. D0120" />
+                        </div>
                         <div className="grid gap-2">
                             <Label>Procedure Name</Label>
                             <Input value={currentTreatment.procedure || ''} onChange={e => setCurrentTreatment({...currentTreatment, procedure: e.target.value})} />
