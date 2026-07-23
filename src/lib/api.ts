@@ -37,7 +37,6 @@ let businessesCache: Business[] | null = null;
 
 export const login = async (email: string, password?: string): Promise<CurrentUser | null> => {
     
-    console.log('API CALL: login', { email });
     
     try {
         const response = await customAxios.post('/login', { email, password });
