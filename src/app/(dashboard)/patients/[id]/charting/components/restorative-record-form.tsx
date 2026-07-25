@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -30,7 +30,9 @@ import {
     SelectValue,
   } from "@/components/ui/select";
 import { Combobox } from "@/components/ui/combobox";
-import type { RestorativeRecord } from "@/lib/types";
+import type { RestorativeRecord, SystemTreatment } from "@/lib/types";
+import { getTreatments } from "@/lib/api";
+import { getCurrencyConfig } from "@/lib/currency";
 
 const formSchema = z.object({
   toothId: z.number().min(1, "Tooth ID is required").max(48, "Invalid tooth ID"),
@@ -206,6 +208,22 @@ export function RestorativeRecordForm({
   onSave,
   onUpdate,
 }: RestorativeRecordFormProps) {
+  const [systemTreatments, setSystemTreatments] = useState<SystemTreatment[]>([]);
+  const currencyConfig = getCurrencyConfig();
+
+  useEffect(() => {
+    const fetchTreatments = async () => {
+      try {
+        const data = await getTreatments();
+        setSystemTreatments(data);
+      } catch (error) {
+        console.error("Failed to fetch treatments", error);
+      }
+    };
+    if (open) {
+      fetchTreatments();
+    }
+  }, [open]);
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -241,6 +259,17 @@ export function RestorativeRecordForm({
       });
     }
   }, [initialData, form, open]);
+
+  const selectedMaterial = form.watch("material");
+
+  useEffect(() => {
+    if (selectedMaterial && systemTreatments.length > 0) {
+      const match = systemTreatments.find(t => t.procedure.toLowerCase() === selectedMaterial.toLowerCase());
+      if (match && !initialData?.id) {
+        form.setValue("procedureCost", Number(match.cost));
+      }
+    }
+  }, [selectedMaterial, systemTreatments, form, initialData?.id]);
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
     if (initialData && initialData.id) {
@@ -352,7 +381,7 @@ export function RestorativeRecordForm({
                       name="procedureCost"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Procedure Cost ($)</FormLabel>
+                          <FormLabel>Procedure Cost ({currencyConfig.symbol})</FormLabel>
                           <FormControl>
                             <Input type="number" step="0.01" min="0" placeholder="0.00" {...field} value={field.value ?? ''} />
                           </FormControl>
@@ -365,7 +394,7 @@ export function RestorativeRecordForm({
                       name="materialCost"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Material Cost ($)</FormLabel>
+                          <FormLabel>Material Cost ({currencyConfig.symbol})</FormLabel>
                           <FormControl>
                             <Input type="number" step="0.01" min="0" placeholder="0.00" {...field} value={field.value ?? ''} />
                           </FormControl>
@@ -378,7 +407,7 @@ export function RestorativeRecordForm({
                       name="otherCharges"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Other Charges ($)</FormLabel>
+                          <FormLabel>Other Charges ({currencyConfig.symbol})</FormLabel>
                           <FormControl>
                             <Input type="number" step="0.01" min="0" placeholder="0.00" {...field} value={field.value ?? ''} />
                           </FormControl>
@@ -389,7 +418,7 @@ export function RestorativeRecordForm({
                   </div>
                   
                   <div className="text-right text-sm text-slate-400 font-medium pt-2 pb-4">
-                    Total Estimated Cost: ${(
+                    Total Estimated Cost: {currencyConfig.symbol}{(
                       (Number(form.watch('procedureCost')) || 0) + 
                       (Number(form.watch('materialCost')) || 0) + 
                       (Number(form.watch('otherCharges')) || 0)
