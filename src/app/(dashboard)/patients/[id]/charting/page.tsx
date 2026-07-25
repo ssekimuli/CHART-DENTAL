@@ -271,7 +271,7 @@ export default function PatientChartingPage({
   const handleDeleteSoftTissueRecord = async (recordId: string | number) => {
     if (!patient) return;
     const updatedPatient = await deleteSoftTissueRecord(patient.id, recordId);
-     if (updatedPatient) {
+    if (updatedPatient) {
         setPatient(updatedPatient);
     }
   }
@@ -295,12 +295,12 @@ export default function PatientChartingPage({
   const handleDeleteEndoRecord = async (recordId: string | number) => {
     if (!patient) return;
     const updatedPatient = await deleteEndodonticRecord(patient.id, recordId);
-     if (updatedPatient) {
+    if (updatedPatient) {
         setPatient(updatedPatient);
     }
   }
 
-  const handleSaveRestorativeRecord = async (record: Omit<RestorativeRecord, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const handleSaveRestorativeRecord = async (record: Omit<RestorativeRecord, 'id' | 'createdAt' | 'updatedAt'> & { procedureCost?: number, materialCost?: number, otherCharges?: number }) => {
     if (!patient) return;
     const updatedPatient = await saveRestorativeRecord(patient.id, record);
     if (updatedPatient) {
@@ -347,7 +347,8 @@ export default function PatientChartingPage({
     });
   }
 
-  return (
+
+  return (
     <div className="flex flex-col gap-6">
        <div className="flex items-center gap-4">
         <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => router.push(`/patients/${patient.id}`)}>

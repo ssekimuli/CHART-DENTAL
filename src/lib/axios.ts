@@ -12,6 +12,7 @@ const customAxios = axios.create({
 });
 
 // Add a request interceptor to include the auth token
+
 customAxios.interceptors.request.use(
   (config) => {
     const token = getAuthToken();
