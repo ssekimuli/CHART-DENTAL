@@ -346,9 +346,7 @@ export function RestorativeRecordForm({
                 </FormItem>
               )}
             />
-            {!initialData && (
-                <>
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-3 gap-4 mt-4 pt-4 border-t">
                     <FormField
                       control={form.control}
                       name="procedureCost"
@@ -390,15 +388,13 @@ export function RestorativeRecordForm({
                     />
                   </div>
                   
-                  <div className="text-right text-sm text-slate-400 font-medium pt-2">
+                  <div className="text-right text-sm text-slate-400 font-medium pt-2 pb-4">
                     Total Estimated Cost: ${(
                       (Number(form.watch('procedureCost')) || 0) + 
                       (Number(form.watch('materialCost')) || 0) + 
                       (Number(form.watch('otherCharges')) || 0)
                     ).toFixed(2)}
                   </div>
-                </>
-            )}
             <div className="flex justify-end gap-2 pt-4">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancel
