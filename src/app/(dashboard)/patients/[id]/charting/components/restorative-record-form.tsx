@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -30,7 +30,9 @@ import {
     SelectValue,
   } from "@/components/ui/select";
 import { Combobox } from "@/components/ui/combobox";
-import type { RestorativeRecord } from "@/lib/types";
+import type { RestorativeRecord, SystemTreatment } from "@/lib/types";
+import { getTreatments } from "@/lib/api";
+import { getCurrencyConfig } from "@/lib/currency";
 
 const formSchema = z.object({
   toothId: z.number().min(1, "Tooth ID is required").max(48, "Invalid tooth ID"),
@@ -38,13 +40,16 @@ const formSchema = z.object({
   material: z.string().min(1, "Material is required"),
   notes: z.string().optional(),
   cost: z.coerce.number().min(0, "Cost must be a positive number").optional(),
+  procedureCost: z.coerce.number().min(0, "Cost must be a positive number").optional(),
+  materialCost: z.coerce.number().min(0, "Cost must be a positive number").optional(),
+  otherCharges: z.coerce.number().min(0, "Cost must be a positive number").optional(),
 });
 
 type RestorativeRecordFormProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   initialData?: RestorativeRecord;
-  onSave: (record: Omit<RestorativeRecord, "id" | "createdAt" | "updatedAt"> & { cost?: number }) => void;
+  onSave: (record: Omit<RestorativeRecord, "id" | "createdAt" | "updatedAt"> & { procedureCost?: number, materialCost?: number, otherCharges?: number }) => void;
   onUpdate: (record: RestorativeRecord) => void;
 };
 
@@ -203,6 +208,22 @@ export function RestorativeRecordForm({
   onSave,
   onUpdate,
 }: RestorativeRecordFormProps) {
+  const [systemTreatments, setSystemTreatments] = useState<SystemTreatment[]>([]);
+  const currencyConfig = getCurrencyConfig();
+
+  useEffect(() => {
+    const fetchTreatments = async () => {
+      try {
+        const data = await getTreatments();
+        setSystemTreatments(data);
+      } catch (error) {
+        console.error("Failed to fetch treatments", error);
+      }
+    };
+    if (open) {
+      fetchTreatments();
+    }
+  }, [open]);
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -211,6 +232,9 @@ export function RestorativeRecordForm({
       material: initialData?.material || "",
       notes: initialData?.notes || "",
       cost: undefined,
+      procedureCost: undefined,
+      materialCost: undefined,
+      otherCharges: undefined,
     },
   });
 
@@ -229,9 +253,23 @@ export function RestorativeRecordForm({
         material: "",
         notes: "",
         cost: undefined,
+        procedureCost: undefined,
+        materialCost: undefined,
+        otherCharges: undefined,
       });
     }
   }, [initialData, form, open]);
+
+  const selectedMaterial = form.watch("material");
+
+  useEffect(() => {
+    if (selectedMaterial && systemTreatments.length > 0) {
+      const match = systemTreatments.find(t => t.procedure.toLowerCase() === selectedMaterial.toLowerCase());
+      if (match && !initialData?.id) {
+        form.setValue("procedureCost", Number(match.cost));
+      }
+    }
+  }, [selectedMaterial, systemTreatments, form, initialData?.id]);
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
     if (initialData && initialData.id) {
@@ -337,21 +375,55 @@ export function RestorativeRecordForm({
                 </FormItem>
               )}
             />
-            {!initialData && (
-                <FormField
-                  control={form.control}
-                  name="cost"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Cost ($) (Optional - Bills Patient)</FormLabel>
-                      <FormControl>
-                        <Input type="number" step="0.01" min="0" placeholder="0.00" {...field} value={field.value ?? ''} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-            )}
+                  <div className="grid grid-cols-3 gap-4 mt-4 pt-4 border-t">
+                    <FormField
+                      control={form.control}
+                      name="procedureCost"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Procedure Cost ({currencyConfig.symbol})</FormLabel>
+                          <FormControl>
+                            <Input type="number" step="0.01" min="0" placeholder="0.00" {...field} value={field.value ?? ''} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="materialCost"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Material Cost ({currencyConfig.symbol})</FormLabel>
+                          <FormControl>
+                            <Input type="number" step="0.01" min="0" placeholder="0.00" {...field} value={field.value ?? ''} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="otherCharges"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Other Charges ({currencyConfig.symbol})</FormLabel>
+                          <FormControl>
+                            <Input type="number" step="0.01" min="0" placeholder="0.00" {...field} value={field.value ?? ''} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  
+                  <div className="text-right text-sm text-slate-400 font-medium pt-2 pb-4">
+                    Total Estimated Cost: {currencyConfig.symbol}{(
+                      (Number(form.watch('procedureCost')) || 0) + 
+                      (Number(form.watch('materialCost')) || 0) + 
+                      (Number(form.watch('otherCharges')) || 0)
+                    ).toFixed(2)}
+                  </div>
             <div className="flex justify-end gap-2 pt-4">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancel

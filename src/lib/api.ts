@@ -36,8 +36,12 @@ let businessesCache: Business[] | null = null;
 // --- READ OPERATIONS ---
 
 export const login = async (email: string, password?: string): Promise<CurrentUser | null> => {
+<<<<<<< HEAD
     
     
+=======
+        
+>>>>>>> 18ab0e990b49ceac1574cb4e65aa0abd31a5211d
     try {
         const response = await customAxios.post('/login', { email, password });
         const { user, token } = response.data;
@@ -2825,7 +2829,7 @@ export const deleteEndodonticRecord = async (
 
 export const saveRestorativeRecord = async (
     patientId: string | number, 
-    record: Omit<RestorativeRecord, 'id' | 'createdAt' | 'updatedAt'> & { cost?: number }
+    record: Omit<RestorativeRecord, 'id' | 'createdAt' | 'updatedAt'> & { procedureCost?: number, materialCost?: number, otherCharges?: number }
 ): Promise<Patient | undefined> => {
     try {
         const requestBody = {
@@ -2833,7 +2837,9 @@ export const saveRestorativeRecord = async (
             surface: record.surface,
             material: record.material,
             notes: record.notes,
-            cost: record.cost,
+            procedure_cost: record.procedureCost,
+            material_cost: record.materialCost,
+            other_charges: record.otherCharges,
         };
         await customAxios.post(`/patients/${patientId}/restorative-records`, requestBody);
         return getPatientById(patientId);
