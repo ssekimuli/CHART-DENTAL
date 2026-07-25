@@ -36,12 +36,8 @@ let businessesCache: Business[] | null = null;
 // --- READ OPERATIONS ---
 
 export const login = async (email: string, password?: string): Promise<CurrentUser | null> => {
-<<<<<<< HEAD
     
     
-=======
-        
->>>>>>> 18ab0e990b49ceac1574cb4e65aa0abd31a5211d
     try {
         const response = await customAxios.post('/login', { email, password });
         const { user, token } = response.data;
