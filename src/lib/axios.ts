@@ -3,8 +3,8 @@ import { getAuthToken, clearCurrentUser } from './user';
 import { toast } from '@/hooks/use-toast';
 
 const customAxios = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_BACKEND_URL ||'https://dentalapi.poslycloud.com/api',
-
+  baseURL: process.env.NEXT_PUBLIC_BACKEND_URL ||'https://icondentalapi.poslycloud.com/api',
+  // https://icondentalapi.poslycloud.com/
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
