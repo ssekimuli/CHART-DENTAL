@@ -53,7 +53,7 @@ export default function MigrationPage() {
     let filename = '';
     if (stageId === 'employees') filename = 'employees_sample.csv';
     else if (stageId === 'patients') filename = 'patients_sample.csv';
-    else if (stageId === 'clinical') filename = 'treatments_sample.csv';
+    else if (stageId === 'clinical') filename = 'appointments_sample.csv';
     else if (stageId === 'financial') filename = 'financial_sample.csv';
     
     if (filename) {
