@@ -7,8 +7,9 @@ import { getAuthToken } from '@/lib/user';
 const stages = [
   { id: 'employees', title: '1. Staff & Employees', description: 'Upload Doctors, Nurses, and Administrative staff.' },
   { id: 'patients', title: '2. Patients', description: 'Upload patient demographic and contact information.' },
-  { id: 'clinical', title: '3. Clinical Data', description: 'Upload medical histories, prescriptions, and appointments.' },
-  { id: 'financial', title: '4. Financial Data', description: 'Upload invoices, payments, and transactions.' },
+  { id: 'appointments', title: '3. Appointments', description: 'Upload scheduled and completed appointments.' },
+  { id: 'clinical', title: '4. Clinical Data', description: 'Upload medical histories, and prescriptions.' },
+  { id: 'financial', title: '5. Financial Data', description: 'Upload invoices, payments, and transactions.' },
 ];
 
 export default function MigrationPage() {
@@ -53,7 +54,8 @@ export default function MigrationPage() {
     let filename = '';
     if (stageId === 'employees') filename = 'employees_sample.csv';
     else if (stageId === 'patients') filename = 'patients_sample.csv';
-    else if (stageId === 'clinical') filename = 'appointments_sample.csv';
+    else if (stageId === 'appointments') filename = 'appointments_sample.csv';
+    else if (stageId === 'clinical') filename = 'treatments_sample.csv';
     else if (stageId === 'financial') filename = 'financial_sample.csv';
     
     if (filename) {
