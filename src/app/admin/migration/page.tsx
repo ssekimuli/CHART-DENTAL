@@ -49,6 +49,17 @@ export default function MigrationPage() {
       setUploadStatus(prev => ({ ...prev, [stageId]: 'error' }));
     }
   };
+  const handleDownloadTemplate = (stageId: string) => {
+    let filename = '';
+    if (stageId === 'employees') filename = 'employees_sample.csv';
+    else if (stageId === 'patients') filename = 'patients_sample.csv';
+    else if (stageId === 'clinical') filename = 'treatments_sample.csv';
+    else if (stageId === 'financial') filename = 'financial_sample.csv';
+    
+    if (filename) {
+      window.open(`http://localhost:8000/api/import/templates/download/${filename}`, '_blank');
+    }
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 p-8">
@@ -93,7 +104,10 @@ export default function MigrationPage() {
                   </div>
                   
                   <div className="flex items-center space-x-4">
-                    <button className="text-sm text-blue-600 hover:text-blue-700 flex items-center space-x-1 font-medium bg-blue-50 px-3 py-1.5 rounded-md transition-colors">
+                    <button 
+                      onClick={() => handleDownloadTemplate(stage.id)}
+                      className="text-sm text-blue-600 hover:text-blue-700 flex items-center space-x-1 font-medium bg-blue-50 px-3 py-1.5 rounded-md transition-colors"
+                    >
                       <FileText className="w-4 h-4" />
                       <span>Download Template</span>
                     </button>
