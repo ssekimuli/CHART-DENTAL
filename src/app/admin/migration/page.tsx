@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Upload, CheckCircle2, AlertCircle, FileText, Database } from 'lucide-react';
+import { getAuthToken } from '@/lib/user';
 
 const stages = [
   { id: 'employees', title: '1. Staff & Employees', description: 'Upload Doctors, Nurses, and Administrative staff.' },
@@ -31,8 +32,7 @@ export default function MigrationPage() {
         body: formData,
         headers: {
           'Accept': 'application/json',
-          // Note: Add Authorization header here if needed
-          // 'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${getAuthToken()}`
         }
       });
 
