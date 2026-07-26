@@ -25,7 +25,7 @@ export default function MigrationPage() {
     formData.append('section', stageId);
 
     try {
-      const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000/api';
+      const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://stagingapi.poslycloud.com/api';
       const response = await fetch(`${baseUrl}/migrate`, {
         method: 'POST',
         body: formData,
@@ -57,7 +57,7 @@ export default function MigrationPage() {
     else if (stageId === 'financial') filename = 'financial_sample.csv';
     
     if (filename) {
-      const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000/api';
+      const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://stagingapi.poslycloud.com/api';
       window.open(`${baseUrl}/import/templates/download/${filename}`, '_blank');
     }
   };
