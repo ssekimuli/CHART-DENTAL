@@ -25,8 +25,8 @@ export default function MigrationPage() {
     formData.append('section', stageId);
 
     try {
-      // Assuming your Laravel backend is running on standard port 8000
-      const response = await fetch('http://localhost:8000/api/migrate', {
+      const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000/api';
+      const response = await fetch(`${baseUrl}/migrate`, {
         method: 'POST',
         body: formData,
         headers: {
@@ -57,7 +57,8 @@ export default function MigrationPage() {
     else if (stageId === 'financial') filename = 'financial_sample.csv';
     
     if (filename) {
-      window.open(`http://localhost:8000/api/import/templates/download/${filename}`, '_blank');
+      const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000/api';
+      window.open(`${baseUrl}/import/templates/download/${filename}`, '_blank');
     }
   };
 
