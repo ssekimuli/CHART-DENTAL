@@ -2147,7 +2147,7 @@ export const sendPatientDocuments = async (patientId: string | number, documentI
 
 export const sendPeriodontalResult = async (patientId: string | number, channel: string, recipient: string, customMessage: string, data: any): Promise<boolean> => {
     try {
-        await customAxios.post(/patients/${patientId}/periodontal/send, {
+        await customAxios.post(`/patients/${patientId}/periodontal/send`, {
             channel,
             recipient,
             custom_message: customMessage,
