@@ -152,20 +152,19 @@ export default function ActivityLogsPage() {
                                     <TableHead>User / Trigger</TableHead>
                                     <TableHead>Action</TableHead>
                                     <TableHead className="max-w-[300px]">Description</TableHead>
-                                    <TableHead>Details</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {loading && logs.length === 0 ? (
                                     <TableRow>
-                                        <TableCell colSpan={5} className="text-center py-10">
+                                        <TableCell colSpan={4} className="text-center py-10">
                                             <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
                                             <p className="mt-2 text-sm text-muted-foreground">Loading logs...</p>
                                         </TableCell>
                                     </TableRow>
                                 ) : filteredLogs.length === 0 ? (
                                     <TableRow>
-                                        <TableCell colSpan={5} className="text-center py-10 text-muted-foreground">
+                                        <TableCell colSpan={4} className="text-center py-10 text-muted-foreground">
                                             No activity logs found matching your criteria.
                                         </TableCell>
                                     </TableRow>
@@ -185,16 +184,6 @@ export default function ActivityLogsPage() {
                                             </TableCell>
                                             <TableCell className="max-w-[300px] truncate" title={log.description}>
                                                 {log.description}
-                                            </TableCell>
-                                            <TableCell className="text-xs text-muted-foreground">
-                                                {log.metadata && (
-                                                    <div className="max-w-[200px] truncate" title={JSON.stringify(log.metadata)}>
-                                                        {Object.entries(log.metadata)
-                                                            .filter(([key]) => key !== 'user_name') // hide duplicated name
-                                                            .map(([key, val]) => `${key}: ${val}`)
-                                                            .join(', ')}
-                                                    </div>
-                                                )}
                                             </TableCell>
                                         </TableRow>
                                     ))
