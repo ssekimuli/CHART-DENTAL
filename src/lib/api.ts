@@ -2130,6 +2130,21 @@ export const deletePatient = async (id: string | number): Promise<{ success: boo
     }
 }
 
+export const sendPatientDocuments = async (patientId: string | number, documentIds: number[], channel: string, recipient: string, customMessage: string = ''): Promise<boolean> => {
+    try {
+        await customAxios.post(`/patients/${patientId}/images/send`, {
+            document_ids: documentIds,
+            channel: channel,
+            recipient: recipient,
+            custom_message: customMessage
+        });
+        return true;
+    } catch (error) {
+        console.error('Error sending patient documents:', error);
+        return false;
+    }
+};
+
 export const addImageToPatient = async (patientId: string | number, imageFormData: FormData): Promise<Patient | undefined> => {
     console.log('API CALL: addImageToPatient', { patientId });
     try {
@@ -4265,4 +4280,41 @@ export const getPatientsList = async (): Promise<any[]> => {
         console.error('Error fetching patients list:', error);
         return [];
     }
+};
+
+// Branch Settings
+export const getBranchSettings = async (branchId: string | number) => {
+  try {
+    const response = await customAxios.get('/settings/branch', {
+      headers: { 'X-Branch-ID': branchId }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching branch settings:', error);
+    throw error;
+  }
+};
+
+export const updateBranchSettings = async (branchId: string | number, payload: any) => {
+  try {
+    const response = await customAxios.post('/settings/branch', { branch_id: branchId, ...payload }, {
+      headers: { 'X-Branch-ID': branchId }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error updating branch settings:', error);
+    throw error;
+  }
+};
+
+export const topUpBranchCredits = async (branchId: string | number, type: 'sms' | 'whatsapp', amount: number) => {
+  try {
+    const response = await customAxios.post('/settings/branch/top-up', { type, amount }, {
+      headers: { 'X-Branch-ID': branchId }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error topping up credits:', error);
+    throw error;
+  }
 };

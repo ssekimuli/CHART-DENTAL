@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FileDown, PlusCircle, MoreHorizontal, Pencil, Trash, Eye, HandCoins, Calendar as CalendarIcon, Search, ChevronRight, ChevronDown } from "lucide-react";
+import { FileDown, PlusCircle, MoreHorizontal, Pencil, Trash, Eye, HandCoins, Calendar as CalendarIcon, Search, ChevronRight, ChevronDown, Printer } from "lucide-react";
 import type { Invoice, Patient, InvoiceTreatment, PaginatedArray } from "@/lib/types";
 import { InvoiceForm } from "./components/invoice-form";
 import { useBranch } from "@/context/branch-context";
@@ -374,6 +374,10 @@ export default function BillingPage() {
                              <DropdownMenuItem onClick={() => handleViewInvoice(invoice.id)}>
                                 <Eye className="mr-2 h-4 w-4" />
                                 View Invoice
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => window.open(`/receipt/${invoice.id}`, '_blank')}>
+                                <Printer className="mr-2 h-4 w-4" />
+                                Print Receipt (POS)
                             </DropdownMenuItem>
                             {hasPermission('billing:update') && (
                                 <DropdownMenuItem onClick={() => handleOpenForm(invoice)}>

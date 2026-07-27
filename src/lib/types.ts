@@ -177,6 +177,7 @@ export type Invoice = {
   id: string | number;
   patientName: string;
   patientId: string | number;
+  receiptNumber?: string;
   amount: number;
   paidAmount: number;
   status: 'Paid' | 'Pending' | 'Overdue';
