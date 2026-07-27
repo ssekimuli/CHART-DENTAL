@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { InvoiceForm } from "../components/invoice-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useRouter } from "next/navigation";
-import { createNewInvoice, getPatients } from "@/lib/api";
+import { createNewInvoice, getPatientList } from "@/lib/api";
 import { useBranch } from "@/context/branch-context";
 import { Invoice, InvoiceTreatment, Patient } from "@/lib/types";
 
@@ -14,8 +14,11 @@ export default function NewInvoicePage() {
     const [patients, setPatients] = useState<Patient[]>([]);
 
     useEffect(() => {
-        getPatients().then(data => setPatients(data.data));
-    }, []);
+        getPatientList().then(data => {
+            const filtered = data.filter((p: any) => p.branchId === selectedBranch);
+            setPatients(filtered as unknown as Patient[]);
+        });
+    }, [selectedBranch]);
 
     const handleSave = async (data: Omit<Invoice, 'id' | 'patientName' | 'branchId' | 'amount' | 'paidAmount'>, treatments: InvoiceTreatment[]) => {
         const patient = patients.find(p => String(p.id) === String(data.patientId));
