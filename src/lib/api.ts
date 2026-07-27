@@ -2145,6 +2145,21 @@ export const sendPatientDocuments = async (patientId: string | number, documentI
     }
 };
 
+export const sendPeriodontalResult = async (patientId: string | number, channel: string, recipient: string, customMessage: string, data: any): Promise<boolean> => {
+    try {
+        await customAxios.post(/patients/${patientId}/periodontal/send, {
+            channel,
+            recipient,
+            custom_message: customMessage,
+            data
+        });
+        return true;
+    } catch (error) {
+        console.error('Error sending periodontal result:', error);
+        return false;
+    }
+};
+
 export const addImageToPatient = async (patientId: string | number, imageFormData: FormData): Promise<Patient | undefined> => {
     console.log('API CALL: addImageToPatient', { patientId });
     try {
@@ -4315,6 +4330,17 @@ export const topUpBranchCredits = async (branchId: string | number, type: 'sms' 
     return response.data;
   } catch (error) {
     console.error('Error topping up credits:', error);
+    throw error;
+  }
+};
+
+
+export const getActivityLogs = async (params: { page?: number; per_page?: number; action?: string; branch_id?: string | number; search?: string } = {}) => {
+  try {
+    const { data } = await customAxios.get('/activity-logs', { params });
+    return data;
+  } catch (error) {
+    console.error('Error fetching activity logs:', error);
     throw error;
   }
 };
