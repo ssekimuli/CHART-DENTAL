@@ -35,7 +35,7 @@ import {
 import type { Employee, EmployeeRole, Branch } from "@/lib/types";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Loader2 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { getBranches, getRolesList } from "@/lib/api";
 
@@ -61,6 +61,8 @@ type EmployeeFormProps = {
 };
 
 export function EmployeeForm({ employee, onSave, onOpenChange }: EmployeeFormProps) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const [roles, setRoles] = useState<{id: string, name: string}[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
 
@@ -128,7 +130,9 @@ export function EmployeeForm({ employee, onSave, onOpenChange }: EmployeeFormPro
   }
 
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    setIsSubmitting(true);
+    try {
     onSave({
         ...values,
         role: values.role as EmployeeRole,
@@ -136,6 +140,9 @@ export function EmployeeForm({ employee, onSave, onOpenChange }: EmployeeFormPro
         hire_date: format(values.hire_date, "yyyy-MM-dd"),
         avatar: values.avatar || `https://picsum.photos/seed/emp${Math.random()}/200/200`,
     });
+      } finally {
+      setIsSubmitting(false);
+    }
   }
 
 
@@ -316,7 +323,10 @@ export function EmployeeForm({ employee, onSave, onOpenChange }: EmployeeFormPro
                     </div>
                      <DialogFooter>
                         <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-                        <Button type="submit">{employee ? "Save Changes" : "Save Employee"}</Button>
+                        <Button type="submit"  disabled={isSubmitting}>
+        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        {employee ? "Save Changes" : "Save Employee"}
+      </Button>
                     </DialogFooter>
                 </form>
             </Form>

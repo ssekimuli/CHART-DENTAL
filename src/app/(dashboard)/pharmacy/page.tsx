@@ -30,7 +30,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { PlusCircle, Search, Pill, FileText, ShoppingBag, Eye, Trash2, Edit } from "lucide-react";
+import { PlusCircle, Search, Pill, FileText, ShoppingBag, Eye, Trash2, Edit, Loader2 } from "lucide-react";
 import { useBranch } from "@/context/branch-context";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PaginationControl } from "@/components/ui/pagination-control";
@@ -76,6 +76,8 @@ export default function PharmacyPage() {
   const [isMedModalOpen, setIsMedModalOpen] = useState(false);
   const [isRxModalOpen, setIsRxModalOpen] = useState(false);
   const [isViewRxOpen, setIsViewRxOpen] = useState(false);
+  const [isSubmittingMed, setIsSubmittingMed] = useState(false);
+  const [isSubmittingRx, setIsSubmittingRx] = useState(false);
   const [selectedRx, setSelectedRx] = useState<Prescription | null>(null);
   const [editingMedicine, setEditingMedicine] = useState<Medicine | null>(null);
 
@@ -158,6 +160,7 @@ export default function PharmacyPage() {
   // Save Medicine (Create or Update)
   const handleSaveMedicine = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmittingMed(true);
     try {
       if (editingMedicine) {
         await updateMedicine(editingMedicine.id, {
@@ -183,6 +186,8 @@ export default function PharmacyPage() {
       fetchInventory();
     } catch (err) {
       toast({ variant: "destructive", title: "Error", description: "Failed to save medicine." });
+    } finally {
+      setIsSubmittingMed(false);
     }
   };
 
@@ -257,6 +262,7 @@ export default function PharmacyPage() {
   // Save Prescription
   const handleSaveRx = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmittingRx(true);
     try {
       const payload = {
         patient_id: rxForm.patient_id ? Number(rxForm.patient_id) : 0,
@@ -289,6 +295,8 @@ export default function PharmacyPage() {
       fetchInventory(); // Stock level changed
     } catch (err) {
       toast({ variant: "destructive", title: "Error", description: "Failed to save prescription." });
+    } finally {
+      setIsSubmittingRx(false);
     }
   };
 
@@ -619,8 +627,11 @@ export default function PharmacyPage() {
             </div>
 
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsMedModalOpen(false)}>Cancel</Button>
-              <Button type="submit">Save Medicine</Button>
+              <Button type="button" variant="outline" onClick={() => setIsMedModalOpen(false)} disabled={isSubmittingMed}>Cancel</Button>
+              <Button type="submit" disabled={isSubmittingMed}>
+                {isSubmittingMed && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Save Medicine
+              </Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -762,8 +773,11 @@ export default function PharmacyPage() {
             </div>
 
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsRxModalOpen(false)}>Cancel</Button>
-              <Button type="submit">Issue Prescription</Button>
+              <Button type="button" variant="outline" onClick={() => setIsRxModalOpen(false)} disabled={isSubmittingRx}>Cancel</Button>
+              <Button type="submit" disabled={isSubmittingRx}>
+                {isSubmittingRx && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Issue Prescription
+              </Button>
             </DialogFooter>
           </form>
         </DialogContent>

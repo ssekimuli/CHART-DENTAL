@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { format, parseISO, parse } from "date-fns";
+import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -34,7 +35,7 @@ import {
 import type { Patient, BasePatient } from "@/lib/types";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Loader2 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -54,11 +55,14 @@ const formSchema = z.object({
 
 type PatientFormProps = {
     patient?: Patient;
-    onSave: (data: BasePatient) => void;
+    onSave: (data: BasePatient) => Promise<void> | void;
     onOpenChange: (open: boolean) => void;
+    asModal?: boolean;
 };
 
-export function PatientForm({ patient, onSave, onOpenChange }: PatientFormProps) {
+export function PatientForm({ patient, onSave, onOpenChange, asModal = true }: PatientFormProps) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -76,32 +80,29 @@ export function PatientForm({ patient, onSave, onOpenChange }: PatientFormProps)
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    onSave({
-        first_name: values.first_name,
-        last_name: values.last_name,
-        email: values.email,
-        phone: values.phone,
-        address: values.address,
-        gender: values.gender,
-        status: values.status,
-        dateOfBirth: format(parse(values.dateOfBirth, "dd-MM-yyyy", new Date()), "yyyy-MM-dd"),
-        nextVisit: values.nextVisit ? format(values.nextVisit, "yyyy-MM-dd") : undefined,
-        history: values.history,
-        branchId: patient?.branchId ?? "",
-        avatar: values.avatar || `https://picsum.photos/seed/p${Math.random()}/200/200`,
-    });
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    setIsSubmitting(true);
+    try {
+        await onSave({
+            first_name: values.first_name,
+            last_name: values.last_name,
+            email: values.email,
+            phone: values.phone,
+            address: values.address,
+            gender: values.gender,
+            status: values.status,
+            dateOfBirth: format(parse(values.dateOfBirth, "dd-MM-yyyy", new Date()), "yyyy-MM-dd"),
+            nextVisit: values.nextVisit ? format(values.nextVisit, "yyyy-MM-dd") : undefined,
+            history: values.history,
+            branchId: patient?.branchId ?? "",
+            avatar: values.avatar || `https://picsum.photos/seed/p${Math.random()}/200/200`,
+        });
+    } finally {
+        setIsSubmitting(false);
+    }
   }
 
-  return (
-    <Dialog open={true} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[550px]">
-            <DialogHeader>
-                <DialogTitle>{patient ? "Edit Patient" : "Add Patient"}</DialogTitle>
-                <DialogDescription>
-                    Fill out the details for the patient.
-                </DialogDescription>
-            </DialogHeader>
+  const formContent = (
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
@@ -291,12 +292,31 @@ export function PatientForm({ patient, onSave, onOpenChange }: PatientFormProps)
                             </FormItem>
                         )}
                     />
-                     <DialogFooter>
-                        <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-                        <Button type="submit">{patient ? "Save Changes" : "Create Patient"}</Button>
-                    </DialogFooter>
+                     <div className="flex justify-end space-x-2 pt-4">
+                        <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>Cancel</Button>
+                        <Button type="submit" disabled={isSubmitting}>
+                            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            {patient ? "Save Changes" : "Create Patient"}
+                        </Button>
+                    </div>
                 </form>
             </Form>
+  );
+
+  if (!asModal) {
+      return formContent;
+  }
+
+  return (
+    <Dialog open={true} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-[550px]">
+            <DialogHeader>
+                <DialogTitle>{patient ? "Edit Patient" : "Add Patient"}</DialogTitle>
+                <DialogDescription>
+                    Fill out the details for the patient.
+                </DialogDescription>
+            </DialogHeader>
+            {formContent}
         </DialogContent>
     </Dialog>
   );

@@ -1,6 +1,6 @@
-
 "use client";
 
+import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -34,7 +34,7 @@ import {
 import type { LaboratoryOrder, Patient, Employee } from "@/lib/types";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn, getPatientFullName } from "@/lib/utils";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Loader2 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Combobox } from "@/components/ui/combobox";
 
@@ -64,6 +64,8 @@ type LabOrderFormProps = {
 };
 
 export function LabOrderForm({ patients, doctors, onSave, onOpenChange }: LabOrderFormProps) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -72,13 +74,18 @@ export function LabOrderForm({ patients, doctors, onSave, onOpenChange }: LabOrd
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    setIsSubmitting(true);
+    try {
     onSave({
         ...values,
         sentDate: format(values.sentDate, "yyyy-MM-dd"),
         dueDate: format(values.dueDate, "yyyy-MM-dd"),
         receivedDate: values.receivedDate ? format(values.receivedDate, "yyyy-MM-dd") : undefined,
     });
+      } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -387,7 +394,10 @@ export function LabOrderForm({ patients, doctors, onSave, onOpenChange }: LabOrd
                     </div>
                      <DialogFooter>
                         <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-                        <Button type="submit">Save Order</Button>
+                        <Button type="submit"  disabled={isSubmitting}>
+        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        Save Order
+      </Button>
                     </DialogFooter>
                 </form>
             </Form>

@@ -1,5 +1,6 @@
 "use client";
 
+import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -208,6 +209,8 @@ export function RestorativeRecordForm({
   onSave,
   onUpdate,
 }: RestorativeRecordFormProps) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const [systemTreatments, setSystemTreatments] = useState<SystemTreatment[]>([]);
   const currencyConfig = getCurrencyConfig();
 
@@ -428,7 +431,10 @@ export function RestorativeRecordForm({
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
-              <Button type="submit">Save</Button>
+              <Button type="submit"  disabled={isSubmitting}>
+        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        Save
+      </Button>
             </div>
           </form>
         </Form>

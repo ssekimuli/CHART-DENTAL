@@ -37,7 +37,7 @@ import {
 import type { Invoice, Patient, InvoiceTreatment, OtherCharge, SystemTreatment, PaymentMethod, Treatment, Medicine, InvoiceMedicine } from "@/lib/types";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { CalendarIcon, X, Check, Trash2, PlusCircle } from "lucide-react";
+import { CalendarIcon, X, Check, Trash2, PlusCircle, Loader2 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Combobox } from "@/components/ui/combobox";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
@@ -73,6 +73,8 @@ type InvoiceFormProps = {
 };
 
 export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: InvoiceFormProps) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const [selectedTreatments, setSelectedTreatments] = useState<InvoiceTreatment[]>([]);
   const [availableTreatments, setAvailableTreatments] = useState<SystemTreatment[]>([]);
   const [selectedMedicines, setSelectedMedicines] = useState<InvoiceMedicine[]>([]);
@@ -157,7 +159,9 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
     }
   }, [invoice, patientId]);
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    setIsSubmitting(true);
+    try {
     onSave({
         ...values,
         patientId: values.patientId || '',
@@ -167,6 +171,9 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
         issueDate: format(values.issueDate, "yyyy-MM-dd"),
         dueDate: format(values.dueDate, "yyyy-MM-dd"),
     }, selectedTreatments);
+      } finally {
+      setIsSubmitting(false);
+    }
   }
 
   const handleTreatmentToggle = (treatment: InvoiceTreatment) => {
@@ -701,7 +708,10 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
                         </div>
                         <DialogFooter className="sticky bottom-0 bg-background pt-4 -mx-6 px-6 pb-6 border-t">
                             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-                            <Button type="submit" disabled={selectedTreatments.length === 0 && otherChargesTotal <= 0 && !invoice}>{invoice ? 'Save Changes' : 'Create Invoice'}</Button>
+                            <Button type="submit"  disabled={selectedTreatments.length === 0 && otherChargesTotal <= 0 && !invoice || isSubmitting}>
+        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        {invoice ? 'Save Changes' : 'Create Invoice'}
+      </Button>
                         </DialogFooter>
                     </form>
                 </Form>

@@ -19,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Loader2 } from "lucide-react";
 import type { EndodonticRecord, CanalDetail } from "@/lib/types";
 
 type EndodonticRecordFormProps = {
@@ -191,6 +191,8 @@ export function EndodonticRecordForm({
   onSave,
   record,
 }: EndodonticRecordFormProps) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const { register, control, handleSubmit, reset, setValue, watch } = useForm<Omit<EndodonticRecord, "id" | "date">>({
     defaultValues: {
       toothId: 11,
@@ -262,9 +264,10 @@ export function EndodonticRecordForm({
           <Button type="button" variant="outline" size="sm" onClick={onClose}>
             Cancel
           </Button>
-          <Button type="submit" form="endodontic-form" size="sm">
-            {record ? "Save Changes" : "Save Record"}
-          </Button>
+          <Button type="submit"  form="endodontic-form" size="sm" disabled={isSubmitting}>
+        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        {record ? "Save Changes" : "Save Record"}
+      </Button>
         </div>
       </CardHeader>
       
