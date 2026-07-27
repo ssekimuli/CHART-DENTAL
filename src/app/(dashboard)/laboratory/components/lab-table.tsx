@@ -32,6 +32,7 @@ export function LabTable({ data }: { data: LaboratoryOrder[] }) {
         <TableHeader>
           <TableRow>
             <TableHead>Patient</TableHead>
+            <TableHead>Doctor</TableHead>
             <TableHead>Lab</TableHead>
             <TableHead>Item</TableHead>
             <TableHead>Status</TableHead>
@@ -45,6 +46,7 @@ export function LabTable({ data }: { data: LaboratoryOrder[] }) {
               key={order.id}
             >
               <TableCell className="font-medium">{order.patientName}</TableCell>
+              <TableCell>{order.doctor?.name || '-'}</TableCell>
               <TableCell>{order.lab}</TableCell>
               <TableCell>{order.item} {order.tooth ? `(#${order.tooth})` : ''}</TableCell>
               <TableCell>
@@ -58,7 +60,7 @@ export function LabTable({ data }: { data: LaboratoryOrder[] }) {
           ))}
            {data.length === 0 && (
                 <TableRow>
-                    <TableCell colSpan={6} className="h-24 text-center">
+                    <TableCell colSpan={7} className="h-24 text-center">
                         No lab orders found.
                     </TableCell>
                 </TableRow>

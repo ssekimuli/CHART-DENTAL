@@ -299,6 +299,14 @@ export type LaboratoryOrder = {
   status: 'Sent' | 'Received' | 'Completed' | 'Cancelled';
   sentDate: string;
   dueDate: string;
+  receivedDate?: string;
+  shade?: string;
+  material?: string;
+  instructions?: string;
+  cost?: number;
+  invoiceNumber?: string;
+  doctorId?: string | number;
+  doctor?: Employee;
   branchId: string | number;
 };
 

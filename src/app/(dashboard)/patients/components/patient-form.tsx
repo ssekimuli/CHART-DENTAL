@@ -4,7 +4,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, parse } from "date-fns";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -41,11 +41,11 @@ import { Textarea } from "@/components/ui/textarea";
 const formSchema = z.object({
   first_name: z.string().min(2, "First name must be at least 2 characters."),
   last_name: z.string().min(2, "Last name must be at least 2 characters."),
-  email: z.string().email("Please enter a valid email."),
+  email: z.string().email("Please enter a valid email.").optional().or(z.literal('')),
   phone: z.string().optional(),
   address: z.string().optional(),
   gender: z.enum(['Male', 'Female', 'Other']).optional(),
-  dateOfBirth: z.date({ required_error: "A date of birth is required." }),
+  dateOfBirth: z.string().regex(/^\d{2}-\d{2}-\d{4}$/, "Date must be in DD-MM-YYYY format").min(10, "Required"),
   nextVisit: z.date().optional().nullable(),
   status: z.enum(['Active', 'Inactive']),
   history: z.string().optional(),
@@ -68,7 +68,7 @@ export function PatientForm({ patient, onSave, onOpenChange }: PatientFormProps)
         phone: patient?.phone ?? "",
         address: patient?.address ?? "",
         gender: patient?.gender,
-        dateOfBirth: patient?.dateOfBirth ? parseISO(patient.dateOfBirth) : undefined,
+        dateOfBirth: patient?.dateOfBirth ? format(parseISO(patient.dateOfBirth), "dd-MM-yyyy") : "",
         nextVisit: patient?.nextVisit ? parseISO(patient.nextVisit) : undefined,
         status: patient?.status ?? 'Active',
         history: patient?.history ?? "",
@@ -85,7 +85,7 @@ export function PatientForm({ patient, onSave, onOpenChange }: PatientFormProps)
         address: values.address,
         gender: values.gender,
         status: values.status,
-        dateOfBirth: format(values.dateOfBirth, "yyyy-MM-dd"),
+        dateOfBirth: format(parse(values.dateOfBirth, "dd-MM-yyyy", new Date()), "yyyy-MM-dd"),
         nextVisit: values.nextVisit ? format(values.nextVisit, "yyyy-MM-dd") : undefined,
         history: values.history,
         branchId: patient?.branchId ?? "",
@@ -180,37 +180,9 @@ export function PatientForm({ patient, onSave, onOpenChange }: PatientFormProps)
                             render={({ field }) => (
                                 <FormItem className="flex flex-col">
                                 <FormLabel>Date of Birth</FormLabel>
-                                <Popover>
-                                    <PopoverTrigger asChild>
-                                    <FormControl>
-                                        <Button
-                                        variant={"outline"}
-                                        className={cn(
-                                            "pl-3 text-left font-normal",
-                                            !field.value && "text-muted-foreground"
-                                        )}
-                                        >
-                                        {field.value ? (
-                                            format(field.value, "PPP")
-                                        ) : (
-                                            <span>Pick a date</span>
-                                        )}
-                                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                        </Button>
-                                    </FormControl>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-auto p-0" align="start">
-                                    <Calendar
-                                        mode="single"
-                                        selected={field.value}
-                                        onSelect={field.onChange}
-                                        captionLayout="dropdown-buttons"
-                                        fromYear={1930}
-                                        toYear={new Date().getFullYear()}
-                                        initialFocus
-                                    />
-                                    </PopoverContent>
-                                </Popover>
+                                <FormControl>
+                                    <Input placeholder="DD-MM-YYYY" {...field} />
+                                </FormControl>
                                 <FormMessage />
                                 </FormItem>
                             )}

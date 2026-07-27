@@ -15,7 +15,7 @@ import { LabTable } from "./components/lab-table";
 import type { LaboratoryOrder, Patient, PaginatedArray } from "@/lib/types";
 import { LabOrderForm } from "./components/lab-order-form";
 import { useBranch } from "@/context/branch-context";
-import { createLabOrder, getLabOrders, getPatientList } from "@/lib/api";
+import { createLabOrder, getLabOrders, getPatientList, getEmployees } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
 import {  hasPermission, hasRole , getCurrentUser } from "@/lib/user";
 import { useRouter } from "next/navigation";
@@ -27,6 +27,7 @@ export default function LaboratoryPage() {
     const { selectedBranch } = useBranch();
     const [labOrders, setLabOrders] = useState<PaginatedArray<LaboratoryOrder>>([] as unknown as PaginatedArray<LaboratoryOrder>);
     const [patients, setPatients] = useState<Patient[]>([]);
+    const [doctors, setDoctors] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [page, setPage] = useState(1);
@@ -44,12 +45,14 @@ export default function LaboratoryPage() {
         const branchToFetch = hasRole('Super Admin') ? selectedBranch : getCurrentUser()?.branchId;
         const fetchData = async () => {
             setIsLoading(true);
-            const [orders, patientsData] = await Promise.all([
+            const [orders, patientsData, employeesData] = await Promise.all([
                 getLabOrders(branchToFetch, page, 10), 
-                getPatientList()
+                getPatientList(),
+                getEmployees(branchToFetch)
             ]);
             setLabOrders(orders);
             setPatients(patientsData as unknown as Patient[]);
+            setDoctors(employeesData.filter(emp => emp.role === 'Dentist' || emp.role === 'Hygienist'));
             setIsLoading(false);
         };
         fetchData();
@@ -119,6 +122,7 @@ export default function LaboratoryPage() {
         {isFormOpen && (
             <LabOrderForm 
                 patients={filteredPatients}
+                doctors={doctors}
                 onSave={handleSaveOrder}
                 onOpenChange={setIsFormOpen}
             />

@@ -31,7 +31,7 @@ import {
     SelectTrigger,
     SelectValue,
   } from "@/components/ui/select";
-import type { LaboratoryOrder, Patient } from "@/lib/types";
+import type { LaboratoryOrder, Patient, Employee } from "@/lib/types";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn, getPatientFullName } from "@/lib/utils";
 import { CalendarIcon } from "lucide-react";
@@ -47,15 +47,23 @@ const formSchema = z.object({
   status: z.enum(['Sent', 'Received', 'Completed', 'Cancelled']),
   sentDate: z.date({ required_error: "A sent date is required." }),
   dueDate: z.date({ required_error: "A due date is required." }),
+  receivedDate: z.date().optional(),
+  shade: z.string().optional(),
+  material: z.string().optional(),
+  instructions: z.string().optional(),
+  cost: z.coerce.number().optional(),
+  invoiceNumber: z.string().optional(),
+  doctorId: z.string().optional(),
 });
 
 type LabOrderFormProps = {
     patients: Patient[];
+    doctors: Employee[];
     onSave: (data: Omit<LaboratoryOrder, 'id' | 'patientName' | 'branchId'>) => void;
     onOpenChange: (open: boolean) => void;
 };
 
-export function LabOrderForm({ patients, onSave, onOpenChange }: LabOrderFormProps) {
+export function LabOrderForm({ patients, doctors, onSave, onOpenChange }: LabOrderFormProps) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -69,6 +77,7 @@ export function LabOrderForm({ patients, onSave, onOpenChange }: LabOrderFormPro
         ...values,
         sentDate: format(values.sentDate, "yyyy-MM-dd"),
         dueDate: format(values.dueDate, "yyyy-MM-dd"),
+        receivedDate: values.receivedDate ? format(values.receivedDate, "yyyy-MM-dd") : undefined,
     });
   }
 
@@ -97,6 +106,26 @@ export function LabOrderForm({ patients, onSave, onOpenChange }: LabOrderFormPro
                                     placeholder="Select a patient"
                                     searchPlaceholder="Search patients..."
                                     emptyMessage="No patient found."
+                                />
+                            </FormControl>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="doctorId"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Prescribing Doctor (Optional)</FormLabel>
+                            <FormControl>
+                                <Combobox
+                                    options={doctors.map(d => ({ value: String(d.id), label: d.name }))}
+                                    value={field.value}
+                                    onChange={field.onChange}
+                                    placeholder="Select a doctor"
+                                    searchPlaceholder="Search doctors..."
+                                    emptyMessage="No doctor found."
                                 />
                             </FormControl>
                             <FormMessage />
@@ -213,6 +242,116 @@ export function LabOrderForm({ patients, onSave, onOpenChange }: LabOrderFormPro
                             render={({ field }) => (
                                 <FormItem className="flex flex-col">
                                 <FormLabel>Due Date</FormLabel>
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                    <FormControl>
+                                        <Button
+                                        variant={"outline"}
+                                        className={cn(
+                                            "pl-3 text-left font-normal",
+                                            !field.value && "text-muted-foreground"
+                                        )}
+                                        >
+                                        {field.value ? (
+                                            format(field.value, "PPP")
+                                        ) : (
+                                            <span>Pick a date</span>
+                                        )}
+                                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                        </Button>
+                                    </FormControl>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0" align="start">
+                                    <Calendar
+                                        mode="single"
+                                        selected={field.value}
+                                        onSelect={field.onChange}
+                                        initialFocus
+                                    />
+                                    </PopoverContent>
+                                </Popover>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                            control={form.control}
+                            name="shade"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Shade</FormLabel>
+                                <FormControl>
+                                    <Input placeholder="e.g., A1, B2" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                         <FormField
+                            control={form.control}
+                            name="material"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Material</FormLabel>
+                                <FormControl>
+                                    <Input placeholder="e.g., Zirconia, PFM" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    </div>
+
+                    <FormField
+                        control={form.control}
+                        name="instructions"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Instructions</FormLabel>
+                            <FormControl>
+                                <Input placeholder="Special instructions for the lab" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+
+                    <div className="grid grid-cols-3 gap-4">
+                        <FormField
+                            control={form.control}
+                            name="cost"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Cost</FormLabel>
+                                <FormControl>
+                                    <Input type="number" step="0.01" placeholder="Lab Fee" {...field} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.value)} />
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                         <FormField
+                            control={form.control}
+                            name="invoiceNumber"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Invoice Number</FormLabel>
+                                <FormControl>
+                                    <Input placeholder="Optional" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="receivedDate"
+                            render={({ field }) => (
+                                <FormItem className="flex flex-col">
+                                <FormLabel>Received Date</FormLabel>
                                 <Popover>
                                     <PopoverTrigger asChild>
                                     <FormControl>
