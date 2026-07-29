@@ -4322,9 +4322,75 @@ export const updateBranchSettings = async (branchId: string | number, payload: a
   }
 };
 
-export const topUpBranchCredits = async (branchId: string | number, type: 'sms' | 'whatsapp', amount: number) => {
+export const topUpBranchCredits = async (
+  branchId: string | number, 
+  type: 'sms' | 'whatsapp', 
+  amount: number, 
+  phone?: string, 
+  provider?: string,
+  onPending?: () => void
+) => {
   try {
-    const response = await customAxios.post('/settings/branch/top-up', { type, amount }, {
+    const category = type === 'sms' ? 'top_up_sms' : 'top_up_whatsapp';
+    
+    // 1. Initiate Top Up
+    const initResponse = await customAxios.post('/top-up-sms', {
+      provider: provider || 'iotec',
+      phone: phone,
+      amount: amount,
+      category: category
+    });
+
+    const initData = initResponse.data?.data?.data;
+    const reference = initData?.reference;
+    if (!reference) {
+      throw new Error("Failed to get transaction reference");
+    }
+
+    if (provider === 'card') {
+      return {
+        requiresAction: true,
+        clientSecret: initData.client_secret,
+        publishableKey: initData.stripe_publishable_key,
+        reference: reference
+      };
+    }
+
+    if (provider === 'iotec') {
+        onPending?.();
+    }
+
+    // 2. Poll for transaction status (for non-card like iotec)
+    let status = 'pending';
+    let attempts = 0;
+    while (status === 'pending' && attempts < 20) {
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      attempts++;
+      
+      try {
+        let verifyResponse;
+        try {
+            verifyResponse = await customAxios.post('/verify-transaction', { reference });
+        } catch (err: any) {
+            // fallback to GET if POST is not allowed
+            if (err.response?.status === 405 || err.response?.status === 404) {
+                verifyResponse = await customAxios.get(`/verify-transaction`, { params: { reference } });
+            } else {
+                throw err;
+            }
+        }
+        status = verifyResponse.data?.data?.status?.toLowerCase() || 'pending';
+      } catch (e) {
+        console.warn("Polling error:", e);
+      }
+    }
+
+    if (status !== 'success' && status !== 'successful') {
+      throw new Error(`Transaction failed or timed out. Status: ${status}`);
+    }
+
+    // 3. Update Balance
+    const response = await customAxios.post('/update-top-up-balance', { type, amount, phone, provider, reference }, {
       headers: { 'X-Branch-ID': branchId }
     });
     return response.data;
@@ -4332,6 +4398,37 @@ export const topUpBranchCredits = async (branchId: string | number, type: 'sms' 
     console.error('Error topping up credits:', error);
     throw error;
   }
+};
+
+export const verifyAndUpdateTopUp = async (
+  branchId: string | number,
+  type: 'sms' | 'whatsapp',
+  amount: number,
+  phone: string | undefined,
+  provider: string,
+  reference: string
+) => {
+    let status = 'pending';
+    let verifyResponse;
+    try {
+        verifyResponse = await customAxios.post('/verify-transaction', { reference });
+    } catch (err: any) {
+        if (err.response?.status === 405 || err.response?.status === 404) {
+            verifyResponse = await customAxios.get(`/verify-transaction`, { params: { reference } });
+        } else {
+            throw err;
+        }
+    }
+    status = verifyResponse.data?.data?.status?.toLowerCase() || 'pending';
+    
+    if (status !== 'success' && status !== 'successful') {
+      throw new Error(`Transaction failed. Status: ${status}`);
+    }
+
+    const response = await customAxios.post('/update-top-up-balance', { type, amount, phone, provider, reference }, {
+      headers: { 'X-Branch-ID': branchId }
+    });
+    return response.data;
 };
 
 

@@ -15,8 +15,83 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { useBranch } from "@/context/branch-context";
-import { getBranchSettings, updateBranchSettings, topUpBranchCredits } from "@/lib/api";
+import { getBranchSettings, updateBranchSettings, topUpBranchCredits, verifyAndUpdateTopUp } from "@/lib/api";
 import { Loader2, MessageSquare, Phone } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import PhoneInput from 'react-phone-number-input';
+import 'react-phone-number-input/style.css';
+import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
+import { loadStripe } from '@stripe/stripe-js';
+
+const topUpSchema = z.object({
+  type: z.enum(["sms", "whatsapp"]),
+  amount: z.coerce.number().min(1, "Amount must be greater than 0"),
+  phone: z.string().min(1, "Phone is required").regex(/^\+/, "Must start with country code (+)"),
+  provider: z.enum(["iotec", "card"]),
+});
+
+function CheckoutForm({ clientSecret, reference, type, amount, phone, provider, onSuccess, onCancel }: any) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [isProcessing, setIsProcessing] = useState(false);
+  const { toast } = useToast();
+  const { selectedBranch } = useBranch();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!stripe || !elements || !selectedBranch) return;
+
+    setIsProcessing(true);
+    const { error, paymentIntent } = await stripe.confirmPayment({
+      elements,
+      confirmParams: {
+        return_url: window.location.href,
+      },
+      redirect: 'if_required',
+    });
+
+    if (error) {
+      toast({
+        variant: "destructive",
+        title: "Payment Failed",
+        description: error.message || "Something went wrong.",
+      });
+      setIsProcessing(false);
+    } else if (paymentIntent && paymentIntent.status === 'succeeded') {
+      try {
+        await verifyAndUpdateTopUp(selectedBranch.id, type, amount, phone, provider, reference);
+        onSuccess();
+      } catch (err) {
+        toast({
+          variant: "destructive",
+          title: "Verification Failed",
+          description: "Payment succeeded but failed to update balance.",
+        });
+        setIsProcessing(false);
+      }
+    } else {
+      setIsProcessing(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+      <PaymentElement />
+      <div className="flex gap-2 justify-end mt-4">
+        <Button variant="outline" type="button" onClick={onCancel} disabled={isProcessing}>Cancel</Button>
+        <Button type="submit" disabled={isProcessing || !stripe || !elements}>
+          {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          Pay Now
+        </Button>
+      </div>
+    </form>
+  );
+}
 
 export function BranchSettingsTab() {
   const { toast } = useToast();
@@ -24,12 +99,21 @@ export function BranchSettingsTab() {
   
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [isToppingUpSms, setIsToppingUpSms] = useState(false);
-  const [isToppingUpWa, setIsToppingUpWa] = useState(false);
+  const [isTopUpOpen, setIsTopUpOpen] = useState(false);
+  const [isToppingUp, setIsToppingUp] = useState(false);
+  const [stripeData, setStripeData] = useState<{ clientSecret: string, publishableKey: string, reference: string, formData: any } | null>(null);
   
   const [settings, setSettings] = useState<any>(null);
-  const [smsAmount, setSmsAmount] = useState("");
-  const [waAmount, setWaAmount] = useState("");
+  
+  const form = useForm<z.infer<typeof topUpSchema>>({
+    resolver: zodResolver(topUpSchema),
+    defaultValues: {
+      type: "sms",
+      amount: 100,
+      phone: "",
+      provider: "iotec",
+    },
+  });
   const [clinicName, setClinicName] = useState("");
 
   const fetchSettings = async () => {
@@ -90,22 +174,46 @@ export function BranchSettingsTab() {
     }
   };
 
-  const handleTopUp = async (type: 'sms' | 'whatsapp') => {
+  const openTopUpModal = (type: "sms" | "whatsapp") => {
+    form.reset({ type, amount: 100, phone: "", provider: "iotec" });
+    setIsTopUpOpen(true);
+  };
+
+  const onSubmitTopUp = async (data: z.infer<typeof topUpSchema>) => {
     if (!selectedBranch) return;
-    const amount = type === 'sms' ? parseInt(smsAmount) : parseInt(waAmount);
-    if (isNaN(amount) || amount <= 0) {
-      toast({ variant: "destructive", description: "Enter a valid amount." });
-      return;
-    }
-    
     try {
-      type === 'sms' ? setIsToppingUpSms(true) : setIsToppingUpWa(true);
-      await topUpBranchCredits(selectedBranch.id, type, amount);
+      setIsToppingUp(true);
+      const res: any = await topUpBranchCredits(
+        selectedBranch.id, 
+        data.type, 
+        data.amount, 
+        data.phone, 
+        data.provider,
+        () => {
+          toast({
+            title: "Action Required",
+            description: "Please check your phone and enter your Mobile Money PIN to approve the transaction.",
+            duration: 15000,
+          });
+        }
+      );
+      
+      if (res && res.requiresAction) {
+         setStripeData({
+           clientSecret: res.clientSecret,
+           publishableKey: res.publishableKey,
+           reference: res.reference,
+           formData: data
+         });
+         return;
+      }
+
       toast({
         title: "Top-up Successful",
-        description: `Added ${amount} ${type} credits to branch.`,
+        description: `Added ${data.amount} ${data.type} credits to branch.`,
       });
-      type === 'sms' ? setSmsAmount("") : setWaAmount("");
+      setIsTopUpOpen(false);
+      form.reset();
       fetchSettings(); // Refresh balances
     } catch (error) {
       toast({
@@ -114,7 +222,7 @@ export function BranchSettingsTab() {
         description: "Failed to process top-up.",
       });
     } finally {
-      type === 'sms' ? setIsToppingUpSms(false) : setIsToppingUpWa(false);
+      setIsToppingUp(false);
     }
   };
 
@@ -150,17 +258,9 @@ export function BranchSettingsTab() {
             <CardDescription>Current balance: <strong className="text-foreground">{settings?.sms_balance || 0}</strong></CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex gap-2">
-              <Input 
-                type="number" 
-                placeholder="Amount to top up" 
-                value={smsAmount}
-                onChange={(e) => setSmsAmount(e.target.value)}
-              />
-              <Button onClick={() => handleTopUp('sms')} disabled={isToppingUpSms}>
-                {isToppingUpSms ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Top Up'}
-              </Button>
-            </div>
+            <Button onClick={() => openTopUpModal('sms')} variant="outline">
+              Top Up SMS
+            </Button>
           </CardContent>
         </Card>
 
@@ -173,17 +273,9 @@ export function BranchSettingsTab() {
             <CardDescription>Current balance: <strong className="text-foreground">{settings?.whatsapp_balance || 0}</strong></CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex gap-2">
-              <Input 
-                type="number" 
-                placeholder="Amount to top up" 
-                value={waAmount}
-                onChange={(e) => setWaAmount(e.target.value)}
-              />
-              <Button onClick={() => handleTopUp('whatsapp')} disabled={isToppingUpWa}>
-                {isToppingUpWa ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Top Up'}
-              </Button>
-            </div>
+            <Button onClick={() => openTopUpModal('whatsapp')} variant="outline">
+              Top Up WhatsApp
+            </Button>
           </CardContent>
         </Card>
       </div>
@@ -255,6 +347,122 @@ export function BranchSettingsTab() {
           </Button>
         </CardFooter>
       </Card>
+
+      <Dialog open={isTopUpOpen} onOpenChange={(open) => {
+        setIsTopUpOpen(open);
+        if (!open) setStripeData(null);
+      }}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Top Up Credits</DialogTitle>
+            <DialogDescription>
+              Purchase credits for SMS or WhatsApp notifications.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {stripeData ? (
+             <Elements stripe={loadStripe(stripeData.publishableKey)} options={{ clientSecret: stripeData.clientSecret }}>
+               <CheckoutForm 
+                 {...stripeData.formData} 
+                 reference={stripeData.reference} 
+                 onSuccess={() => {
+                   toast({ title: "Success", description: "Top up successful." });
+                   setStripeData(null);
+                   setIsTopUpOpen(false);
+                   form.reset();
+                   fetchSettings();
+                 }}
+                 onCancel={() => setStripeData(null)}
+               />
+             </Elements>
+          ) : (
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmitTopUp)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="type"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Category</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="sms">SMS</SelectItem>
+                        <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="amount"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Amount</FormLabel>
+                    <FormControl>
+                      <Input type="number" placeholder="Enter amount" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="provider"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Payment Provider</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select provider" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="iotec">Mobile Money (iotec)</SelectItem>
+                        <SelectItem value="card">Card</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="phone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Phone Number</FormLabel>
+                    <FormControl>
+                      <PhoneInput
+                          international
+                          defaultCountry="UG"
+                          placeholder="Enter phone number"
+                          value={field.value as any}
+                          onChange={field.onChange}
+                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-within:outline-none focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 [&>input]:bg-transparent [&>input]:border-none [&>input]:outline-none [&>input]:ml-2"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <DialogFooter>
+                <Button type="submit" disabled={isToppingUp}>
+                  {isToppingUp && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Submit Payment
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
