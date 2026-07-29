@@ -115,6 +115,7 @@ export function BranchSettingsTab() {
     },
   });
   const [clinicName, setClinicName] = useState("");
+  const [activityLogEnabled, setActivityLogEnabled] = useState(false);
 
   const fetchSettings = async () => {
     if (!selectedBranch) return;
@@ -124,6 +125,9 @@ export function BranchSettingsTab() {
       setSettings(data);
       if (data.clinic_name) {
         setClinicName(data.clinic_name);
+      }
+      if (data.activity_log_enabled !== undefined) {
+        setActivityLogEnabled(data.activity_log_enabled);
       }
     } catch (error) {
       console.error(error);
@@ -157,6 +161,7 @@ export function BranchSettingsTab() {
       setIsSaving(true);
       await updateBranchSettings(selectedBranch.id, {
         clinic_name: clinicName,
+        activity_log_enabled: activityLogEnabled,
         notifications: settings?.notifications
       });
       toast({
@@ -295,6 +300,25 @@ export function BranchSettingsTab() {
                 placeholder="e.g. My Dental Clinic" 
               />
             </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>System Settings</CardTitle>
+          <CardDescription>Configure general system preferences.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between max-w-md">
+            <div className="space-y-0.5">
+              <Label>Activity Log</Label>
+              <p className="text-sm text-muted-foreground">Record user actions for auditing and troubleshooting.</p>
+            </div>
+            <Switch 
+              checked={activityLogEnabled} 
+              onCheckedChange={setActivityLogEnabled} 
+            />
           </div>
         </CardContent>
       </Card>
