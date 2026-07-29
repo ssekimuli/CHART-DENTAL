@@ -282,6 +282,25 @@ export default function BillingPage() {
     router.push(`/billing/${invoiceId}`);
   };
 
+  const handlePrintReceipt = (invoiceId: string | number) => {
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'absolute';
+    iframe.style.width = '0px';
+    iframe.style.height = '0px';
+    iframe.style.border = 'none';
+    iframe.style.left = '-9999px';
+    iframe.src = `/receipt/${invoiceId}`;
+    document.body.appendChild(iframe);
+
+    // The receipt page will trigger print automatically after loading.
+    // Clean up the iframe after a reasonable time.
+    setTimeout(() => {
+      if (document.body.contains(iframe)) {
+        document.body.removeChild(iframe);
+      }
+    }, 15000);
+  };
+
   // ADD THIS: Function to format date
   const formatDate = (date: string) => {
     return moment(date).format("MMM DD, YYYY");
@@ -375,7 +394,7 @@ export default function BillingPage() {
                                 <Eye className="mr-2 h-4 w-4" />
                                 View Invoice
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => window.open(`/receipt/${invoice.id}`, '_blank')}>
+                            <DropdownMenuItem onClick={() => handlePrintReceipt(invoice.id)}>
                                 <Printer className="mr-2 h-4 w-4" />
                                 Print Receipt (POS)
                             </DropdownMenuItem>
