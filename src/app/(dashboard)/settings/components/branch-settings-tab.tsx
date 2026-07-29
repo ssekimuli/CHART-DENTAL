@@ -461,6 +461,7 @@ export function BranchSettingsTab() {
               </DialogFooter>
             </form>
           </Form>
+          )}
         </DialogContent>
       </Dialog>
     </div>
