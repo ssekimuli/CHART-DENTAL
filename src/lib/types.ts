@@ -47,6 +47,7 @@ export type Patient = {
   avatar?: string;
   email: string;
   phone?: string;
+  nationality?: string;
   address?: string;
   gender?: 'Male' | 'Female' | 'Other';
   dateOfBirth: string;

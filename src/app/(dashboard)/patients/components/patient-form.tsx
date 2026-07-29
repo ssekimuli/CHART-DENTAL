@@ -39,11 +39,24 @@ import { CalendarIcon, Loader2 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Textarea } from "@/components/ui/textarea";
 
+import PhoneInput from 'react-phone-number-input';
+import 'react-phone-number-input/style.css';
+import * as countries from "i18n-iso-countries";
+import enLocale from "i18n-iso-countries/langs/en.json";
+
+countries.registerLocale(enLocale);
+const countryObj = countries.getNames("en", { select: "official" });
+const countryList = Object.entries(countryObj).map(([code, name]) => ({
+  value: name,
+  label: name,
+})).sort((a, b) => a.label.localeCompare(b.label));
+
 const formSchema = z.object({
   first_name: z.string().min(2, "First name must be at least 2 characters."),
   last_name: z.string().min(2, "Last name must be at least 2 characters."),
   email: z.string().email("Please enter a valid email.").optional().or(z.literal('')),
-  phone: z.string().optional(),
+  phone: z.string().min(1, "Phone is required").regex(/^\+/, "Must start with country code (+)"),
+  nationality: z.string().optional(),
   address: z.string().optional(),
   gender: z.enum(['Male', 'Female', 'Other']).optional(),
   dateOfBirth: z.string().regex(/^\d{2}-\d{2}-\d{4}$/, "Date must be in DD-MM-YYYY format").min(10, "Required"),
@@ -70,6 +83,7 @@ export function PatientForm({ patient, onSave, onOpenChange, asModal = true }: P
         last_name: patient?.last_name ?? "",
         email: patient?.email ?? "",
         phone: patient?.phone ?? "",
+        nationality: patient?.nationality ?? "",
         address: patient?.address ?? "",
         gender: patient?.gender,
         dateOfBirth: patient?.dateOfBirth ? format(parseISO(patient.dateOfBirth), "dd-MM-yyyy") : "",
@@ -88,6 +102,7 @@ export function PatientForm({ patient, onSave, onOpenChange, asModal = true }: P
             last_name: values.last_name,
             email: values.email,
             phone: values.phone,
+            nationality: values.nationality,
             address: values.address,
             gender: values.gender,
             status: values.status,
@@ -174,7 +189,14 @@ export function PatientForm({ patient, onSave, onOpenChange, asModal = true }: P
                                 <FormItem>
                                 <FormLabel>Phone</FormLabel>
                                 <FormControl>
-                                    <Input placeholder="e.g., +256700123456" {...field} />
+                                    <PhoneInput
+                                        international
+                                        defaultCountry="UG"
+                                        placeholder="Enter phone number"
+                                        value={field.value as any}
+                                        onChange={field.onChange}
+                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-within:outline-none focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 [&>input]:bg-transparent [&>input]:border-none [&>input]:outline-none [&>input]:ml-2"
+                                    />
                                 </FormControl>
                                 <FormMessage />
                                 </FormItem>
@@ -189,6 +211,30 @@ export function PatientForm({ patient, onSave, onOpenChange, asModal = true }: P
                                 <FormControl>
                                     <Input placeholder="e.g., john.doe@example.com" {...field} />
                                 </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="nationality"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Nationality</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={field.value || undefined}>
+                                    <FormControl>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select nationality" />
+                                    </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                        {countryList.map((country) => (
+                                            <SelectItem key={country.value} value={country.value}>
+                                                {country.label}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                                 <FormMessage />
                                 </FormItem>
                             )}
