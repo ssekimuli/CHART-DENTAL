@@ -31,16 +31,17 @@ import {
     SelectTrigger,
     SelectValue,
   } from "@/components/ui/select";
-import type { LaboratoryOrder, Patient, Employee } from "@/lib/types";
+import type { LaboratoryOrder, Client, Employee } from "@/lib/types";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { cn, getPatientFullName } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { CalendarIcon, Loader2 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Combobox } from "@/components/ui/combobox";
 
 
 const formSchema = z.object({
-  patientId: z.string({ required_error: "Please select a patient."}),
+  clientId: z.string({ required_error: "Please select a client."}),
+  patientName: z.string().min(1, "Patient name is required."),
   lab: z.string().min(2, "Lab name must be at least 2 characters."),
   item: z.string().min(2, "Item description must be at least 2 characters."),
   tooth: z.coerce.number().optional(),
@@ -57,13 +58,13 @@ const formSchema = z.object({
 });
 
 type LabOrderFormProps = {
-    patients: Patient[];
+    clients: Client[];
     doctors: Employee[];
     onSave: (data: Omit<LaboratoryOrder, 'id' | 'patientName' | 'branchId'>) => void;
     onOpenChange: (open: boolean) => void;
 };
 
-export function LabOrderForm({ patients, doctors, onSave, onOpenChange }: LabOrderFormProps) {
+export function LabOrderForm({ clients, doctors, onSave, onOpenChange }: LabOrderFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -77,13 +78,13 @@ export function LabOrderForm({ patients, doctors, onSave, onOpenChange }: LabOrd
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
     try {
-    onSave({
-        ...values,
-        sentDate: format(values.sentDate, "yyyy-MM-dd"),
-        dueDate: format(values.dueDate, "yyyy-MM-dd"),
-        receivedDate: values.receivedDate ? format(values.receivedDate, "yyyy-MM-dd") : undefined,
-    });
-      } finally {
+        onSave({
+            ...values,
+            sentDate: format(values.sentDate, "yyyy-MM-dd"),
+            dueDate: format(values.dueDate, "yyyy-MM-dd"),
+            receivedDate: values.receivedDate ? format(values.receivedDate, "yyyy-MM-dd") : undefined,
+        });
+    } finally {
       setIsSubmitting(false);
     }
   }
@@ -101,19 +102,32 @@ export function LabOrderForm({ patients, doctors, onSave, onOpenChange }: LabOrd
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                     <FormField
                         control={form.control}
-                        name="patientId"
+                        name="clientId"
                         render={({ field }) => (
                             <FormItem>
-                            <FormLabel>Patient</FormLabel>
+                            <FormLabel>Client</FormLabel>
                             <FormControl>
                                 <Combobox
-                                    options={patients.map(p => ({ value: String(p.id), label: getPatientFullName(p) }))}
+                                    options={clients.map(c => ({ value: String(c.id), label: c.name }))}
                                     value={field.value}
                                     onChange={field.onChange}
-                                    placeholder="Select a patient"
-                                    searchPlaceholder="Search patients..."
-                                    emptyMessage="No patient found."
+                                    placeholder="Select a client"
+                                    searchPlaceholder="Search clients..."
+                                    emptyMessage="No client found."
                                 />
+                            </FormControl>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="patientName"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Patient Name</FormLabel>
+                            <FormControl>
+                                <Input placeholder="e.g., John Doe" {...field} />
                             </FormControl>
                             <FormMessage />
                             </FormItem>

@@ -280,6 +280,14 @@ export type Branch = {
   currency?: string;
 };
 
+export type Client = {
+    id: string | number;
+    name: string;
+    email?: string;
+    phone?: string;
+    address?: string;
+};
+
 export type InventoryItem = {
     id: string | number;
     name: string;
@@ -293,7 +301,8 @@ export type InventoryItem = {
 
 export type LaboratoryOrder = {
   id: string | number;
-  patientId: string | number;
+  clientId: string | number;
+  client?: Client;
   patientName: string;
   lab: string;
   item: string;

@@ -15,18 +15,18 @@ import { LabTable } from "./components/lab-table";
 import type { LaboratoryOrder, Patient, PaginatedArray } from "@/lib/types";
 import { LabOrderForm } from "./components/lab-order-form";
 import { useBranch } from "@/context/branch-context";
-import { createLabOrder, getLabOrders, getPatientList, getEmployees } from "@/lib/api";
+import { createLabOrder, getLabOrders, getClients, getEmployees } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
-import {  hasPermission, hasRole , getCurrentUser } from "@/lib/user";
+import { hasPermission, hasRole , getCurrentUser } from "@/lib/user";
 import { useRouter } from "next/navigation";
-import { getPatientFullName } from "@/lib/utils";
 import { PaginationControl } from "@/components/ui/pagination-control";
+import type { Client } from "@/lib/types";
 
 export default function LaboratoryPage() {
     const router = useRouter();
     const { selectedBranch } = useBranch();
     const [labOrders, setLabOrders] = useState<PaginatedArray<LaboratoryOrder>>([] as unknown as PaginatedArray<LaboratoryOrder>);
-    const [patients, setPatients] = useState<Patient[]>([]);
+    const [clients, setClients] = useState<Client[]>([]);
     const [doctors, setDoctors] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isFormOpen, setIsFormOpen] = useState(false);
@@ -45,34 +45,24 @@ export default function LaboratoryPage() {
         const branchToFetch = hasRole('Super Admin') ? selectedBranch : getCurrentUser()?.branchId;
         const fetchData = async () => {
             setIsLoading(true);
-            const [orders, patientsData, employeesData] = await Promise.all([
+            const [orders, clientsData, employeesData] = await Promise.all([
                 getLabOrders(branchToFetch, page, 10), 
-                getPatientList(),
+                getClients(),
                 getEmployees(branchToFetch)
             ]);
             setLabOrders(orders);
-            setPatients(patientsData as unknown as Patient[]);
+            setClients(clientsData);
             setDoctors(employeesData.filter(emp => emp.role === 'Dentist' || emp.role === 'Hygienist'));
             setIsLoading(false);
         };
         fetchData();
     }, [selectedBranch, page, router]);
 
-    const normalizedSelectedBranch = String(selectedBranch || '');
-    const normalizedUserBranch = getCurrentUser()?.branchId ? String(getCurrentUser()?.branchId) : '';
+    const handleSaveOrder = async (data: Omit<LaboratoryOrder, 'id' | 'branchId'>) => {
+        const client = clients.find(c => String(c.id) === String(data.clientId));
+        if (!client) return;
 
-    const filteredPatients = useMemo(() => {
-        if (hasRole('Super Admin')) {
-            return patients.filter(p => String(p.branchId) === normalizedSelectedBranch);
-        }
-        return patients.filter(p => String(p.branchId) === normalizedUserBranch);
-    }, [normalizedSelectedBranch, normalizedUserBranch, patients]);
-
-    const handleSaveOrder = async (data: Omit<LaboratoryOrder, 'id' | 'branchId' | 'patientName'>) => {
-        const patient = filteredPatients.find(p => String(p.id) === String(data.patientId));
-        if (!patient) return;
-
-        const newOrder = await createLabOrder({ ...data, branchId: selectedBranch, patientName: getPatientFullName(patient) });
+        const newOrder = await createLabOrder({ ...data, branchId: selectedBranch });
         if(newOrder) {
             setLabOrders(prev => {
                 const updatedList = [newOrder, ...prev] as PaginatedArray<LaboratoryOrder>;
@@ -121,7 +111,7 @@ export default function LaboratoryPage() {
         </Card>
         {isFormOpen && (
             <LabOrderForm 
-                patients={filteredPatients}
+                clients={clients}
                 doctors={doctors}
                 onSave={handleSaveOrder}
                 onOpenChange={setIsFormOpen}

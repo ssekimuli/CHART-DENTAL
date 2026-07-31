@@ -36,6 +36,7 @@ import {
   Pill,
   Database,
   History,
+  Handshake,
 } from "lucide-react";
 import type { EmployeeRole, Permission } from "@/lib/types";
 import { getCurrentUser, hasPermission, hasRole } from "@/lib/user";
@@ -60,6 +61,7 @@ const allLinks: NavLink[] = [
   { href: "/pharmacy", label: "Pharmacy", icon: Pill },
   { href: "/accounting", label: "Accounting", icon: Landmark },
   { href: "/inventory", label: "Inventory", icon: Package },
+  { href: "/clients", label: "Clients", icon: Handshake, permission: 'laboratory:read' },
   { href: "/laboratory", label: "Laboratory", icon: FlaskConical, permission: 'laboratory:read' },
   { 
     label: "HRM", 

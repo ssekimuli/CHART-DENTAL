@@ -12,6 +12,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useBranch } from "@/context/branch-context";
 import { useToast } from "@/hooks/use-toast";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { CalendarIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { getEmployees } from "@/lib/api";
+import type { Employee } from "@/lib/types";
 
 type ActivityLog = {
     id: number;
@@ -29,9 +35,19 @@ export default function ActivityLogsPage() {
     const [logs, setLogs] = useState<ActivityLog[]>([]);
     const [loading, setLoading] = useState(true);
     const [actionFilter, setActionFilter] = useState<string>("all");
+    const [userIdFilter, setUserIdFilter] = useState<string>("all");
+    const [startDate, setStartDate] = useState<Date>();
+    const [endDate, setEndDate] = useState<Date>();
     const [searchQuery, setSearchQuery] = useState("");
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
+    const [users, setUsers] = useState<Employee[]>([]);
+
+    useEffect(() => {
+        if (selectedBranch?.id) {
+            getEmployees(selectedBranch.id).then(setUsers).catch(console.error);
+        }
+    }, [selectedBranch]);
 
     const fetchLogs = async (currentPage: number) => {
         try {
@@ -42,6 +58,15 @@ export default function ActivityLogsPage() {
             };
             if (actionFilter !== "all") {
                 params.action = actionFilter;
+            }
+            if (userIdFilter !== "all") {
+                params.user_id = userIdFilter;
+            }
+            if (startDate) {
+                params.start_date = format(startDate, 'yyyy-MM-dd');
+            }
+            if (endDate) {
+                params.end_date = format(endDate, 'yyyy-MM-dd');
             }
             if (selectedBranch?.id) {
                 params.branch_id = selectedBranch.id;
@@ -71,10 +96,10 @@ export default function ActivityLogsPage() {
         const delayDebounceFn = setTimeout(() => {
             setPage(1);
             fetchLogs(1);
-        }, 300); // 300ms debounce for search typing
+        }, 300);
 
         return () => clearTimeout(delayDebounceFn);
-    }, [actionFilter, selectedBranch, searchQuery]);
+    }, [actionFilter, userIdFilter, startDate, endDate, selectedBranch, searchQuery]);
 
     useEffect(() => {
         if (page > 1) {
@@ -114,32 +139,108 @@ export default function ActivityLogsPage() {
 
             <Card>
                 <CardHeader className="pb-4">
-                    <div className="flex flex-col sm:flex-row justify-between gap-4">
-                        <div className="relative flex-1 max-w-sm">
-                            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                            <Input
-                                placeholder="Search descriptions or users..."
-                                className="pl-9"
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                            />
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <Filter className="h-4 w-4 text-muted-foreground" />
-                            <Select value={actionFilter} onValueChange={setActionFilter}>
-                                <SelectTrigger className="w-[180px]">
-                                    <SelectValue placeholder="Filter by action" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">All Actions</SelectItem>
-                                    <SelectItem value="send_email">Emails Sent</SelectItem>
-                                    <SelectItem value="send_sms">SMS Sent</SelectItem>
-                                    <SelectItem value="send_whatsapp">WhatsApp Sent</SelectItem>
-                                    <SelectItem value="pay_invoice">Invoice Payments</SelectItem>
-                                    <SelectItem value="login">Logins</SelectItem>
-                                    <SelectItem value="logout">Logouts</SelectItem>
-                                </SelectContent>
-                            </Select>
+                    <div className="flex flex-col gap-4">
+                        <div className="flex flex-col sm:flex-row gap-4">
+                            <div className="relative flex-1">
+                                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                                <Input
+                                    placeholder="Search descriptions or metadata..."
+                                    className="pl-9"
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                />
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2">
+                                <Filter className="h-4 w-4 text-muted-foreground" />
+                                <Select value={actionFilter} onValueChange={setActionFilter}>
+                                    <SelectTrigger className="w-[180px]">
+                                        <SelectValue placeholder="Filter by action" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">All Actions</SelectItem>
+                                        <SelectItem value="send_email">Emails Sent</SelectItem>
+                                        <SelectItem value="send_sms">SMS Sent</SelectItem>
+                                        <SelectItem value="send_whatsapp">WhatsApp Sent</SelectItem>
+                                        <SelectItem value="pay_invoice">Invoice Payments</SelectItem>
+                                        <SelectItem value="login">Logins</SelectItem>
+                                        <SelectItem value="logout">Logouts</SelectItem>
+                                        <SelectItem value="Lab Order Created">Lab Order Created</SelectItem>
+                                        <SelectItem value="Lab Order Status Updated">Lab Order Status Updated</SelectItem>
+                                        <SelectItem value="Client Created">Client Created</SelectItem>
+                                        <SelectItem value="Client Updated">Client Updated</SelectItem>
+                                        <SelectItem value="Client Deleted">Client Deleted</SelectItem>
+                                    </SelectContent>
+                                </Select>
+
+                                <Select value={userIdFilter} onValueChange={setUserIdFilter}>
+                                    <SelectTrigger className="w-[180px]">
+                                        <SelectValue placeholder="Filter by user" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">All Users</SelectItem>
+                                        {users.map(u => (
+                                            <SelectItem key={u.id} value={String(u.id)}>{u.name || u.first_name}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                        <Button
+                                            variant={"outline"}
+                                            className={cn(
+                                                "w-[140px] justify-start text-left font-normal",
+                                                !startDate && "text-muted-foreground"
+                                            )}
+                                        >
+                                            <CalendarIcon className="mr-2 h-4 w-4" />
+                                            {startDate ? format(startDate, "PPP") : <span>Start Date</span>}
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0">
+                                        <Calendar
+                                            mode="single"
+                                            selected={startDate}
+                                            onSelect={setStartDate}
+                                            initialFocus
+                                        />
+                                    </PopoverContent>
+                                </Popover>
+
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                        <Button
+                                            variant={"outline"}
+                                            className={cn(
+                                                "w-[140px] justify-start text-left font-normal",
+                                                !endDate && "text-muted-foreground"
+                                            )}
+                                        >
+                                            <CalendarIcon className="mr-2 h-4 w-4" />
+                                            {endDate ? format(endDate, "PPP") : <span>End Date</span>}
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0">
+                                        <Calendar
+                                            mode="single"
+                                            selected={endDate}
+                                            onSelect={setEndDate}
+                                            initialFocus
+                                        />
+                                    </PopoverContent>
+                                </Popover>
+                                {(startDate || endDate || actionFilter !== 'all' || userIdFilter !== 'all' || searchQuery) && (
+                                    <Button variant="ghost" size="sm" onClick={() => {
+                                        setStartDate(undefined);
+                                        setEndDate(undefined);
+                                        setActionFilter('all');
+                                        setUserIdFilter('all');
+                                        setSearchQuery('');
+                                    }}>
+                                        Clear Filters
+                                    </Button>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </CardHeader>

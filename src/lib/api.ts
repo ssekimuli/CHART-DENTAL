@@ -1085,8 +1085,9 @@ export const getLabOrders = async (branchId?: string | number, page?: number, pe
         
         const orders: PaginatedArray<LaboratoryOrder> = rawOrders.map((order: any) => ({
             id: order.id,
-            patientId: String(order.patient_id),
-            patientName: order.patient_name || (order.patient ? `${order.patient.first_name} ${order.patient.last_name}` : ''),
+            clientId: String(order.client_id),
+            client: order.client,
+            patientName: order.patient_name || '',
             lab: order.lab,
             item: order.item,
             tooth: order.tooth,
@@ -1104,6 +1105,45 @@ export const getLabOrders = async (branchId?: string | number, page?: number, pe
         console.error('Error fetching lab orders:', error);
         const emptyArray: PaginatedArray<LaboratoryOrder> = [];
         return emptyArray;
+    }
+}
+
+export const getClients = async (): Promise<Client[]> => {
+    try {
+        const response = await customAxios.get('/clients');
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching clients:', error);
+        return [];
+    }
+}
+
+export const createClient = async (data: Omit<Client, 'id'>): Promise<Client> => {
+    try {
+        const response = await customAxios.post('/clients', data);
+        return response.data;
+    } catch (error) {
+        console.error('Error creating client:', error);
+        throw error;
+    }
+}
+
+export const updateClient = async (id: string | number, data: Partial<Client>): Promise<Client> => {
+    try {
+        const response = await customAxios.put(`/clients/${id}`, data);
+        return response.data;
+    } catch (error) {
+        console.error('Error updating client:', error);
+        throw error;
+    }
+}
+
+export const deleteClient = async (id: string | number): Promise<void> => {
+    try {
+        await customAxios.delete(`/clients/${id}`);
+    } catch (error) {
+        console.error('Error deleting client:', error);
+        throw error;
     }
 }
 
@@ -3553,7 +3593,8 @@ export const createLabOrder = async (data: Omit<LaboratoryOrder, 'id'>): Promise
     console.log('API CALL: createLabOrder', { data });
     try {
         const response = await customAxios.post('/management/lab-orders', {
-            patientId: data.patientId,
+            clientId: data.clientId,
+            patientName: data.patientName,
             lab: data.lab,
             item: data.item,
             tooth: data.tooth,
@@ -3565,7 +3606,8 @@ export const createLabOrder = async (data: Omit<LaboratoryOrder, 'id'>): Promise
         const order = response.data;
         return {
             id: order.id,
-            patientId: String(order.patient_id),
+            clientId: String(order.client_id),
+            client: order.client,
             patientName: order.patient_name || '',
             lab: order.lab,
             item: order.item,
