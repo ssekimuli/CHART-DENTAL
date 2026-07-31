@@ -3589,6 +3589,10 @@ export const createInventoryItem = async (data: Omit<InventoryItem, 'id' | 'stat
 }
 
 // Lab Orders
+export const sendLabOrder = async (id: number, channel: 'email' | 'whatsapp' | 'sms', customMessage?: string): Promise<any> => {
+    return (await customAxios.post(`/management/lab-orders/${id}/send`, { channel, customMessage })).data;
+};
+
 export const createLabOrder = async (data: Omit<LaboratoryOrder, 'id'>): Promise<LaboratoryOrder> => {
     console.log('API CALL: createLabOrder', { data });
     try {
