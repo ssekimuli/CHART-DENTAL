@@ -8,21 +8,26 @@ import { Button } from '@/components/ui/button';
 
 export const InsuranceClaims = () => {
   const [claims, setClaims] = useState([]);
+  const [stats, setStats] = useState({ total_claims: 0, paid_amount: 0, pending_count: 0 });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchClaims = async () => {
+    const fetchClaimsAndStats = async () => {
       try {
-        const response = await customAxios.get('/insurance-claims');
-        setClaims(response.data);
+        const [claimsRes, statsRes] = await Promise.all([
+          customAxios.get('/insurance-claims'),
+          customAxios.get('/insurance-claims/stats')
+        ]);
+        setClaims(claimsRes.data);
+        setStats(statsRes.data);
       } catch (error) {
-        console.error("Failed to fetch claims:", error);
+        console.error("Failed to fetch claims or stats:", error);
       } finally {
         setLoading(false);
       }
     };
     
-    fetchClaims();
+    fetchClaimsAndStats();
   }, []);
 
   const getStatusColor = (status: string) => {
@@ -47,8 +52,8 @@ export const InsuranceClaims = () => {
             <CardTitle className="text-sm font-medium text-indigo-800">Total Claims Sent</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-indigo-900">124</div>
-            <p className="text-xs text-indigo-600/80">+14% from last month</p>
+            <div className="text-2xl font-bold text-indigo-900">{stats.total_claims}</div>
+            <p className="text-xs text-indigo-600/80">Total lifetime claims</p>
           </CardContent>
         </Card>
         <Card className="bg-gradient-to-br from-emerald-50 to-white shadow-sm border-emerald-100">
@@ -56,7 +61,7 @@ export const InsuranceClaims = () => {
             <CardTitle className="text-sm font-medium text-emerald-800">Paid Claims</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-emerald-900">$45,231.00</div>
+            <div className="text-2xl font-bold text-emerald-900">${Number(stats.paid_amount).toFixed(2)}</div>
           </CardContent>
         </Card>
         <Card className="bg-gradient-to-br from-amber-50 to-white shadow-sm border-amber-100">
@@ -64,7 +69,7 @@ export const InsuranceClaims = () => {
             <CardTitle className="text-sm font-medium text-amber-800">Pending Review</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-amber-900">12</div>
+            <div className="text-2xl font-bold text-amber-900">{stats.pending_count}</div>
           </CardContent>
         </Card>
       </div>
