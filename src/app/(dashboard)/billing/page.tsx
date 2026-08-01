@@ -3,6 +3,7 @@
 import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import moment from "moment";
+import customAxios from "@/lib/axios";
 import {
   Card,
   CardContent,
@@ -21,7 +22,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FileDown, PlusCircle, MoreHorizontal, Pencil, Trash, Eye, HandCoins, Calendar as CalendarIcon, Search, ChevronRight, ChevronDown, Printer } from "lucide-react";
+import { FileDown, PlusCircle, MoreHorizontal, Pencil, Trash, Eye, HandCoins, Calendar as CalendarIcon, Search, ChevronRight, ChevronDown, Printer, FileText } from "lucide-react";
 import type { Invoice, Patient, InvoiceTreatment, PaginatedArray } from "@/lib/types";
 import { InvoiceForm } from "./components/invoice-form";
 import { useBranch } from "@/context/branch-context";
@@ -45,6 +46,7 @@ import {
     AlertDialogTitle,
   } from "@/components/ui/alert-dialog";
 import { createNewInvoice, deleteInvoice, getInvoices, getPatientList, processPayment, updateInvoice, updatePatient } from "@/lib/api";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PaymentForm } from "./components/payment-form";
 import { DateRange } from "react-day-picker";
@@ -71,6 +73,19 @@ export default function BillingPage() {
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | undefined>(undefined);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const [expandedInvoiceId, setExpandedInvoiceId] = useState<string | number | null>(null);
+
+  // Claim form states
+  const [isClaimFormOpen, setIsClaimFormOpen] = useState(false);
+  const [selectedInvoiceForClaim, setSelectedInvoiceForClaim] = useState<any>(null);
+  const [patientInsurances, setPatientInsurances] = useState<any[]>([]);
+  const [claimFormData, setClaimFormData] = useState({
+    patient_insurance_id: '',
+    claim_number: '',
+    total_amount: '',
+    claimed_amount: '',
+    status: 'pending'
+  });
+  const { toast } = useToast();
 
   const toggleExpand = (e: React.MouseEvent, id: string | number) => {
     e.stopPropagation();
@@ -189,6 +204,39 @@ export default function BillingPage() {
     setSelectedInvoice(undefined);
     setIsPaymentFormOpen(false);
   }
+
+  const handleOpenClaimForm = async (invoice: any) => {
+    setSelectedInvoiceForClaim(invoice);
+    try {
+      const res = await customAxios.get('/patient-insurances');
+      const policies = res.data.filter((ins: any) => String(ins.patient_id) === String(invoice.patientId));
+      setPatientInsurances(policies);
+    } catch (e) {
+      console.error(e);
+    }
+    setClaimFormData({
+      patient_insurance_id: '',
+      claim_number: `CLM-${Math.floor(1000 + Math.random() * 9000)}`,
+      total_amount: invoice.amount,
+      claimed_amount: invoice.amount,
+      status: 'pending'
+    });
+    setIsClaimFormOpen(true);
+  };
+
+  const handleClaimSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await customAxios.post('/insurance-claims', {
+        ...claimFormData,
+        invoice_id: selectedInvoiceForClaim.id
+      });
+      toast({ title: 'Success', description: 'Claim generated successfully!' });
+      setIsClaimFormOpen(false);
+    } catch (error) {
+      toast({ title: 'Error', description: 'Failed to generate claim.', variant: 'destructive' });
+    }
+  };
 
   const handleSaveInvoice = async (data: Omit<Invoice, 'id' | 'paidAmount' | 'patientName' | 'branchId' | 'amount'>, treatments: InvoiceTreatment[]) => {
     const patient = data.patientId ? filteredPatients.find(p => String(p.id) === String(data.patientId)) : undefined;
@@ -408,6 +456,10 @@ export default function BillingPage() {
                                 <HandCoins className="mr-2 h-4 w-4" />
                                 Pay
                             </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleOpenClaimForm(invoice)}>
+                                <FileText className="mr-2 h-4 w-4" />
+                                File Claim
+                            </DropdownMenuItem>
                             {hasPermission('billing:delete') && (
                                 <>
                                     <DropdownMenuSeparator />
@@ -560,6 +612,51 @@ export default function BillingPage() {
             onOpenChange={handleClosePaymentForm}
         />
       )}
+
+      <Dialog open={isClaimFormOpen} onOpenChange={setIsClaimFormOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>File Insurance Claim for Invoice #{selectedInvoiceForClaim?.id}</DialogTitle>
+            <DialogDescription>Create a claim linked directly to this invoice.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleClaimSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Patient Insurance Policy</label>
+              <Select 
+                value={claimFormData.patient_insurance_id}
+                onValueChange={(val) => setClaimFormData({...claimFormData, patient_insurance_id: val})}
+                required
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a policy..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {patientInsurances.map((ins: any) => (
+                    <SelectItem key={ins.id} value={String(ins.id)}>
+                      {ins.provider_name} ({ins.policy_number})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Claim Number</label>
+              <Input required value={claimFormData.claim_number} onChange={(e) => setClaimFormData({...claimFormData, claim_number: e.target.value})} placeholder="CLM-XXXX" />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Total Invoice Amount</label>
+                <Input required type="number" step="0.01" value={claimFormData.total_amount} onChange={(e) => setClaimFormData({...claimFormData, total_amount: e.target.value})} />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Claimed Amount</label>
+                <Input required type="number" step="0.01" value={claimFormData.claimed_amount} onChange={(e) => setClaimFormData({...claimFormData, claimed_amount: e.target.value})} />
+              </div>
+            </div>
+            <Button type="submit" className="w-full">Submit Claim</Button>
+          </form>
+        </DialogContent>
+      </Dialog>
        <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
