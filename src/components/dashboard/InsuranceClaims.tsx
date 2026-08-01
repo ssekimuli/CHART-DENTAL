@@ -16,6 +16,7 @@ export const InsuranceClaims = () => {
   const [insurances, setInsurances] = useState<any[]>([]);
   const [patients, setPatients] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isPolicyModalOpen, setIsPolicyModalOpen] = useState(false);
   const [formData, setFormData] = useState({
@@ -32,6 +33,21 @@ export const InsuranceClaims = () => {
     group_number: '',
     plan_type: 'PPO'
   });
+
+  const handleSearchPatient = (searchTerm: string) => {
+    if (searchTimeout) clearTimeout(searchTimeout);
+    
+    setSearchTimeout(setTimeout(async () => {
+      try {
+        const response = await customAxios.get('/patients', {
+          params: { search: searchTerm, per_page: 20 }
+        });
+        setPatients(response.data?.data || response.data);
+      } catch (error) {
+        console.error("Failed to search patients:", error);
+      }
+    }, 300));
+  };
 
   useEffect(() => {
     const fetchClaimsAndStats = async () => {
@@ -129,6 +145,7 @@ export const InsuranceClaims = () => {
                     placeholder="Search and select a patient..."
                     searchPlaceholder="Search patients by name..."
                     emptyMessage="No patient found."
+                    onSearchChange={handleSearchPatient}
                   />
                 </div>
                 <div className="space-y-2">
