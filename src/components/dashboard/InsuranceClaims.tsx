@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Combobox } from '@/components/ui/combobox';
 
 export const InsuranceClaims = () => {
   const [claims, setClaims] = useState<any[]>([]);
@@ -119,19 +120,16 @@ export const InsuranceClaims = () => {
                 <DialogTitle>Add Patient Insurance Policy</DialogTitle>
               </DialogHeader>
               <form onSubmit={handlePolicySubmit} className="space-y-4">
-                <div className="space-y-2">
+                <div className="space-y-2 flex flex-col">
                   <Label>Patient</Label>
-                  <select 
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+                  <Combobox
+                    options={patients.map((p: any) => ({ value: String(p.id), label: `${p.first_name} ${p.last_name}` }))}
                     value={policyFormData.patient_id}
-                    onChange={(e) => setPolicyFormData({...policyFormData, patient_id: e.target.value})}
-                    required
-                  >
-                    <option value="">Select a patient...</option>
-                    {patients?.map?.((p: any) => (
-                      <option key={p.id} value={p.id}>{p.first_name} {p.last_name}</option>
-                    ))}
-                  </select>
+                    onChange={(val) => setPolicyFormData({...policyFormData, patient_id: String(val)})}
+                    placeholder="Search and select a patient..."
+                    searchPlaceholder="Search patients by name..."
+                    emptyMessage="No patient found."
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Provider Name</Label>
