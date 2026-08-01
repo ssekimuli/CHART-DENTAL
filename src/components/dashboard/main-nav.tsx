@@ -58,6 +58,7 @@ const allLinks: NavLink[] = [
   { href: "/charting", label: "Charting", icon: FileText },
   { href: "/appointments", label: "Appointments", icon: Calendar },
   { href: "/billing", label: "Billing", icon: CreditCard },
+  { href: "/insurance", label: "Insurance & Claims", icon: Handshake },
   { href: "/pharmacy", label: "Pharmacy", icon: Pill },
   { href: "/accounting", label: "Accounting", icon: Landmark },
   { href: "/inventory", label: "Inventory", icon: Package },
