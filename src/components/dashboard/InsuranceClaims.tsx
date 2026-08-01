@@ -13,8 +13,10 @@ export const InsuranceClaims = () => {
   const [claims, setClaims] = useState<any[]>([]);
   const [stats, setStats] = useState({ total_claims: 0, paid_amount: 0, pending_count: 0 });
   const [insurances, setInsurances] = useState<any[]>([]);
+  const [patients, setPatients] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isPolicyModalOpen, setIsPolicyModalOpen] = useState(false);
   const [formData, setFormData] = useState({
     patient_insurance_id: '',
     claim_number: '',
@@ -22,18 +24,27 @@ export const InsuranceClaims = () => {
     claimed_amount: '',
     status: 'pending'
   });
+  const [policyFormData, setPolicyFormData] = useState({
+    patient_id: '',
+    provider_name: '',
+    policy_number: '',
+    group_number: '',
+    plan_type: 'PPO'
+  });
 
   useEffect(() => {
     const fetchClaimsAndStats = async () => {
       try {
-        const [claimsRes, statsRes, insurancesRes] = await Promise.all([
+        const [claimsRes, statsRes, insurancesRes, patientsRes] = await Promise.all([
           customAxios.get('/insurance-claims'),
           customAxios.get('/insurance-claims/stats'),
-          customAxios.get('/patient-insurances')
+          customAxios.get('/patient-insurances'),
+          customAxios.get('/patients')
         ]);
         setClaims(claimsRes.data);
         setStats(statsRes.data);
         setInsurances(insurancesRes.data);
+        setPatients(patientsRes.data?.data || patientsRes.data);
       } catch (error) {
         console.error("Failed to fetch claims or stats:", error);
       } finally {
@@ -67,6 +78,24 @@ export const InsuranceClaims = () => {
     }
   };
 
+  const handlePolicySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const response = await customAxios.post('/patient-insurances', policyFormData);
+      setInsurances([response.data, ...insurances]);
+      setIsPolicyModalOpen(false);
+      setPolicyFormData({
+        patient_id: '',
+        provider_name: '',
+        policy_number: '',
+        group_number: '',
+        plan_type: 'PPO'
+      });
+    } catch (error) {
+      console.error("Failed to create policy:", error);
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'paid': return 'bg-green-100 text-green-800 border-green-300';
@@ -80,10 +109,53 @@ export const InsuranceClaims = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold tracking-tight">Insurance & Claims</h2>
-        <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-          <DialogTrigger asChild>
-            <Button>+ New Claim</Button>
-          </DialogTrigger>
+        <div className="space-x-2 flex">
+          <Dialog open={isPolicyModalOpen} onOpenChange={setIsPolicyModalOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline">+ Add Policy</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Add Patient Insurance Policy</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handlePolicySubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Patient</Label>
+                  <select 
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+                    value={policyFormData.patient_id}
+                    onChange={(e) => setPolicyFormData({...policyFormData, patient_id: e.target.value})}
+                    required
+                  >
+                    <option value="">Select a patient...</option>
+                    {patients?.map?.((p: any) => (
+                      <option key={p.id} value={p.id}>{p.first_name} {p.last_name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Provider Name</Label>
+                  <Input required value={policyFormData.provider_name} onChange={(e) => setPolicyFormData({...policyFormData, provider_name: e.target.value})} placeholder="e.g. BlueCross" />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Policy Number</Label>
+                    <Input required value={policyFormData.policy_number} onChange={(e) => setPolicyFormData({...policyFormData, policy_number: e.target.value})} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Group Number</Label>
+                    <Input value={policyFormData.group_number} onChange={(e) => setPolicyFormData({...policyFormData, group_number: e.target.value})} />
+                  </div>
+                </div>
+                <Button type="submit" className="w-full">Save Policy</Button>
+              </form>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+            <DialogTrigger asChild>
+              <Button>+ New Claim</Button>
+            </DialogTrigger>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Create New Claim</DialogTitle>
@@ -123,6 +195,7 @@ export const InsuranceClaims = () => {
             </form>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
