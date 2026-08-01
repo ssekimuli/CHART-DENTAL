@@ -4425,13 +4425,13 @@ export const topUpBranchCredits = async (
                 throw err;
             }
         }
-        status = verifyResponse.data?.data?.status?.toLowerCase() || 'pending';
+        status = verifyResponse.data?.data?.status?.toLowerCase() || verifyResponse.data?.status?.toLowerCase() || 'pending';
       } catch (e) {
         console.warn("Polling error:", e);
       }
     }
 
-    if (status !== 'success' && status !== 'successful') {
+    if (status !== 'success' && status !== 'successful' && status !== 'completed') {
       throw new Error(`Transaction failed or timed out. Status: ${status}`);
     }
 
@@ -4465,9 +4465,9 @@ export const verifyAndUpdateTopUp = async (
             throw err;
         }
     }
-    status = verifyResponse.data?.data?.status?.toLowerCase() || 'pending';
+    status = verifyResponse.data?.data?.status?.toLowerCase() || verifyResponse.data?.status?.toLowerCase() || 'pending';
     
-    if (status !== 'success' && status !== 'successful') {
+    if (status !== 'success' && status !== 'successful' && status !== 'completed') {
       throw new Error(`Transaction failed. Status: ${status}`);
     }
 
