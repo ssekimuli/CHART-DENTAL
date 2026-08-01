@@ -19,6 +19,8 @@ export const InsuranceClaims = () => {
   const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isPolicyModalOpen, setIsPolicyModalOpen] = useState(false);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [selectedClaim, setSelectedClaim] = useState<any>(null);
   const [formData, setFormData] = useState({
     patient_insurance_id: '',
     claim_number: '',
@@ -47,6 +49,11 @@ export const InsuranceClaims = () => {
         console.error("Failed to search patients:", error);
       }
     }, 300));
+  };
+
+  const handleViewClaim = (claim: any) => {
+    setSelectedClaim(claim);
+    setIsViewModalOpen(true);
   };
 
   useEffect(() => {
@@ -210,6 +217,59 @@ export const InsuranceClaims = () => {
             </form>
           </DialogContent>
         </Dialog>
+
+        <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Claim Details: {selectedClaim?.claim_number}</DialogTitle>
+            </DialogHeader>
+            {selectedClaim && (
+              <div className="space-y-4 text-sm mt-4">
+                <div className="grid grid-cols-2 gap-6">
+                  <div>
+                    <p className="text-muted-foreground text-xs uppercase tracking-wider mb-1">Patient Name</p>
+                    <p className="font-medium text-base">{selectedClaim.patient_insurance?.patient?.first_name} {selectedClaim.patient_insurance?.patient?.last_name}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground text-xs uppercase tracking-wider mb-1">Status</p>
+                    <Badge variant="outline" className={getStatusColor(selectedClaim.status)}>
+                      {selectedClaim.status.toUpperCase()}
+                    </Badge>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground text-xs uppercase tracking-wider mb-1">Provider</p>
+                    <p className="font-medium">{selectedClaim.patient_insurance?.provider_name}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground text-xs uppercase tracking-wider mb-1">Policy Number</p>
+                    <p className="font-medium">{selectedClaim.patient_insurance?.policy_number}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground text-xs uppercase tracking-wider mb-1">Total Invoice Amount</p>
+                    <p className="font-medium">${Number(selectedClaim.total_amount).toFixed(2)}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground text-xs uppercase tracking-wider mb-1">Claimed Amount</p>
+                    <p className="font-medium">${Number(selectedClaim.claimed_amount).toFixed(2)}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground text-xs uppercase tracking-wider mb-1">Date Submitted</p>
+                    <p className="font-medium">{selectedClaim.created_at ? new Date(selectedClaim.created_at).toLocaleDateString() : 'N/A'}</p>
+                  </div>
+                  {selectedClaim.invoice_id && (
+                    <div>
+                      <p className="text-muted-foreground text-xs uppercase tracking-wider mb-1">Linked Invoice ID</p>
+                      <p className="font-medium">#{selectedClaim.invoice_id}</p>
+                    </div>
+                  )}
+                </div>
+                <div className="pt-4 flex justify-end gap-2">
+                   <Button variant="outline" onClick={() => setIsViewModalOpen(false)}>Close</Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
         </div>
       </div>
 
@@ -280,7 +340,7 @@ export const InsuranceClaims = () => {
                         </Badge>
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <Button variant="ghost" size="sm">View</Button>
+                        <Button variant="ghost" size="sm" onClick={() => handleViewClaim(claim)}>View</Button>
                       </td>
                     </tr>
                   ))}
