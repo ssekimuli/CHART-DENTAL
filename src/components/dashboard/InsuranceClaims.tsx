@@ -56,6 +56,26 @@ export const InsuranceClaims = () => {
     setIsViewModalOpen(true);
   };
 
+  const handleMarkAsPaid = async () => {
+    if (!selectedClaim) return;
+    try {
+      const response = await customAxios.put(`/insurance-claims/${selectedClaim.id}`, {
+        status: 'paid',
+        approved_amount: selectedClaim.claimed_amount
+      });
+      
+      // Update local state
+      setClaims(claims.map(c => c.id === selectedClaim.id ? { ...c, ...response.data } : c));
+      setSelectedClaim({ ...selectedClaim, ...response.data });
+      
+      // Refresh stats
+      const statsRes = await customAxios.get('/insurance-claims/stats');
+      setStats(statsRes.data);
+    } catch (error) {
+      console.error("Failed to mark as paid:", error);
+    }
+  };
+
   useEffect(() => {
     const fetchClaimsAndStats = async () => {
       try {
@@ -265,6 +285,9 @@ export const InsuranceClaims = () => {
                 </div>
                 <div className="pt-4 flex justify-end gap-2">
                    <Button variant="outline" onClick={() => setIsViewModalOpen(false)}>Close</Button>
+                   {selectedClaim.status !== 'paid' && (
+                     <Button onClick={handleMarkAsPaid} className="bg-emerald-600 hover:bg-emerald-700">Mark as Paid</Button>
+                   )}
                 </div>
               </div>
             )}
