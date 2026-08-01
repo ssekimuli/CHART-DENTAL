@@ -5,21 +5,35 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import customAxios from '@/lib/axios';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 export const InsuranceClaims = () => {
-  const [claims, setClaims] = useState([]);
+  const [claims, setClaims] = useState<any[]>([]);
   const [stats, setStats] = useState({ total_claims: 0, paid_amount: 0, pending_count: 0 });
+  const [insurances, setInsurances] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    patient_insurance_id: '',
+    claim_number: '',
+    total_amount: '',
+    claimed_amount: '',
+    status: 'pending'
+  });
 
   useEffect(() => {
     const fetchClaimsAndStats = async () => {
       try {
-        const [claimsRes, statsRes] = await Promise.all([
+        const [claimsRes, statsRes, insurancesRes] = await Promise.all([
           customAxios.get('/insurance-claims'),
-          customAxios.get('/insurance-claims/stats')
+          customAxios.get('/insurance-claims/stats'),
+          customAxios.get('/patient-insurances')
         ]);
         setClaims(claimsRes.data);
         setStats(statsRes.data);
+        setInsurances(insurancesRes.data);
       } catch (error) {
         console.error("Failed to fetch claims or stats:", error);
       } finally {
@@ -29,6 +43,29 @@ export const InsuranceClaims = () => {
     
     fetchClaimsAndStats();
   }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const response = await customAxios.post('/insurance-claims', formData);
+      setClaims([response.data, ...claims]);
+      setIsModalOpen(false);
+      
+      const statsRes = await customAxios.get('/insurance-claims/stats');
+      setStats(statsRes.data);
+      
+      // Reset form
+      setFormData({
+        patient_insurance_id: '',
+        claim_number: '',
+        total_amount: '',
+        claimed_amount: '',
+        status: 'pending'
+      });
+    } catch (error) {
+      console.error("Failed to create claim:", error);
+    }
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -43,7 +80,49 @@ export const InsuranceClaims = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold tracking-tight">Insurance & Claims</h2>
-        <Button>+ New Claim</Button>
+        <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+          <DialogTrigger asChild>
+            <Button>+ New Claim</Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Create New Claim</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label>Patient Insurance Policy</Label>
+                <select 
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+                  value={formData.patient_insurance_id}
+                  onChange={(e) => setFormData({...formData, patient_insurance_id: e.target.value})}
+                  required
+                >
+                  <option value="">Select a policy...</option>
+                  {insurances.map((ins: any) => (
+                    <option key={ins.id} value={ins.id}>
+                      {ins.patient?.first_name} {ins.patient?.last_name} - {ins.provider_name} ({ins.policy_number})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label>Claim Number</Label>
+                <Input required value={formData.claim_number} onChange={(e) => setFormData({...formData, claim_number: e.target.value})} placeholder="CLM-XXXX" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Total Amount</Label>
+                  <Input required type="number" step="0.01" value={formData.total_amount} onChange={(e) => setFormData({...formData, total_amount: e.target.value})} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Claimed Amount</Label>
+                  <Input required type="number" step="0.01" value={formData.claimed_amount} onChange={(e) => setFormData({...formData, claimed_amount: e.target.value})} />
+                </div>
+              </div>
+              <Button type="submit" className="w-full">Submit Claim</Button>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
