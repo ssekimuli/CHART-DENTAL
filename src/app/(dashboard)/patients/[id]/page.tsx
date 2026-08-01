@@ -2,6 +2,7 @@
 "use client";
 
 import { notFound, useRouter } from "next/navigation";
+import customAxios from "@/lib/axios";
 import {
   Card,
   CardContent,
@@ -101,6 +102,51 @@ export default function PatientDetailPage({
   const [isRxFormOpen, setIsRxFormOpen] = useState(false);
   const [isEditRxFormOpen, setIsEditRxFormOpen] = useState(false);
   const [selectedPrescription, setSelectedPrescription] = useState<any | null>(null);
+  
+  // Claim form states
+  const [isClaimFormOpen, setIsClaimFormOpen] = useState(false);
+  const [selectedInvoiceForClaim, setSelectedInvoiceForClaim] = useState<any>(null);
+  const [patientInsurances, setPatientInsurances] = useState<any[]>([]);
+  const [claimFormData, setClaimFormData] = useState({
+    patient_insurance_id: '',
+    claim_number: '',
+    total_amount: '',
+    claimed_amount: '',
+    status: 'pending'
+  });
+
+  const handleOpenClaimForm = async (invoice: any) => {
+    setSelectedInvoiceForClaim(invoice);
+    try {
+      const res = await customAxios.get('/patient-insurances');
+      const policies = res.data.filter((ins: any) => String(ins.patient_id) === String(patient?.id));
+      setPatientInsurances(policies);
+    } catch (e) {
+      console.error(e);
+    }
+    setClaimFormData({
+      patient_insurance_id: '',
+      claim_number: `CLM-${Math.floor(1000 + Math.random() * 9000)}`,
+      total_amount: invoice.amount,
+      claimed_amount: invoice.amount,
+      status: 'pending'
+    });
+    setIsClaimFormOpen(true);
+  };
+
+  const handleClaimSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await customAxios.post('/insurance-claims', {
+        ...claimFormData,
+        invoice_id: selectedInvoiceForClaim.id
+      });
+      toast({ title: 'Success', description: 'Claim generated successfully!' });
+      setIsClaimFormOpen(false);
+    } catch (error) {
+      toast({ title: 'Error', description: 'Failed to generate claim.', variant: 'destructive' });
+    }
+  };
 
   const handleOpenPaymentForm = (invoice: any) => {
     setSelectedInvoice(invoice);
@@ -538,6 +584,10 @@ export default function PatientDetailPage({
                                   <HandCoins className="mr-2 h-4 w-4" />
                                   Pay
                                 </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleOpenClaimForm(invoice)}>
+                                  <FileText className="mr-2 h-4 w-4" />
+                                  File Claim
+                                </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </TableCell>
@@ -670,6 +720,49 @@ export default function PatientDetailPage({
           onOpenChange={handleClosePaymentForm}
         />
       )}
+      
+      <Dialog open={isClaimFormOpen} onOpenChange={setIsClaimFormOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>File Insurance Claim for Invoice #{selectedInvoiceForClaim?.id}</DialogTitle>
+            <DialogDescription>Create a claim linked directly to this invoice.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleClaimSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Patient Insurance Policy</label>
+              <select 
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+                value={claimFormData.patient_insurance_id}
+                onChange={(e) => setClaimFormData({...claimFormData, patient_insurance_id: e.target.value})}
+                required
+              >
+                <option value="">Select a policy...</option>
+                {patientInsurances.map((ins: any) => (
+                  <option key={ins.id} value={ins.id}>
+                    {ins.provider_name} ({ins.policy_number})
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Claim Number</label>
+              <Input required value={claimFormData.claim_number} onChange={(e) => setClaimFormData({...claimFormData, claim_number: e.target.value})} placeholder="CLM-XXXX" />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Total Invoice Amount</label>
+                <Input required type="number" step="0.01" value={claimFormData.total_amount} onChange={(e) => setClaimFormData({...claimFormData, total_amount: e.target.value})} />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Claimed Amount</label>
+                <Input required type="number" step="0.01" value={claimFormData.claimed_amount} onChange={(e) => setClaimFormData({...claimFormData, claimed_amount: e.target.value})} />
+              </div>
+            </div>
+            <Button type="submit" className="w-full">Submit Claim</Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+      
       {isRxFormOpen && patient && (
         <PrescriptionForm
           patientId={patient.id}
