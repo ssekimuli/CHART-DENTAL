@@ -23,6 +23,7 @@ export const InsuranceClaims = () => {
   const [selectedClaim, setSelectedClaim] = useState<any>(null);
   const [formData, setFormData] = useState({
     patient_insurance_id: '',
+    invoice_id: '',
     claim_number: '',
     total_amount: '',
     claimed_amount: '',
@@ -112,6 +113,7 @@ export const InsuranceClaims = () => {
       // Reset form
       setFormData({
         patient_insurance_id: '',
+        invoice_id: '',
         claim_number: '',
         total_amount: '',
         claimed_amount: '',
@@ -222,6 +224,10 @@ export const InsuranceClaims = () => {
               <div className="space-y-2">
                 <Label>Claim Number</Label>
                 <Input required value={formData.claim_number} onChange={(e) => setFormData({...formData, claim_number: e.target.value})} placeholder="CLM-XXXX" />
+              </div>
+              <div className="space-y-2">
+                <Label>Linked Invoice ID (Optional)</Label>
+                <Input type="number" value={formData.invoice_id} onChange={(e) => setFormData({...formData, invoice_id: e.target.value})} placeholder="e.g. 123" />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
