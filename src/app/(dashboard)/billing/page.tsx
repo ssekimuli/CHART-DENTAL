@@ -67,6 +67,11 @@ export default function BillingPage() {
   const [allInvoices, setAllInvoices] = useState<PaginatedArray<Invoice>>([] as unknown as PaginatedArray<Invoice>);
   const [allPatients, setAllPatients] = useState<Patient[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isPaymentFormOpen, setIsPaymentFormOpen] = useState(false);
@@ -353,6 +358,8 @@ export default function BillingPage() {
   const formatDate = (date: string) => {
     return moment(date).format("MMM DD, YYYY");
   };
+
+  if (!isMounted) return null;
 
   return (
     <>
