@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import customAxios from '@/lib/axios';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
@@ -10,18 +11,18 @@ export const InsuranceClaims = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // In a real app, you would fetch from your Laravel API:
-    // fetch('/api/insurance-claims').then(res => res.json()).then(setClaims)
+    const fetchClaims = async () => {
+      try {
+        const response = await customAxios.get('/insurance-claims');
+        setClaims(response.data);
+      } catch (error) {
+        console.error("Failed to fetch claims:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
     
-    // Using mock data for immediate visual feedback
-    setTimeout(() => {
-      setClaims([
-        { id: 1, claim_number: 'CLM-001', patient: 'John Doe', total_amount: 500, claimed_amount: 400, status: 'pending' },
-        { id: 2, claim_number: 'CLM-002', patient: 'Jane Smith', total_amount: 1200, claimed_amount: 1000, status: 'submitted' },
-        { id: 3, claim_number: 'CLM-003', patient: 'Bob Brown', total_amount: 300, claimed_amount: 250, status: 'paid' },
-      ]);
-      setLoading(false);
-    }, 1000);
+    fetchClaims();
   }, []);
 
   const getStatusColor = (status: string) => {
@@ -96,9 +97,11 @@ export const InsuranceClaims = () => {
                   {claims.map((claim: any) => (
                     <tr key={claim.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
                       <td className="px-4 py-3 font-medium text-indigo-600">{claim.claim_number}</td>
-                      <td className="px-4 py-3 font-medium">{claim.patient}</td>
-                      <td className="px-4 py-3">${claim.total_amount.toFixed(2)}</td>
-                      <td className="px-4 py-3">${claim.claimed_amount.toFixed(2)}</td>
+                      <td className="px-4 py-3 font-medium">
+                        {claim.patient_insurance?.patient?.first_name} {claim.patient_insurance?.patient?.last_name}
+                      </td>
+                      <td className="px-4 py-3">${Number(claim.total_amount).toFixed(2)}</td>
+                      <td className="px-4 py-3">${Number(claim.claimed_amount).toFixed(2)}</td>
                       <td className="px-4 py-3 text-center">
                         <Badge variant="outline" className={getStatusColor(claim.status)}>
                           {claim.status.toUpperCase()}
