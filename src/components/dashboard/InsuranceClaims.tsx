@@ -9,8 +9,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Combobox } from '@/components/ui/combobox';
+import { useCurrency } from '@/hooks/use-currency';
 
 export const InsuranceClaims = () => {
+  const { formatCurrency } = useCurrency();
   const [claims, setClaims] = useState<any[]>([]);
   const [stats, setStats] = useState({ total_claims: 0, paid_amount: 0, pending_count: 0 });
   const [insurances, setInsurances] = useState<any[]>([]);
@@ -263,7 +265,7 @@ export const InsuranceClaims = () => {
                   <option value="">{formData.patient_insurance_id ? "Select an invoice..." : "Select policy first..."}</option>
                   {availableInvoices.map((inv: any) => (
                     <option key={inv.id} value={inv.id}>
-                      #{inv.id} - ${Number(inv.amount).toFixed(2)} - {inv.status}
+                      #{inv.id} - {formatCurrency(inv.amount)} - {inv.status}
                     </option>
                   ))}
                 </select>
@@ -311,11 +313,11 @@ export const InsuranceClaims = () => {
                   </div>
                   <div>
                     <p className="text-muted-foreground text-xs uppercase tracking-wider mb-1">Total Invoice Amount</p>
-                    <p className="font-medium">${Number(selectedClaim.total_amount).toFixed(2)}</p>
+                    <p className="font-medium">{formatCurrency(selectedClaim.total_amount)}</p>
                   </div>
                   <div>
                     <p className="text-muted-foreground text-xs uppercase tracking-wider mb-1">Claimed Amount</p>
-                    <p className="font-medium">${Number(selectedClaim.claimed_amount).toFixed(2)}</p>
+                    <p className="font-medium">{formatCurrency(selectedClaim.claimed_amount)}</p>
                   </div>
                   <div>
                     <p className="text-muted-foreground text-xs uppercase tracking-wider mb-1">Date Submitted</p>
@@ -330,7 +332,7 @@ export const InsuranceClaims = () => {
                   {selectedClaim.write_off_amount > 0 && (
                     <div>
                       <p className="text-muted-foreground text-xs uppercase tracking-wider mb-1">Write-Off Amount</p>
-                      <p className="font-medium text-red-600">-${Number(selectedClaim.write_off_amount).toFixed(2)}</p>
+                      <p className="font-medium text-red-600">-{formatCurrency(selectedClaim.write_off_amount)}</p>
                     </div>
                   )}
                 </div>
@@ -388,7 +390,7 @@ export const InsuranceClaims = () => {
             <CardTitle className="text-sm font-medium text-emerald-800">Paid Claims</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-emerald-900">${Number(stats.paid_amount).toFixed(2)}</div>
+            <div className="text-2xl font-bold text-emerald-900">{formatCurrency(stats.paid_amount)}</div>
           </CardContent>
         </Card>
         <Card className="bg-gradient-to-br from-amber-50 to-white shadow-sm border-amber-100">
@@ -432,8 +434,8 @@ export const InsuranceClaims = () => {
                       <td className="px-4 py-3 font-medium">
                         {claim.patient_insurance?.patient?.first_name} {claim.patient_insurance?.patient?.last_name}
                       </td>
-                      <td className="px-4 py-3">${Number(claim.total_amount).toFixed(2)}</td>
-                      <td className="px-4 py-3">${Number(claim.claimed_amount).toFixed(2)}</td>
+                      <td className="px-4 py-3">{formatCurrency(claim.total_amount)}</td>
+                      <td className="px-4 py-3">{formatCurrency(claim.claimed_amount)}</td>
                       <td className="px-4 py-3 text-center">
                         <Badge variant="outline" className={getStatusColor(claim.status)}>
                           {claim.status.toUpperCase()}
