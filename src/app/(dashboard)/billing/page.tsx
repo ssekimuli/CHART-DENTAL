@@ -213,18 +213,26 @@ export default function BillingPage() {
 
   const handleOpenClaimForm = async (invoice: any) => {
     setSelectedInvoiceForClaim(invoice);
+    let policies: any[] = [];
+    let defaultPolicyId = '';
     try {
       const res = await customAxios.get('/patient-insurances');
-      const policies = res.data.filter((ins: any) => String(ins.patient_id) === String(invoice.patientId));
+      policies = res.data.filter((ins: any) => String(ins.patient_id) === String(invoice.patientId));
       setPatientInsurances(policies);
+      if (policies.length > 0) {
+        defaultPolicyId = String(policies[0].id);
+      }
     } catch (e) {
       console.error(e);
     }
+    
+    const balance = Number(invoice.amount) - Number(invoice.paidAmount || 0);
+    
     setClaimFormData({
-      patient_insurance_id: '',
+      patient_insurance_id: defaultPolicyId,
       claim_number: `CLM-${Math.floor(1000 + Math.random() * 9000)}`,
       total_amount: invoice.amount,
-      claimed_amount: invoice.amount,
+      claimed_amount: balance.toString(),
       status: 'pending'
     });
     setIsClaimFormOpen(true);
