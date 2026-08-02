@@ -221,7 +221,7 @@ export const InsuranceClaims = () => {
                     const policy = insurances.find(ins => String(ins.id) === policyId);
                     if (policy && policy.patient_id) {
                       try {
-                        const res = await customAxios.get(`/patients/${policy.patient_id}/invoices`);
+                        const res = await customAxios.get(`/patients/${policy.patient_id}/invoices?status=Pending`);
                         setAvailableInvoices(res.data);
                       } catch (err) {
                         setAvailableInvoices([]);
