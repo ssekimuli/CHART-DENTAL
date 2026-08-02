@@ -37,6 +37,7 @@ export const InsuranceClaims = () => {
     plan_type: 'PPO'
   });
   const [paidFormData, setPaidFormData] = useState({ approved_amount: '', write_off_amount: '0' });
+  const [availableInvoices, setAvailableInvoices] = useState<any[]>([]);
 
   const handleSearchPatient = (searchTerm: string) => {
     if (searchTimeout) clearTimeout(searchTimeout);
@@ -214,7 +215,21 @@ export const InsuranceClaims = () => {
                 <select 
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
                   value={formData.patient_insurance_id}
-                  onChange={(e) => setFormData({...formData, patient_insurance_id: e.target.value})}
+                  onChange={async (e) => {
+                    const policyId = e.target.value;
+                    setFormData({...formData, patient_insurance_id: policyId, invoice_id: ''});
+                    const policy = insurances.find(ins => String(ins.id) === policyId);
+                    if (policy && policy.patient_id) {
+                      try {
+                        const res = await customAxios.get(`/patients/${policy.patient_id}/invoices`);
+                        setAvailableInvoices(res.data);
+                      } catch (err) {
+                        setAvailableInvoices([]);
+                      }
+                    } else {
+                      setAvailableInvoices([]);
+                    }
+                  }}
                   required
                 >
                   <option value="">Select a policy...</option>
@@ -230,8 +245,28 @@ export const InsuranceClaims = () => {
                 <Input required value={formData.claim_number} onChange={(e) => setFormData({...formData, claim_number: e.target.value})} placeholder="CLM-XXXX" />
               </div>
               <div className="space-y-2">
-                <Label>Linked Invoice ID (Optional)</Label>
-                <Input type="number" value={formData.invoice_id} onChange={(e) => setFormData({...formData, invoice_id: e.target.value})} placeholder="e.g. 123" />
+                <Label>Linked Invoice (Optional)</Label>
+                <select 
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:opacity-50"
+                  value={formData.invoice_id}
+                  onChange={(e) => {
+                    const invId = e.target.value;
+                    const selectedInv = availableInvoices.find(inv => String(inv.id) === invId);
+                    if (selectedInv) {
+                      setFormData({...formData, invoice_id: invId, total_amount: selectedInv.amount, claimed_amount: selectedInv.amount});
+                    } else {
+                      setFormData({...formData, invoice_id: invId});
+                    }
+                  }}
+                  disabled={!formData.patient_insurance_id}
+                >
+                  <option value="">{formData.patient_insurance_id ? "Select an invoice..." : "Select policy first..."}</option>
+                  {availableInvoices.map((inv: any) => (
+                    <option key={inv.id} value={inv.id}>
+                      #{inv.id} - ${Number(inv.amount).toFixed(2)} - {inv.status}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
