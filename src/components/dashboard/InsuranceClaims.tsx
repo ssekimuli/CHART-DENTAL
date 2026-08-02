@@ -41,6 +41,11 @@ export const InsuranceClaims = () => {
   const [paidFormData, setPaidFormData] = useState({ approved_amount: '', write_off_amount: '0' });
   const [availableInvoices, setAvailableInvoices] = useState<any[]>([]);
 
+  // Document upload state
+  const [uploadingDoc, setUploadingDoc] = useState(false);
+  const [docFile, setDocFile] = useState<File | null>(null);
+  const [docDescription, setDocDescription] = useState('');
+
   const handleSearchPatient = (searchTerm: string) => {
     if (searchTimeout) clearTimeout(searchTimeout);
     
@@ -56,10 +61,57 @@ export const InsuranceClaims = () => {
     }, 300));
   };
 
-  const handleViewClaim = (claim: any) => {
+  const handleViewClaim = async (claim: any) => {
     setSelectedClaim(claim);
     setPaidFormData({ approved_amount: claim.claimed_amount, write_off_amount: '0' });
     setIsViewModalOpen(true);
+    try {
+      const res = await customAxios.get(`/insurance-claims/${claim.id}`);
+      setSelectedClaim(res.data);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleUploadDocument = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!docFile || !selectedClaim) return;
+    
+    setUploadingDoc(true);
+    const form = new FormData();
+    form.append('file', docFile);
+    form.append('description', docDescription);
+    
+    try {
+      const res = await customAxios.post(`/insurance-claims/${selectedClaim.id}/documents`, form, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      const updatedClaim = { ...selectedClaim, documents: [...(selectedClaim.documents || []), res.data] };
+      setSelectedClaim(updatedClaim);
+      setClaims(claims.map(c => c.id === updatedClaim.id ? updatedClaim : c));
+      setDocFile(null);
+      setDocDescription('');
+    } catch (err) {
+      console.error("Failed to upload document", err);
+    } finally {
+      setUploadingDoc(false);
+    }
+  };
+
+  const handleDeleteDocument = async (docId: string) => {
+    if (!selectedClaim) return;
+    if (!confirm('Are you sure you want to delete this document?')) return;
+    try {
+      await customAxios.delete(`/insurance-claims/${selectedClaim.id}/documents/${docId}`);
+      const updatedClaim = { 
+        ...selectedClaim, 
+        documents: selectedClaim.documents.filter((d: any) => d.id !== docId) 
+      };
+      setSelectedClaim(updatedClaim);
+      setClaims(claims.map(c => c.id === updatedClaim.id ? updatedClaim : c));
+    } catch (err) {
+      console.error("Failed to delete document", err);
+    }
   };
 
   const handleMarkAsPaid = async () => {
@@ -286,7 +338,7 @@ export const InsuranceClaims = () => {
         </Dialog>
 
         <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
-          <DialogContent>
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Claim Details: {selectedClaim?.claim_number}</DialogTitle>
             </DialogHeader>
@@ -368,6 +420,55 @@ export const InsuranceClaims = () => {
                     <Button variant="outline" onClick={() => setIsViewModalOpen(false)}>Close</Button>
                   </div>
                 )}
+
+                {/* Document Attachments Section */}
+                <div className="pt-4 border-t space-y-4">
+                  <h4 className="font-medium text-sm">Document Attachments</h4>
+                  
+                  {selectedClaim.documents && selectedClaim.documents.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {selectedClaim.documents.map((doc: any) => (
+                        <div key={doc.id} className="flex items-center justify-between p-3 border rounded-md">
+                          <div className="flex items-center space-x-3 overflow-hidden">
+                            <div className="bg-blue-50 p-2 rounded">
+                              <svg className="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            </div>
+                            <div className="truncate">
+                              <a href={doc.url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-blue-600 hover:underline truncate block">
+                                {doc.description}
+                              </a>
+                            </div>
+                          </div>
+                          <Button variant="ghost" size="sm" onClick={() => handleDeleteDocument(doc.id)} className="text-red-500 hover:text-red-700">
+                            Delete
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No documents attached.</p>
+                  )}
+
+                  <form onSubmit={handleUploadDocument} className="flex flex-col sm:flex-row gap-3 pt-2">
+                    <Input
+                      type="text"
+                      placeholder="Description (e.g. X-Ray)"
+                      value={docDescription}
+                      onChange={(e) => setDocDescription(e.target.value)}
+                      required
+                      className="flex-1"
+                    />
+                    <Input
+                      type="file"
+                      onChange={(e) => setDocFile(e.target.files?.[0] || null)}
+                      required
+                      className="flex-1"
+                    />
+                    <Button type="submit" disabled={uploadingDoc}>
+                      {uploadingDoc ? 'Uploading...' : 'Upload'}
+                    </Button>
+                  </form>
+                </div>
               </div>
             )}
           </DialogContent>
