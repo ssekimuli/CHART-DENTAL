@@ -36,6 +36,7 @@ export const InsuranceClaims = () => {
     group_number: '',
     plan_type: 'PPO'
   });
+  const [paidFormData, setPaidFormData] = useState({ approved_amount: '', write_off_amount: '0' });
 
   const handleSearchPatient = (searchTerm: string) => {
     if (searchTimeout) clearTimeout(searchTimeout);
@@ -54,6 +55,7 @@ export const InsuranceClaims = () => {
 
   const handleViewClaim = (claim: any) => {
     setSelectedClaim(claim);
+    setPaidFormData({ approved_amount: claim.claimed_amount, write_off_amount: '0' });
     setIsViewModalOpen(true);
   };
 
@@ -62,7 +64,8 @@ export const InsuranceClaims = () => {
     try {
       const response = await customAxios.put(`/insurance-claims/${selectedClaim.id}`, {
         status: 'paid',
-        approved_amount: selectedClaim.claimed_amount
+        approved_amount: paidFormData.approved_amount,
+        write_off_amount: paidFormData.write_off_amount
       });
       
       // Update local state
@@ -72,6 +75,7 @@ export const InsuranceClaims = () => {
       // Refresh stats
       const statsRes = await customAxios.get('/insurance-claims/stats');
       setStats(statsRes.data);
+      setIsViewModalOpen(false);
     } catch (error) {
       console.error("Failed to mark as paid:", error);
     }
@@ -288,13 +292,45 @@ export const InsuranceClaims = () => {
                       <p className="font-medium">#{selectedClaim.invoice_id}</p>
                     </div>
                   )}
+                  {selectedClaim.write_off_amount > 0 && (
+                    <div>
+                      <p className="text-muted-foreground text-xs uppercase tracking-wider mb-1">Write-Off Amount</p>
+                      <p className="font-medium text-red-600">-${Number(selectedClaim.write_off_amount).toFixed(2)}</p>
+                    </div>
+                  )}
                 </div>
-                <div className="pt-4 flex justify-end gap-2">
-                   <Button variant="outline" onClick={() => setIsViewModalOpen(false)}>Close</Button>
-                   {selectedClaim.status !== 'paid' && (
-                     <Button onClick={handleMarkAsPaid} className="bg-emerald-600 hover:bg-emerald-700">Mark as Paid</Button>
-                   )}
-                </div>
+                
+                {selectedClaim.status !== 'paid' ? (
+                  <div className="pt-4 border-t space-y-4">
+                    <h4 className="font-medium text-sm">Process Payment (EOB)</h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Approved Amount</Label>
+                        <Input 
+                          type="number" step="0.01" 
+                          value={paidFormData.approved_amount} 
+                          onChange={e => setPaidFormData({...paidFormData, approved_amount: e.target.value})} 
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Write-Off (Adjustment)</Label>
+                        <Input 
+                          type="number" step="0.01" 
+                          value={paidFormData.write_off_amount} 
+                          onChange={e => setPaidFormData({...paidFormData, write_off_amount: e.target.value})} 
+                        />
+                      </div>
+                    </div>
+                    <div className="flex justify-end gap-2 pt-2">
+                      <Button variant="outline" onClick={() => setIsViewModalOpen(false)}>Cancel</Button>
+                      <Button onClick={handleMarkAsPaid} className="bg-emerald-600 hover:bg-emerald-700">Mark as Paid</Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="pt-4 flex justify-end gap-2">
+                    <Button variant="outline" onClick={() => setIsViewModalOpen(false)}>Close</Button>
+                  </div>
+                )}
               </div>
             )}
           </DialogContent>
