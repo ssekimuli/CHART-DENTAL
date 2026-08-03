@@ -118,7 +118,7 @@ export const InsuranceClaims = () => {
     if (!selectedClaim) return;
     try {
       const response = await customAxios.put(`/insurance-claims/${selectedClaim.id}`, {
-        status: 'paid',
+        status: 'Paid',
         approved_amount: paidFormData.approved_amount,
         write_off_amount: paidFormData.write_off_amount
       });
@@ -378,7 +378,7 @@ export const InsuranceClaims = () => {
                   </div>
                 )}
                 
-                {selectedClaim.status !== 'paid' ? (
+                {selectedClaim.status?.toLowerCase() !== 'paid' ? (
                   <div className="pt-4 border-t space-y-4">
                     <h4 className="font-medium text-sm">Process Payment (EOB)</h4>
                     <div className="grid grid-cols-2 gap-4">
