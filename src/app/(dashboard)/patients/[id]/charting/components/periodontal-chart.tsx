@@ -21,6 +21,9 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { Send, Mail, MessageCircle, Loader2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { sendPeriodontalResult } from "@/lib/api";
 import type {
   PeriodontalRecord,
   PeriodontalMeasurement,
@@ -71,6 +74,14 @@ export function PeriodontalChart({
   const [records, setRecords] = useState<PeriodontalRecord>(initialRecords);
   const [selectedTooth, setSelectedTooth] = useState<number | undefined>();
   const [threeAtATime, setThreeAtATime] = useState(true);
+  
+  const [isSendDialogOpen, setIsSendDialogOpen] = useState(false);
+  const [sendChannel, setSendChannel] = useState<'email' | 'whatsapp'>('email');
+  const [sendRecipient, setSendRecipient] = useState('');
+  const [sendMessage, setSendMessage] = useState('');
+  const [isSending, setIsSending] = useState(false);
+  const { toast } = useToast();
+
   const toothSequence = [...quadrants.upperRight.slice().reverse(), ...quadrants.upperLeft, ...quadrants.lowerLeft, ...quadrants.lowerRight.slice().reverse()];
   const canUpdateChart = hasPermission('periodontal:update') || hasPermission('charting:update');
 
@@ -125,6 +136,43 @@ export function PeriodontalChart({
   useEffect(() => {
     setRecords(initialRecords);
   }, [initialRecords]);
+
+  const handleOpenSendDialog = (channel: 'email' | 'whatsapp') => {
+    setSendChannel(channel);
+    setSendRecipient(channel === 'email' ? (patient?.email || '') : (patient?.phone || ''));
+    setSendMessage('');
+    setIsSendDialogOpen(true);
+  };
+
+  const handleSendResult = async () => {
+    if (!sendRecipient || !patient?.id) return;
+    setIsSending(true);
+    
+    const bleedingIndex = records.length > 0 ? Math.round((records.filter(r => r.conditions?.bleeding).length / 32) * 100) : 0;
+    const plaqueIndex = records.length > 0 ? Math.round((records.filter(r => r.conditions?.plaque).length / 32) * 100) : 0;
+    const psrScores = [
+      computePSR(sextants[0].teeth),
+      computePSR(sextants[1].teeth),
+      computePSR(sextants[2].teeth),
+      computePSR(sextants[3].teeth),
+      computePSR(sextants[4].teeth),
+      computePSR(sextants[5].teeth),
+    ];
+
+    const success = await sendPeriodontalResult(patient.id, sendChannel, sendRecipient, sendMessage, {
+      bleeding_index: bleedingIndex,
+      plaque_index: plaqueIndex,
+      psr_scores: psrScores
+    });
+
+    if (success) {
+      toast({ title: "Sent", description: `Periodontal result successfully sent via ${sendChannel === 'email' ? 'Email' : 'WhatsApp'}.` });
+      setIsSendDialogOpen(false);
+    } else {
+      toast({ title: "Failed", description: "Failed to send periodontal result.", variant: "destructive" });
+    }
+    setIsSending(true);
+  };
 
   const getRecord = (toothId: number): PeriodontalMeasurement => {
     const record = records.find((r) => r.toothId === toothId);
@@ -748,9 +796,17 @@ export function PeriodontalChart({
             </CardDescription>
           </div>
         <div className="flex items-center gap-3">
+          <Button variant="outline" onClick={() => handleOpenSendDialog('email')} className="rounded-xl px-4 text-slate-600">
+            <Mail className="w-4 h-4 mr-2" />
+            Email
+          </Button>
+          <Button variant="outline" onClick={() => handleOpenSendDialog('whatsapp')} className="rounded-xl px-4 text-slate-600">
+            <MessageCircle className="w-4 h-4 mr-2" />
+            WhatsApp
+          </Button>
           <Button variant="outline" onClick={() => window.print()} className="rounded-xl px-4 text-slate-600">
             <Printer className="w-4 h-4 mr-2" />
-            Print Chart
+            Print
           </Button>
           {canUpdateChart && (
             <Button onClick={() => onSave(records)} className="bg-[#008B89] hover:bg-[#008B89]/90 text-white rounded-xl px-6">
@@ -1138,6 +1194,45 @@ export function PeriodontalChart({
 
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+      <Dialog open={isSendDialogOpen} onOpenChange={setIsSendDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Send Periodontal Result via {sendChannel === 'email' ? 'Email' : 'WhatsApp'}</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <label htmlFor="recipient" className="text-sm font-medium leading-none">
+                {sendChannel === 'email' ? 'Email Address' : 'WhatsApp Number (Intl format, no +)'}
+              </label>
+              <Input
+                id="recipient"
+                value={sendRecipient}
+                onChange={(e) => setSendRecipient(e.target.value)}
+                placeholder={sendChannel === 'email' ? 'patient@example.com' : '256701234567'}
+              />
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="message" className="text-sm font-medium leading-none">
+                Custom Message (Optional)
+              </label>
+              <textarea
+                id="message"
+                value={sendMessage}
+                onChange={(e) => setSendMessage(e.target.value)}
+                placeholder="Type an optional message..."
+                className="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsSendDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleSendResult} disabled={!sendRecipient || isSending}>
+              {isSending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Send Now
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </Card>

@@ -11,8 +11,6 @@ const customAxios = axios.create({
   },
 });
 
-// Add a request interceptor to include the auth token
-
 customAxios.interceptors.request.use(
   (config) => {
     const token = getAuthToken();
@@ -52,9 +50,9 @@ customAxios.interceptors.response.use(
         });
 
         // Redirect to login page
-        if (typeof window !== 'undefined') {
-          window.location.href = '/login';
-        }
+        // if (typeof window !== 'undefined') {
+        //   window.location.href = '/login';
+        // }
 
         return Promise.reject(error);
       }
