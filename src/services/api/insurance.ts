@@ -12,11 +12,23 @@ export const insuranceApi = {
   addPackage: (data: any) => 
     customAxios.post('/insurance/packages', data),
     
+  getPackageTreatments: (packageId: number) => 
+    customAxios.get(`/insurance/packages/${packageId}/treatments`),
+    
+  addPackageTreatment: (packageId: number, data: any) => 
+    customAxios.post(`/insurance/packages/${packageId}/treatments`, data),
+    
+  removePackageTreatment: (packageId: number, id: number) => 
+    customAxios.delete(`/insurance/packages/${packageId}/treatments/${id}`),
+    
   getPolicies: (packageId?: number) => 
     customAxios.get('/insurance/policies', { params: { package_id: packageId } }),
     
   addPolicy: (data: any) => 
     customAxios.post('/insurance/policies', data),
+    
+  getProcedures: () => 
+    customAxios.get('/procedures'),
   
   
   getPatientPolicies: (patientId: number) => 

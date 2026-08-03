@@ -28,6 +28,7 @@ export default function InsuranceSetupPage() {
     const [companies, setCompanies] = useState<any[]>([]);
     const [packages, setPackages] = useState<any[]>([]);
     const [policies, setPolicies] = useState<any[]>([]);
+    const [procedures, setProcedures] = useState<any[]>([]);
     
     const [loading, setLoading] = useState(true);
     
@@ -45,6 +46,12 @@ export default function InsuranceSetupPage() {
     const [isAddPolicyModalOpen, setIsAddPolicyModalOpen] = useState(false);
     const [policyData, setPolicyData] = useState({ insurance_package_id: "", policy_number: "", policy_type: "corporate", coverage_start_date: "", coverage_end_date: "", total_coverage_limit: "" });
 
+    // Map Procedures Modal
+    const [isMappingModalOpen, setIsMappingModalOpen] = useState(false);
+    const [selectedPackage, setSelectedPackage] = useState<any>(null);
+    const [packageTreatments, setPackageTreatments] = useState<any[]>([]);
+    const [mappingData, setMappingData] = useState({ procedure_id: "", coverage_type: "percentage", coverage_value: "100" });
+
     useEffect(() => {
         if (!hasRole("Super Admin")) {
             router.replace("/dashboard");
@@ -56,14 +63,16 @@ export default function InsuranceSetupPage() {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [compRes, packRes, polRes] = await Promise.all([
+            const [compRes, packRes, polRes, procRes] = await Promise.all([
                 insuranceApi.getCompanies(),
                 insuranceApi.getPackages(),
-                insuranceApi.getPolicies()
+                insuranceApi.getPolicies(),
+                insuranceApi.getProcedures()
             ]);
             setCompanies(compRes.data?.data || []);
             setPackages(packRes.data?.data || []);
             setPolicies(polRes.data?.data || []);
+            setProcedures(procRes.data?.data || []);
         } catch (error) {
             console.error("Failed to load insurance data", error);
         }
@@ -113,6 +122,43 @@ export default function InsuranceSetupPage() {
             alert("Failed to add policy.");
         }
         setIsSubmitting(false);
+    };
+
+    const openMappingModal = async (pkg: any) => {
+        setSelectedPackage(pkg);
+        setPackageTreatments([]);
+        setIsMappingModalOpen(true);
+        try {
+            const res = await insuranceApi.getPackageTreatments(pkg.id);
+            setPackageTreatments(res.data?.data || []);
+        } catch (error) {
+            console.error("Failed to load package treatments", error);
+        }
+    };
+
+    const handleAddMapping = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsSubmitting(true);
+        try {
+            await insuranceApi.addPackageTreatment(selectedPackage.id, mappingData);
+            const res = await insuranceApi.getPackageTreatments(selectedPackage.id);
+            setPackageTreatments(res.data?.data || []);
+            setMappingData({ procedure_id: "", coverage_type: "percentage", coverage_value: "100" });
+        } catch (error) {
+            console.error("Failed to map treatment", error);
+            alert("Failed to map treatment.");
+        }
+        setIsSubmitting(false);
+    };
+
+    const handleRemoveMapping = async (id: number) => {
+        try {
+            await insuranceApi.removePackageTreatment(selectedPackage.id, id);
+            setPackageTreatments(packageTreatments.filter(t => t.id !== id));
+        } catch (error) {
+            console.error("Failed to remove mapping", error);
+            alert("Failed to remove mapping.");
+        }
     };
 
     return (
@@ -304,6 +350,7 @@ export default function InsuranceSetupPage() {
                                         <TableHead>Name</TableHead>
                                         <TableHead>Coverage %</TableHead>
                                         <TableHead>Status</TableHead>
+                                        <TableHead className="text-right">Actions</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -313,15 +360,92 @@ export default function InsuranceSetupPage() {
                                             <TableCell>{pkg.name}</TableCell>
                                             <TableCell>{pkg.default_coverage_percentage}%</TableCell>
                                             <TableCell>{pkg.status}</TableCell>
+                                            <TableCell className="text-right">
+                                                <Button variant="outline" size="sm" onClick={() => openMappingModal(pkg)}>
+                                                    Map Coverages
+                                                </Button>
+                                            </TableCell>
                                         </TableRow>
                                     ))}
                                     {packages.length === 0 && (
-                                        <TableRow><TableCell colSpan={4} className="text-center">No packages found.</TableCell></TableRow>
+                                        <TableRow><TableCell colSpan={5} className="text-center">No packages found.</TableCell></TableRow>
                                     )}
                                 </TableBody>
                             </Table>
                         </CardContent>
                     </Card>
+
+                    {/* Mapping Modal */}
+                    <Dialog open={isMappingModalOpen} onOpenChange={setIsMappingModalOpen}>
+                        <DialogContent className="max-w-3xl">
+                            <DialogHeader>
+                                <DialogTitle>Map Procedures for {selectedPackage?.name}</DialogTitle>
+                                <DialogDescription>Override default package coverage for specific procedures.</DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-4 py-4">
+                                <form onSubmit={handleAddMapping} className="flex gap-4 items-end bg-muted/50 p-4 rounded-lg">
+                                    <div className="grid gap-2 flex-1">
+                                        <Label>Procedure</Label>
+                                        <Select onValueChange={(v) => setMappingData({...mappingData, procedure_id: v})} required value={mappingData.procedure_id}>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select Procedure" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {procedures.map(p => (
+                                                    <SelectItem key={p.id} value={String(p.id)}>{p.name} ({p.code})</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="grid gap-2 w-32">
+                                        <Label>Type</Label>
+                                        <Select onValueChange={(v) => setMappingData({...mappingData, coverage_type: v})} value={mappingData.coverage_type}>
+                                            <SelectTrigger>
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="percentage">Percentage</SelectItem>
+                                                <SelectItem value="fixed_amount">Fixed Amt</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="grid gap-2 w-24">
+                                        <Label>Value</Label>
+                                        <Input type="number" required value={mappingData.coverage_value} onChange={e => setMappingData({...mappingData, coverage_value: e.target.value})} />
+                                    </div>
+                                    <Button type="submit" disabled={isSubmitting}>Add</Button>
+                                </form>
+
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Procedure</TableHead>
+                                            <TableHead>Type</TableHead>
+                                            <TableHead>Value</TableHead>
+                                            <TableHead className="text-right">Actions</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {packageTreatments.map((pt) => (
+                                            <TableRow key={pt.id}>
+                                                <TableCell>{pt.procedure?.name}</TableCell>
+                                                <TableCell className="capitalize">{pt.coverage_type.replace('_', ' ')}</TableCell>
+                                                <TableCell>
+                                                    {pt.coverage_type === 'percentage' ? `${pt.coverage_value}%` : `$${pt.coverage_value}`}
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    <Button variant="ghost" size="sm" onClick={() => handleRemoveMapping(pt.id)} className="text-destructive">Remove</Button>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                        {packageTreatments.length === 0 && (
+                                            <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">No specific coverages mapped.</TableCell></TableRow>
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        </DialogContent>
+                    </Dialog>
                 </TabsContent>
 
                 {/* POLICIES TAB */}
