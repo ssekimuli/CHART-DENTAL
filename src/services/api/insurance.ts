@@ -3,6 +3,10 @@ import customAxios from '../../lib/axios';
 export const insuranceApi = {
   getCompanies: () => customAxios.get('/insurance/companies'),
   
+  addCompany: (data: { name: string, code: string, email?: string, phone?: string }) => 
+    customAxios.post('/insurance/companies', data),
+  
+  
   getPatientPolicies: (patientId: number) => 
     customAxios.get(`/insurance/patients/${patientId}/policies`),
     

@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { insuranceApi } from "@/services/api/insurance";
 import { hasRole } from "@/lib/user";
 import { useRouter } from "next/navigation";
@@ -21,6 +22,9 @@ export default function InsuranceSetupPage() {
     const router = useRouter();
     const [companies, setCompanies] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [formData, setFormData] = useState({ name: "", code: "", email: "", phone: "" });
 
     useEffect(() => {
         if (!hasRole("Super Admin")) {
@@ -39,6 +43,21 @@ export default function InsuranceSetupPage() {
             console.error("Failed to load insurance companies", error);
         }
         setLoading(false);
+    };
+
+    const handleAddCompany = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsSubmitting(true);
+        try {
+            await insuranceApi.addCompany(formData);
+            await fetchCompanies();
+            setIsAddModalOpen(false);
+            setFormData({ name: "", code: "", email: "", phone: "" });
+        } catch (error) {
+            console.error("Failed to add company", error);
+            alert("Failed to add company. Code might be duplicate or missing fields.");
+        }
+        setIsSubmitting(false);
     };
 
     return (
@@ -60,7 +79,42 @@ export default function InsuranceSetupPage() {
                                 <CardTitle>Insurance Companies</CardTitle>
                                 <CardDescription>Manage your partnered insurance providers.</CardDescription>
                             </div>
-                            <Button>+ Add Company</Button>
+                            <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
+                                <DialogTrigger asChild>
+                                    <Button>+ Add Company</Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                    <form onSubmit={handleAddCompany}>
+                                        <DialogHeader>
+                                            <DialogTitle>Add Insurance Company</DialogTitle>
+                                            <DialogDescription>Create a new insurance provider for patient billing.</DialogDescription>
+                                        </DialogHeader>
+                                        <div className="grid gap-4 py-4">
+                                            <div className="grid grid-cols-4 items-center gap-4">
+                                                <Label htmlFor="name" className="text-right">Name *</Label>
+                                                <Input id="name" required className="col-span-3" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="e.g. Aetna" />
+                                            </div>
+                                            <div className="grid grid-cols-4 items-center gap-4">
+                                                <Label htmlFor="code" className="text-right">Code *</Label>
+                                                <Input id="code" required className="col-span-3" value={formData.code} onChange={e => setFormData({...formData, code: e.target.value})} placeholder="e.g. AET-01" />
+                                            </div>
+                                            <div className="grid grid-cols-4 items-center gap-4">
+                                                <Label htmlFor="email" className="text-right">Email</Label>
+                                                <Input id="email" type="email" className="col-span-3" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} placeholder="billing@aetna.com" />
+                                            </div>
+                                            <div className="grid grid-cols-4 items-center gap-4">
+                                                <Label htmlFor="phone" className="text-right">Phone</Label>
+                                                <Input id="phone" className="col-span-3" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} placeholder="+1 800 123 4567" />
+                                            </div>
+                                        </div>
+                                        <DialogFooter>
+                                            <Button type="submit" disabled={isSubmitting}>
+                                                {isSubmitting ? "Saving..." : "Save Company"}
+                                            </Button>
+                                        </DialogFooter>
+                                    </form>
+                                </DialogContent>
+                            </Dialog>
                         </CardHeader>
                         <CardContent>
                             <Table>
