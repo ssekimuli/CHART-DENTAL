@@ -1,6 +1,6 @@
-
 "use client";
 
+import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -27,7 +27,7 @@ import {
 import type { Payroll, Employee } from "@/lib/types";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Loader2 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Combobox } from "@/components/ui/combobox";
 
@@ -46,6 +46,8 @@ type PayrollFormProps = {
 };
 
 export function PayrollForm({ employees, onSave, onOpenChange }: PayrollFormProps) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -53,7 +55,9 @@ export function PayrollForm({ employees, onSave, onOpenChange }: PayrollFormProp
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    setIsSubmitting(true);
+    try {
     const payDate = values.pay_date;
     const periodStart = subDays(payDate, 14);
     
@@ -66,6 +70,9 @@ export function PayrollForm({ employees, onSave, onOpenChange }: PayrollFormProp
         payPeriod: `${format(periodStart, "yyyy-MM-dd")} to ${format(payDate, "yyyy-MM-dd")}`,
         status: 'Pending',
     } as any);
+      } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -170,7 +177,10 @@ export function PayrollForm({ employees, onSave, onOpenChange }: PayrollFormProp
 
                      <DialogFooter>
                         <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-                        <Button type="submit">Process Payroll</Button>
+                        <Button type="submit"  disabled={isSubmitting}>
+        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        Process Payroll
+      </Button>
                     </DialogFooter>
                 </form>
             </Form>

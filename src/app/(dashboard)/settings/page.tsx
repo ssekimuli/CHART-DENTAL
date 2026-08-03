@@ -31,6 +31,7 @@ import { CURRENCIES } from "@/lib/currency";
 import { useBranch } from "@/context/branch-context";
 import { DataImporter } from "@/components/dashboard/data-importer";
 import { TreatmentsCatalog } from "./components/treatments-catalog";
+import { BranchSettingsTab } from "./components/branch-settings-tab";
 
 const permissionGroups = {
     Dashboard: ['dashboard:read'],
@@ -361,38 +362,7 @@ export default function SettingsPage() {
       </TabsContent>
 
       <TabsContent value="notifications">
-        <Card>
-          <CardHeader>
-            <CardTitle>Notifications</CardTitle>
-            <CardDescription>
-              Manage how you receive notifications.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="flex items-center justify-between space-x-2 rounded-lg border p-4">
-              <div className="space-y-0.5">
-                <Label htmlFor="email-notifications" className="text-base">Email Notifications</Label>
-                <p className="text-sm text-muted-foreground">Receive notifications about appointments and billing via email.</p>
-              </div>
-              <Switch id="email-notifications" defaultChecked />
-            </div>
-            <div className="flex items-center justify-between space-x-2 rounded-lg border p-4">
-              <div className="space-y-0.5">
-                <Label htmlFor="push-notifications" className="text-base">Push Notifications</Label>
-                <p className="text-sm text-muted-foreground">Get real-time alerts on your device.</p>
-              </div>
-              <Switch id="push-notifications" />
-            </div>
-          </CardContent>
-           <CardFooter>
-            <Button onClick={() => {
-                 toast({
-                     title: "Preferences Saved",
-                     description: "Your notification preferences have been saved locally.",
-                 });
-             }}>Save Preferences</Button>
-          </CardFooter>
-        </Card>
+        <BranchSettingsTab />
       </TabsContent>
       <TabsContent value="roles">
         <Card>

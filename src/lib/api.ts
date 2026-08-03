@@ -1085,8 +1085,9 @@ export const getLabOrders = async (branchId?: string | number, page?: number, pe
         
         const orders: PaginatedArray<LaboratoryOrder> = rawOrders.map((order: any) => ({
             id: order.id,
-            patientId: String(order.patient_id),
-            patientName: order.patient_name || (order.patient ? `${order.patient.first_name} ${order.patient.last_name}` : ''),
+            clientId: String(order.client_id),
+            client: order.client,
+            patientName: order.patient_name || '',
             lab: order.lab,
             item: order.item,
             tooth: order.tooth,
@@ -1104,6 +1105,45 @@ export const getLabOrders = async (branchId?: string | number, page?: number, pe
         console.error('Error fetching lab orders:', error);
         const emptyArray: PaginatedArray<LaboratoryOrder> = [];
         return emptyArray;
+    }
+}
+
+export const getClients = async (): Promise<Client[]> => {
+    try {
+        const response = await customAxios.get('/clients');
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching clients:', error);
+        return [];
+    }
+}
+
+export const createClient = async (data: Omit<Client, 'id'>): Promise<Client> => {
+    try {
+        const response = await customAxios.post('/clients', data);
+        return response.data;
+    } catch (error) {
+        console.error('Error creating client:', error);
+        throw error;
+    }
+}
+
+export const updateClient = async (id: string | number, data: Partial<Client>): Promise<Client> => {
+    try {
+        const response = await customAxios.put(`/clients/${id}`, data);
+        return response.data;
+    } catch (error) {
+        console.error('Error updating client:', error);
+        throw error;
+    }
+}
+
+export const deleteClient = async (id: string | number): Promise<void> => {
+    try {
+        await customAxios.delete(`/clients/${id}`);
+    } catch (error) {
+        console.error('Error deleting client:', error);
+        throw error;
     }
 }
 
@@ -2129,6 +2169,36 @@ export const deletePatient = async (id: string | number): Promise<{ success: boo
         }
     }
 }
+
+export const sendPatientDocuments = async (patientId: string | number, documentIds: number[], channel: string, recipient: string, customMessage: string = ''): Promise<boolean> => {
+    try {
+        await customAxios.post(`/patients/${patientId}/images/send`, {
+            document_ids: documentIds,
+            channel: channel,
+            recipient: recipient,
+            custom_message: customMessage
+        });
+        return true;
+    } catch (error) {
+        console.error('Error sending patient documents:', error);
+        return false;
+    }
+};
+
+export const sendPeriodontalResult = async (patientId: string | number, channel: string, recipient: string, customMessage: string, data: any): Promise<boolean> => {
+    try {
+        await customAxios.post(`/patients/${patientId}/periodontal/send`, {
+            channel,
+            recipient,
+            custom_message: customMessage,
+            data
+        });
+        return true;
+    } catch (error) {
+        console.error('Error sending periodontal result:', error);
+        return false;
+    }
+};
 
 export const addImageToPatient = async (patientId: string | number, imageFormData: FormData): Promise<Patient | undefined> => {
     console.log('API CALL: addImageToPatient', { patientId });
@@ -3519,11 +3589,16 @@ export const createInventoryItem = async (data: Omit<InventoryItem, 'id' | 'stat
 }
 
 // Lab Orders
+export const sendLabOrder = async (id: number, channel: 'email' | 'whatsapp' | 'sms', customMessage?: string): Promise<any> => {
+    return (await customAxios.post(`/management/lab-orders/${id}/send`, { channel, customMessage })).data;
+};
+
 export const createLabOrder = async (data: Omit<LaboratoryOrder, 'id'>): Promise<LaboratoryOrder> => {
     console.log('API CALL: createLabOrder', { data });
     try {
         const response = await customAxios.post('/management/lab-orders', {
-            patientId: data.patientId,
+            clientId: data.clientId,
+            patientName: data.patientName,
             lab: data.lab,
             item: data.item,
             tooth: data.tooth,
@@ -3535,7 +3610,8 @@ export const createLabOrder = async (data: Omit<LaboratoryOrder, 'id'>): Promise
         const order = response.data;
         return {
             id: order.id,
-            patientId: String(order.patient_id),
+            clientId: String(order.client_id),
+            client: order.client,
             patientName: order.patient_name || '',
             lab: order.lab,
             item: order.item,
@@ -4265,4 +4341,149 @@ export const getPatientsList = async (): Promise<any[]> => {
         console.error('Error fetching patients list:', error);
         return [];
     }
+};
+
+// Branch Settings
+export const getBranchSettings = async (branchId: string | number) => {
+  try {
+    const response = await customAxios.get('/settings/branch', {
+      headers: { 'X-Branch-ID': branchId }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching branch settings:', error);
+    throw error;
+  }
+};
+
+export const updateBranchSettings = async (branchId: string | number, payload: any) => {
+  try {
+    const response = await customAxios.post('/settings/branch', { branch_id: branchId, ...payload }, {
+      headers: { 'X-Branch-ID': branchId }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error updating branch settings:', error);
+    throw error;
+  }
+};
+
+export const topUpBranchCredits = async (
+  branchId: string | number, 
+  type: 'sms' | 'whatsapp', 
+  amount: number, 
+  phone?: string, 
+  provider?: string,
+  onPending?: () => void
+) => {
+  try {
+    const category = type === 'sms' ? 'top_up_sms' : 'top_up_whatsapp';
+    
+    // 1. Initiate Top Up
+    const initResponse = await customAxios.post('/top-up-sms', {
+      provider: provider || 'iotec',
+      phone: phone,
+      amount: amount,
+      category: category
+    });
+
+    const initData = initResponse.data?.data?.data;
+    const reference = initData?.reference;
+    if (!reference) {
+      throw new Error("Failed to get transaction reference");
+    }
+
+    if (provider === 'card') {
+      return {
+        requiresAction: true,
+        clientSecret: initData.client_secret,
+        publishableKey: initData.stripe_publishable_key,
+        reference: reference
+      };
+    }
+
+    if (provider === 'iotec') {
+        onPending?.();
+    }
+
+    // 2. Poll for transaction status (for non-card like iotec)
+    let status = 'pending';
+    let attempts = 0;
+    while (status === 'pending' && attempts < 20) {
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      attempts++;
+      
+      try {
+        let verifyResponse;
+        try {
+            verifyResponse = await customAxios.post('/verify-transaction', { reference });
+        } catch (err: any) {
+            // fallback to GET if POST is not allowed
+            if (err.response?.status === 405 || err.response?.status === 404) {
+                verifyResponse = await customAxios.get(`/verify-transaction`, { params: { reference } });
+            } else {
+                throw err;
+            }
+        }
+        status = verifyResponse.data?.data?.status?.toLowerCase() || verifyResponse.data?.status?.toLowerCase() || 'pending';
+      } catch (e) {
+        console.warn("Polling error:", e);
+      }
+    }
+
+    if (status !== 'success' && status !== 'successful' && status !== 'completed') {
+      throw new Error(`Transaction failed or timed out. Status: ${status}`);
+    }
+
+    // 3. Update Balance
+    const response = await customAxios.post('/update-top-up-balance', { type, amount, phone, provider, reference }, {
+      headers: { 'X-Branch-ID': branchId }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error topping up credits:', error);
+    throw error;
+  }
+};
+
+export const verifyAndUpdateTopUp = async (
+  branchId: string | number,
+  type: 'sms' | 'whatsapp',
+  amount: number,
+  phone: string | undefined,
+  provider: string,
+  reference: string
+) => {
+    let status = 'pending';
+    let verifyResponse;
+    try {
+        verifyResponse = await customAxios.post('/verify-transaction', { reference });
+    } catch (err: any) {
+        if (err.response?.status === 405 || err.response?.status === 404) {
+            verifyResponse = await customAxios.get(`/verify-transaction`, { params: { reference } });
+        } else {
+            throw err;
+        }
+    }
+    status = verifyResponse.data?.data?.status?.toLowerCase() || verifyResponse.data?.status?.toLowerCase() || 'pending';
+    
+    if (status !== 'success' && status !== 'successful' && status !== 'completed') {
+      throw new Error(`Transaction failed. Status: ${status}`);
+    }
+
+    const response = await customAxios.post('/update-top-up-balance', { type, amount, phone, provider, reference }, {
+      headers: { 'X-Branch-ID': branchId }
+    });
+    return response.data;
+};
+
+
+export const getActivityLogs = async (params: { page?: number; per_page?: number; action?: string; branch_id?: string | number; search?: string } = {}) => {
+  try {
+    const { data } = await customAxios.get('/activity-logs', { params });
+    return data;
+  } catch (error) {
+    console.error('Error fetching activity logs:', error);
+    throw error;
+  }
 };

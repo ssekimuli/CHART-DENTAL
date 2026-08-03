@@ -51,6 +51,19 @@ export function DentalChart({ initialRecords, treatmentPlans, restorativeRecords
 
   return (
     <div className="flex flex-col gap-6">
+      <div className="flex flex-wrap justify-center gap-x-6 gap-y-2">
+        <div className="flex items-center gap-2">
+            <div className="h-4 w-4 rounded-full border-2 border-blue-500 bg-transparent"></div>
+            <span className="text-sm text-muted-foreground">Treatment Plan</span>
+        </div>
+        {conditionInfo.map(({ condition, twColor }) => (
+          <div key={condition} className="flex items-center gap-2">
+            <div className={cn('h-4 w-4 rounded-full border', twColor, {'border-gray-400': condition === 'Healthy'})}></div>
+            <span className="text-sm text-muted-foreground">{condition}</span>
+          </div>
+        ))}
+      </div>
+      
       <div className="rounded-lg bg-muted/10 p-6 border overflow-x-auto flex justify-center items-center min-h-[450px]">
         <div className="w-full scale-100 origin-center py-4 flex flex-col relative">
           <Odontogram 
@@ -150,19 +163,6 @@ export function DentalChart({ initialRecords, treatmentPlans, restorativeRecords
             </div>
         </SheetContent>
       </Sheet>
-
-      <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 mt-4">
-        <div className="flex items-center gap-2">
-            <div className="h-4 w-4 rounded-full border-2 border-blue-500 bg-transparent"></div>
-            <span className="text-sm text-muted-foreground">Treatment Plan</span>
-        </div>
-        {conditionInfo.map(({ condition, twColor }) => (
-          <div key={condition} className="flex items-center gap-2">
-            <div className={cn('h-4 w-4 rounded-full border', twColor, {'border-gray-400': condition === 'Healthy'})}></div>
-            <span className="text-sm text-muted-foreground">{condition}</span>
-          </div>
-        ))}
-      </div>
     </div>
   );
 }

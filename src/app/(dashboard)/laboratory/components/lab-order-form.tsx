@@ -1,6 +1,6 @@
-
 "use client";
 
+import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -31,31 +31,42 @@ import {
     SelectTrigger,
     SelectValue,
   } from "@/components/ui/select";
-import type { LaboratoryOrder, Patient } from "@/lib/types";
+import type { LaboratoryOrder, Client, Employee } from "@/lib/types";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { cn, getPatientFullName } from "@/lib/utils";
-import { CalendarIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { CalendarIcon, Loader2 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Combobox } from "@/components/ui/combobox";
 
 
 const formSchema = z.object({
-  patientId: z.string({ required_error: "Please select a patient."}),
+  clientId: z.string({ required_error: "Please select a client."}),
+  patientName: z.string().min(1, "Patient name is required."),
   lab: z.string().min(2, "Lab name must be at least 2 characters."),
   item: z.string().min(2, "Item description must be at least 2 characters."),
   tooth: z.coerce.number().optional(),
   status: z.enum(['Sent', 'Received', 'Completed', 'Cancelled']),
   sentDate: z.date({ required_error: "A sent date is required." }),
   dueDate: z.date({ required_error: "A due date is required." }),
+  receivedDate: z.date().optional(),
+  shade: z.string().optional(),
+  material: z.string().optional(),
+  instructions: z.string().optional(),
+  cost: z.coerce.number().optional(),
+  invoiceNumber: z.string().optional(),
+  doctorId: z.string().optional(),
 });
 
 type LabOrderFormProps = {
-    patients: Patient[];
+    clients: Client[];
+    doctors: Employee[];
     onSave: (data: Omit<LaboratoryOrder, 'id' | 'patientName' | 'branchId'>) => void;
     onOpenChange: (open: boolean) => void;
 };
 
-export function LabOrderForm({ patients, onSave, onOpenChange }: LabOrderFormProps) {
+export function LabOrderForm({ clients, doctors, onSave, onOpenChange }: LabOrderFormProps) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -64,17 +75,23 @@ export function LabOrderForm({ patients, onSave, onOpenChange }: LabOrderFormPro
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    onSave({
-        ...values,
-        sentDate: format(values.sentDate, "yyyy-MM-dd"),
-        dueDate: format(values.dueDate, "yyyy-MM-dd"),
-    });
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    setIsSubmitting(true);
+    try {
+        onSave({
+            ...values,
+            sentDate: format(values.sentDate, "yyyy-MM-dd"),
+            dueDate: format(values.dueDate, "yyyy-MM-dd"),
+            receivedDate: values.receivedDate ? format(values.receivedDate, "yyyy-MM-dd") : undefined,
+        });
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
     <Dialog open={true} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[550px]">
+        <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
                 <DialogTitle>Create Lab Order</DialogTitle>
                 <DialogDescription>
@@ -82,21 +99,54 @@ export function LabOrderForm({ patients, onSave, onOpenChange }: LabOrderFormPro
                 </DialogDescription>
             </DialogHeader>
             <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <form onSubmit={form.handleSubmit(onSubmit)} className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <FormField
                         control={form.control}
-                        name="patientId"
+                        name="clientId"
                         render={({ field }) => (
                             <FormItem>
-                            <FormLabel>Patient</FormLabel>
+                            <FormLabel>Client</FormLabel>
                             <FormControl>
                                 <Combobox
-                                    options={patients.map(p => ({ value: String(p.id), label: getPatientFullName(p) }))}
+                                    options={clients.map(c => ({ value: String(c.id), label: c.name }))}
                                     value={field.value}
                                     onChange={field.onChange}
-                                    placeholder="Select a patient"
-                                    searchPlaceholder="Search patients..."
-                                    emptyMessage="No patient found."
+                                    placeholder="Select a client"
+                                    searchPlaceholder="Search clients..."
+                                    emptyMessage="No client found."
+                                />
+                            </FormControl>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="patientName"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Patient Name</FormLabel>
+                            <FormControl>
+                                <Input placeholder="e.g., John Doe" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="doctorId"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Prescribing Doctor (Optional)</FormLabel>
+                            <FormControl>
+                                <Combobox
+                                    options={doctors.map(d => ({ value: String(d.id), label: d.name }))}
+                                    value={field.value}
+                                    onChange={field.onChange}
+                                    placeholder="Select a doctor"
+                                    searchPlaceholder="Search doctors..."
+                                    emptyMessage="No doctor found."
                                 />
                             </FormControl>
                             <FormMessage />
@@ -116,139 +166,240 @@ export function LabOrderForm({ patients, onSave, onOpenChange }: LabOrderFormPro
                             </FormItem>
                         )}
                     />
-                    <div className="grid grid-cols-3 gap-4">
-                        <FormField
-                            control={form.control}
-                            name="item"
-                            render={({ field }) => (
-                                <FormItem className="col-span-2">
-                                <FormLabel>Item</FormLabel>
+                    <FormField
+                        control={form.control}
+                        name="item"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Item</FormLabel>
+                            <FormControl>
+                                <Input placeholder="e.g., Zirconia Crown" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="tooth"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Tooth #</FormLabel>
+                            <FormControl>
+                                <Input type="number" placeholder="Optional" {...field} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.value)} />
+                            </FormControl>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="status"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Status</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
                                 <FormControl>
-                                    <Input placeholder="e.g., Zirconia Crown" {...field} />
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select status" />
+                                </SelectTrigger>
                                 </FormControl>
-                                <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                         <FormField
-                            control={form.control}
-                            name="tooth"
-                            render={({ field }) => (
-                                <FormItem>
-                                <FormLabel>Tooth #</FormLabel>
+                                <SelectContent>
+                                    <SelectItem value="Sent">Sent</SelectItem>
+                                    <SelectItem value="Received">Received</SelectItem>
+                                    <SelectItem value="Completed">Completed</SelectItem>
+                                    <SelectItem value="Cancelled">Cancelled</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="sentDate"
+                        render={({ field }) => (
+                            <FormItem className="flex flex-col">
+                            <FormLabel>Sent Date</FormLabel>
+                            <Popover>
+                                <PopoverTrigger asChild>
                                 <FormControl>
-                                    <Input type="number" placeholder="Optional" {...field} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.value)} />
+                                    <Button
+                                    variant={"outline"}
+                                    className={cn(
+                                        "pl-3 text-left font-normal w-full",
+                                        !field.value && "text-muted-foreground"
+                                    )}
+                                    >
+                                    {field.value ? (
+                                        format(field.value, "PPP")
+                                    ) : (
+                                        <span>Pick a date</span>
+                                    )}
+                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                    </Button>
                                 </FormControl>
-                                <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                    </div>
-                    
-                    <div className="grid grid-cols-3 gap-4">
-                       <FormField
-                            control={form.control}
-                            name="status"
-                            render={({ field }) => (
-                                <FormItem>
-                                <FormLabel>Status</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                    <FormControl>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select status" />
-                                    </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                        <SelectItem value="Sent">Sent</SelectItem>
-                                        <SelectItem value="Received">Received</SelectItem>
-                                        <SelectItem value="Completed">Completed</SelectItem>
-                                        <SelectItem value="Cancelled">Cancelled</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={form.control}
-                            name="sentDate"
-                            render={({ field }) => (
-                                <FormItem className="flex flex-col">
-                                <FormLabel>Sent Date</FormLabel>
-                                <Popover>
-                                    <PopoverTrigger asChild>
-                                    <FormControl>
-                                        <Button
-                                        variant={"outline"}
-                                        className={cn(
-                                            "pl-3 text-left font-normal",
-                                            !field.value && "text-muted-foreground"
-                                        )}
-                                        >
-                                        {field.value ? (
-                                            format(field.value, "PPP")
-                                        ) : (
-                                            <span>Pick a date</span>
-                                        )}
-                                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                        </Button>
-                                    </FormControl>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-auto p-0" align="start">
-                                    <Calendar
-                                        mode="single"
-                                        selected={field.value}
-                                        onSelect={field.onChange}
-                                        initialFocus
-                                    />
-                                    </PopoverContent>
-                                </Popover>
-                                <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                         <FormField
-                            control={form.control}
-                            name="dueDate"
-                            render={({ field }) => (
-                                <FormItem className="flex flex-col">
-                                <FormLabel>Due Date</FormLabel>
-                                <Popover>
-                                    <PopoverTrigger asChild>
-                                    <FormControl>
-                                        <Button
-                                        variant={"outline"}
-                                        className={cn(
-                                            "pl-3 text-left font-normal",
-                                            !field.value && "text-muted-foreground"
-                                        )}
-                                        >
-                                        {field.value ? (
-                                            format(field.value, "PPP")
-                                        ) : (
-                                            <span>Pick a date</span>
-                                        )}
-                                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                        </Button>
-                                    </FormControl>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-auto p-0" align="start">
-                                    <Calendar
-                                        mode="single"
-                                        selected={field.value}
-                                        onSelect={field.onChange}
-                                        initialFocus
-                                    />
-                                    </PopoverContent>
-                                </Popover>
-                                <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                    </div>
-                     <DialogFooter>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                    mode="single"
+                                    selected={field.value}
+                                    onSelect={field.onChange}
+                                    initialFocus
+                                />
+                                </PopoverContent>
+                            </Popover>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="dueDate"
+                        render={({ field }) => (
+                            <FormItem className="flex flex-col">
+                            <FormLabel>Due Date</FormLabel>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                <FormControl>
+                                    <Button
+                                    variant={"outline"}
+                                    className={cn(
+                                        "pl-3 text-left font-normal w-full",
+                                        !field.value && "text-muted-foreground"
+                                    )}
+                                    >
+                                    {field.value ? (
+                                        format(field.value, "PPP")
+                                    ) : (
+                                        <span>Pick a date</span>
+                                    )}
+                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                    </Button>
+                                </FormControl>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                    mode="single"
+                                    selected={field.value}
+                                    onSelect={field.onChange}
+                                    initialFocus
+                                />
+                                </PopoverContent>
+                            </Popover>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="shade"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Shade</FormLabel>
+                            <FormControl>
+                                <Input placeholder="e.g., A1, B2" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="material"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Material</FormLabel>
+                            <FormControl>
+                                <Input placeholder="e.g., Zirconia, PFM" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="instructions"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Instructions</FormLabel>
+                            <FormControl>
+                                <Input placeholder="Special instructions for the lab" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="cost"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Cost</FormLabel>
+                            <FormControl>
+                                <Input type="number" step="0.01" placeholder="Lab Fee" {...field} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.value)} />
+                            </FormControl>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="invoiceNumber"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Invoice Number</FormLabel>
+                            <FormControl>
+                                <Input placeholder="Optional" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="receivedDate"
+                        render={({ field }) => (
+                            <FormItem className="flex flex-col">
+                            <FormLabel>Received Date</FormLabel>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                <FormControl>
+                                    <Button
+                                    variant={"outline"}
+                                    className={cn(
+                                        "pl-3 text-left font-normal w-full",
+                                        !field.value && "text-muted-foreground"
+                                    )}
+                                    >
+                                    {field.value ? (
+                                        format(field.value, "PPP")
+                                    ) : (
+                                        <span>Pick a date</span>
+                                    )}
+                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                    </Button>
+                                </FormControl>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                    mode="single"
+                                    selected={field.value}
+                                    onSelect={field.onChange}
+                                    initialFocus
+                                />
+                                </PopoverContent>
+                            </Popover>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <DialogFooter className="col-span-1 md:col-span-3 mt-4">
                         <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-                        <Button type="submit">Save Order</Button>
+                        <Button type="submit" disabled={isSubmitting}>
+                            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Save Order
+                        </Button>
                     </DialogFooter>
                 </form>
             </Form>

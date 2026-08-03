@@ -30,10 +30,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { PlusCircle, Search, Pill, FileText, ShoppingBag, Eye, Trash2, Edit } from "lucide-react";
+import { PlusCircle, Search, Pill, FileText, ShoppingBag, Eye, Trash2, Edit, Loader2 } from "lucide-react";
 import { useBranch } from "@/context/branch-context";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PaginationControl } from "@/components/ui/pagination-control";
+import { Combobox } from "@/components/ui/combobox";
 import { toast } from "@/hooks/use-toast";
 import { useCurrency } from "@/hooks/use-currency";
 import { 
@@ -75,6 +76,8 @@ export default function PharmacyPage() {
   const [isMedModalOpen, setIsMedModalOpen] = useState(false);
   const [isRxModalOpen, setIsRxModalOpen] = useState(false);
   const [isViewRxOpen, setIsViewRxOpen] = useState(false);
+  const [isSubmittingMed, setIsSubmittingMed] = useState(false);
+  const [isSubmittingRx, setIsSubmittingRx] = useState(false);
   const [selectedRx, setSelectedRx] = useState<Prescription | null>(null);
   const [editingMedicine, setEditingMedicine] = useState<Medicine | null>(null);
 
@@ -157,6 +160,7 @@ export default function PharmacyPage() {
   // Save Medicine (Create or Update)
   const handleSaveMedicine = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmittingMed(true);
     try {
       if (editingMedicine) {
         await updateMedicine(editingMedicine.id, {
@@ -182,6 +186,8 @@ export default function PharmacyPage() {
       fetchInventory();
     } catch (err) {
       toast({ variant: "destructive", title: "Error", description: "Failed to save medicine." });
+    } finally {
+      setIsSubmittingMed(false);
     }
   };
 
@@ -256,6 +262,7 @@ export default function PharmacyPage() {
   // Save Prescription
   const handleSaveRx = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmittingRx(true);
     try {
       const payload = {
         patient_id: rxForm.patient_id ? Number(rxForm.patient_id) : 0,
@@ -288,6 +295,8 @@ export default function PharmacyPage() {
       fetchInventory(); // Stock level changed
     } catch (err) {
       toast({ variant: "destructive", title: "Error", description: "Failed to save prescription." });
+    } finally {
+      setIsSubmittingRx(false);
     }
   };
 
@@ -618,8 +627,11 @@ export default function PharmacyPage() {
             </div>
 
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsMedModalOpen(false)}>Cancel</Button>
-              <Button type="submit">Save Medicine</Button>
+              <Button type="button" variant="outline" onClick={() => setIsMedModalOpen(false)} disabled={isSubmittingMed}>Cancel</Button>
+              <Button type="submit" disabled={isSubmittingMed}>
+                {isSubmittingMed && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Save Medicine
+              </Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -636,31 +648,25 @@ export default function PharmacyPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="rx-patient">Patient</Label>
-                <select
-                  id="rx-patient"
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                <Combobox
+                  options={patients.map(p => ({ value: String(p.id), label: `${p.first_name} ${p.last_name} (${p.email})` }))}
                   value={rxForm.patient_id}
-                  onChange={(e) => setRxForm(prev => ({ ...prev, patient_id: e.target.value }))}
-                >
-                  <option value="">Select Patient...</option>
-                  {patients.map(p => (
-                    <option key={p.id} value={p.id}>{p.first_name} {p.last_name} ({p.email})</option>
-                  ))}
-                </select>
+                  onChange={(val) => setRxForm(prev => ({ ...prev, patient_id: val }))}
+                  placeholder="Select Patient..."
+                  searchPlaceholder="Search patients..."
+                  emptyMessage="No patient found."
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="rx-doctor">Doctor</Label>
-                <select
-                  id="rx-doctor"
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                <Combobox
+                  options={doctors.map(d => ({ value: String(d.id), label: `${d.name} (${d.role})` }))}
                   value={rxForm.doctor_id}
-                  onChange={(e) => setRxForm(prev => ({ ...prev, doctor_id: e.target.value }))}
-                >
-                  <option value="">Select Doctor...</option>
-                  {doctors.map(d => (
-                    <option key={d.id} value={d.id}>{d.name} ({d.role})</option>
-                  ))}
-                </select>
+                  onChange={(val) => setRxForm(prev => ({ ...prev, doctor_id: val }))}
+                  placeholder="Select Doctor..."
+                  searchPlaceholder="Search doctors..."
+                  emptyMessage="No doctor found."
+                />
               </div>
             </div>
 
@@ -767,8 +773,11 @@ export default function PharmacyPage() {
             </div>
 
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsRxModalOpen(false)}>Cancel</Button>
-              <Button type="submit">Issue Prescription</Button>
+              <Button type="button" variant="outline" onClick={() => setIsRxModalOpen(false)} disabled={isSubmittingRx}>Cancel</Button>
+              <Button type="submit" disabled={isSubmittingRx}>
+                {isSubmittingRx && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Issue Prescription
+              </Button>
             </DialogFooter>
           </form>
         </DialogContent>

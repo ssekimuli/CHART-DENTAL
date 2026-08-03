@@ -12,7 +12,8 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Trash, Loader2, Plus } from "lucide-react";
+import { Plus, Trash, Loader2 } from "lucide-react";
+import { Combobox } from "@/components/ui/combobox";
 import { useToast } from "@/hooks/use-toast";
 import { useCurrency } from "@/hooks/use-currency";
 import { getMedicines, getDoctorsList, updatePrescription } from "@/lib/api";
@@ -198,19 +199,14 @@ export function EditPrescriptionForm({
 
               <div className="space-y-2">
                 <Label htmlFor="doctor">Prescribing Doctor</Label>
-                <select
-                  id="doctor"
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                <Combobox
+                  options={doctors.map((doc) => ({ value: String(doc.id), label: `${doc.name} (${doc.role})` }))}
                   value={doctorId}
-                  onChange={(e) => setDoctorId(e.target.value)}
-                >
-                  <option value="">Select Doctor</option>
-                  {doctors.map((doc) => (
-                    <option key={doc.id} value={doc.id}>
-                      {doc.name} ({doc.role})
-                    </option>
-                  ))}
-                </select>
+                  onChange={setDoctorId}
+                  placeholder="Select a doctor"
+                  searchPlaceholder="Search doctors..."
+                  emptyMessage="No doctor found."
+                />
               </div>
             </div>
 
