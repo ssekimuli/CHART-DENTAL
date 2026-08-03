@@ -44,7 +44,7 @@ export default function InsuranceSetupPage() {
 
     // Add Policy Modal
     const [isAddPolicyModalOpen, setIsAddPolicyModalOpen] = useState(false);
-    const [policyData, setPolicyData] = useState({ insurance_package_id: "", policy_number: "", policy_type: "corporate", coverage_start_date: "", coverage_end_date: "", total_coverage_limit: "" });
+    const [policyData, setPolicyData] = useState({ insurance_package_id: "", policy_number: "", policy_type: "corporate", employer_or_group_name: "", coverage_start_date: "", coverage_end_date: "", total_coverage_limit: "" });
 
     // Map Procedures Modal
     const [isMappingModalOpen, setIsMappingModalOpen] = useState(false);
@@ -117,7 +117,7 @@ export default function InsuranceSetupPage() {
             await insuranceApi.addPolicy(policyData);
             await fetchData();
             setIsAddPolicyModalOpen(false);
-            setPolicyData({ insurance_package_id: "", policy_number: "", policy_type: "corporate", coverage_start_date: "", coverage_end_date: "", total_coverage_limit: "" });
+            setPolicyData({ insurance_package_id: "", policy_number: "", policy_type: "corporate", employer_or_group_name: "", coverage_start_date: "", coverage_end_date: "", total_coverage_limit: "" });
         } catch (error) {
             console.error("Failed to add policy", error);
             alert("Failed to add policy.");
@@ -523,12 +523,37 @@ export default function InsuranceSetupPage() {
                                                 <Input required className="col-span-3" value={policyData.policy_number} onChange={e => setPolicyData({...policyData, policy_number: e.target.value})} placeholder="e.g. POL-999" />
                                             </div>
                                             <div className="grid grid-cols-4 items-center gap-4">
+                                                <Label className="text-right">Type</Label>
+                                                <div className="col-span-3">
+                                                    <Select onValueChange={(v) => setPolicyData({...policyData, policy_type: v})} value={policyData.policy_type}>
+                                                        <SelectTrigger>
+                                                            <SelectValue />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="individual">Individual</SelectItem>
+                                                            <SelectItem value="family">Family</SelectItem>
+                                                            <SelectItem value="corporate">Corporate</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
+                                            </div>
+                                            {policyData.policy_type === 'corporate' && (
+                                                <div className="grid grid-cols-4 items-center gap-4">
+                                                    <Label className="text-right">Employer Name</Label>
+                                                    <Input className="col-span-3" value={policyData.employer_or_group_name} onChange={e => setPolicyData({...policyData, employer_or_group_name: e.target.value})} placeholder="e.g. TechCorp Inc." />
+                                                </div>
+                                            )}
+                                            <div className="grid grid-cols-4 items-center gap-4">
                                                 <Label className="text-right">Start Date *</Label>
                                                 <Input required type="date" className="col-span-3" value={policyData.coverage_start_date} onChange={e => setPolicyData({...policyData, coverage_start_date: e.target.value})} />
                                             </div>
                                             <div className="grid grid-cols-4 items-center gap-4">
                                                 <Label className="text-right">End Date *</Label>
                                                 <Input required type="date" className="col-span-3" value={policyData.coverage_end_date} onChange={e => setPolicyData({...policyData, coverage_end_date: e.target.value})} />
+                                            </div>
+                                            <div className="grid grid-cols-4 items-center gap-4">
+                                                <Label className="text-right">Overall Limit</Label>
+                                                <Input type="number" className="col-span-3" value={policyData.total_coverage_limit} onChange={e => setPolicyData({...policyData, total_coverage_limit: e.target.value})} placeholder="Optional Limit (e.g. 50000)" />
                                             </div>
                                         </div>
                                         <DialogFooter>
@@ -545,7 +570,9 @@ export default function InsuranceSetupPage() {
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead>Policy #</TableHead>
+                                        <TableHead>Employer / Group</TableHead>
                                         <TableHead>Type</TableHead>
+                                        <TableHead>Limit</TableHead>
                                         <TableHead>Dates</TableHead>
                                         <TableHead>Status</TableHead>
                                     </TableRow>
@@ -554,13 +581,15 @@ export default function InsuranceSetupPage() {
                                     {policies.map((pol) => (
                                         <TableRow key={pol.id}>
                                             <TableCell className="font-bold">{pol.policy_number}</TableCell>
+                                            <TableCell>{pol.employer_or_group_name || 'N/A'}</TableCell>
                                             <TableCell className="capitalize">{pol.policy_type}</TableCell>
+                                            <TableCell>{pol.total_coverage_limit ? `$${pol.total_coverage_limit}` : 'No Limit'}</TableCell>
                                             <TableCell>{pol.coverage_start_date} to {pol.coverage_end_date}</TableCell>
                                             <TableCell>{pol.status}</TableCell>
                                         </TableRow>
                                     ))}
                                     {policies.length === 0 && (
-                                        <TableRow><TableCell colSpan={4} className="text-center">No policies found.</TableCell></TableRow>
+                                        <TableRow><TableCell colSpan={6} className="text-center">No policies found.</TableCell></TableRow>
                                     )}
                                 </TableBody>
                             </Table>
