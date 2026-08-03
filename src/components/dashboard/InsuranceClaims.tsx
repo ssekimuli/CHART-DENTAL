@@ -142,7 +142,7 @@ export const InsuranceClaims = () => {
         const [claimsRes, statsRes, insurancesRes, patientsRes] = await Promise.all([
           customAxios.get('/insurance-claims'),
           customAxios.get('/insurance-claims/stats'),
-          customAxios.get('/patient-insurances'),
+          customAxios.get('/insurance/attached-policies'),
           customAxios.get('/patients')
         ]);
         setClaims(claimsRes.data);
@@ -215,45 +215,6 @@ export const InsuranceClaims = () => {
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold tracking-tight">Insurance & Claims</h2>
         <div className="space-x-2 flex">
-          <Dialog open={isPolicyModalOpen} onOpenChange={setIsPolicyModalOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline">+ Add Policy</Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Add Patient Insurance Policy</DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handlePolicySubmit} className="space-y-4">
-                <div className="space-y-2 flex flex-col">
-                  <Label>Patient</Label>
-                  <Combobox
-                    options={patients.map((p: any) => ({ value: String(p.id), label: `${p.first_name} ${p.last_name}` }))}
-                    value={policyFormData.patient_id}
-                    onChange={(val) => setPolicyFormData({...policyFormData, patient_id: String(val)})}
-                    placeholder="Search and select a patient..."
-                    searchPlaceholder="Search patients by name..."
-                    emptyMessage="No patient found."
-                    onSearchChange={handleSearchPatient}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Provider Name</Label>
-                  <Input required value={policyFormData.provider_name} onChange={(e) => setPolicyFormData({...policyFormData, provider_name: e.target.value})} placeholder="e.g. BlueCross" />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Policy Number</Label>
-                    <Input required value={policyFormData.policy_number} onChange={(e) => setPolicyFormData({...policyFormData, policy_number: e.target.value})} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Group Number</Label>
-                    <Input value={policyFormData.group_number} onChange={(e) => setPolicyFormData({...policyFormData, group_number: e.target.value})} />
-                  </div>
-                </div>
-                <Button type="submit" className="w-full">Save Policy</Button>
-              </form>
-            </DialogContent>
-          </Dialog>
 
           <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
             <DialogTrigger asChild>
