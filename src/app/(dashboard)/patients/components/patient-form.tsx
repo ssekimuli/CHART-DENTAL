@@ -4,7 +4,8 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, parse } from "date-fns";
+import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -34,18 +35,31 @@ import {
 import type { Patient, BasePatient } from "@/lib/types";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Loader2 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Textarea } from "@/components/ui/textarea";
+
+import PhoneInput from 'react-phone-number-input';
+import 'react-phone-number-input/style.css';
+import * as countries from "i18n-iso-countries";
+import enLocale from "i18n-iso-countries/langs/en.json";
+
+countries.registerLocale(enLocale);
+const countryObj = countries.getNames("en", { select: "official" });
+const countryList = Object.entries(countryObj).map(([code, name]) => ({
+  value: name,
+  label: name,
+})).sort((a, b) => a.label.localeCompare(b.label));
 
 const formSchema = z.object({
   first_name: z.string().min(2, "First name must be at least 2 characters."),
   last_name: z.string().min(2, "Last name must be at least 2 characters."),
-  email: z.string().email("Please enter a valid email."),
-  phone: z.string().optional(),
+  email: z.string().email("Please enter a valid email.").optional().or(z.literal('')),
+  phone: z.string().min(1, "Phone is required").regex(/^\+/, "Must start with country code (+)"),
+  nationality: z.string().optional(),
   address: z.string().optional(),
   gender: z.enum(['Male', 'Female', 'Other']).optional(),
-  dateOfBirth: z.date({ required_error: "A date of birth is required." }),
+  dateOfBirth: z.string().regex(/^\d{2}-\d{2}-\d{4}$/, "Date must be in DD-MM-YYYY format").min(10, "Required"),
   nextVisit: z.date().optional().nullable(),
   status: z.enum(['Active', 'Inactive']),
   history: z.string().optional(),
@@ -54,11 +68,14 @@ const formSchema = z.object({
 
 type PatientFormProps = {
     patient?: Patient;
-    onSave: (data: BasePatient) => void;
+    onSave: (data: BasePatient) => Promise<void> | void;
     onOpenChange: (open: boolean) => void;
+    asModal?: boolean;
 };
 
-export function PatientForm({ patient, onSave, onOpenChange }: PatientFormProps) {
+export function PatientForm({ patient, onSave, onOpenChange, asModal = true }: PatientFormProps) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -66,9 +83,10 @@ export function PatientForm({ patient, onSave, onOpenChange }: PatientFormProps)
         last_name: patient?.last_name ?? "",
         email: patient?.email ?? "",
         phone: patient?.phone ?? "",
+        nationality: patient?.nationality ?? "",
         address: patient?.address ?? "",
         gender: patient?.gender,
-        dateOfBirth: patient?.dateOfBirth ? parseISO(patient.dateOfBirth) : undefined,
+        dateOfBirth: patient?.dateOfBirth ? format(parseISO(patient.dateOfBirth), "dd-MM-yyyy") : "",
         nextVisit: patient?.nextVisit ? parseISO(patient.nextVisit) : undefined,
         status: patient?.status ?? 'Active',
         history: patient?.history ?? "",
@@ -76,35 +94,33 @@ export function PatientForm({ patient, onSave, onOpenChange }: PatientFormProps)
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    onSave({
-        first_name: values.first_name,
-        last_name: values.last_name,
-        email: values.email,
-        phone: values.phone,
-        address: values.address,
-        gender: values.gender,
-        status: values.status,
-        dateOfBirth: format(values.dateOfBirth, "yyyy-MM-dd"),
-        nextVisit: values.nextVisit ? format(values.nextVisit, "yyyy-MM-dd") : undefined,
-        history: values.history,
-        branchId: patient?.branchId ?? "",
-        avatar: values.avatar || `https://picsum.photos/seed/p${Math.random()}/200/200`,
-    });
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    setIsSubmitting(true);
+    try {
+        await onSave({
+            first_name: values.first_name,
+            last_name: values.last_name,
+            email: values.email,
+            phone: values.phone,
+            nationality: values.nationality,
+            address: values.address,
+            gender: values.gender,
+            status: values.status,
+            dateOfBirth: format(parse(values.dateOfBirth, "dd-MM-yyyy", new Date()), "yyyy-MM-dd"),
+            nextVisit: values.nextVisit ? format(values.nextVisit, "yyyy-MM-dd") : undefined,
+            history: values.history,
+            branchId: patient?.branchId ?? "",
+            avatar: values.avatar || `https://picsum.photos/seed/p${Math.random()}/200/200`,
+        });
+    } finally {
+        setIsSubmitting(false);
+    }
   }
 
-  return (
-    <Dialog open={true} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[550px]">
-            <DialogHeader>
-                <DialogTitle>{patient ? "Edit Patient" : "Add Patient"}</DialogTitle>
-                <DialogDescription>
-                    Fill out the details for the patient.
-                </DialogDescription>
-            </DialogHeader>
+  const formContent = (
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <FormField
                             control={form.control}
                             name="first_name"
@@ -131,8 +147,61 @@ export function PatientForm({ patient, onSave, onOpenChange }: PatientFormProps)
                                 </FormItem>
                             )}
                         />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                            control={form.control}
+                            name="dateOfBirth"
+                            render={({ field }) => (
+                                <FormItem className="flex flex-col">
+                                <FormLabel>Date of Birth</FormLabel>
+                                <FormControl>
+                                    <Input placeholder="DD-MM-YYYY" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="gender"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Gender</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <FormControl>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select gender" />
+                                    </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                        <SelectItem value="Male">Male</SelectItem>
+                                        <SelectItem value="Female">Female</SelectItem>
+                                        <SelectItem value="Other">Other</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="phone"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Phone</FormLabel>
+                                <FormControl>
+                                    <PhoneInput
+                                        international
+                                        defaultCountry="UG"
+                                        placeholder="Enter phone number"
+                                        value={field.value as any}
+                                        onChange={field.onChange}
+                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-within:outline-none focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 [&>input]:bg-transparent [&>input]:border-none [&>input]:outline-none [&>input]:ml-2"
+                                    />
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
                         <FormField
                             control={form.control}
                             name="email"
@@ -148,69 +217,45 @@ export function PatientForm({ patient, onSave, onOpenChange }: PatientFormProps)
                         />
                         <FormField
                             control={form.control}
-                            name="phone"
+                            name="nationality"
                             render={({ field }) => (
                                 <FormItem>
-                                <FormLabel>Phone</FormLabel>
-                                <FormControl>
-                                    <Input placeholder="e.g., +256700123456" {...field} />
-                                </FormControl>
+                                <FormLabel>Nationality</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={field.value || undefined}>
+                                    <FormControl>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select nationality" />
+                                    </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                        {countryList.map((country) => (
+                                            <SelectItem key={country.value} value={country.value}>
+                                                {country.label}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                                 <FormMessage />
                                 </FormItem>
                             )}
                         />
-                    </div>
-                    <FormField
-                        control={form.control}
-                        name="address"
-                        render={({ field }) => (
-                            <FormItem>
-                            <FormLabel>Address</FormLabel>
-                            <FormControl>
-                                <Input placeholder="e.g., Kampala, Uganda" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                     <div className="grid grid-cols-2 gap-4">
                         <FormField
                             control={form.control}
-                            name="dateOfBirth"
+                            name="status"
                             render={({ field }) => (
-                                <FormItem className="flex flex-col">
-                                <FormLabel>Date of Birth</FormLabel>
-                                <Popover>
-                                    <PopoverTrigger asChild>
+                                <FormItem>
+                                <FormLabel>Status</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
                                     <FormControl>
-                                        <Button
-                                        variant={"outline"}
-                                        className={cn(
-                                            "pl-3 text-left font-normal",
-                                            !field.value && "text-muted-foreground"
-                                        )}
-                                        >
-                                        {field.value ? (
-                                            format(field.value, "PPP")
-                                        ) : (
-                                            <span>Pick a date</span>
-                                        )}
-                                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                        </Button>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select status" />
+                                    </SelectTrigger>
                                     </FormControl>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-auto p-0" align="start">
-                                    <Calendar
-                                        mode="single"
-                                        selected={field.value}
-                                        onSelect={field.onChange}
-                                        captionLayout="dropdown-buttons"
-                                        fromYear={1930}
-                                        toYear={new Date().getFullYear()}
-                                        initialFocus
-                                    />
-                                    </PopoverContent>
-                                </Popover>
+                                    <SelectContent>
+                                        <SelectItem value="Active">Active</SelectItem>
+                                        <SelectItem value="Inactive">Inactive</SelectItem>
+                                    </SelectContent>
+                                </Select>
                                 <FormMessage />
                                 </FormItem>
                             )}
@@ -256,51 +301,21 @@ export function PatientForm({ patient, onSave, onOpenChange }: PatientFormProps)
                                 </FormItem>
                             )}
                         />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <FormField
-                            control={form.control}
-                            name="gender"
-                            render={({ field }) => (
-                                <FormItem>
-                                <FormLabel>Gender</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <div className="md:col-span-3">
+                            <FormField
+                                control={form.control}
+                                name="address"
+                                render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel>Address</FormLabel>
                                     <FormControl>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select gender" />
-                                    </SelectTrigger>
+                                        <Input placeholder="e.g., Kampala, Uganda" {...field} />
                                     </FormControl>
-                                    <SelectContent>
-                                        <SelectItem value="Male">Male</SelectItem>
-                                        <SelectItem value="Female">Female</SelectItem>
-                                        <SelectItem value="Other">Other</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                         <FormField
-                            control={form.control}
-                            name="status"
-                            render={({ field }) => (
-                                <FormItem>
-                                <FormLabel>Status</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                    <FormControl>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select status" />
-                                    </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                        <SelectItem value="Active">Active</SelectItem>
-                                        <SelectItem value="Inactive">Inactive</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                <FormMessage />
-                                </FormItem>
-                            )}
-                        />
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        </div>
                     </div>
                     <FormField
                         control={form.control}
@@ -319,12 +334,31 @@ export function PatientForm({ patient, onSave, onOpenChange }: PatientFormProps)
                             </FormItem>
                         )}
                     />
-                     <DialogFooter>
-                        <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-                        <Button type="submit">{patient ? "Save Changes" : "Create Patient"}</Button>
-                    </DialogFooter>
+                     <div className="flex justify-end space-x-2 pt-4">
+                        <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>Cancel</Button>
+                        <Button type="submit" disabled={isSubmitting}>
+                            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            {patient ? "Save Changes" : "Create Patient"}
+                        </Button>
+                    </div>
                 </form>
             </Form>
+  );
+
+  if (!asModal) {
+      return formContent;
+  }
+
+  return (
+    <Dialog open={true} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-[550px]">
+            <DialogHeader>
+                <DialogTitle>{patient ? "Edit Patient" : "Add Patient"}</DialogTitle>
+                <DialogDescription>
+                    Fill out the details for the patient.
+                </DialogDescription>
+            </DialogHeader>
+            {formContent}
         </DialogContent>
     </Dialog>
   );

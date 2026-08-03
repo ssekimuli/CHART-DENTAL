@@ -47,6 +47,7 @@ export type Patient = {
   avatar?: string;
   email: string;
   phone?: string;
+  nationality?: string;
   address?: string;
   gender?: 'Male' | 'Female' | 'Other';
   dateOfBirth: string;
@@ -177,6 +178,7 @@ export type Invoice = {
   id: string | number;
   patientName: string;
   patientId: string | number;
+  receiptNumber?: string;
   amount: number;
   paidAmount: number;
   status: 'Paid' | 'Pending' | 'Overdue';
@@ -278,6 +280,14 @@ export type Branch = {
   currency?: string;
 };
 
+export type Client = {
+    id: string | number;
+    name: string;
+    email?: string;
+    phone?: string;
+    address?: string;
+};
+
 export type InventoryItem = {
     id: string | number;
     name: string;
@@ -291,7 +301,8 @@ export type InventoryItem = {
 
 export type LaboratoryOrder = {
   id: string | number;
-  patientId: string | number;
+  clientId: string | number;
+  client?: Client;
   patientName: string;
   lab: string;
   item: string;
@@ -299,6 +310,14 @@ export type LaboratoryOrder = {
   status: 'Sent' | 'Received' | 'Completed' | 'Cancelled';
   sentDate: string;
   dueDate: string;
+  receivedDate?: string;
+  shade?: string;
+  material?: string;
+  instructions?: string;
+  cost?: number;
+  invoiceNumber?: string;
+  doctorId?: string | number;
+  doctor?: Employee;
   branchId: string | number;
 };
 

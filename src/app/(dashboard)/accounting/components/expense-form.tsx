@@ -1,6 +1,6 @@
-
 "use client";
 
+import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -34,7 +34,7 @@ import {
 import type { Expense, ExpenseCategory } from "@/lib/types";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Loader2 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -52,6 +52,8 @@ type ExpenseFormProps = {
 };
 
 export function ExpenseForm({ expense, onSave, onOpenChange }: ExpenseFormProps) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -62,11 +64,16 @@ export function ExpenseForm({ expense, onSave, onOpenChange }: ExpenseFormProps)
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    setIsSubmitting(true);
+    try {
     onSave({
       ...values,
       date: format(values.date, "yyyy-MM-dd"),
     });
+      } finally {
+      setIsSubmitting(false);
+    }
   }
 
   const categories: ExpenseCategory[] = ['Supplies', 'Rent', 'Utilities', 'Salaries', 'Marketing', 'Maintenance', 'Other'];
@@ -172,7 +179,10 @@ export function ExpenseForm({ expense, onSave, onOpenChange }: ExpenseFormProps)
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
-              <Button type="submit">{expense ? "Save Changes" : "Add Expense"}</Button>
+              <Button type="submit"  disabled={isSubmitting}>
+        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        {expense ? "Save Changes" : "Add Expense"}
+      </Button>
             </DialogFooter>
           </form>
         </Form>
