@@ -1,7 +1,6 @@
-
-
 "use client";
 
+import { Loader2 } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -55,6 +54,8 @@ type TreatmentPlanFormProps = {
 };
 
 export function TreatmentPlanForm({ treatment, onSave, onOpenChange, toothId, currentCondition }: TreatmentPlanFormProps) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const [systemTreatments, setSystemTreatments] = useState<SystemTreatment[]>([]);
   const { formatCurrency } = useCurrency();
   
@@ -111,7 +112,9 @@ export function TreatmentPlanForm({ treatment, onSave, onOpenChange, toothId, cu
       }
     }
   }, [selectedProcedureId, systemTreatments, form])
-  function onSubmit(values: z.infer<typeof formSchema>) {
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    setIsSubmitting(true);
+    try {
     const selectedSystemTreatment = systemTreatments.find(t => String(t.id) === String(values.procedureId));
     
     // When editing, it's okay if we can't find the system treatment (user may not have changed procedure)
@@ -123,6 +126,9 @@ export function TreatmentPlanForm({ treatment, onSave, onOpenChange, toothId, cu
         ...values,
         procedure: procedureName,
     }, values.condition);
+      } finally {
+      setIsSubmitting(false);
+    }
   }
 
   const isEditing = !!treatment;
@@ -244,7 +250,10 @@ export function TreatmentPlanForm({ treatment, onSave, onOpenChange, toothId, cu
                     </div>
                      <DialogFooter>
                         <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-                        <Button type="submit">{isEditing ? 'Save Changes' : 'Add Treatment'}</Button>
+                        <Button type="submit"  disabled={isSubmitting}>
+        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        {isEditing ? 'Save Changes' : 'Add Treatment'}
+      </Button>
                     </DialogFooter>
                 </form>
             </Form>

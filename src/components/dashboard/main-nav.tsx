@@ -34,6 +34,9 @@ import {
   DollarSign,
   Landmark,
   Pill,
+  Database,
+  History,
+  Handshake,
 } from "lucide-react";
 import type { EmployeeRole, Permission } from "@/lib/types";
 import { getCurrentUser, hasPermission, hasRole } from "@/lib/user";
@@ -55,9 +58,11 @@ const allLinks: NavLink[] = [
   { href: "/charting", label: "Charting", icon: FileText },
   { href: "/appointments", label: "Appointments", icon: Calendar },
   { href: "/billing", label: "Billing", icon: CreditCard },
+  { href: "/insurance", label: "Insurance & Claims", icon: Handshake },
   { href: "/pharmacy", label: "Pharmacy", icon: Pill },
   { href: "/accounting", label: "Accounting", icon: Landmark },
   { href: "/inventory", label: "Inventory", icon: Package },
+  { href: "/clients", label: "Clients", icon: Handshake, permission: 'laboratory:read' },
   { href: "/laboratory", label: "Laboratory", icon: FlaskConical, permission: 'laboratory:read' },
   { 
     label: "HRM", 
@@ -75,6 +80,8 @@ const allLinks: NavLink[] = [
   { href: "/branches", label: "Branches", icon: Building, permission: 'branches:read' },
   { href: "/reports", label: "Reports", icon: BarChart3 },
   { href: "/settings", label: "Settings", icon: Settings },
+  { href: "/activity-logs", label: "Activity Logs", icon: History },
+  { href: "/admin/migration", label: "Data Migration", icon: Database },
 ];
 
 export function MainNav() {
@@ -107,7 +114,10 @@ export function MainNav() {
     if ((newLink.href === '/inventory' || newLink.label === 'HRM' || newLink.href === '/reports') && !hasRole(['Super Admin', 'HR'])) {
         return null;
     }
-    if (newLink.href === '/settings' && !hasRole('Super Admin')) {
+    if ((newLink.href === '/settings' || newLink.href === '/activity-logs') && !hasRole('Super Admin')) {
+        return null;
+    }
+    if (newLink.href === '/admin/migration' && !hasRole('Super Admin')) {
         return null;
     }
 

@@ -205,7 +205,7 @@ export default function PatientsPage() {
                   setRefreshKey(prev => prev + 1);
                 }} 
               />
-              <Button onClick={() => handleOpenForm()}>
+              <Button onClick={() => router.push("/patients/new")}>
                 <PlusCircle className="mr-2 h-4 w-4" />
                 Add Patient
               </Button>

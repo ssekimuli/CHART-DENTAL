@@ -37,7 +37,7 @@ import {
 import type { Invoice, Patient, InvoiceTreatment, OtherCharge, SystemTreatment, PaymentMethod, Treatment, Medicine, InvoiceMedicine } from "@/lib/types";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { CalendarIcon, X, Check, Trash2, PlusCircle } from "lucide-react";
+import { CalendarIcon, X, Check, Trash2, PlusCircle, Loader2 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Combobox } from "@/components/ui/combobox";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
@@ -70,9 +70,12 @@ type InvoiceFormProps = {
     patients: Patient[];
     onSave: (data: Omit<Invoice, 'id' | 'patientName' | 'branchId' | 'amount' | 'paidAmount' >, treatments: InvoiceTreatment[]) => void;
     onOpenChange: (open: boolean) => void;
+    asModal?: boolean;
 };
 
-export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: InvoiceFormProps) {
+export function InvoiceForm({ invoice, patients, onSave, onOpenChange, asModal = true }: InvoiceFormProps) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const [selectedTreatments, setSelectedTreatments] = useState<InvoiceTreatment[]>([]);
   const [availableTreatments, setAvailableTreatments] = useState<SystemTreatment[]>([]);
   const [selectedMedicines, setSelectedMedicines] = useState<InvoiceMedicine[]>([]);
@@ -157,7 +160,9 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
     }
   }, [invoice, patientId]);
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    setIsSubmitting(true);
+    try {
     onSave({
         ...values,
         patientId: values.patientId || '',
@@ -167,6 +172,9 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
         issueDate: format(values.issueDate, "yyyy-MM-dd"),
         dueDate: format(values.dueDate, "yyyy-MM-dd"),
     }, selectedTreatments);
+      } finally {
+      setIsSubmitting(false);
+    }
   }
 
   const handleTreatmentToggle = (treatment: InvoiceTreatment) => {
@@ -237,18 +245,10 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
 
   const paymentMethods: PaymentMethod[] = ['Cash', 'Credit Card', 'Insurance', 'Bank Transfer', 'Refund'];
 
-  return (
-    <Dialog open={true} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col">
-            <DialogHeader>
-                <DialogTitle>{invoice ? 'Edit Invoice' : 'Create Invoice'}</DialogTitle>
-                <DialogDescriptionComponent>
-                   {invoice ? 'Update the details for the invoice.' : 'Select a patient and add treatments to the invoice.'}
-                </DialogDescriptionComponent>
-            </DialogHeader>
-            <div className="flex-grow overflow-y-auto pr-6 -mr-6">
+  const formContent = (
+            <div className={asModal ? "flex-grow overflow-y-auto pr-6 -mr-6" : ""}>
                 <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pr-1">
+                    <form onSubmit={form.handleSubmit(onSubmit)} className={asModal ? "space-y-4 pr-1" : "space-y-6"}>
                         <FormField
                             control={form.control}
                             name="patientId"
@@ -484,96 +484,16 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
                             </Button>
                         </div>
                         
-                        <div className="grid grid-cols-3 gap-4">
-                            <FormField
-                                control={form.control}
-                                name="discount"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Discount (%)</FormLabel>
-                                        <FormControl>
-                                            <Input type="number" placeholder="0" {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="tax"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Tax (%)</FormLabel>
-                                        <FormControl>
-                                            <Input type="number" placeholder="0" {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="insuranceCoverage"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Insurance Coverage (Amount)</FormLabel>
-                                        <FormControl>
-                                            <Input type="number" placeholder="0" {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            
+                            
+                            
+                            
+                            
+                            
+                            
                         </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                            <FormField
-                                control={form.control}
-                                name="status"
-                                render={({ field }) => (
-                                    <FormItem>
-                                    <FormLabel>Status</FormLabel>
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                        <FormControl>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Select status" />
-                                        </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                            <SelectItem value="Pending">Pending</SelectItem>
-                                            <SelectItem value="Paid">Paid</SelectItem>
-                                            <SelectItem value="Overdue">Overdue</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                             <FormField
-                                control={form.control}
-                                name="paymentMethod"
-                                render={({ field }) => (
-                                    <FormItem>
-                                    <FormLabel>Payment Method</FormLabel>
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                        <FormControl>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Select method" />
-                                        </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                            {paymentMethods.map(method => (
-                                                <SelectItem key={method} value={method}>{method}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                        </div>
-
-
                         <div className="rounded-md border p-4 space-y-2">
                             <div className="flex justify-between text-sm">
                                 <span className="text-muted-foreground">Subtotal (Treatments)</span>
@@ -620,92 +540,34 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange }: Invoice
                                 <span>{formatCurrency(balance)}</span>
                             </div>
                         </div>
-                        
-                        <div className="grid grid-cols-2 gap-4">
-                            <FormField
-                                control={form.control}
-                                name="issueDate"
-                                render={({ field }) => (
-                                    <FormItem className="flex flex-col">
-                                    <FormLabel>Issue Date</FormLabel>
-                                    <Popover>
-                                        <PopoverTrigger asChild>
-                                        <FormControl>
-                                            <Button
-                                            variant={"outline"}
-                                            className={cn(
-                                                "pl-3 text-left font-normal",
-                                                !field.value && "text-muted-foreground"
-                                            )}
-                                            >
-                                            {field.value ? (
-                                                format(field.value, "PPP")
-                                            ) : (
-                                                <span>Pick a date</span>
-                                            )}
-                                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                            </Button>
-                                        </FormControl>
-                                        </PopoverTrigger>
-                                        <PopoverContent className="w-auto p-0" align="start">
-                                        <Calendar
-                                            mode="single"
-                                            selected={field.value}
-                                            onSelect={field.onChange}
-                                            initialFocus
-                                        />
-                                        </PopoverContent>
-                                    </Popover>
-                                    <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="dueDate"
-                                render={({ field }) => (
-                                    <FormItem className="flex flex-col">
-                                    <FormLabel>Due Date</FormLabel>
-                                    <Popover>
-                                        <PopoverTrigger asChild>
-                                        <FormControl>
-                                            <Button
-                                            variant={"outline"}
-                                            className={cn(
-                                                "pl-3 text-left font-normal",
-                                                !field.value && "text-muted-foreground"
-                                            )}
-                                            >
-                                            {field.value ? (
-                                                format(field.value, "PPP")
-                                            ) : (
-                                                <span>Pick a date</span>
-                                            )}
-                                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                            </Button>
-                                        </FormControl>
-                                        </PopoverTrigger>
-                                        <PopoverContent className="w-auto p-0" align="start">
-                                        <Calendar
-                                            mode="single"
-                                            selected={field.value}
-                                            onSelect={field.onChange}
-                                            initialFocus
-                                        />
-                                        </PopoverContent>
-                                    </Popover>
-                                    <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                        </div>
-                        <DialogFooter className="sticky bottom-0 bg-background pt-4 -mx-6 px-6 pb-6 border-t">
+                        <div className={cn("flex justify-end space-x-2 pt-4", asModal ? "sticky bottom-0 bg-background -mx-6 px-6 pb-6 border-t" : "")}>
+        
                             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-                            <Button type="submit" disabled={selectedTreatments.length === 0 && otherChargesTotal <= 0 && !invoice}>{invoice ? 'Save Changes' : 'Create Invoice'}</Button>
-                        </DialogFooter>
+                            <Button type="submit"  disabled={selectedTreatments.length === 0 && otherChargesTotal <= 0 && !invoice || isSubmitting}>
+        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        {invoice ? 'Save Changes' : 'Create Invoice'}
+      </Button>
+                        
+    </div>
                     </form>
                 </Form>
             </div>
+  );
+
+  if (!asModal) {
+      return formContent;
+  }
+
+  return (
+    <Dialog open={true} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col">
+            <DialogHeader>
+                <DialogTitle>{invoice ? 'Edit Invoice' : 'Create Invoice'}</DialogTitle>
+                <DialogDescriptionComponent>
+                   {invoice ? 'Update the details for the invoice.' : 'Select a patient and add treatments to the invoice.'}
+                </DialogDescriptionComponent>
+            </DialogHeader>
+            {formContent}
         </DialogContent>
     </Dialog>
   );

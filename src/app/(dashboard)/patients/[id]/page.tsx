@@ -2,6 +2,7 @@
 "use client";
 
 import { notFound, useRouter } from "next/navigation";
+import customAxios from "@/lib/axios";
 import {
   Card,
   CardContent,
@@ -24,7 +25,8 @@ import { Badge } from "@/components/ui/badge";
 import { useEffect, useState, use } from "react";
 import type { Patient, Treatment, BasePatient, PatientImage, DentalCondition, SystemTreatment } from "@/lib/types";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Trash, Pencil, FileText, Loader2, Upload, MoreHorizontal, HandCoins, Search } from "lucide-react";
+import { PlusCircle, Trash, Pencil, FileText, Loader2, Upload, MoreHorizontal, HandCoins, Search, Send, Mail, MessageCircle } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { TreatmentPlanForm } from "./components/treatment-plan-form";
 import { PatientForm } from "../components/patient-form";
 import { PrescriptionForm } from "./components/prescription-form";
@@ -37,6 +39,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -46,7 +56,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { deletePatient, getPatientById, updatePatient, addTreatment, updateTreatment, deleteTreatment, addImageToPatient, getTreatments, getPatientInvoices, processPayment, getPatientPrescriptions, deletePrescription, getPatientImages } from "@/lib/api";
+import { deletePatient, getPatientById, updatePatient, addTreatment, updateTreatment, deleteTreatment, addImageToPatient, getTreatments, getPatientInvoices, processPayment, getPatientPrescriptions, deletePrescription, getPatientImages, sendPatientDocuments } from "@/lib/api";
 import { Input } from "@/components/ui/input";
 import { ImageUploadForm } from "./components/image-upload-form";
 import { hasPermission, getCurrentUser, hasRole } from "@/lib/user";
@@ -71,6 +81,12 @@ export default function PatientDetailPage({
   const [prescriptions, setPrescriptions] = useState<any[]>([]);
   const [patientImages, setPatientImages] = useState<PatientImage[]>([]);
   const [imageSearchQuery, setImageSearchQuery] = useState("");
+  const [selectedDocumentIds, setSelectedDocumentIds] = useState<number[]>([]);
+  const [isSendingDocs, setIsSendingDocs] = useState(false);
+  const [isSendDocDialogOpen, setIsSendDocDialogOpen] = useState(false);
+  const [sendDocChannel, setSendDocChannel] = useState<'email' | 'whatsapp'>('email');
+  const [sendDocRecipient, setSendDocRecipient] = useState('');
+  const [sendDocMessage, setSendDocMessage] = useState('');
   const [isLoading, setIsLoading] = useState(true);
 
   const [isTreatmentFormOpen, setIsTreatmentFormOpen] = useState(false);
@@ -86,6 +102,51 @@ export default function PatientDetailPage({
   const [isRxFormOpen, setIsRxFormOpen] = useState(false);
   const [isEditRxFormOpen, setIsEditRxFormOpen] = useState(false);
   const [selectedPrescription, setSelectedPrescription] = useState<any | null>(null);
+  
+  // Claim form states
+  const [isClaimFormOpen, setIsClaimFormOpen] = useState(false);
+  const [selectedInvoiceForClaim, setSelectedInvoiceForClaim] = useState<any>(null);
+  const [patientInsurances, setPatientInsurances] = useState<any[]>([]);
+  const [claimFormData, setClaimFormData] = useState({
+    patient_insurance_id: '',
+    claim_number: '',
+    total_amount: '',
+    claimed_amount: '',
+    status: 'pending'
+  });
+
+  const handleOpenClaimForm = async (invoice: any) => {
+    setSelectedInvoiceForClaim(invoice);
+    try {
+      const res = await customAxios.get('/patient-insurances');
+      const policies = res.data.filter((ins: any) => String(ins.patient_id) === String(patient?.id));
+      setPatientInsurances(policies);
+    } catch (e) {
+      console.error(e);
+    }
+    setClaimFormData({
+      patient_insurance_id: '',
+      claim_number: `CLM-${Math.floor(1000 + Math.random() * 9000)}`,
+      total_amount: invoice.amount,
+      claimed_amount: invoice.amount,
+      status: 'pending'
+    });
+    setIsClaimFormOpen(true);
+  };
+
+  const handleClaimSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await customAxios.post('/insurance-claims', {
+        ...claimFormData,
+        invoice_id: selectedInvoiceForClaim.id
+      });
+      toast({ title: 'Success', description: 'Claim generated successfully!' });
+      setIsClaimFormOpen(false);
+    } catch (error) {
+      toast({ title: 'Error', description: 'Failed to generate claim.', variant: 'destructive' });
+    }
+  };
 
   const handleOpenPaymentForm = (invoice: any) => {
     setSelectedInvoice(invoice);
@@ -130,6 +191,33 @@ export default function PatientDetailPage({
         toast({ title: "Error", description: "Failed to delete prescription.", variant: "destructive" });
       }
     }
+  };
+
+  const toggleDocumentSelection = (docId: number) => {
+    setSelectedDocumentIds(prev => 
+      prev.includes(docId) ? prev.filter(id => id !== docId) : [...prev, docId]
+    );
+  };
+
+  const handleOpenSendDocDialog = (channel: 'email' | 'whatsapp') => {
+    setSendDocChannel(channel);
+    setSendDocRecipient(channel === 'email' ? (patient?.email || '') : (patient?.phone || ''));
+    setSendDocMessage('');
+    setIsSendDocDialogOpen(true);
+  };
+
+  const handleSendDocuments = async () => {
+    if (selectedDocumentIds.length === 0 || !sendDocRecipient) return;
+    setIsSendingDocs(true);
+    const success = await sendPatientDocuments(id as string, selectedDocumentIds, sendDocChannel, sendDocRecipient, sendDocMessage);
+    if (success) {
+      toast({ title: "Sent", description: `Documents successfully sent via ${sendDocChannel === 'email' ? 'Email' : 'WhatsApp'}.` });
+      setSelectedDocumentIds([]);
+      setIsSendDocDialogOpen(false);
+    } else {
+      toast({ title: "Failed", description: "Failed to send documents.", variant: "destructive" });
+    }
+    setIsSendingDocs(false);
   };
 
   const canUpdatePatient = hasPermission('patients:update');
@@ -332,12 +420,26 @@ export default function PatientDetailPage({
                     Images, X-Rays, and other patient documents.
                   </CardDescription>
                 </div>
-                 {canUpdatePatient && (
+                <div className="flex items-center gap-2">
+                  {selectedDocumentIds.length > 0 && (
+                    <>
+                      <Button variant="outline" size="sm" onClick={() => handleOpenSendDocDialog('email')} disabled={isSendingDocs}>
+                        <Mail className="mr-2 h-4 w-4" />
+                        Email Docs ({selectedDocumentIds.length})
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => handleOpenSendDocDialog('whatsapp')} disabled={isSendingDocs}>
+                        <MessageCircle className="mr-2 h-4 w-4" />
+                        WhatsApp Docs ({selectedDocumentIds.length})
+                      </Button>
+                    </>
+                  )}
+                  {canUpdatePatient && (
                       <Button size="sm" onClick={() => setIsImageFormOpen(true)}>
                       <Upload className="mr-2 h-4 w-4" />
                       Upload Document
                       </Button>
-                 )}
+                  )}
+                </div>
               </CardHeader>
               <CardContent>
                 <Tabs defaultValue="Image">
@@ -368,6 +470,13 @@ export default function PatientDetailPage({
                               className="aspect-video h-auto w-full object-cover"
                               data-ai-hint="dental xray"
                             />
+                            <div className="absolute top-2 left-2 z-10">
+                              <Checkbox 
+                                checked={selectedDocumentIds.includes(image.id as number)}
+                                onCheckedChange={() => toggleDocumentSelection(image.id as number)}
+                                className="bg-white/80 data-[state=checked]:bg-primary"
+                              />
+                            </div>
                              <div className="absolute bottom-0 left-0 right-0 bg-black/50 p-2 text-white opacity-0 transition-opacity group-hover:opacity-100">
                                 <p className="text-xs font-bold">{image.description}</p>
                                 <p className="text-xs">{image.date}</p>
@@ -474,6 +583,10 @@ export default function PatientDetailPage({
                                 <DropdownMenuItem onClick={() => handleOpenPaymentForm(invoice)} disabled={invoice.status === 'Paid'}>
                                   <HandCoins className="mr-2 h-4 w-4" />
                                   Pay
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleOpenClaimForm(invoice)}>
+                                  <FileText className="mr-2 h-4 w-4" />
+                                  File Claim
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
@@ -607,6 +720,49 @@ export default function PatientDetailPage({
           onOpenChange={handleClosePaymentForm}
         />
       )}
+      
+      <Dialog open={isClaimFormOpen} onOpenChange={setIsClaimFormOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>File Insurance Claim for Invoice #{selectedInvoiceForClaim?.id}</DialogTitle>
+            <DialogDescription>Create a claim linked directly to this invoice.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleClaimSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Patient Insurance Policy</label>
+              <select 
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+                value={claimFormData.patient_insurance_id}
+                onChange={(e) => setClaimFormData({...claimFormData, patient_insurance_id: e.target.value})}
+                required
+              >
+                <option value="">Select a policy...</option>
+                {patientInsurances.map((ins: any) => (
+                  <option key={ins.id} value={ins.id}>
+                    {ins.provider_name} ({ins.policy_number})
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Claim Number</label>
+              <Input required value={claimFormData.claim_number} onChange={(e) => setClaimFormData({...claimFormData, claim_number: e.target.value})} placeholder="CLM-XXXX" />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Total Invoice Amount</label>
+                <Input required type="number" step="0.01" value={claimFormData.total_amount} onChange={(e) => setClaimFormData({...claimFormData, total_amount: e.target.value})} />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Claimed Amount</label>
+                <Input required type="number" step="0.01" value={claimFormData.claimed_amount} onChange={(e) => setClaimFormData({...claimFormData, claimed_amount: e.target.value})} />
+              </div>
+            </div>
+            <Button type="submit" className="w-full">Submit Claim</Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+      
       {isRxFormOpen && patient && (
         <PrescriptionForm
           patientId={patient.id}
@@ -642,6 +798,49 @@ export default function PatientDetailPage({
           }}
         />
       )}
+      
+      <Dialog open={isSendDocDialogOpen} onOpenChange={setIsSendDocDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Send Documents via {sendDocChannel === 'email' ? 'Email' : 'WhatsApp'}</DialogTitle>
+            <DialogDescription>
+              Sending {selectedDocumentIds.length} document(s). You can specify a custom recipient and add an optional message.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <label htmlFor="recipient" className="text-sm font-medium leading-none">
+                {sendDocChannel === 'email' ? 'Email Address' : 'WhatsApp Number (Intl format, no +)'}
+              </label>
+              <Input
+                id="recipient"
+                value={sendDocRecipient}
+                onChange={(e) => setSendDocRecipient(e.target.value)}
+                placeholder={sendDocChannel === 'email' ? 'patient@example.com' : '256701234567'}
+              />
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="message" className="text-sm font-medium leading-none">
+                Custom Message (Optional)
+              </label>
+              <textarea
+                id="message"
+                value={sendDocMessage}
+                onChange={(e) => setSendDocMessage(e.target.value)}
+                placeholder="Type an optional message..."
+                className="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsSendDocDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleSendDocuments} disabled={!sendDocRecipient || isSendingDocs}>
+              {isSendingDocs && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Send Now
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
