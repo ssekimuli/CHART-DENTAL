@@ -6,6 +6,18 @@ export const insuranceApi = {
   addCompany: (data: { name: string, code: string, email?: string, phone?: string }) => 
     customAxios.post('/insurance/companies', data),
   
+  getPackages: (companyId?: number) => 
+    customAxios.get('/insurance/packages', { params: { company_id: companyId } }),
+    
+  addPackage: (data: any) => 
+    customAxios.post('/insurance/packages', data),
+    
+  getPolicies: (packageId?: number) => 
+    customAxios.get('/insurance/policies', { params: { package_id: packageId } }),
+    
+  addPolicy: (data: any) => 
+    customAxios.post('/insurance/policies', data),
+  
   
   getPatientPolicies: (patientId: number) => 
     customAxios.get(`/insurance/patients/${patientId}/policies`),
