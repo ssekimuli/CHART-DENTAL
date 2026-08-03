@@ -45,6 +45,9 @@ export const insuranceApi = {
     
   attachPolicyToPatient: (patientId: number, data: any) => 
     customAxios.post(`/insurance/patients/${patientId}/policies`, data),
+
+  removePolicyFromPatient: (patientId: number, pivotId: number) => 
+    customAxios.delete(`/insurance/patients/${patientId}/policies/${pivotId}`),
     
   setPrimaryPolicy: (patientId: number, pivotId: number) => 
     customAxios.patch(`/insurance/patients/${patientId}/policies/${pivotId}/primary`),

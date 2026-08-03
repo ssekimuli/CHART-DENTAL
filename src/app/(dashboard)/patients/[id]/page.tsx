@@ -579,7 +579,7 @@ export default function PatientDetailPage({
                           <TableCell>
                             <Badge variant={ins.pivot.status === 'active' ? 'default' : 'secondary'}>{ins.pivot.status}</Badge>
                           </TableCell>
-                          <TableCell className="text-right">
+                          <TableCell className="text-right space-x-2">
                             {!ins.pivot.is_primary && (
                                 <Button 
                                     variant="outline" 
@@ -592,6 +592,18 @@ export default function PatientDetailPage({
                                     Make Primary
                                 </Button>
                             )}
+                            <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={async () => {
+                                    if(confirm("Are you sure you want to remove this policy from this patient?")) {
+                                        await insuranceApi.removePolicyFromPatient(Number(id), ins.pivot.id);
+                                        fetchPatientInsurances();
+                                    }
+                                }}
+                            >
+                                <Trash className="h-4 w-4" />
+                            </Button>
                           </TableCell>
                         </TableRow>
                       ))}
