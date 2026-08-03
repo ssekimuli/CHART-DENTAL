@@ -33,9 +33,10 @@ type ComboboxProps<T> = {
     placeholder?: string;
     searchPlaceholder?: string;
     emptyMessage?: string;
+    onSearchChange?: (search: string) => void;
 }
 
-export function Combobox<T extends string | number>({ options, value, onChange, placeholder, searchPlaceholder, emptyMessage }: ComboboxProps<T>) {
+export function Combobox<T extends string | number>({ options, value, onChange, placeholder, searchPlaceholder, emptyMessage, onSearchChange }: ComboboxProps<T>) {
   const [open, setOpen] = React.useState(false)
 
   // Group options if categories exist
@@ -68,7 +69,7 @@ export function Combobox<T extends string | number>({ options, value, onChange, 
       </PopoverTrigger>
       <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
         <Command>
-          <CommandInput placeholder={searchPlaceholder ?? "Search..."} />
+          <CommandInput placeholder={searchPlaceholder ?? "Search..."} onValueChange={onSearchChange} />
           <CommandList className="max-h-[300px] overflow-y-auto">
             <CommandEmpty>{emptyMessage ?? "No results found."}</CommandEmpty>
             {Object.entries(groupedOptions).map(([category, items]) => (
