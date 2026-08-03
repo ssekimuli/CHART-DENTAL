@@ -1,10 +1,10 @@
-
 "use client";
 
+import { Loader2 } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import React from "react";
+import React, { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -47,6 +47,8 @@ type PaymentFormProps = {
 };
 
 export function PaymentForm({ invoice, onSave, onOpenChange }: PaymentFormProps) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const { formatCurrency } = useCurrency();
   const balance = Number(invoice.amount) - Number(invoice.paidAmount);
 
@@ -58,8 +60,13 @@ export function PaymentForm({ invoice, onSave, onOpenChange }: PaymentFormProps)
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    setIsSubmitting(true);
+    try {
     onSave(String(invoice.id), values.paymentAmount, values.paymentMethod);
+      } finally {
+      setIsSubmitting(false);
+    }
   }
 
   const paymentMethods: PaymentMethod[] = ['Cash', 'Credit Card', 'Insurance', 'Bank Transfer', 'Refund'];
@@ -112,7 +119,10 @@ export function PaymentForm({ invoice, onSave, onOpenChange }: PaymentFormProps)
                     />
                     <DialogFooter>
                         <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-                        <Button type="submit">Submit Payment</Button>
+                        <Button type="submit"  disabled={isSubmitting}>
+        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        Submit Payment
+      </Button>
                     </DialogFooter>
                 </form>
             </Form>

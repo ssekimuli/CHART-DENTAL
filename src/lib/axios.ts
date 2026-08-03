@@ -3,15 +3,13 @@ import { getAuthToken, clearCurrentUser } from './user';
 import { toast } from '@/hooks/use-toast';
 
 const customAxios = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_BACKEND_URL ||'https://oasisdentalapi.poslycloud.com/api',
+  baseURL: process.env.NEXT_PUBLIC_BACKEND_URL ||'https://stagingapi.poslycloud.com/api',
 
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
   },
 });
-
-// Add a request interceptor to include the auth token
 
 customAxios.interceptors.request.use(
   (config) => {
@@ -50,9 +48,9 @@ customAxios.interceptors.response.use(
         });
 
         // Redirect to login page
-        if (typeof window !== 'undefined') {
-          window.location.href = '/login';
-        }
+        // if (typeof window !== 'undefined') {
+        //   window.location.href = '/login';
+        // }
 
         return Promise.reject(error);
       }
