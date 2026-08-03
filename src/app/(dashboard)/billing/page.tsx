@@ -414,8 +414,9 @@ export default function BillingPage() {
                 <TableHead>Patient</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Issue Date</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Paid Amount</TableHead>
+                <TableHead>Total Bill</TableHead>
+                <TableHead>Ins. Portion</TableHead>
+                <TableHead>Pat. Portion</TableHead>
                 <TableHead>Balance</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -442,8 +443,23 @@ export default function BillingPage() {
                     {formatDate(invoice.issueDate)}
                   </TableCell>
                   <TableCell>{formatCurrency(invoice.amount)}</TableCell>
-                  <TableCell>{formatCurrency(invoice.paidAmount)}</TableCell>
-                  <TableCell>{formatCurrency(invoice.amount - invoice.paidAmount)}</TableCell>
+                  <TableCell className="text-blue-600 font-medium">
+                    {formatCurrency(invoice.insuranceResponsibility || 0)}
+                  </TableCell>
+                  <TableCell>
+                    {formatCurrency(invoice.patientResponsibility || invoice.amount)}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex flex-col text-sm">
+                      <span className="font-semibold text-red-600">{formatCurrency(invoice.amount - invoice.paidAmount)}</span>
+                      {((invoice.insuranceResponsibility || 0) > 0) && (
+                        <span className="text-xs text-muted-foreground mt-1">
+                          Pat: {formatCurrency(invoice.patientBalance || (invoice.patientResponsibility! - invoice.patientPaidAmount!))} <br/>
+                          Ins: {formatCurrency(invoice.insuranceBalance || (invoice.insuranceResponsibility! - invoice.insurancePaidAmount!))}
+                        </span>
+                      )}
+                    </div>
+                  </TableCell>
                   <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>

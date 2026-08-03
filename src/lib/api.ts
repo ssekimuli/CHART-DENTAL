@@ -801,6 +801,12 @@ export const getInvoices = async (filters?: {
             discount: Number(inv.discount || 0),
             tax: Number(inv.tax || 0),
             insuranceCoverage: Number(inv.insurance_coverage || 0),
+            patientResponsibility: Number(inv.patient_responsibility || 0),
+            insuranceResponsibility: Number(inv.insurance_responsibility || 0),
+            patientPaidAmount: Number(inv.patient_paid_amount || 0),
+            insurancePaidAmount: Number(inv.insurance_paid_amount || 0),
+            patientBalance: Number(inv.patient_balance || 0),
+            insuranceBalance: Number(inv.insurance_balance || 0),
             branch: inv.branch ? {
                 id: inv.branch.id,
                 name: inv.branch.name,

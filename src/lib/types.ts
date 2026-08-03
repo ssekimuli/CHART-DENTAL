@@ -194,6 +194,12 @@ export type Invoice = {
   discount?: number;
   tax?: number;
   insuranceCoverage?: number;
+  patientResponsibility?: number;
+  insuranceResponsibility?: number;
+  patientPaidAmount?: number;
+  insurancePaidAmount?: number;
+  patientBalance?: number;
+  insuranceBalance?: number;
 };
 
 export type ChartData = {
