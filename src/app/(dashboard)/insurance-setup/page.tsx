@@ -48,6 +48,7 @@ export default function InsuranceSetupPage() {
 
     // Map Procedures Modal
     const [isMappingModalOpen, setIsMappingModalOpen] = useState(false);
+    const [procedurePopoverOpen, setProcedurePopoverOpen] = useState(false);
     const [selectedPackage, setSelectedPackage] = useState<any>(null);
     const [packageTreatments, setPackageTreatments] = useState<any[]>([]);
     const [mappingData, setMappingData] = useState({ procedure_id: "", coverage_type: "percentage", coverage_value: "100" });
@@ -72,7 +73,7 @@ export default function InsuranceSetupPage() {
             setCompanies(compRes.data?.data || []);
             setPackages(packRes.data?.data || []);
             setPolicies(polRes.data?.data || []);
-            setProcedures(procRes.data?.data || []);
+            setProcedures(Array.isArray(procRes.data) ? procRes.data : (procRes.data?.data || []));
         } catch (error) {
             console.error("Failed to load insurance data", error);
         }
@@ -386,16 +387,52 @@ export default function InsuranceSetupPage() {
                                 <form onSubmit={handleAddMapping} className="flex gap-4 items-end bg-muted/50 p-4 rounded-lg">
                                     <div className="grid gap-2 flex-1">
                                         <Label>Procedure</Label>
-                                        <Select onValueChange={(v) => setMappingData({...mappingData, procedure_id: v})} required value={mappingData.procedure_id}>
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Select Procedure" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {procedures.map(p => (
-                                                    <SelectItem key={p.id} value={String(p.id)}>{p.name} ({p.code})</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
+                                        <Popover open={procedurePopoverOpen} onOpenChange={setProcedurePopoverOpen}>
+                                            <PopoverTrigger asChild>
+                                                <Button
+                                                    variant="outline"
+                                                    role="combobox"
+                                                    aria-expanded={procedurePopoverOpen}
+                                                    className="w-full justify-between"
+                                                >
+                                                    {mappingData.procedure_id
+                                                        ? (() => {
+                                                            const p = procedures.find((c) => String(c.id) === mappingData.procedure_id);
+                                                            return p ? `${p.procedure} (${p.treatment_code || 'N/A'})` : "Search procedure...";
+                                                        })()
+                                                        : "Search procedure..."}
+                                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                                </Button>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-[300px] p-0" style={{ zIndex: 9999 }}>
+                                                <Command>
+                                                    <CommandInput placeholder="Search procedure..." />
+                                                    <CommandEmpty>No procedure found.</CommandEmpty>
+                                                    <CommandList>
+                                                        <CommandGroup>
+                                                            {procedures.map((p) => (
+                                                                <CommandItem
+                                                                    key={p.id}
+                                                                    value={p.procedure}
+                                                                    onSelect={() => {
+                                                                        setMappingData({ ...mappingData, procedure_id: String(p.id) });
+                                                                        setProcedurePopoverOpen(false);
+                                                                    }}
+                                                                >
+                                                                    <Check
+                                                                        className={cn(
+                                                                            "mr-2 h-4 w-4",
+                                                                            mappingData.procedure_id === String(p.id) ? "opacity-100" : "opacity-0"
+                                                                        )}
+                                                                    />
+                                                                    {p.procedure} ({p.treatment_code || 'N/A'})
+                                                                </CommandItem>
+                                                            ))}
+                                                        </CommandGroup>
+                                                    </CommandList>
+                                                </Command>
+                                            </PopoverContent>
+                                        </Popover>
                                     </div>
                                     <div className="grid gap-2 w-32">
                                         <Label>Type</Label>
@@ -428,7 +465,7 @@ export default function InsuranceSetupPage() {
                                     <TableBody>
                                         {packageTreatments.map((pt) => (
                                             <TableRow key={pt.id}>
-                                                <TableCell>{pt.procedure?.name}</TableCell>
+                                                <TableCell>{pt.procedure?.procedure || pt.procedure?.name}</TableCell>
                                                 <TableCell className="capitalize">{pt.coverage_type.replace('_', ' ')}</TableCell>
                                                 <TableCell>
                                                     {pt.coverage_type === 'percentage' ? `${pt.coverage_value}%` : `$${pt.coverage_value}`}
