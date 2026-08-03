@@ -162,6 +162,33 @@ export default function InsuranceSetupPage() {
         }
     };
 
+    const handleCompanyStatusChange = async (id: number, status: string) => {
+        try {
+            await insuranceApi.updateCompanyStatus(id, status);
+            setCompanies(companies.map(c => c.id === id ? { ...c, status } : c));
+        } catch (error) {
+            console.error("Failed to update status", error);
+        }
+    };
+
+    const handlePackageStatusChange = async (id: number, status: string) => {
+        try {
+            await insuranceApi.updatePackageStatus(id, status);
+            setPackages(packages.map(p => p.id === id ? { ...p, status } : p));
+        } catch (error) {
+            console.error("Failed to update status", error);
+        }
+    };
+
+    const handlePolicyStatusChange = async (id: number, status: string) => {
+        try {
+            await insuranceApi.updatePolicyStatus(id, status);
+            setPolicies(policies.map(p => p.id === id ? { ...p, status } : p));
+        } catch (error) {
+            console.error("Failed to update status", error);
+        }
+    };
+
     return (
         <div className="flex-1 space-y-4 p-8 pt-6">
             <div className="flex items-center justify-between space-y-2">
@@ -245,7 +272,17 @@ export default function InsuranceSetupPage() {
                                                 <TableCell className="font-bold">{company.code}</TableCell>
                                                 <TableCell>{company.name}</TableCell>
                                                 <TableCell>{company.email || 'N/A'}</TableCell>
-                                                <TableCell>{company.status}</TableCell>
+                                                <TableCell>
+                                                    <Select value={company.status} onValueChange={(v) => handleCompanyStatusChange(company.id, v)}>
+                                                        <SelectTrigger className="w-[120px] h-8 text-xs">
+                                                            <SelectValue />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="active">Active</SelectItem>
+                                                            <SelectItem value="inactive">Inactive</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                </TableCell>
                                             </TableRow>
                                         ))
                                     )}
@@ -360,7 +397,17 @@ export default function InsuranceSetupPage() {
                                             <TableCell className="font-bold">{pkg.code}</TableCell>
                                             <TableCell>{pkg.name}</TableCell>
                                             <TableCell>{pkg.default_coverage_percentage}%</TableCell>
-                                            <TableCell>{pkg.status}</TableCell>
+                                            <TableCell>
+                                                <Select value={pkg.status} onValueChange={(v) => handlePackageStatusChange(pkg.id, v)}>
+                                                    <SelectTrigger className="w-[120px] h-8 text-xs">
+                                                        <SelectValue />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="active">Active</SelectItem>
+                                                        <SelectItem value="inactive">Inactive</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            </TableCell>
                                             <TableCell className="text-right">
                                                 <Button variant="outline" size="sm" onClick={() => openMappingModal(pkg)}>
                                                     Map Coverages
@@ -585,7 +632,20 @@ export default function InsuranceSetupPage() {
                                             <TableCell className="capitalize">{pol.policy_type}</TableCell>
                                             <TableCell>{pol.total_coverage_limit ? `$${pol.total_coverage_limit}` : 'No Limit'}</TableCell>
                                             <TableCell>{pol.coverage_start_date} to {pol.coverage_end_date}</TableCell>
-                                            <TableCell>{pol.status}</TableCell>
+                                            <TableCell>
+                                                <Select value={pol.status} onValueChange={(v) => handlePolicyStatusChange(pol.id, v)}>
+                                                    <SelectTrigger className="w-[120px] h-8 text-xs">
+                                                        <SelectValue />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="pending">Pending</SelectItem>
+                                                        <SelectItem value="active">Active</SelectItem>
+                                                        <SelectItem value="suspended">Suspended</SelectItem>
+                                                        <SelectItem value="expired">Expired</SelectItem>
+                                                        <SelectItem value="cancelled">Cancelled</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            </TableCell>
                                         </TableRow>
                                     ))}
                                     {policies.length === 0 && (

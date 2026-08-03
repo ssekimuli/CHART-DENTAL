@@ -6,11 +6,17 @@ export const insuranceApi = {
   addCompany: (data: { name: string, code: string, email?: string, phone?: string }) => 
     customAxios.post('/insurance/companies', data),
   
+  updateCompanyStatus: (id: number, status: string) =>
+    customAxios.patch(`/insurance/companies/${id}/status`, { status }),
+
   getPackages: (companyId?: number) => 
     customAxios.get('/insurance/packages', { params: { company_id: companyId } }),
     
   addPackage: (data: any) => 
     customAxios.post('/insurance/packages', data),
+    
+  updatePackageStatus: (id: number, status: string) =>
+    customAxios.patch(`/insurance/packages/${id}/status`, { status }),
     
   getPackageTreatments: (packageId: number) => 
     customAxios.get(`/insurance/packages/${packageId}/treatments`),
@@ -26,6 +32,9 @@ export const insuranceApi = {
     
   addPolicy: (data: any) => 
     customAxios.post('/insurance/policies', data),
+    
+  updatePolicyStatus: (id: number, status: string) =>
+    customAxios.patch(`/insurance/policies/${id}/status`, { status }),
     
   getProcedures: () => 
     customAxios.get('/procedures'),
