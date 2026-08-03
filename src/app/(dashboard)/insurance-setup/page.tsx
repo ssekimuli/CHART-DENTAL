@@ -15,6 +15,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { insuranceApi } from "@/services/api/insurance";
 import { hasRole } from "@/lib/user";
 import { useRouter } from "next/navigation";
@@ -34,6 +38,7 @@ export default function InsuranceSetupPage() {
 
     // Add Package Modal
     const [isAddPackageModalOpen, setIsAddPackageModalOpen] = useState(false);
+    const [companyPopoverOpen, setCompanyPopoverOpen] = useState(false);
     const [packageData, setPackageData] = useState({ insurance_company_id: "", name: "", code: "", default_coverage_percentage: "100" });
 
     // Add Policy Modal
@@ -223,17 +228,50 @@ export default function InsuranceSetupPage() {
                                         <div className="grid gap-4 py-4">
                                             <div className="grid grid-cols-4 items-center gap-4">
                                                 <Label className="text-right">Company *</Label>
-                                                <div className="col-span-3">
-                                                    <Select onValueChange={(v) => setPackageData({...packageData, insurance_company_id: v})} required>
-                                                        <SelectTrigger>
-                                                            <SelectValue placeholder="Select Company" />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            {companies.map(c => (
-                                                                <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
-                                                            ))}
-                                                        </SelectContent>
-                                                    </Select>
+                                                <div className="col-span-3 flex flex-col">
+                                                    <Popover open={companyPopoverOpen} onOpenChange={setCompanyPopoverOpen}>
+                                                        <PopoverTrigger asChild>
+                                                            <Button
+                                                                variant="outline"
+                                                                role="combobox"
+                                                                aria-expanded={companyPopoverOpen}
+                                                                className="w-full justify-between"
+                                                            >
+                                                                {packageData.insurance_company_id
+                                                                    ? companies.find((c) => String(c.id) === packageData.insurance_company_id)?.name
+                                                                    : "Search company..."}
+                                                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                                            </Button>
+                                                        </PopoverTrigger>
+                                                        <PopoverContent className="w-[300px] p-0" style={{ zIndex: 9999 }}>
+                                                            <Command>
+                                                                <CommandInput placeholder="Search company..." />
+                                                                <CommandEmpty>No company found.</CommandEmpty>
+                                                                <CommandList>
+                                                                    <CommandGroup>
+                                                                        {companies.map((company) => (
+                                                                            <CommandItem
+                                                                                key={company.id}
+                                                                                value={company.name}
+                                                                                onSelect={() => {
+                                                                                    setPackageData({ ...packageData, insurance_company_id: String(company.id) });
+                                                                                    setCompanyPopoverOpen(false);
+                                                                                }}
+                                                                            >
+                                                                                <Check
+                                                                                    className={cn(
+                                                                                        "mr-2 h-4 w-4",
+                                                                                        packageData.insurance_company_id === String(company.id) ? "opacity-100" : "opacity-0"
+                                                                                    )}
+                                                                                />
+                                                                                {company.name}
+                                                                            </CommandItem>
+                                                                        ))}
+                                                                    </CommandGroup>
+                                                                </CommandList>
+                                                            </Command>
+                                                        </PopoverContent>
+                                                    </Popover>
                                                 </div>
                                             </div>
                                             <div className="grid grid-cols-4 items-center gap-4">
