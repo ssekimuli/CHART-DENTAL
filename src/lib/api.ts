@@ -3092,6 +3092,12 @@ export const createNewInvoice = async (data: Omit<Invoice, 'id' | 'amount' | 'pa
                 description: charge.description,
                 amount: Number(charge.amount) || 0
             })),
+            medicines: (data.medicines || []).map(med => ({
+                medicine_id: med.medicine_id,
+                medicine_unit_id: med.medicine_unit_id,
+                quantity: med.quantity,
+                price: Number(med.price) || 0
+            })),
             notes: data.notes || '',
             payment_method: data.paymentMethod || null,
         };
