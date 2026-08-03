@@ -447,7 +447,7 @@ export default function BillingPage() {
                     {formatCurrency(invoice.insuranceResponsibility || 0)}
                   </TableCell>
                   <TableCell>
-                    {formatCurrency(invoice.patientResponsibility || invoice.amount)}
+                    {formatCurrency(invoice.patientResponsibility ?? invoice.amount)}
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-col text-sm">
