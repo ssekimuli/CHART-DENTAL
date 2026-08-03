@@ -350,6 +350,34 @@ export const InsuranceClaims = () => {
                   )}
                 </div>
                 
+                {selectedClaim.invoice?.treatments && selectedClaim.invoice.treatments.length > 0 && (
+                  <div className="pt-4 border-t space-y-4">
+                    <h4 className="font-medium text-sm">Procedures</h4>
+                    <div className="rounded-md border">
+                      <table className="w-full text-sm text-left">
+                        <thead className="bg-muted text-muted-foreground">
+                          <tr>
+                            <th className="px-3 py-2 font-medium">Code/Name</th>
+                            <th className="px-3 py-2 font-medium">Qty</th>
+                            <th className="px-3 py-2 font-medium text-right">Unit Price</th>
+                            <th className="px-3 py-2 font-medium text-right">Total</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y">
+                          {selectedClaim.invoice.treatments.map((t: any) => (
+                            <tr key={t.id}>
+                              <td className="px-3 py-2">{t.procedure || `Procedure #${t.procedure_id}`}</td>
+                              <td className="px-3 py-2">{t.quantity}</td>
+                              <td className="px-3 py-2 text-right">{formatCurrency(t.unit_price)}</td>
+                              <td className="px-3 py-2 text-right font-medium">{formatCurrency(t.total_amount)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+                
                 {selectedClaim.status !== 'paid' ? (
                   <div className="pt-4 border-t space-y-4">
                     <h4 className="font-medium text-sm">Process Payment (EOB)</h4>
