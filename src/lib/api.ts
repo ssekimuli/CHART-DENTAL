@@ -887,6 +887,12 @@ export const getInvoiceById = async (id: string | number): Promise<Invoice | und
             discount: Number(invoiceData.discount || 0),
             tax: Number(invoiceData.tax || 0),
             insuranceCoverage: Number(invoiceData.insurance_coverage || 0),
+            patientResponsibility: Number(invoiceData.patient_responsibility || 0),
+            insuranceResponsibility: Number(invoiceData.insurance_responsibility || 0),
+            patientPaidAmount: Number(invoiceData.patient_paid_amount || 0),
+            insurancePaidAmount: Number(invoiceData.insurance_paid_amount || 0),
+            patientBalance: Number(invoiceData.patient_balance || 0),
+            insuranceBalance: Number(invoiceData.insurance_balance || 0),
             branchId: invoiceData.branch_id || invoiceData.branchId,
             branch: invoiceData.branch ? {
                 id: invoiceData.branch.id,
@@ -908,7 +914,9 @@ export const getInvoiceById = async (id: string | number): Promise<Invoice | und
                 procedureId: t.procedure_id || t.id || '',
                 procedure: t.procedure || '',
                 cost: Number(t.cost) || 0,
-                tooth: t.tooth
+                tooth: t.tooth,
+                insuranceAmount: Number(t.insurance_amount || 0),
+                patientAmount: Number(t.patient_amount || 0)
             })),
             // Keep original fields for reference (optional)
             patient_name: invoiceData.patient_name,

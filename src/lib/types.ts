@@ -113,6 +113,8 @@ export type InvoiceTreatment = {
   procedure: string;
   cost: number;
   tooth?: number;
+  insuranceAmount?: number;
+  patientAmount?: number;
 };
 
 
