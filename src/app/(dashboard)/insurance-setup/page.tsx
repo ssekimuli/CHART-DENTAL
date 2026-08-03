@@ -482,7 +482,7 @@ export default function InsuranceSetupPage() {
                                                             {procedures.map((p) => (
                                                                 <CommandItem
                                                                     key={p.id}
-                                                                    value={p.procedure}
+                                                                    value={`${p.procedure} ${p.treatment_code || ''} ${p.id}`}
                                                                     onSelect={() => {
                                                                         setMappingData({ ...mappingData, procedure_id: String(p.id) });
                                                                         setProcedurePopoverOpen(false);
