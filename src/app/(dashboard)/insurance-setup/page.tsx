@@ -22,9 +22,11 @@ import { cn } from "@/lib/utils";
 import { insuranceApi } from "@/services/api/insurance";
 import { hasRole } from "@/lib/user";
 import { useRouter } from "next/navigation";
+import { useToast } from "@/hooks/use-toast";
 
 export default function InsuranceSetupPage() {
     const router = useRouter();
+    const { toast } = useToast();
     const [companies, setCompanies] = useState<any[]>([]);
     const [packages, setPackages] = useState<any[]>([]);
     const [policies, setPolicies] = useState<any[]>([]);
@@ -88,9 +90,13 @@ export default function InsuranceSetupPage() {
             await fetchData();
             setIsAddModalOpen(false);
             setFormData({ name: "", code: "", email: "", phone: "" });
-        } catch (error) {
+        } catch (error: any) {
             console.error("Failed to add company", error);
-            alert("Failed to add company.");
+            toast({
+                title: "Error",
+                description: error?.response?.data?.message || "Failed to add company.",
+                variant: "destructive"
+            });
         }
         setIsSubmitting(false);
     };
@@ -103,9 +109,13 @@ export default function InsuranceSetupPage() {
             await fetchData();
             setIsAddPackageModalOpen(false);
             setPackageData({ insurance_company_id: "", name: "", code: "", default_coverage_percentage: "100" });
-        } catch (error) {
+        } catch (error: any) {
             console.error("Failed to add package", error);
-            alert("Failed to add package.");
+            toast({
+                title: "Error",
+                description: error?.response?.data?.message || "Failed to add package.",
+                variant: "destructive"
+            });
         }
         setIsSubmitting(false);
     };
@@ -118,9 +128,13 @@ export default function InsuranceSetupPage() {
             await fetchData();
             setIsAddPolicyModalOpen(false);
             setPolicyData({ insurance_package_id: "", policy_number: "", policy_type: "corporate", employer_or_group_name: "", coverage_start_date: "", coverage_end_date: "", total_coverage_limit: "" });
-        } catch (error) {
+        } catch (error: any) {
             console.error("Failed to add policy", error);
-            alert("Failed to add policy.");
+            toast({
+                title: "Error",
+                description: error?.response?.data?.message || "Failed to add policy.",
+                variant: "destructive"
+            });
         }
         setIsSubmitting(false);
     };
@@ -145,9 +159,13 @@ export default function InsuranceSetupPage() {
             const res = await insuranceApi.getPackageTreatments(selectedPackage.id);
             setPackageTreatments(res.data?.data || []);
             setMappingData({ procedure_id: "", coverage_type: "percentage", coverage_value: "100" });
-        } catch (error) {
+        } catch (error: any) {
             console.error("Failed to map treatment", error);
-            alert("Failed to map treatment.");
+            toast({
+                title: "Error",
+                description: error?.response?.data?.message || "Failed to map treatment.",
+                variant: "destructive"
+            });
         }
         setIsSubmitting(false);
     };
@@ -156,9 +174,13 @@ export default function InsuranceSetupPage() {
         try {
             await insuranceApi.removePackageTreatment(selectedPackage.id, id);
             setPackageTreatments(packageTreatments.filter(t => t.id !== id));
-        } catch (error) {
+        } catch (error: any) {
             console.error("Failed to remove mapping", error);
-            alert("Failed to remove mapping.");
+            toast({
+                title: "Error",
+                description: error?.response?.data?.message || "Failed to remove mapping.",
+                variant: "destructive"
+            });
         }
     };
 

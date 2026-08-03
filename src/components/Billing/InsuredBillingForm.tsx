@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { insuranceApi } from '../../services/api/insurance';
+import { useToast } from "@/hooks/use-toast";
 
 interface Props {
   patientId: number;
@@ -12,6 +13,7 @@ export const InsuredBillingForm: React.FC<Props> = ({ patientId, patientPolicyId
   const [selectedProcedures, setSelectedProcedures] = useState<Array<{procedure_id: number, quantity: number}>>([]);
   const [estimate, setEstimate] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
 
   const handleAddProcedure = (procedureId: number) => {
     setSelectedProcedures([...selectedProcedures, { procedure_id: procedureId, quantity: 1 }]);
@@ -22,8 +24,12 @@ export const InsuredBillingForm: React.FC<Props> = ({ patientId, patientPolicyId
     try {
       const res = await insuranceApi.getBillingEstimate(patientPolicyId, selectedProcedures);
       setEstimate(res.data.data);
-    } catch (err) {
-      alert('Failed to calculate estimate. Ensure policy is active.');
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description: err?.response?.data?.message || 'Failed to calculate estimate. Ensure policy is active.',
+        variant: "destructive"
+      });
     } finally {
       setLoading(false);
     }
@@ -34,10 +40,17 @@ export const InsuredBillingForm: React.FC<Props> = ({ patientId, patientPolicyId
     setLoading(true);
     try {
       const res = await insuranceApi.createInsuredInvoice(patientPolicyId, patientId, selectedProcedures);
-      alert('Invoice created successfully!');
+      toast({
+        title: "Success",
+        description: 'Invoice created successfully!',
+      });
       onInvoiceCreated(res.data.invoice_id);
-    } catch (err) {
-      alert('Failed to create invoice.');
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description: err?.response?.data?.message || 'Failed to create invoice.',
+        variant: "destructive"
+      });
     } finally {
       setLoading(false);
     }

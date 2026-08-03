@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { insuranceApi } from '../../services/api/insurance';
+import { useToast } from "@/hooks/use-toast";
 
 interface Props {
   patientId: number;
@@ -7,6 +8,7 @@ interface Props {
 }
 
 export const PatientInsuranceForm: React.FC<Props> = ({ patientId, onSuccess }) => {
+  const { toast } = useToast();
   const [companies, setCompanies] = useState<any[]>([]);
   const [formData, setFormData] = useState({
     insurance_policy_id: '',
@@ -30,7 +32,10 @@ export const PatientInsuranceForm: React.FC<Props> = ({ patientId, onSuccess }) 
 
     try {
       await insuranceApi.attachPolicyToPatient(patientId, formData);
-      alert('Insurance attached successfully!');
+      toast({
+        title: "Success",
+        description: 'Insurance attached successfully!',
+      });
       onSuccess();
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to attach insurance.');

@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { insuranceApi } from "@/services/api/insurance";
+import { useToast } from "@/hooks/use-toast";
 
 interface AttachPolicyFormProps {
     patientId: number;
@@ -14,6 +15,7 @@ interface AttachPolicyFormProps {
 }
 
 export function AttachPolicyForm({ patientId, onSave, onOpenChange }: AttachPolicyFormProps) {
+    const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [policies, setPolicies] = useState<any[]>([]);
     
@@ -46,9 +48,13 @@ export function AttachPolicyForm({ patientId, onSave, onOpenChange }: AttachPoli
             await insuranceApi.attachPolicyToPatient(patientId, formData);
             onSave();
             onOpenChange(false);
-        } catch (error) {
+        } catch (error: any) {
             console.error("Failed to attach policy", error);
-            alert("Failed to attach policy. Make sure it hasn't been attached already.");
+            toast({
+                title: "Error Attaching Policy",
+                description: error?.response?.data?.message || "Failed to attach policy. Please try again.",
+                variant: "destructive",
+            });
         }
         setIsSubmitting(false);
     };
