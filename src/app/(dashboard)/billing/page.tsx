@@ -215,15 +215,24 @@ export default function BillingPage() {
     setSelectedInvoiceForClaim(invoice);
     let policies: any[] = [];
     let defaultPolicyId = '';
-    try {
-      const res = await customAxios.get('/patient-insurances');
-      policies = res.data.filter((ins: any) => String(ins.patient_id) === String(invoice.patientId));
-      setPatientInsurances(policies);
-      if (policies.length > 0) {
-        defaultPolicyId = String(policies[0].id);
-      }
-    } catch (e) {
-      console.error(e);
+    
+    // Extract policies directly from the pre-loaded patient relation
+    const rawPolicies = invoice.patient?.insurance_policies || invoice.patient?.insurancePolicies || [];
+    
+    // Map them to what the form expects (provider_name, policy_number)
+    policies = rawPolicies.map((p: any) => {
+      const isPivot = p.pivot ? true : false;
+      return {
+        id: isPivot ? p.pivot.id : p.id,
+        patient_insurance_id: isPivot ? p.pivot.id : p.id,
+        provider_name: p.package?.company?.name || p.provider_name || 'Unknown Provider',
+        policy_number: isPivot ? p.pivot.group_number : (p.group_number || p.policy_number)
+      };
+    });
+
+    setPatientInsurances(policies);
+    if (policies.length > 0) {
+      defaultPolicyId = String(policies[0].id);
     }
     
     const balance = Number(invoice.amount) - Number(invoice.paidAmount || 0);

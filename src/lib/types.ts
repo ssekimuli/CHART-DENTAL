@@ -180,6 +180,7 @@ export type Invoice = {
   id: string | number;
   patientName: string;
   patientId: string | number;
+  patient?: any;
   receiptNumber?: string;
   amount: number;
   paidAmount: number;

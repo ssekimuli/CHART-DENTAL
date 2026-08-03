@@ -796,6 +796,7 @@ export const getInvoices = async (filters?: {
             // ✅ FIX FIELD NAMES (VERY IMPORTANT)
             patientName: inv.patient_name,
             patientId: inv.patient_id ?? inv.patientId,
+            patient: inv.patient,
             issueDate: inv.issue_date,
             branchId: inv.branch_id,
             discount: Number(inv.discount || 0),
@@ -881,6 +882,7 @@ export const getInvoiceById = async (id: string | number): Promise<Invoice | und
             // Map field names from API to your component expectations
             patientName: invoiceData.patient_name || invoiceData.patientName || 'Unknown',
             patientId: invoiceData.patient_id ?? invoiceData.patientId ?? '',
+            patient: invoiceData.patient,
             issueDate: invoiceData.issue_date || invoiceData.issueDate || new Date().toISOString(),
             dueDate: invoiceData.due_date || invoiceData.dueDate || new Date().toISOString(),
             paymentMethod: invoiceData.payment_method || invoiceData.paymentMethod || null,
