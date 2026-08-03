@@ -89,7 +89,7 @@ export default function BillingPage() {
     claim_number: '',
     total_amount: '',
     claimed_amount: '',
-    status: 'pending'
+    status: 'Draft'
   });
   const { toast } = useToast();
 
@@ -242,7 +242,7 @@ export default function BillingPage() {
       claim_number: `CLM-${Math.floor(1000 + Math.random() * 9000)}`,
       total_amount: invoice.amount,
       claimed_amount: balance.toString(),
-      status: 'pending'
+      status: 'Draft'
     });
     setIsClaimFormOpen(true);
   };
