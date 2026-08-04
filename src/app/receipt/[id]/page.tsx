@@ -48,7 +48,7 @@ export default function ReceiptPage() {
 
   const componentRef = useRef<HTMLDivElement>(null);
   const handlePrint = useReactToPrint({
-    content: () => componentRef.current,
+    contentRef: componentRef,
     documentTitle: `Receipt-${invoice?.receiptNumber || invoice?.id || 'doc'}`,
   });
 
