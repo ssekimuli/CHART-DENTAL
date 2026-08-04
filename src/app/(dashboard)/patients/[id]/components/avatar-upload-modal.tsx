@@ -32,9 +32,6 @@ export function AvatarUploadModal({ patientId, isOpen, onClose, onAvatarUpdated 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
       setCameraStream(stream);
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-      }
       setMode("camera");
     } catch (err) {
       toast({ title: "Error", description: "Could not access camera.", variant: "destructive" });
@@ -55,6 +52,13 @@ export function AvatarUploadModal({ patientId, isOpen, onClose, onAvatarUpdated 
       stopCamera();
     }
   }, [isOpen, stopCamera]);
+
+  // Attach stream to video element once it is mounted
+  React.useEffect(() => {
+    if (mode === "camera" && videoRef.current && cameraStream) {
+      videoRef.current.srcObject = cameraStream;
+    }
+  }, [mode, cameraStream]);
 
   const capturePhoto = () => {
     if (videoRef.current && canvasRef.current) {
