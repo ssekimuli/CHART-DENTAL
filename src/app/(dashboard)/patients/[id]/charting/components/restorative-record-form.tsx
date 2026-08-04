@@ -274,7 +274,7 @@ export function RestorativeRecordForm({
     }
   }, [selectedMaterial, systemTreatments, form, initialData?.id]);
 
-  const onSubmit = (values: z.infer<typeof formSchema>) => {
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
     if (initialData && initialData.id) {
       onUpdate({
         ...initialData,
