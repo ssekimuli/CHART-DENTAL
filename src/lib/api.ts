@@ -249,8 +249,20 @@ export const getCurrencies = async (): Promise<any[]> => {
     }
 }
 
-const mapPeriodontalRecords = (records: any[]): PeriodontalRecord => {
-    return (records || []).map((record: any) => ({
+const parseJsonArraySafe = (data: any): any[] => {
+    if (typeof data === 'string') {
+        try {
+            const parsed = JSON.parse(data);
+            return Array.isArray(parsed) ? parsed : [];
+        } catch {
+            return [];
+        }
+    }
+    return Array.isArray(data) ? data : [];
+};
+
+const mapPeriodontalRecords = (records: any[] | string): PeriodontalRecord => {
+    return parseJsonArraySafe(records).map((record: any) => ({
         toothId: Number(record.tooth_id || record.toothId),
         pockets: record.pockets || {},
         recession: record.recession !== undefined && record.recession !== null ? Number(record.recession) : undefined,
@@ -260,8 +272,8 @@ const mapPeriodontalRecords = (records: any[]): PeriodontalRecord => {
     }));
 };
 
-const mapEndodonticRecords = (records: any[]): EndodonticRecord[] => {
-    return (records || []).map((record: any) => ({
+const mapEndodonticRecords = (records: any[] | string): EndodonticRecord[] => {
+    return parseJsonArraySafe(records).map((record: any) => ({
         id: String(record.id),
         date: record.date || record.created_at?.split('T')[0] || new Date().toISOString().split('T')[0],
         toothId: Number(record.tooth_id),
@@ -283,8 +295,7 @@ type GetPatientsFilters = {
 };
 
 export const mapOrthodonticRecords = (records: any): OrthodonticRecord[] => {
-    if (!records || !Array.isArray(records)) return [];
-    return records.map((record: any) => ({
+    return parseJsonArraySafe(records).map((record: any) => ({
         id: record.id,
         appliance: record.appliance,
         applianceLocation: record.appliance_location || record.applianceLocation,
@@ -479,12 +490,12 @@ export const getPatientById = async (id: string | number): Promise<Patient | und
             status: patient.status,
             history: patient.history || '',
             branchId: String(patient.branch_id),
-            dentalRecords: (patient.dental_records || []).map((record: any) => ({
+            dentalRecords: parseJsonArraySafe(patient.dental_records).map((record: any) => ({
                 toothId: record.tooth_id,
                 condition: record.condition,
                 notes: record.notes || '',
             })),
-            treatmentPlans: (patient.treatment_plans || []).map((plan: any) => ({
+             treatmentPlans: parseJsonArraySafe(patient.treatment_plans).map((plan: any) => ({
                 id: String(plan.id),
                 procedure: plan.procedure,
                 tooth: plan.tooth,
@@ -498,10 +509,10 @@ export const getPatientById = async (id: string | number): Promise<Patient | und
             occlusalRecords: typeof patient.occlusal_records === 'string'
                 ? JSON.parse(patient.occlusal_records)
                 : (patient.occlusal_records || { overbite: 0, overjet: 0, crossbite: 'None', openbite: 'None', malocclusion: 'Class I' }),
-            softTissueRecords: patient.soft_tissue_records || [],
+            softTissueRecords: parseJsonArraySafe(patient.soft_tissue_records),
             orthodonticRecords: mapOrthodonticRecords(patient.orthodontic_records),
             endodonticRecords: mapEndodonticRecords(patient.endodontic_records || patient.endodonticRecords),
-            restorativeRecords: (patient.restorative_records || patient.restorativeRecords || []).map((record: any) => ({
+            restorativeRecords: parseJsonArraySafe(patient.restorative_records || patient.restorativeRecords).map((record: any) => ({
                 id: String(record.id),
                 toothId: Number(record.tooth_id || record.toothId),
                 surface: record.surface,
