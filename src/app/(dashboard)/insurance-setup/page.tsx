@@ -23,6 +23,7 @@ import { insuranceApi } from "@/services/api/insurance";
 import { hasRole } from "@/lib/user";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
+import moment from "moment";
 
 export default function InsuranceSetupPage() {
     const router = useRouter();
@@ -745,8 +746,8 @@ export default function InsuranceSetupPage() {
                                             <TableCell className="font-bold">{pol.policy_number}</TableCell>
                                             <TableCell>{pol.employer_or_group_name || 'N/A'}</TableCell>
                                             <TableCell className="capitalize">{pol.policy_type}</TableCell>
-                                            <TableCell>{pol.total_coverage_limit ? `$${pol.total_coverage_limit}` : 'No Limit'}</TableCell>
-                                            <TableCell>{pol.coverage_start_date} to {pol.coverage_end_date}</TableCell>
+                                            <TableCell>{pol.total_coverage_limit ? `UGX ${Number(pol.total_coverage_limit).toLocaleString()}` : 'No Limit'}</TableCell>
+                                            <TableCell>{moment(pol.coverage_start_date).format('MMM DD, YYYY')} to {moment(pol.coverage_end_date).format('MMM DD, YYYY')}</TableCell>
                                             <TableCell>
                                                 <Select value={pol.status} onValueChange={(v) => handlePolicyStatusChange(pol.id, v)}>
                                                     <SelectTrigger className="w-[120px] h-8 text-xs">
