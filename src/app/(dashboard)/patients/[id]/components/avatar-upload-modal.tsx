@@ -22,7 +22,9 @@ interface AvatarUploadModalProps {
 export function AvatarUploadModal({ patientId, isOpen, onClose, onAvatarUpdated }: AvatarUploadModalProps) {
   const { toast } = useToast();
   const [isUploading, setIsUploading] = useState(false);
-  const [mode, setMode] = useState<"choose" | "camera">("choose");
+  const [mode, setMode] = useState<"choose" | "camera" | "preview">("choose");
+  const [previewFile, setPreviewFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -43,8 +45,21 @@ export function AvatarUploadModal({ patientId, isOpen, onClose, onAvatarUpdated 
       cameraStream.getTracks().forEach((track) => track.stop());
       setCameraStream(null);
     }
-    setMode("choose");
   }, [cameraStream]);
+
+  const handleCancelCamera = () => {
+    stopCamera();
+    setMode("choose");
+  };
+
+  const handleCancelPreview = () => {
+    setPreviewFile(null);
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
+    setPreviewUrl(null);
+    setMode("choose");
+  };
 
   // Stop camera when modal closes
   React.useEffect(() => {
@@ -69,20 +84,33 @@ export function AvatarUploadModal({ patientId, isOpen, onClose, onAvatarUpdated 
       const ctx = canvas.getContext("2d");
       if (ctx) {
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        canvas.toBlob(async (blob) => {
+        canvas.toBlob((blob) => {
           if (blob) {
             const file = new File([blob], "avatar.jpg", { type: "image/jpeg" });
-            await uploadFile(file);
+            const url = URL.createObjectURL(blob);
+            setPreviewFile(file);
+            setPreviewUrl(url);
+            stopCamera();
+            setMode("preview");
           }
         }, "image/jpeg", 0.9);
       }
     }
   };
 
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      await uploadFile(file);
+      const url = URL.createObjectURL(file);
+      setPreviewFile(file);
+      setPreviewUrl(url);
+      setMode("preview");
+    }
+  };
+
+  const confirmUpload = async () => {
+    if (previewFile) {
+        await uploadFile(previewFile);
     }
   };
 
@@ -133,7 +161,7 @@ export function AvatarUploadModal({ patientId, isOpen, onClose, onAvatarUpdated 
                 <span>Take Photo</span>
               </Button>
             </div>
-          ) : (
+          ) : mode === "camera" ? (
             <div className="flex flex-col gap-4">
               <div className="relative rounded-md overflow-hidden bg-black aspect-video flex items-center justify-center">
                 <video
@@ -147,15 +175,31 @@ export function AvatarUploadModal({ patientId, isOpen, onClose, onAvatarUpdated 
                   variant="ghost"
                   size="icon"
                   className="absolute top-2 right-2 text-white bg-black/50 hover:bg-black/70"
-                  onClick={stopCamera}
+                  onClick={handleCancelCamera}
                 >
                   <X className="h-4 w-4" />
                 </Button>
               </div>
               <canvas ref={canvasRef} className="hidden" />
               <Button onClick={capturePhoto} disabled={isUploading} className="w-full">
-                {isUploading ? "Uploading..." : "Capture & Upload"}
+                Capture Photo
               </Button>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-4">
+              <div className="relative rounded-md overflow-hidden bg-black aspect-square max-h-[300px] flex items-center justify-center mx-auto w-full">
+                {previewUrl && (
+                  <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-4 mt-2">
+                <Button variant="outline" onClick={handleCancelPreview} disabled={isUploading}>
+                  Cancel
+                </Button>
+                <Button onClick={confirmUpload} disabled={isUploading}>
+                  {isUploading ? "Uploading..." : "Confirm & Upload"}
+                </Button>
+              </div>
             </div>
           )}
         </div>
