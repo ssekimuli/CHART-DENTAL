@@ -22,12 +22,14 @@ import { Skeleton } from "@/components/ui/skeleton";
 import type { Client } from "@/lib/types";
 import { getClients, createClient, updateClient, deleteClient } from "@/lib/api";
 import { ClientForm } from "./components/client-form";
+import { useToast } from "@/hooks/use-toast";
 
 export default function ClientsPage() {
     const [clients, setClients] = useState<Client[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingClient, setEditingClient] = useState<Client | null>(null);
+    const { toast } = useToast();
 
     useEffect(() => {
         const fetchClients = async () => {
