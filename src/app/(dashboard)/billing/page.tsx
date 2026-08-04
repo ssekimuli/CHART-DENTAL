@@ -235,13 +235,13 @@ export default function BillingPage() {
       defaultPolicyId = String(policies[0].id);
     }
     
-    const balance = Number(invoice.amount) - Number(invoice.paidAmount || 0);
+    const insPortion = Number(invoice.insuranceResponsibility || 0);
     
     setClaimFormData({
       patient_insurance_id: defaultPolicyId,
       claim_number: `CLM-${Math.floor(1000 + Math.random() * 9000)}`,
       total_amount: invoice.amount,
-      claimed_amount: balance.toString(),
+      claimed_amount: insPortion > 0 ? insPortion.toString() : (Number(invoice.amount) - Number(invoice.paidAmount || 0)).toString(),
       status: 'Draft'
     });
     setIsClaimFormOpen(true);
