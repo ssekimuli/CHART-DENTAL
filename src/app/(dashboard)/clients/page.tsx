@@ -21,29 +21,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Client } from "@/lib/types";
 import { getClients, createClient, updateClient, deleteClient } from "@/lib/api";
-"use client";
 
-import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { PlusCircle, Pencil, Trash } from "lucide-react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Skeleton } from "@/components/ui/skeleton";
-import type { Client } from "@/lib/types";
-import { getClients, createClient, updateClient, deleteClient } from "@/lib/api";
 import { ClientForm } from "./components/client-form";
 import { useConfirm } from "@/hooks/use-confirm";
 import { useToast } from "@/hooks/use-toast";
