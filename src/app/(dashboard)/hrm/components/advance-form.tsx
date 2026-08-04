@@ -1,4 +1,5 @@
 "use client";
+import { useToast } from "@/hooks/use-toast";
 
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
@@ -43,6 +44,7 @@ type AdvanceFormProps = {
 };
 
 export function AdvanceForm({ employees, onSave, onOpenChange }: AdvanceFormProps) {
+  const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -55,12 +57,19 @@ export function AdvanceForm({ employees, onSave, onOpenChange }: AdvanceFormProp
     const employee = employees.find(e => e.id === values.employeeId);
     if (!employee) return;
     
-    onSave({
+        await onSave({
         ...values,
         branchId: employee.branchId,
         date: format(new Date(), "yyyy-MM-dd"),
     });
-      } finally {
+      } catch (error: any) {
+        console.error(error);
+        toast({
+            title: "Error",
+            description: error.message || "An unexpected error occurred.",
+            variant: "destructive",
+        });
+    } finally {
       setIsSubmitting(false);
     }
   }

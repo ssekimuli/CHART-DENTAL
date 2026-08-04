@@ -83,6 +83,13 @@ export function ImageUploadForm({ onSave, onOpenChange }: ImageUploadFormProps) 
       formData.append("category", values.category);
 
       await onSave(formData);
+    } catch (error: any) {
+        console.error(error);
+        toast({
+            title: "Error",
+            description: error.message || "An unexpected error occurred.",
+            variant: "destructive",
+        });
     } finally {
       setIsSubmitting(false);
     }

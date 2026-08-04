@@ -281,7 +281,7 @@ export function RestorativeRecordForm({
         ...values,
       });
     } else {
-      onSave(values);
+      await onSave(values);
     }
     onOpenChange(false);
   };

@@ -1,4 +1,5 @@
 "use client";
+import { useToast } from "@/hooks/use-toast";
 
 import { Loader2 } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -54,6 +55,7 @@ type TreatmentPlanFormProps = {
 };
 
 export function TreatmentPlanForm({ treatment, onSave, onOpenChange, toothId, currentCondition }: TreatmentPlanFormProps) {
+  const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [systemTreatments, setSystemTreatments] = useState<SystemTreatment[]>([]);
@@ -122,11 +124,18 @@ export function TreatmentPlanForm({ treatment, onSave, onOpenChange, toothId, cu
     const procedureName = selectedSystemTreatment?.procedure ?? treatment?.procedure ?? values.procedure ?? '';
     if (!procedureName) return;
 
-    onSave({
+    await onSave({
         ...values,
         procedure: procedureName,
     }, values.condition);
-      } finally {
+      } catch (error: any) {
+        console.error(error);
+        toast({
+            title: "Error",
+            description: error.message || "An unexpected error occurred.",
+            variant: "destructive",
+        });
+    } finally {
       setIsSubmitting(false);
     }
   }

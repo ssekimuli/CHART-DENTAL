@@ -1,4 +1,5 @@
 "use client";
+import { useToast } from "@/hooks/use-toast";
 
 import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -40,6 +41,7 @@ type ClientFormProps = {
 };
 
 export function ClientForm({ initialData, onSave, onOpenChange }: ClientFormProps) {
+  const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -56,6 +58,13 @@ export function ClientForm({ initialData, onSave, onOpenChange }: ClientFormProp
     setIsSubmitting(true);
     try {
         await onSave(values);
+    } catch (error: any) {
+        console.error(error);
+        toast({
+            title: "Error",
+            description: error.message || "An unexpected error occurred.",
+            variant: "destructive",
+        });
     } finally {
         setIsSubmitting(false);
     }

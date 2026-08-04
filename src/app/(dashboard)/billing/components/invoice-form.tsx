@@ -1,6 +1,7 @@
 
 
 "use client";
+import { useToast } from "@/hooks/use-toast";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useFieldArray } from "react-hook-form";
@@ -74,6 +75,7 @@ type InvoiceFormProps = {
 };
 
 export function InvoiceForm({ invoice, patients, onSave, onOpenChange, asModal = true }: InvoiceFormProps) {
+  const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [selectedTreatments, setSelectedTreatments] = useState<InvoiceTreatment[]>([]);
@@ -163,7 +165,7 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange, asModal =
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
     try {
-    onSave({
+        await onSave({
         ...values,
         patientId: values.patientId || '',
         otherCharges: values.otherCharges || [],
@@ -172,7 +174,14 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange, asModal =
         issueDate: format(values.issueDate, "yyyy-MM-dd"),
         dueDate: format(values.dueDate, "yyyy-MM-dd"),
     }, selectedTreatments);
-      } finally {
+      } catch (error: any) {
+        console.error(error);
+        toast({
+            title: "Error",
+            description: error.message || "An unexpected error occurred.",
+            variant: "destructive",
+        });
+    } finally {
       setIsSubmitting(false);
     }
   }

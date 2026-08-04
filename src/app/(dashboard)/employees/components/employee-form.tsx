@@ -1,5 +1,6 @@
 
 "use client";
+import { useToast } from "@/hooks/use-toast";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -61,6 +62,7 @@ type EmployeeFormProps = {
 };
 
 export function EmployeeForm({ employee, onSave, onOpenChange }: EmployeeFormProps) {
+  const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [roles, setRoles] = useState<{id: string, name: string}[]>([]);
@@ -133,14 +135,21 @@ export function EmployeeForm({ employee, onSave, onOpenChange }: EmployeeFormPro
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
     try {
-    onSave({
+        await onSave({
         ...values,
         role: values.role as EmployeeRole,
         salary: values.salary ?? 0,
         hire_date: format(values.hire_date, "yyyy-MM-dd"),
         avatar: values.avatar || `https://picsum.photos/seed/emp${Math.random()}/200/200`,
     });
-      } finally {
+      } catch (error: any) {
+        console.error(error);
+        toast({
+            title: "Error",
+            description: error.message || "An unexpected error occurred.",
+            variant: "destructive",
+        });
+    } finally {
       setIsSubmitting(false);
     }
   }

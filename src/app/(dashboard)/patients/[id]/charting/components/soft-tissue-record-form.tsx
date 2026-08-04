@@ -63,7 +63,7 @@ export function SoftTissueRecordForm({ record, onSave, onOpenChange }: SoftTissu
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    onSave({
+    await onSave({
       ...values,
       date: format(values.date, "yyyy-MM-dd"),
     });

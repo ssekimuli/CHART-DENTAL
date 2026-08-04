@@ -46,7 +46,7 @@ export function AttachPolicyForm({ patientId, onSave, onOpenChange }: AttachPoli
         setIsSubmitting(true);
         try {
             await insuranceApi.attachPolicyToPatient(patientId, formData);
-            onSave();
+            await onSave();
             onOpenChange(false);
         } catch (error: any) {
             console.error("Failed to attach policy", error);
