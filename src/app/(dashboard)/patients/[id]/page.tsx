@@ -304,36 +304,51 @@ export default function PatientDetailPage({
   }
   
   const handleUpdatePatient = async (data: BasePatient) => {
-    const updated = await updatePatient(patient.id, data);
-    if(updated) {
-        setPatient(updated);
+    try {
+        const updated = await updatePatient(patient.id, data);
+        if(updated) {
+            setPatient(updated);
+            toast({ title: "Success", description: "Patient updated successfully." });
+        }
+    } catch (e: any) {
+        toast({ title: "Error", description: e.message || "Failed to update patient.", variant: "destructive" });
     }
     setIsPatientFormOpen(false);
   }
 
   const handleDeletePatient = async () => {
-    await deletePatient(id);
-    router.push('/patients');
+    try {
+        await deletePatient(id);
+        toast({ title: "Success", description: "Patient deleted successfully." });
+        router.push('/patients');
+    } catch (e: any) {
+        toast({ title: "Error", description: e.message || "Failed to delete patient.", variant: "destructive" });
+    }
     setIsDeleteAlertOpen(false);
   }
 
   const handleSaveTreatment = async (treatmentData: Omit<Treatment, 'id' | 'date'>) => {
     if (!patient) return;
-
-    if (selectedTreatment) {
-        const updatedPatient = await updateTreatment(patient.id, { ...selectedTreatment, ...treatmentData });
-        if (updatedPatient) {
-            setPatient(updatedPatient);
+    try {
+        if (selectedTreatment) {
+            const updatedPatient = await updateTreatment(patient.id, { ...selectedTreatment, ...treatmentData });
+            if (updatedPatient) {
+                setPatient(updatedPatient);
+                toast({ title: "Success", description: "Treatment updated successfully." });
+            }
+        } else {
+            const savedTreatment = await addTreatment(patient.id, treatmentData);
+            if (savedTreatment) {
+                // Update the patient's treatment plans with the saved treatment
+                setPatient({
+                    ...patient,
+                    treatmentPlans: [...patient.treatmentPlans, savedTreatment]
+                });
+                toast({ title: "Success", description: "Treatment added successfully." });
+            }
         }
-    } else {
-        const savedTreatment = await addTreatment(patient.id, treatmentData);
-        if (savedTreatment) {
-            // Update the patient's treatment plans with the saved treatment
-            setPatient({
-                ...patient,
-                treatmentPlans: [...patient.treatmentPlans, savedTreatment]
-            });
-        }
+    } catch (e: any) {
+        toast({ title: "Error", description: e.message || "Failed to save treatment.", variant: "destructive" });
     }
 
     handleCloseTreatmentForm();

@@ -101,6 +101,7 @@ export default function InsuranceSetupPage() {
             setIsAddModalOpen(false);
             setEditingCompanyId(null);
             setFormData({ name: "", code: "", email: "", phone: "" });
+            toast({ title: "Success", description: editingCompanyId ? "Company updated successfully." : "Company created successfully." });
         } catch (error: any) {
             console.error("Failed to save company", error);
             toast({
@@ -139,6 +140,7 @@ export default function InsuranceSetupPage() {
             setIsAddPackageModalOpen(false);
             setEditingPackageId(null);
             setPackageData({ insurance_company_id: "", name: "", code: "", default_coverage_percentage: "100" });
+            toast({ title: "Success", description: editingPackageId ? "Package updated successfully." : "Package created successfully." });
         } catch (error: any) {
             console.error("Failed to save package", error);
             toast({
@@ -177,6 +179,7 @@ export default function InsuranceSetupPage() {
             setIsAddPolicyModalOpen(false);
             setEditingPolicyId(null);
             setPolicyData({ insurance_package_id: "", policy_number: "", policy_type: "corporate", employer_or_group_name: "", coverage_start_date: "", coverage_end_date: "", total_coverage_limit: "" });
+            toast({ title: "Success", description: editingPolicyId ? "Policy updated successfully." : "Policy created successfully." });
         } catch (error: any) {
             console.error("Failed to save policy", error);
             toast({
