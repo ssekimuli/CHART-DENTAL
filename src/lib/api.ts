@@ -551,6 +551,19 @@ export const getPatientInvoices = async (patientId: string | number): Promise<In
             issueDate: inv.issue_date,
             dueDate: inv.due_date,
             branchId: inv.branch_id,
+            otherCharges: (inv.other_charges || inv.otherCharges || []).map((charge: any) => ({
+                description: charge.description,
+                amount: Number(charge.amount) || 0
+            })),
+            treatments: (inv.treatments || []).map((t: any) => ({
+                procedureId: t.procedure_id || t.id || '',
+                procedure: t.procedure || '',
+                cost: Number(t.cost) || 0,
+                tooth: t.tooth,
+                insuranceAmount: Number(t.insurance_amount || 0),
+                patientAmount: Number(t.patient_amount || 0)
+            })),
+            medicines: inv.medicines || [],
         }));
     } catch (error) {
         console.error('Failed to fetch patient invoices:', error);
@@ -825,6 +838,19 @@ export const getInvoices = async (filters?: {
                 currency: inv.branch.currency || 'USD',
                 address: inv.branch.address || ''
             } : undefined,
+            otherCharges: (inv.other_charges || inv.otherCharges || []).map((charge: any) => ({
+                description: charge.description,
+                amount: Number(charge.amount) || 0
+            })),
+            treatments: (inv.treatments || []).map((t: any) => ({
+                procedureId: t.procedure_id || t.id || '',
+                procedure: t.procedure || '',
+                cost: Number(t.cost) || 0,
+                tooth: t.tooth,
+                insuranceAmount: Number(t.insurance_amount || 0),
+                patientAmount: Number(t.patient_amount || 0)
+            })),
+            medicines: inv.medicines || [],
         }));
 
         console.log('Fetched invoices from API:', invoices);
