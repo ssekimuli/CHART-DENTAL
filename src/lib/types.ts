@@ -287,6 +287,7 @@ export type Branch = {
   name: string;
   address: string;
   currency?: string;
+  contactNumber?: string;
 };
 
 export type Client = {
