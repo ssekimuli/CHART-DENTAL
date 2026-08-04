@@ -389,7 +389,47 @@ export default function BillingPage() {
               Manage invoices and patient billing.
             </CardDescription>
           </div>
-          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center">
+          
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center flex-wrap sm:justify-end">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Popover>
+                    <PopoverTrigger asChild>
+                    <Button
+                        id="date"
+                        variant={"outline"}
+                        className={cn(
+                        "w-full sm:w-[250px] justify-start text-left font-normal",
+                        !dateRange && "text-muted-foreground"
+                        )}
+                    >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {dateRange?.from ? (
+                        dateRange.to ? (
+                            <>
+                            {format(dateRange.from, "LLL dd, y")} -{" "}
+                            {format(dateRange.to, "LLL dd, y")}
+                            </>
+                        ) : (
+                            format(dateRange.from, "LLL dd, y")
+                        )
+                        ) : (
+                        <span>Pick a date range</span>
+                        )}
+                    </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                        initialFocus
+                        mode="range"
+                        defaultMonth={dateRange?.from}
+                        selected={dateRange}
+                        onSelect={setDateRange}
+                        numberOfMonths={2}
+                    />
+                    </PopoverContent>
+                </Popover>
+                 <Button variant="outline" size="sm" onClick={() => setDateRange(undefined)} disabled={!dateRange}>Clear</Button>
+            </div>
             <div className="relative">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -561,45 +601,7 @@ export default function BillingPage() {
           )}
         </CardContent>
          <CardFooter className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Popover>
-                    <PopoverTrigger asChild>
-                    <Button
-                        id="date"
-                        variant={"outline"}
-                        className={cn(
-                        "w-[300px] justify-start text-left font-normal",
-                        !dateRange && "text-muted-foreground"
-                        )}
-                    >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {dateRange?.from ? (
-                        dateRange.to ? (
-                            <>
-                            {format(dateRange.from, "LLL dd, y")} -{" "}
-                            {format(dateRange.to, "LLL dd, y")}
-                            </>
-                        ) : (
-                            format(dateRange.from, "LLL dd, y")
-                        )
-                        ) : (
-                        <span>Pick a date range</span>
-                        )}
-                    </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                        initialFocus
-                        mode="range"
-                        defaultMonth={dateRange?.from}
-                        selected={dateRange}
-                        onSelect={setDateRange}
-                        numberOfMonths={2}
-                    />
-                    </PopoverContent>
-                </Popover>
-                 <Button variant="outline" size="sm" onClick={() => setDateRange(undefined)} disabled={!dateRange}>Clear</Button>
-            </div>
+            
              <div className="flex items-center gap-4 text-sm text-muted-foreground">
                 <span>Rows per page</span>
                 <Select value={String(itemsPerPage)} onValueChange={(value) => setItemsPerPage(Number(value))}>
