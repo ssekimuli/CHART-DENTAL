@@ -707,9 +707,9 @@ export default function BillingPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setSelectedInvoice(undefined)}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => setSelectedInvoice(undefined)}>No</AlertDialogCancel>
             <AlertDialogAction onClick={handleDeleteInvoice} className="bg-destructive hover:bg-destructive/90">
-              Delete
+              Yes
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

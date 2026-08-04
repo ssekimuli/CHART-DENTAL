@@ -7,12 +7,22 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import type { Invoice, Patient, PaymentMethod, PaymentTransaction } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { Printer, Download, Loader2, ArrowLeft } from 'lucide-react';
-import { getInvoiceById, getPatientById } from '@/lib/api';
+import { Printer, Download, Loader2, ArrowLeft, Trash2 } from 'lucide-react';
+import { getInvoiceById, getPatientById, deleteInvoice } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { hasPermission } from '@/lib/user';
 import moment from 'moment';
 import { useCurrency } from '@/hooks/use-currency';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function InvoiceDetailPage() {
   const params = useParams();
@@ -24,6 +34,8 @@ export default function InvoiceDetailPage() {
   const [invoice, setInvoice] = useState<Invoice | undefined>(undefined);
   const [patient, setPatient] = useState<Patient | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(true);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     if (!hasPermission('billing:read')) {
@@ -142,6 +154,19 @@ export default function InvoiceDetailPage() {
     }
   };
 
+  const handleDelete = async () => {
+    if (!invoice) return;
+    setIsDeleting(true);
+    try {
+      await deleteInvoice(invoice.id);
+      router.push('/billing');
+    } catch (error) {
+      console.error('Error deleting invoice:', error);
+      setIsDeleting(false);
+      setIsDeleteDialogOpen(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <Card>
@@ -184,6 +209,11 @@ export default function InvoiceDetailPage() {
               <CardTitle className="text-3xl">Invoice Details</CardTitle>
           </div>
           <div className="flex gap-2">
+              {hasPermission('billing:delete') && (
+                <Button variant="destructive" onClick={() => setIsDeleteDialogOpen(true)}>
+                  <Trash2 className="mr-2 h-4 w-4" /> Delete
+                </Button>
+              )}
               <Button variant="outline" onClick={handlePrint}>
                 <Printer className="mr-2 h-4 w-4" /> Print
               </Button>
@@ -397,6 +427,31 @@ export default function InvoiceDetailPage() {
           </div>
         </CardFooter>
       </Card>
+      
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Do you really want to delete this invoice? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>No</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={(e) => {
+                e.preventDefault();
+                handleDelete();
+              }} 
+              disabled={isDeleting}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Yes
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
