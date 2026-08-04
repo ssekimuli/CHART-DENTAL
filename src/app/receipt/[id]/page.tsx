@@ -1,7 +1,8 @@
 "use client";
 
 import { notFound, useParams } from 'next/navigation';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { useReactToPrint } from 'react-to-print';
 import type { Invoice, Patient } from '@/lib/types';
 import { getInvoiceById, getPatientById } from '@/lib/api';
 import moment from 'moment';
@@ -45,13 +46,19 @@ export default function ReceiptPage() {
     fetchData();
   }, [id]);
 
+  const componentRef = useRef<HTMLDivElement>(null);
+  const handlePrint = useReactToPrint({
+    content: () => componentRef.current,
+    documentTitle: `Receipt-${invoice?.receiptNumber || invoice?.id || 'doc'}`,
+  });
+
   useEffect(() => {
     if (!isLoading && invoice) {
       setTimeout(() => {
-        window.print();
+        handlePrint();
       }, 800);
     }
-  }, [isLoading, invoice]);
+  }, [isLoading, invoice, handlePrint]);
 
   const formatCurrency = (value: any) => baseFormatCurrency(value, invoice?.branch?.currency);
 
@@ -121,7 +128,7 @@ export default function ReceiptPage() {
         .mt-2 { margin-top: 8px; }
       `}} />
       
-      <div className="receipt-container">
+      <div className="receipt-container" ref={componentRef}>
         <div className="text-center mb-2">
             <h2 className="font-bold" style={{ fontSize: '16px', margin: '0 0 4px 0' }}>{invoice.branch?.name || 'CHART DENTAL'}</h2>
             <div>{invoice.branch?.address || ''}</div>
