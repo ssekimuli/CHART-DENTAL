@@ -4546,3 +4546,12 @@ export const getActivityLogs = async (params: { page?: number; per_page?: number
     throw error;
   }
 };
+e x p o r t   c o n s t   u p d a t e P a t i e n t A v a t a r   =   a s y n c   ( p a t i e n t I d :   s t r i n g   |   n u m b e r ,   f i l e :   F i l e ) :   P r o m i s e < {   a v a t a r :   s t r i n g   } >   = >   { 
+         c o n s t   f o r m D a t a   =   n e w   F o r m D a t a ( ) ; 
+         f o r m D a t a . a p p e n d ( ' a v a t a r ' ,   f i l e ) ; 
+         c o n s t   r e s p o n s e   =   a w a i t   c u s t o m A x i o s . p o s t ( \ / p a t i e n t s / \ / a v a t a r \ ,   f o r m D a t a ,   { 
+                 h e a d e r s :   {   ' C o n t e n t - T y p e ' :   ' m u l t i p a r t / f o r m - d a t a '   } , 
+         } ) ; 
+         r e t u r n   r e s p o n s e . d a t a ; 
+ } ;  
+ 

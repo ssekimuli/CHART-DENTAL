@@ -28,7 +28,7 @@ import type { Patient, Treatment, BasePatient, PatientImage, DentalCondition, Sy
 import { AttachPolicyForm } from "./components/attach-policy-form";
 import { insuranceApi } from "@/services/api/insurance";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Trash, Pencil, FileText, Loader2, Upload, MoreHorizontal, HandCoins, Search, Send, Mail, MessageCircle } from "lucide-react";
+import { PlusCircle, Trash, Pencil, FileText, Loader2, Upload, MoreHorizontal, HandCoins, Search, Send, Mail, MessageCircle, Camera } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { TreatmentPlanForm } from "./components/treatment-plan-form";
 import { PatientForm } from "../components/patient-form";
@@ -62,6 +62,7 @@ import {
 import { deletePatient, getPatientById, updatePatient, addTreatment, updateTreatment, deleteTreatment, addImageToPatient, getTreatments, getPatientInvoices, processPayment, getPatientPrescriptions, deletePrescription, getPatientImages, sendPatientDocuments } from "@/lib/api";
 import { Input } from "@/components/ui/input";
 import { ImageUploadForm } from "./components/image-upload-form";
+import { AvatarUploadModal } from "./components/avatar-upload-modal";
 import { hasPermission, getCurrentUser, hasRole } from "@/lib/user";
 import { getPatientFullName } from "@/lib/utils";
 import { NextVisitButton } from "./components/next-visit-button";
@@ -98,6 +99,7 @@ export default function PatientDetailPage({
   const [isPatientFormOpen, setIsPatientFormOpen] = useState(false);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const [isImageFormOpen, setIsImageFormOpen] = useState(false);
+  const [isAvatarUploadModalOpen, setIsAvatarUploadModalOpen] = useState(false);
   const [historySummary, setHistorySummary] = useState<{ summary: string } | null>(null);
 
   const { toast } = useToast();
@@ -387,12 +389,23 @@ export default function PatientDetailPage({
   return (
     <div className="flex flex-col gap-6">
       <ConfirmDialog />
+      <AvatarUploadModal 
+        patientId={patient.id} 
+        isOpen={isAvatarUploadModalOpen} 
+        onClose={() => setIsAvatarUploadModalOpen(false)} 
+        onAvatarUpdated={(newAvatarUrl) => setPatient({ ...patient, avatar: newAvatarUrl })}
+      />
       <Card>
         <CardHeader className="flex flex-row items-start gap-4">
-          <Avatar className="h-20 w-20 border">
-            <AvatarImage src={patient.avatar} />
-            <AvatarFallback>{patient.first_name.charAt(0)}</AvatarFallback>
-          </Avatar>
+          <div className="relative group cursor-pointer" onClick={() => setIsAvatarUploadModalOpen(true)}>
+            <Avatar className="h-20 w-20 border">
+              <AvatarImage src={patient.avatar} />
+              <AvatarFallback>{patient.first_name.charAt(0)}</AvatarFallback>
+            </Avatar>
+            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-full">
+              <Camera className="h-6 w-6 text-white" />
+            </div>
+          </div>
           <div className="flex-1">
             <CardTitle className="text-3xl">{getPatientFullName(patient)}</CardTitle>
             <CardDescription className="text-base">
