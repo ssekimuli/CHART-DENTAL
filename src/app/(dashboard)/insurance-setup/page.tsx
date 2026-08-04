@@ -17,7 +17,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Check, ChevronsUpDown } from "lucide-react";
+import { Check, ChevronsUpDown, Pencil, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { insuranceApi } from "@/services/api/insurance";
 import { hasRole } from "@/lib/user";
@@ -36,16 +36,19 @@ export default function InsuranceSetupPage() {
     
     // Add Company Modal
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [editingCompanyId, setEditingCompanyId] = useState<number | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [formData, setFormData] = useState({ name: "", code: "", email: "", phone: "" });
 
     // Add Package Modal
     const [isAddPackageModalOpen, setIsAddPackageModalOpen] = useState(false);
+    const [editingPackageId, setEditingPackageId] = useState<number | null>(null);
     const [companyPopoverOpen, setCompanyPopoverOpen] = useState(false);
     const [packageData, setPackageData] = useState({ insurance_company_id: "", name: "", code: "", default_coverage_percentage: "100" });
 
     // Add Policy Modal
     const [isAddPolicyModalOpen, setIsAddPolicyModalOpen] = useState(false);
+    const [editingPolicyId, setEditingPolicyId] = useState<number | null>(null);
     const [policyData, setPolicyData] = useState({ insurance_package_id: "", policy_number: "", policy_type: "corporate", employer_or_group_name: "", coverage_start_date: "", coverage_end_date: "", total_coverage_limit: "" });
 
     // Map Procedures Modal
@@ -86,57 +89,105 @@ export default function InsuranceSetupPage() {
         e.preventDefault();
         setIsSubmitting(true);
         try {
-            await insuranceApi.addCompany(formData);
+            if (editingCompanyId) {
+                await insuranceApi.updateCompany(editingCompanyId, formData);
+            } else {
+                await insuranceApi.addCompany(formData);
+            }
             await fetchData();
             setIsAddModalOpen(false);
+            setEditingCompanyId(null);
             setFormData({ name: "", code: "", email: "", phone: "" });
         } catch (error: any) {
-            console.error("Failed to add company", error);
+            console.error("Failed to save company", error);
             toast({
                 title: "Error",
-                description: error?.response?.data?.message || "Failed to add company.",
+                description: error?.response?.data?.message || "Failed to save company.",
                 variant: "destructive"
             });
         }
         setIsSubmitting(false);
+    };
+
+    const handleDeleteCompany = async (id: number) => {
+        if (!confirm("Are you sure you want to delete this company?")) return;
+        try {
+            await insuranceApi.deleteCompany(id);
+            await fetchData();
+            toast({ title: "Success", description: "Company deleted successfully." });
+        } catch (error: any) {
+            toast({ title: "Error", description: error?.response?.data?.message || "Failed to delete.", variant: "destructive" });
+        }
     };
 
     const handleAddPackage = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsSubmitting(true);
         try {
-            await insuranceApi.addPackage(packageData);
+            if (editingPackageId) {
+                await insuranceApi.updatePackage(editingPackageId, packageData);
+            } else {
+                await insuranceApi.addPackage(packageData);
+            }
             await fetchData();
             setIsAddPackageModalOpen(false);
+            setEditingPackageId(null);
             setPackageData({ insurance_company_id: "", name: "", code: "", default_coverage_percentage: "100" });
         } catch (error: any) {
-            console.error("Failed to add package", error);
+            console.error("Failed to save package", error);
             toast({
                 title: "Error",
-                description: error?.response?.data?.message || "Failed to add package.",
+                description: error?.response?.data?.message || "Failed to save package.",
                 variant: "destructive"
             });
         }
         setIsSubmitting(false);
     };
 
+    const handleDeletePackage = async (id: number) => {
+        if (!confirm("Are you sure you want to delete this package?")) return;
+        try {
+            await insuranceApi.deletePackage(id);
+            await fetchData();
+            toast({ title: "Success", description: "Package deleted successfully." });
+        } catch (error: any) {
+            toast({ title: "Error", description: error?.response?.data?.message || "Failed to delete.", variant: "destructive" });
+        }
+    };
+
     const handleAddPolicy = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsSubmitting(true);
         try {
-            await insuranceApi.addPolicy(policyData);
+            if (editingPolicyId) {
+                await insuranceApi.updatePolicy(editingPolicyId, policyData);
+            } else {
+                await insuranceApi.addPolicy(policyData);
+            }
             await fetchData();
             setIsAddPolicyModalOpen(false);
+            setEditingPolicyId(null);
             setPolicyData({ insurance_package_id: "", policy_number: "", policy_type: "corporate", employer_or_group_name: "", coverage_start_date: "", coverage_end_date: "", total_coverage_limit: "" });
         } catch (error: any) {
-            console.error("Failed to add policy", error);
+            console.error("Failed to save policy", error);
             toast({
                 title: "Error",
-                description: error?.response?.data?.message || "Failed to add policy.",
+                description: error?.response?.data?.message || "Failed to save policy.",
                 variant: "destructive"
             });
         }
         setIsSubmitting(false);
+    };
+
+    const handleDeletePolicy = async (id: number) => {
+        if (!confirm("Are you sure you want to delete this policy?")) return;
+        try {
+            await insuranceApi.deletePolicy(id);
+            await fetchData();
+            toast({ title: "Success", description: "Policy deleted successfully." });
+        } catch (error: any) {
+            toast({ title: "Error", description: error?.response?.data?.message || "Failed to delete.", variant: "destructive" });
+        }
     };
 
     const openMappingModal = async (pkg: any) => {
@@ -232,15 +283,21 @@ export default function InsuranceSetupPage() {
                                 <CardTitle>Insurance Companies</CardTitle>
                                 <CardDescription>Manage your partnered insurance providers.</CardDescription>
                             </div>
-                            <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
+                            <Dialog open={isAddModalOpen} onOpenChange={(open) => {
+                                setIsAddModalOpen(open);
+                                if (!open) setEditingCompanyId(null);
+                            }}>
                                 <DialogTrigger asChild>
-                                    <Button>+ Add Company</Button>
+                                    <Button onClick={() => {
+                                        setEditingCompanyId(null);
+                                        setFormData({ name: "", code: "", email: "", phone: "" });
+                                    }}>+ Add Company</Button>
                                 </DialogTrigger>
                                 <DialogContent>
                                     <form onSubmit={handleAddCompany}>
                                         <DialogHeader>
-                                            <DialogTitle>Add Insurance Company</DialogTitle>
-                                            <DialogDescription>Create a new insurance provider for patient billing.</DialogDescription>
+                                            <DialogTitle>{editingCompanyId ? "Edit Company" : "Add Insurance Company"}</DialogTitle>
+                                            <DialogDescription>{editingCompanyId ? "Update insurance provider details." : "Create a new insurance provider for patient billing."}</DialogDescription>
                                         </DialogHeader>
                                         <div className="grid gap-4 py-4">
                                             <div className="grid grid-cols-4 items-center gap-4">
@@ -277,16 +334,17 @@ export default function InsuranceSetupPage() {
                                         <TableHead>Name</TableHead>
                                         <TableHead>Email</TableHead>
                                         <TableHead>Status</TableHead>
+                                        <TableHead className="text-right">Actions</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {loading ? (
                                         <TableRow>
-                                            <TableCell colSpan={4} className="text-center">Loading...</TableCell>
+                                            <TableCell colSpan={5} className="text-center">Loading...</TableCell>
                                         </TableRow>
                                     ) : companies.length === 0 ? (
                                         <TableRow>
-                                            <TableCell colSpan={4} className="text-center text-muted-foreground">No companies found.</TableCell>
+                                            <TableCell colSpan={5} className="text-center text-muted-foreground">No companies found.</TableCell>
                                         </TableRow>
                                     ) : (
                                         companies.map((company) => (
@@ -305,6 +363,18 @@ export default function InsuranceSetupPage() {
                                                         </SelectContent>
                                                     </Select>
                                                 </TableCell>
+                                                <TableCell className="text-right space-x-2">
+                                                    <Button variant="ghost" size="sm" onClick={() => {
+                                                        setEditingCompanyId(company.id);
+                                                        setFormData({ name: company.name, code: company.code, email: company.email || "", phone: company.phone || "" });
+                                                        setIsAddModalOpen(true);
+                                                    }}>
+                                                        <Pencil className="h-4 w-4" />
+                                                    </Button>
+                                                    <Button variant="ghost" size="sm" onClick={() => handleDeleteCompany(company.id)} className="text-destructive hover:text-destructive">
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
+                                                </TableCell>
                                             </TableRow>
                                         ))
                                     )}
@@ -322,14 +392,20 @@ export default function InsuranceSetupPage() {
                                 <CardTitle>Insurance Packages</CardTitle>
                                 <CardDescription>Manage packages (e.g. Gold, Silver) for each company.</CardDescription>
                             </div>
-                            <Dialog open={isAddPackageModalOpen} onOpenChange={setIsAddPackageModalOpen}>
+                            <Dialog open={isAddPackageModalOpen} onOpenChange={(open) => {
+                                setIsAddPackageModalOpen(open);
+                                if (!open) setEditingPackageId(null);
+                            }}>
                                 <DialogTrigger asChild>
-                                    <Button>+ Add Package</Button>
+                                    <Button onClick={() => {
+                                        setEditingPackageId(null);
+                                        setPackageData({ insurance_company_id: "", name: "", code: "", default_coverage_percentage: "100" });
+                                    }}>+ Add Package</Button>
                                 </DialogTrigger>
                                 <DialogContent>
                                     <form onSubmit={handleAddPackage}>
                                         <DialogHeader>
-                                            <DialogTitle>Add Insurance Package</DialogTitle>
+                                            <DialogTitle>{editingPackageId ? "Edit Package" : "Add Insurance Package"}</DialogTitle>
                                         </DialogHeader>
                                         <div className="grid gap-4 py-4">
                                             <div className="grid grid-cols-4 items-center gap-4">
@@ -430,9 +506,19 @@ export default function InsuranceSetupPage() {
                                                     </SelectContent>
                                                 </Select>
                                             </TableCell>
-                                            <TableCell className="text-right">
-                                                <Button variant="outline" size="sm" onClick={() => openMappingModal(pkg)}>
+                                            <TableCell className="text-right space-x-2 flex justify-end">
+                                                <Button variant="ghost" size="sm" onClick={() => openMappingModal(pkg)}>
                                                     Map Coverages
+                                                </Button>
+                                                <Button variant="ghost" size="icon" onClick={() => {
+                                                    setEditingPackageId(pkg.id);
+                                                    setPackageData({ insurance_company_id: String(pkg.insurance_company_id), name: pkg.name, code: pkg.code, default_coverage_percentage: pkg.default_coverage_percentage });
+                                                    setIsAddPackageModalOpen(true);
+                                                }}>
+                                                    <Pencil className="h-4 w-4" />
+                                                </Button>
+                                                <Button variant="ghost" size="icon" onClick={() => handleDeletePackage(pkg.id)} className="text-destructive hover:text-destructive">
+                                                    <Trash2 className="h-4 w-4" />
                                                 </Button>
                                             </TableCell>
                                         </TableRow>
@@ -562,14 +648,20 @@ export default function InsuranceSetupPage() {
                                 <CardTitle>Master Policies</CardTitle>
                                 <CardDescription>Manage master group/corporate policies.</CardDescription>
                             </div>
-                            <Dialog open={isAddPolicyModalOpen} onOpenChange={setIsAddPolicyModalOpen}>
+                            <Dialog open={isAddPolicyModalOpen} onOpenChange={(open) => {
+                                setIsAddPolicyModalOpen(open);
+                                if (!open) setEditingPolicyId(null);
+                            }}>
                                 <DialogTrigger asChild>
-                                    <Button>+ Add Policy</Button>
+                                    <Button onClick={() => {
+                                        setEditingPolicyId(null);
+                                        setPolicyData({ insurance_package_id: "", policy_number: "", policy_type: "corporate", employer_or_group_name: "", coverage_start_date: "", coverage_end_date: "", total_coverage_limit: "" });
+                                    }}>+ Add Policy</Button>
                                 </DialogTrigger>
                                 <DialogContent>
                                     <form onSubmit={handleAddPolicy}>
                                         <DialogHeader>
-                                            <DialogTitle>Add Master Policy</DialogTitle>
+                                            <DialogTitle>{editingPolicyId ? "Edit Policy" : "Add Master Policy"}</DialogTitle>
                                         </DialogHeader>
                                         <div className="grid gap-4 py-4">
                                             <div className="grid grid-cols-4 items-center gap-4">
@@ -644,6 +736,7 @@ export default function InsuranceSetupPage() {
                                         <TableHead>Limit</TableHead>
                                         <TableHead>Dates</TableHead>
                                         <TableHead>Status</TableHead>
+                                        <TableHead className="text-right">Actions</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -668,10 +761,22 @@ export default function InsuranceSetupPage() {
                                                     </SelectContent>
                                                 </Select>
                                             </TableCell>
+                                            <TableCell className="text-right space-x-2">
+                                                <Button variant="ghost" size="icon" onClick={() => {
+                                                    setEditingPolicyId(pol.id);
+                                                    setPolicyData({ insurance_package_id: String(pol.insurance_package_id), policy_number: pol.policy_number, policy_type: pol.policy_type, employer_or_group_name: pol.employer_or_group_name || "", coverage_start_date: pol.coverage_start_date, coverage_end_date: pol.coverage_end_date, total_coverage_limit: pol.total_coverage_limit || "" });
+                                                    setIsAddPolicyModalOpen(true);
+                                                }}>
+                                                    <Pencil className="h-4 w-4" />
+                                                </Button>
+                                                <Button variant="ghost" size="icon" onClick={() => handleDeletePolicy(pol.id)} className="text-destructive hover:text-destructive">
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </TableCell>
                                         </TableRow>
                                     ))}
                                     {policies.length === 0 && (
-                                        <TableRow><TableCell colSpan={6} className="text-center">No policies found.</TableCell></TableRow>
+                                        <TableRow><TableCell colSpan={7} className="text-center">No policies found.</TableCell></TableRow>
                                     )}
                                 </TableBody>
                             </Table>

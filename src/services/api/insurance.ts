@@ -5,6 +5,12 @@ export const insuranceApi = {
   
   addCompany: (data: { name: string, code: string, email?: string, phone?: string }) => 
     customAxios.post('/insurance/companies', data),
+    
+  updateCompany: (id: number, data: { name: string, code: string, email?: string, phone?: string }) => 
+    customAxios.put(`/insurance/companies/${id}`, data),
+    
+  deleteCompany: (id: number) => 
+    customAxios.delete(`/insurance/companies/${id}`),
   
   updateCompanyStatus: (id: number, status: string) =>
     customAxios.patch(`/insurance/companies/${id}/status`, { status }),
@@ -14,6 +20,12 @@ export const insuranceApi = {
     
   addPackage: (data: any) => 
     customAxios.post('/insurance/packages', data),
+    
+  updatePackage: (id: number, data: any) => 
+    customAxios.put(`/insurance/packages/${id}`, data),
+    
+  deletePackage: (id: number) => 
+    customAxios.delete(`/insurance/packages/${id}`),
     
   updatePackageStatus: (id: number, status: string) =>
     customAxios.patch(`/insurance/packages/${id}/status`, { status }),
@@ -32,6 +44,12 @@ export const insuranceApi = {
     
   addPolicy: (data: any) => 
     customAxios.post('/insurance/policies', data),
+    
+  updatePolicy: (id: number, data: any) => 
+    customAxios.put(`/insurance/policies/${id}`, data),
+    
+  deletePolicy: (id: number) => 
+    customAxios.delete(`/insurance/policies/${id}`),
     
   updatePolicyStatus: (id: number, status: string) =>
     customAxios.patch(`/insurance/policies/${id}/status`, { status }),
