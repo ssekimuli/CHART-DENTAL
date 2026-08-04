@@ -725,7 +725,7 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange, asModal =
 
   return (
     <Dialog open={true} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col">
+        <DialogContent className="w-[96vw] sm:max-w-2xl md:max-w-3xl max-h-[96vh] sm:max-h-[90vh] flex flex-col p-4 sm:p-6">
             <DialogHeader>
                 <DialogTitle>{invoice ? 'Edit Invoice' : 'Create Invoice'}</DialogTitle>
                 <DialogDescriptionComponent>

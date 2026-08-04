@@ -401,7 +401,7 @@ export default function BillingPage() {
                 />
             </div>
             {hasPermission('billing:create') && (
-                <Button onClick={() => router.push('/billing/new')}>
+                <Button onClick={() => { setSelectedInvoice(undefined); setIsFormOpen(true); }}>
                     <PlusCircle className="mr-2 h-4 w-4" />
                     Create Invoice
                 </Button>
