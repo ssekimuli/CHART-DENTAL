@@ -497,6 +497,7 @@ export const getPatientById = async (id: string | number): Promise<Patient | und
             })),
              treatmentPlans: parseJsonArraySafe(patient.treatment_plans).map((plan: any) => ({
                 id: String(plan.id),
+                procedureId: plan.procedure_id || plan.procedureId || String(plan.id),
                 procedure: plan.procedure,
                 tooth: plan.tooth,
                 status: plan.status,
@@ -2286,6 +2287,7 @@ export const addImageToPatient = async (patientId: string | number, imageFormDat
             })),
             treatmentPlans: (updatedPatient.treatment_plans || []).map((plan: any) => ({
                 id: String(plan.id),
+                procedureId: plan.procedure_id || plan.procedureId || String(plan.id),
                 procedure: plan.procedure,
                 tooth: plan.tooth,
                 status: plan.status,
