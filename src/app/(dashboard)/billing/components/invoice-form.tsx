@@ -229,7 +229,7 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange, asModal =
   }, [selectedTreatments]);
 
   const otherChargesTotal = useMemo(() => {
-    return otherCharges.reduce((sum, charge) => sum + (charge.amount || 0), 0);
+    return otherCharges.reduce((sum, charge) => sum + (Number(charge.amount) || 0), 0);
   }, [otherCharges]);
 
   const medicinesTotal = useMemo(() => {
