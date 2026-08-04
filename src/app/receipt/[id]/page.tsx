@@ -53,12 +53,9 @@ export default function ReceiptPage() {
   });
 
   useEffect(() => {
-    if (!isLoading && invoice) {
-      setTimeout(() => {
-        handlePrint();
-      }, 800);
-    }
-  }, [isLoading, invoice, handlePrint]);
+    // Removed auto-print as many mobile browsers block iframe printing without a user gesture.
+    // The user will now tap the 'Print Receipt' button.
+  }, [isLoading, invoice]);
 
   const formatCurrency = (value: any) => baseFormatCurrency(value, invoice?.branch?.currency);
 
@@ -108,6 +105,22 @@ export default function ReceiptPage() {
             background: #fff;
             color: #000;
         }
+        .no-print {
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+        .print-btn {
+            padding: 10px 20px;
+            background-color: #000;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
         .receipt-container {
             width: 100%;
             max-width: 80mm;
@@ -128,6 +141,12 @@ export default function ReceiptPage() {
         .mt-2 { margin-top: 8px; }
       `}} />
       
+      <div className="no-print">
+         <button onClick={() => handlePrint()} className="print-btn">
+             Print Receipt
+         </button>
+      </div>
+
       <div className="receipt-container" ref={componentRef}>
         <div className="text-center mb-2">
             <h2 className="font-bold" style={{ fontSize: '16px', margin: '0 0 4px 0' }}>{invoice.branch?.name || 'CHART DENTAL'}</h2>
