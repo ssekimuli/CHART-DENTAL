@@ -21,7 +21,31 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Client } from "@/lib/types";
 import { getClients, createClient, updateClient, deleteClient } from "@/lib/api";
+"use client";
+
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { PlusCircle, Pencil, Trash } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Skeleton } from "@/components/ui/skeleton";
+import type { Client } from "@/lib/types";
+import { getClients, createClient, updateClient, deleteClient } from "@/lib/api";
 import { ClientForm } from "./components/client-form";
+import { useConfirm } from "@/hooks/use-confirm";
 import { useToast } from "@/hooks/use-toast";
 
 export default function ClientsPage() {
@@ -29,6 +53,7 @@ export default function ClientsPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingClient, setEditingClient] = useState<Client | null>(null);
+    const { confirm, ConfirmDialog } = useConfirm();
     const { toast } = useToast();
 
     useEffect(() => {
@@ -42,21 +67,38 @@ export default function ClientsPage() {
     }, []);
 
     const handleSaveClient = async (data: Omit<Client, 'id'>) => {
-        if (editingClient) {
-            const updated = await updateClient(editingClient.id, data);
-            setClients(prev => prev.map(c => c.id === updated.id ? updated : c));
-        } else {
-            const added = await createClient(data);
-            setClients(prev => [...prev, added]);
+        try {
+            if (editingClient) {
+                const updated = await updateClient(editingClient.id, data);
+                setClients(prev => prev.map(c => c.id === updated.id ? updated : c));
+                toast({ title: "Success", description: "Client updated successfully." });
+            } else {
+                const added = await createClient(data);
+                setClients(prev => [...prev, added]);
+                toast({ title: "Success", description: "Client created successfully." });
+            }
+        } catch (error: any) {
+            toast({ title: "Error", description: error.message || "Failed to save client.", variant: "destructive" });
         }
         setIsFormOpen(false);
         setEditingClient(null);
     };
 
-    const handleDeleteClient = async (id: string | number) => {
-        if (!confirm("Are you sure you want to delete this client?")) return;
-        await deleteClient(id);
-        setClients(prev => prev.filter(c => c.id !== id));
+    const executeDeleteClient = async (id: string | number) => {
+        try {
+            await deleteClient(id);
+            setClients(prev => prev.filter(c => c.id !== id));
+            toast({ title: "Success", description: "Client deleted successfully." });
+        } catch (error: any) {
+            toast({ title: "Error", description: error.message || "Failed to delete client.", variant: "destructive" });
+        }
+    };
+
+    const handleDeleteClient = (id: string | number) => {
+        confirm({
+            description: "Are you sure you want to delete this client?",
+            onConfirm: () => executeDeleteClient(id)
+        });
     };
 
     const openEditForm = (client: Client) => {
@@ -140,6 +182,7 @@ export default function ClientsPage() {
                     onOpenChange={setIsFormOpen}
                 />
             )}
+            <ConfirmDialog />
         </>
     );
 }

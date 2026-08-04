@@ -21,6 +21,7 @@ import { Check, ChevronsUpDown, Pencil, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { insuranceApi } from "@/services/api/insurance";
 import { hasRole } from "@/lib/user";
+import { useConfirm } from "@/hooks/use-confirm";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import moment from "moment";
@@ -28,6 +29,7 @@ import moment from "moment";
 export default function InsuranceSetupPage() {
     const router = useRouter();
     const { toast } = useToast();
+    const { confirm, ConfirmDialog } = useConfirm();
     const [companies, setCompanies] = useState<any[]>([]);
     const [packages, setPackages] = useState<any[]>([]);
     const [policies, setPolicies] = useState<any[]>([]);
@@ -110,8 +112,7 @@ export default function InsuranceSetupPage() {
         setIsSubmitting(false);
     };
 
-    const handleDeleteCompany = async (id: number) => {
-        if (!confirm("Are you sure you want to delete this company?")) return;
+    const executeDeleteCompany = async (id: number) => {
         try {
             await insuranceApi.deleteCompany(id);
             await fetchData();
@@ -119,6 +120,10 @@ export default function InsuranceSetupPage() {
         } catch (error: any) {
             toast({ title: "Error", description: error?.response?.data?.message || "Failed to delete.", variant: "destructive" });
         }
+    };
+
+    const handleDeleteCompany = (id: number) => {
+        confirm({ description: "Are you sure you want to delete this company?", onConfirm: () => executeDeleteCompany(id) });
     };
 
     const handleAddPackage = async (e: React.FormEvent) => {
@@ -145,8 +150,7 @@ export default function InsuranceSetupPage() {
         setIsSubmitting(false);
     };
 
-    const handleDeletePackage = async (id: number) => {
-        if (!confirm("Are you sure you want to delete this package?")) return;
+    const executeDeletePackage = async (id: number) => {
         try {
             await insuranceApi.deletePackage(id);
             await fetchData();
@@ -154,6 +158,10 @@ export default function InsuranceSetupPage() {
         } catch (error: any) {
             toast({ title: "Error", description: error?.response?.data?.message || "Failed to delete.", variant: "destructive" });
         }
+    };
+
+    const handleDeletePackage = (id: number) => {
+        confirm({ description: "Are you sure you want to delete this package?", onConfirm: () => executeDeletePackage(id) });
     };
 
     const handleAddPolicy = async (e: React.FormEvent) => {
@@ -180,8 +188,7 @@ export default function InsuranceSetupPage() {
         setIsSubmitting(false);
     };
 
-    const handleDeletePolicy = async (id: number) => {
-        if (!confirm("Are you sure you want to delete this policy?")) return;
+    const executeDeletePolicy = async (id: number) => {
         try {
             await insuranceApi.deletePolicy(id);
             await fetchData();
@@ -189,6 +196,10 @@ export default function InsuranceSetupPage() {
         } catch (error: any) {
             toast({ title: "Error", description: error?.response?.data?.message || "Failed to delete.", variant: "destructive" });
         }
+    };
+
+    const handleDeletePolicy = (id: number) => {
+        confirm({ description: "Are you sure you want to delete this policy?", onConfirm: () => executeDeletePolicy(id) });
     };
 
     const openMappingModal = async (pkg: any) => {
@@ -265,6 +276,7 @@ export default function InsuranceSetupPage() {
 
     return (
         <div className="flex-1 space-y-4 p-8 pt-6">
+            <ConfirmDialog />
             <div className="flex items-center justify-between space-y-2">
                 <h2 className="text-3xl font-bold tracking-tight">Insurance Setup</h2>
             </div>

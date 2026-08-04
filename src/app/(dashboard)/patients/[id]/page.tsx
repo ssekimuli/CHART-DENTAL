@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useConfirm } from "@/hooks/use-confirm";
 import { summarizePatientHistory } from "@/ai/flows/summarize-patient-history";
 import {
   Table,
@@ -77,6 +78,7 @@ export default function PatientDetailPage({
   const { id } = use(params);
   const router = useRouter();
   const { formatCurrency } = useCurrency();
+  const { confirm, ConfirmDialog } = useConfirm();
   const [patient, setPatient] = useState<Patient | undefined>(undefined);
   const [systemTreatments, setSystemTreatments] = useState<SystemTreatment[]>([]);
   const [invoices, setInvoices] = useState<any[]>([]);
@@ -195,8 +197,7 @@ export default function PatientDetailPage({
     }
   };
 
-  const handleDeletePrescription = async (prescriptionId: string | number) => {
-    if (confirm("Are you sure you want to delete this prescription?")) {
+  const executeDeletePrescription = async (prescriptionId: string | number) => {
       const success = await deletePrescription(prescriptionId);
       if (success) {
         setPrescriptions(prev => prev.filter(p => String(p.id) !== String(prescriptionId)));
@@ -204,7 +205,13 @@ export default function PatientDetailPage({
       } else {
         toast({ title: "Error", description: "Failed to delete prescription.", variant: "destructive" });
       }
-    }
+  };
+
+  const handleDeletePrescription = (prescriptionId: string | number) => {
+    confirm({
+      description: "Are you sure you want to delete this prescription?",
+      onConfirm: () => executeDeletePrescription(prescriptionId)
+    });
   };
 
   const toggleDocumentSelection = (docId: number) => {
@@ -364,6 +371,7 @@ export default function PatientDetailPage({
 
   return (
     <div className="flex flex-col gap-6">
+      <ConfirmDialog />
       <Card>
         <CardHeader className="flex flex-row items-start gap-4">
           <Avatar className="h-20 w-20 border">
@@ -593,13 +601,21 @@ export default function PatientDetailPage({
                                 </Button>
                             )}
                             <Button
-                                variant="destructive"
-                                size="sm"
-                                onClick={async () => {
-                                    if(confirm("Are you sure you want to remove this policy from this patient?")) {
-                                        await insuranceApi.removePolicyFromPatient(Number(id), ins.pivot.id);
-                                        fetchPatientInsurances();
-                                    }
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => {
+                                    confirm({
+                                        description: "Are you sure you want to remove this policy from this patient?",
+                                        onConfirm: async () => {
+                                            try {
+                                                await insuranceApi.removePolicyFromPatient(Number(id), ins.pivot.id);
+                                                toast({ title: "Success", description: "Policy removed from patient" });
+                                                fetchPatientInsurances();
+                                            } catch (error) {
+                                                toast({ title: "Error", description: "Failed to remove policy", variant: "destructive" });
+                                            }
+                                        }
+                                    });
                                 }}
                             >
                                 <Trash className="h-4 w-4" />
