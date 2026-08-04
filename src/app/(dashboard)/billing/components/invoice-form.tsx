@@ -356,9 +356,18 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange, asModal =
                                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground"><path d="M11 2a2 2 0 0 0-2 2v5H4a2 2 0 0 0-2 2v2c0 1.1.9 2 2 2h5v5c0 1.1.9 2 2 2h2a2 2 0 0 0 2-2v-5h5a2 2 0 0 0 2-2v-2a2 2 0 0 0-2-2h-5V4a2 2 0 0 0-2-2h-2z"/></svg>
                                     Add Treatments
                                 </FormLabel>
+                                
                                 <FormControl>
-                                    <div className="rounded-lg border bg-background/50 overflow-hidden">
-                                        <Command className="bg-transparent">
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                            <Button variant="outline" className="w-full justify-start text-muted-foreground font-normal bg-background/50 h-10">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                                                Search and select treatments...
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                                            <Command className="bg-transparent">
+
                                             <CommandInput placeholder="Search procedures to add..." className="border-none focus:ring-0" />
                                             <CommandList className="max-h-40 overflow-y-auto custom-scrollbar">
                                                 <CommandEmpty className="p-4 text-center text-sm text-muted-foreground">No treatments found.</CommandEmpty>
@@ -381,8 +390,10 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange, asModal =
                                                     ))}
                                                 </CommandGroup>
                                             </CommandList>
-                                        </Command>
-                                    </div>
+                                        
+                                            </Command>
+                                        </PopoverContent>
+                                    </Popover>
                                 </FormControl>
                             </FormItem>
 
@@ -421,9 +432,18 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange, asModal =
                                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground"><path d="M10.5 20.5 7 24l-3-3 3.5-3.5"/><path d="m20.5 10.5-3.5 3.5-7-7 3.5-3.5 7 7Z"/><path d="m10 10 4 4"/></svg>
                                     Add Medicines
                                 </FormLabel>
+                                
                                 <FormControl>
-                                    <div className="rounded-lg border bg-background/50 overflow-hidden">
-                                        <Command className="bg-transparent">
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                            <Button variant="outline" className="w-full justify-start text-muted-foreground font-normal bg-background/50 h-10">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                                                Search and select medicines...
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                                            <Command className="bg-transparent">
+
                                             <CommandInput placeholder="Search medicines to add..." className="border-none focus:ring-0" />
                                             <CommandList className="max-h-40 overflow-y-auto custom-scrollbar">
                                                 <CommandEmpty className="p-4 text-center text-sm text-muted-foreground">No medicines found.</CommandEmpty>
@@ -445,8 +465,10 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange, asModal =
                                                     ))}
                                                 </CommandGroup>
                                             </CommandList>
-                                        </Command>
-                                    </div>
+                                        
+                                            </Command>
+                                        </PopoverContent>
+                                    </Popover>
                                 </FormControl>
                             </FormItem>
 
