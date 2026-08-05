@@ -1,6 +1,7 @@
 
 
 "use client";
+import { useToast } from "@/hooks/use-toast";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -108,6 +109,7 @@ const generateToken = (patientName: string, doctorName: string) => {
 }
 
 export function AppointmentForm({ appointment, patients: initialPatients, doctors, appointments, onSave, onOpenChange }: AppointmentFormProps) {
+  const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [treatments, setTreatments] = useState<SystemTreatment[]>([]);
@@ -167,13 +169,20 @@ export function AppointmentForm({ appointment, patients: initialPatients, doctor
     if (!doctor) return;
 
 
-    onSave({
+        await onSave({
         ...values,
         patientName: getPatientFullName(patient),
         doctorName: doctor.name,
         date: format(values.date, "yyyy-MM-dd"),
     });
-      } finally {
+      } catch (error: any) {
+        console.error(error);
+        toast({
+            title: "Error",
+            description: error.message || "An unexpected error occurred.",
+            variant: "destructive",
+        });
+    } finally {
       setIsSubmitting(false);
     }
   }

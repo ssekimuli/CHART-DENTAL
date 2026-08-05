@@ -1,5 +1,6 @@
 
 "use client";
+import { useToast } from "@/hooks/use-toast";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -74,6 +75,7 @@ type PatientFormProps = {
 };
 
 export function PatientForm({ patient, onSave, onOpenChange, asModal = true }: PatientFormProps) {
+  const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -111,6 +113,13 @@ export function PatientForm({ patient, onSave, onOpenChange, asModal = true }: P
             history: values.history,
             branchId: patient?.branchId ?? "",
             avatar: values.avatar || `https://picsum.photos/seed/p${Math.random()}/200/200`,
+        });
+    } catch (error: any) {
+        console.error(error);
+        toast({
+            title: "Error",
+            description: error.message || "An unexpected error occurred.",
+            variant: "destructive",
         });
     } finally {
         setIsSubmitting(false);

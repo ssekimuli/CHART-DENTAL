@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useState } from "react";
 import { X, FileIcon, Loader2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -40,6 +41,7 @@ type ImageUploadFormProps = {
 export function ImageUploadForm({ onSave, onOpenChange }: ImageUploadFormProps) {
   const [files, setFiles] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -63,7 +65,11 @@ export function ImageUploadForm({ onSave, onOpenChange }: ImageUploadFormProps) 
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (files.length === 0) {
-      alert("Please select at least one file to upload.");
+      toast({
+        title: "No Files Selected",
+        description: "Please select at least one file to upload.",
+        variant: "destructive"
+      });
       return;
     }
 
@@ -77,6 +83,13 @@ export function ImageUploadForm({ onSave, onOpenChange }: ImageUploadFormProps) 
       formData.append("category", values.category);
 
       await onSave(formData);
+    } catch (error: any) {
+        console.error(error);
+        toast({
+            title: "Error",
+            description: error.message || "An unexpected error occurred.",
+            variant: "destructive",
+        });
     } finally {
       setIsSubmitting(false);
     }
