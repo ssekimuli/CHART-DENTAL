@@ -234,8 +234,8 @@ export function EndodonticRecordForm({
     }
   }, [record, reset, isOpen]);
 
-  const onSubmit = (data: Omit<EndodonticRecord, "id" | "date">) => {
-    onSave({
+  const onSubmit = async (data: Omit<EndodonticRecord, "id" | "date">) => {
+    await onSave({
       ...data,
       toothId: Number(data.toothId),
     });

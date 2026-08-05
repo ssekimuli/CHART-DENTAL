@@ -7,12 +7,22 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import type { Invoice, Patient, PaymentMethod, PaymentTransaction } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { Printer, Download, Loader2, ArrowLeft } from 'lucide-react';
-import { getInvoiceById, getPatientById } from '@/lib/api';
+import { Printer, Download, Loader2, ArrowLeft, Trash2 } from 'lucide-react';
+import { getInvoiceById, getPatientById, deleteInvoice } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { hasPermission } from '@/lib/user';
 import moment from 'moment';
 import { useCurrency } from '@/hooks/use-currency';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function InvoiceDetailPage() {
   const params = useParams();
@@ -24,6 +34,8 @@ export default function InvoiceDetailPage() {
   const [invoice, setInvoice] = useState<Invoice | undefined>(undefined);
   const [patient, setPatient] = useState<Patient | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(true);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     if (!hasPermission('billing:read')) {
@@ -142,6 +154,19 @@ export default function InvoiceDetailPage() {
     }
   };
 
+  const handleDelete = async () => {
+    if (!invoice) return;
+    setIsDeleting(true);
+    try {
+      await deleteInvoice(invoice.id);
+      router.push('/billing');
+    } catch (error) {
+      console.error('Error deleting invoice:', error);
+      setIsDeleting(false);
+      setIsDeleteDialogOpen(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <Card>
@@ -184,6 +209,11 @@ export default function InvoiceDetailPage() {
               <CardTitle className="text-3xl">Invoice Details</CardTitle>
           </div>
           <div className="flex gap-2">
+              {hasPermission('billing:delete') && (
+                <Button variant="destructive" onClick={() => setIsDeleteDialogOpen(true)}>
+                  <Trash2 className="mr-2 h-4 w-4" /> Delete
+                </Button>
+              )}
               <Button variant="outline" onClick={handlePrint}>
                 <Printer className="mr-2 h-4 w-4" /> Print
               </Button>
@@ -232,21 +262,29 @@ export default function InvoiceDetailPage() {
                   <TableHeader>
                       <TableRow>
                           <TableHead>Procedure</TableHead>
-                          <TableHead className="text-right">Cost</TableHead>
+                          <TableHead className="text-right">Ins. Portion</TableHead>
+                          <TableHead className="text-right">Pat. Portion</TableHead>
+                          <TableHead className="text-right">Total Cost</TableHead>
                       </TableRow>
                   </TableHeader>
                   <TableBody>
                       {treatments.map((treatment, index) => (
                           <TableRow key={index}>
                               <TableCell>{treatment.procedure || 'Untitled Treatment'}</TableCell>
+                              <TableCell className="text-right text-blue-600">
+                                {formatCurrency(treatment.insuranceAmount || 0)}
+                              </TableCell>
                               <TableCell className="text-right">
+                                {formatCurrency(treatment.patientAmount ?? treatment.cost)}
+                              </TableCell>
+                              <TableCell className="text-right font-medium">
                                 {formatCurrency(treatment.cost)}
                               </TableCell>
                           </TableRow>
                       ))}
                       {treatments.length === 0 && (
                           <TableRow>
-                              <TableCell colSpan={2} className="text-center text-muted-foreground">No treatments on this invoice.</TableCell>
+                              <TableCell colSpan={4} className="text-center text-muted-foreground">No treatments on this invoice.</TableCell>
                           </TableRow>
                       )}
                   </TableBody>
@@ -355,26 +393,65 @@ export default function InvoiceDetailPage() {
                   </div>
                )}
                <div className="flex justify-between font-semibold text-lg border-t pt-2 mt-2">
-                   <span>Total:</span>
+                   <span>Total Bill:</span>
                    <span>{formatCurrency(invoice.amount)}</span>
                </div>
-               {invoice.insuranceCoverage !== undefined && invoice.insuranceCoverage > 0 && (
-                  <div className="flex justify-between text-blue-600">
-                      <span>Insurance Coverage:</span>
-                      <span>-{formatCurrency(invoice.insuranceCoverage)}</span>
-                  </div>
+               {((invoice.insuranceResponsibility || 0) > 0) && (
+                  <>
+                      <div className="flex justify-between text-blue-600 text-sm mt-1">
+                          <span>Insurance Portion:</span>
+                          <span>{formatCurrency(invoice.insuranceResponsibility)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                          <span>Patient Portion:</span>
+                          <span>{formatCurrency(invoice.patientResponsibility)}</span>
+                      </div>
+                  </>
                )}
-               <div className="flex justify-between text-muted-foreground">
-                   <span>Paid:</span>
+               <div className="flex justify-between text-muted-foreground mt-2">
+                   <span>Total Paid:</span>
                    <span>-{formatCurrency(invoice.paidAmount)}</span>
                </div>
-               <div className="flex justify-between font-semibold text-lg border-t pt-2 mt-2">
+               <div className="flex justify-between font-semibold mt-2 pt-2 border-t text-lg">
                    <span>Balance Due:</span>
-                   <span>{formatCurrency(Math.max(getNumber(invoice.amount) - getNumber(invoice.paidAmount) - getNumber(invoice.insuranceCoverage || 0), 0))}</span>
+                   <span className={getNumber(invoice.amount) - getNumber(invoice.paidAmount) > 0 ? "text-destructive" : ""}>
+                     {formatCurrency(getNumber(invoice.amount) - getNumber(invoice.paidAmount))}
+                   </span>
                </div>
+               {((invoice.insuranceResponsibility || 0) > 0) && (
+                  <div className="flex flex-col items-end text-sm text-muted-foreground mt-1">
+                      <span>Patient Balance: {formatCurrency(invoice.patientBalance || Math.max(0, invoice.patientResponsibility! - (invoice.patientPaidAmount || 0)))}</span>
+                      <span>Insurance Balance: {formatCurrency(invoice.insuranceBalance || Math.max(0, invoice.insuranceResponsibility! - (invoice.insurancePaidAmount || 0)))}</span>
+                  </div>
+               )}
           </div>
         </CardFooter>
       </Card>
+      
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Do you really want to delete this invoice? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>No</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={(e) => {
+                e.preventDefault();
+                handleDelete();
+              }} 
+              disabled={isDeleting}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Yes
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

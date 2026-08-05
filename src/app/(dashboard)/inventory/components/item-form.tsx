@@ -1,4 +1,5 @@
 "use client";
+import { useToast } from "@/hooks/use-toast";
 
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
@@ -40,6 +41,7 @@ type ItemFormProps = {
 };
 
 export function ItemForm({ onSave, onOpenChange }: ItemFormProps) {
+  const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -53,8 +55,15 @@ export function ItemForm({ onSave, onOpenChange }: ItemFormProps) {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
     try {
-    onSave(values);
-      } finally {
+        await onSave(values);
+      } catch (error: any) {
+        console.error(error);
+        toast({
+            title: "Error",
+            description: error.message || "An unexpected error occurred.",
+            variant: "destructive",
+        });
+    } finally {
       setIsSubmitting(false);
     }
   }
