@@ -1,4 +1,5 @@
 "use client";
+import { useToast } from "@/hooks/use-toast";
 
 import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -55,6 +56,7 @@ type AttendanceFormProps = {
 };
 
 export function AttendanceForm({ employees, onSave, onOpenChange, selectedDate }: AttendanceFormProps) {
+  const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -70,7 +72,7 @@ export function AttendanceForm({ employees, onSave, onOpenChange, selectedDate }
     const employee = employees.find(e => e.id === values.employeeId);
     if (!employee) return;
     
-    onSave({
+        await onSave({
         employeeId: values.employeeId,
         date: format(values.date, "yyyy-MM-dd"),
         status: values.status,
@@ -78,7 +80,14 @@ export function AttendanceForm({ employees, onSave, onOpenChange, selectedDate }
         checkOut: values.checkOut,
         branchId: employee.branchId,
     });
-      } finally {
+      } catch (error: any) {
+        console.error(error);
+        toast({
+            title: "Error",
+            description: error.message || "An unexpected error occurred.",
+            variant: "destructive",
+        });
+    } finally {
       setIsSubmitting(false);
     }
   }

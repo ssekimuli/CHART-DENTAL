@@ -8,12 +8,14 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { useConfirm } from "@/hooks/use-confirm";
 import { Edit2, Plus, Trash2, Search } from "lucide-react";
 import { getTreatments, createSystemTreatment, updateSystemTreatment, deleteSystemTreatment } from "@/lib/api";
 import type { SystemTreatment } from "@/lib/types";
 
 export function TreatmentsCatalog({ currencyCode }: { currencyCode: string }) {
     const { toast } = useToast();
+    const { confirm, ConfirmDialog } = useConfirm();
     const [treatments, setTreatments] = useState<SystemTreatment[]>([]);
     const [search, setSearch] = useState("");
     const [categoryFilter, setCategoryFilter] = useState("All");
@@ -74,8 +76,7 @@ export function TreatmentsCatalog({ currencyCode }: { currencyCode: string }) {
         }
     };
 
-    const handleDelete = async (id: string | number) => {
-        if (!confirm("Are you sure you want to delete this treatment?")) return;
+    const executeDelete = async (id: string | number) => {
         try {
             await deleteSystemTreatment(id);
             toast({ title: "Deleted", description: "Treatment removed." });
@@ -83,6 +84,13 @@ export function TreatmentsCatalog({ currencyCode }: { currencyCode: string }) {
         } catch (e) {
             toast({ title: "Error", description: "Failed to delete treatment.", variant: "destructive" });
         }
+    };
+
+    const handleDelete = (id: string | number) => {
+        confirm({
+            description: "Are you sure you want to delete this treatment?",
+            onConfirm: () => executeDelete(id)
+        });
     };
 
     const categories = ["Preventive", "Restorative", "Cosmetic", "Surgical", "Other"];
@@ -233,6 +241,7 @@ export function TreatmentsCatalog({ currencyCode }: { currencyCode: string }) {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+            <ConfirmDialog />
         </div>
     );
 }

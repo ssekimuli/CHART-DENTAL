@@ -136,26 +136,32 @@ export default function PatientsPage() {
   }
 
   const handleSavePatient = async (data: BasePatient) => {
-    if (selectedPatient) {
-        // Update
-        const updated = await updatePatient(selectedPatient.id, data);
-        if (updated) {
-            setPatientsData(prev => {
-                const updatedList = prev.map(p => p.id === updated.id ? updated : p) as PaginatedArray<Patient>;
-                updatedList.meta = prev.meta;
-                return updatedList;
-            });
+    try {
+        if (selectedPatient) {
+            // Update
+            const updated = await updatePatient(selectedPatient.id, data);
+            if (updated) {
+                setPatientsData(prev => {
+                    const updatedList = prev.map(p => p.id === updated.id ? updated : p) as PaginatedArray<Patient>;
+                    updatedList.meta = prev.meta;
+                    return updatedList;
+                });
+                toast({ title: "Success", description: "Patient updated successfully." });
+            }
+        } else {
+            // Create
+            const newPatient = await createPatient({ ...data, branchId: selectedBranch });
+            if (newPatient) {
+                setPatientsData(prev => {
+                    const updatedList = [newPatient, ...prev] as PaginatedArray<Patient>;
+                    updatedList.meta = prev.meta;
+                    return updatedList;
+                });
+                toast({ title: "Success", description: "Patient created successfully." });
+            }
         }
-    } else {
-        // Create
-        const newPatient = await createPatient({ ...data, branchId: selectedBranch });
-        if (newPatient) {
-            setPatientsData(prev => {
-                const updatedList = [newPatient, ...prev] as PaginatedArray<Patient>;
-                updatedList.meta = prev.meta;
-                return updatedList;
-            });
-        }
+    } catch (e: any) {
+        toast({ title: "Error", description: e.message || "Failed to save patient.", variant: "destructive" });
     }
     handleCloseForm();
   }

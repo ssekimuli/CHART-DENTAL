@@ -1,4 +1,5 @@
 "use client";
+import { useToast } from "@/hooks/use-toast";
 
 import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -55,6 +56,7 @@ type OrthodonticRecordFormProps = {
 };
 
 export function OrthodonticRecordForm({ record, onSave, onCancel }: OrthodonticRecordFormProps) {
+  const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -80,13 +82,20 @@ export function OrthodonticRecordForm({ record, onSave, onCancel }: OrthodonticR
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
     try {
-    onSave({
+    await onSave({
       ...values,
       date: format(values.date, "yyyy-MM-dd"),
       bracketChanges: values.bracketChanges?.split(',').map(s => s.trim()).filter(Boolean),
       brokenBrackets: values.brokenBrackets?.split(',').map(s => s.trim()).filter(Boolean),
     });
-      } finally {
+      } catch (error: any) {
+        console.error(error);
+        toast({
+            title: "Error",
+            description: error.message || "An unexpected error occurred.",
+            variant: "destructive",
+        });
+    } finally {
       setIsSubmitting(false);
     }
   }

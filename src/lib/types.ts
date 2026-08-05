@@ -113,6 +113,8 @@ export type InvoiceTreatment = {
   procedure: string;
   cost: number;
   tooth?: number;
+  insuranceAmount?: number;
+  patientAmount?: number;
 };
 
 
@@ -178,6 +180,7 @@ export type Invoice = {
   id: string | number;
   patientName: string;
   patientId: string | number;
+  patient?: any;
   receiptNumber?: string;
   amount: number;
   paidAmount: number;
@@ -194,6 +197,12 @@ export type Invoice = {
   discount?: number;
   tax?: number;
   insuranceCoverage?: number;
+  patientResponsibility?: number;
+  insuranceResponsibility?: number;
+  patientPaidAmount?: number;
+  insurancePaidAmount?: number;
+  patientBalance?: number;
+  insuranceBalance?: number;
 };
 
 export type ChartData = {
@@ -278,6 +287,7 @@ export type Branch = {
   name: string;
   address: string;
   currency?: string;
+  contactNumber?: string;
 };
 
 export type Client = {

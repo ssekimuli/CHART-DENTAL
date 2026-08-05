@@ -1,4 +1,5 @@
 "use client";
+import { useToast } from "@/hooks/use-toast";
 
 import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -47,6 +48,7 @@ type PayrollFormProps = {
 };
 
 export function PayrollForm({ payroll, employees, onSave, onOpenChange }: PayrollFormProps) {
+  const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -65,7 +67,7 @@ export function PayrollForm({ payroll, employees, onSave, onOpenChange }: Payrol
     const payDate = values.payDate;
     const periodStart = subDays(payDate, 14);
     
-    onSave({
+        await onSave({
         employeeId: values.employeeId,
         grossPay: values.grossPay,
         deductions: values.deductions,
@@ -74,7 +76,14 @@ export function PayrollForm({ payroll, employees, onSave, onOpenChange }: Payrol
         payPeriod: payroll?.payPeriod || `${format(periodStart, "yyyy-MM-dd")} to ${format(payDate, "yyyy-MM-dd")}`,
         status: payroll?.status || 'Pending',
     });
-      } finally {
+      } catch (error: any) {
+        console.error(error);
+        toast({
+            title: "Error",
+            description: error.message || "An unexpected error occurred.",
+            variant: "destructive",
+        });
+    } finally {
       setIsSubmitting(false);
     }
   }

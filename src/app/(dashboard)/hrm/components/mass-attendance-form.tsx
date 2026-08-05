@@ -1,4 +1,5 @@
 "use client";
+import { useToast } from "@/hooks/use-toast";
 
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
@@ -37,6 +38,7 @@ type MassAttendanceFormProps = {
 };
 
 export function MassAttendanceForm({ onSave, onOpenChange, employeeCount }: MassAttendanceFormProps) {
+  const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -49,8 +51,15 @@ export function MassAttendanceForm({ onSave, onOpenChange, employeeCount }: Mass
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
     try {
-    onSave(values.checkIn, values.checkOut);
-      } finally {
+        await onSave(values.checkIn, values.checkOut);
+      } catch (error: any) {
+        console.error(error);
+        toast({
+            title: "Error",
+            description: error.message || "An unexpected error occurred.",
+            variant: "destructive",
+        });
+    } finally {
       setIsSubmitting(false);
     }
   }
