@@ -1,4 +1,5 @@
 "use client";
+import { useToast } from "@/hooks/use-toast";
 
 import { Loader2 } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -47,6 +48,7 @@ type PaymentFormProps = {
 };
 
 export function PaymentForm({ invoice, onSave, onOpenChange }: PaymentFormProps) {
+  const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { formatCurrency } = useCurrency();
@@ -63,8 +65,15 @@ export function PaymentForm({ invoice, onSave, onOpenChange }: PaymentFormProps)
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
     try {
-    onSave(String(invoice.id), values.paymentAmount, values.paymentMethod);
-      } finally {
+        await onSave(String(invoice.id), values.paymentAmount, values.paymentMethod);
+      } catch (error: any) {
+        console.error(error);
+        toast({
+            title: "Error",
+            description: error.message || "An unexpected error occurred.",
+            variant: "destructive",
+        });
+    } finally {
       setIsSubmitting(false);
     }
   }

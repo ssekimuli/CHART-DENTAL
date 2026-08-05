@@ -159,7 +159,7 @@ export function EditPrescriptionForm({
         title: "Prescription Updated",
         description: "The prescription details have been successfully updated.",
       });
-      if (onSave) onSave();
+      if (onSave) await onSave();
       onOpenChange(false);
     } catch (err) {
       console.error(err);

@@ -89,7 +89,7 @@ export default function BillingPage() {
     claim_number: '',
     total_amount: '',
     claimed_amount: '',
-    status: 'pending'
+    status: 'Draft'
   });
   const { toast } = useToast();
 
@@ -215,25 +215,34 @@ export default function BillingPage() {
     setSelectedInvoiceForClaim(invoice);
     let policies: any[] = [];
     let defaultPolicyId = '';
-    try {
-      const res = await customAxios.get('/patient-insurances');
-      policies = res.data.filter((ins: any) => String(ins.patient_id) === String(invoice.patientId));
-      setPatientInsurances(policies);
-      if (policies.length > 0) {
-        defaultPolicyId = String(policies[0].id);
-      }
-    } catch (e) {
-      console.error(e);
+    
+    // Extract policies directly from the pre-loaded patient relation
+    const rawPolicies = invoice.patient?.insurance_policies || invoice.patient?.insurancePolicies || [];
+    
+    // Map them to what the form expects (provider_name, policy_number)
+    policies = rawPolicies.map((p: any) => {
+      const isPivot = p.pivot ? true : false;
+      return {
+        id: isPivot ? p.pivot.id : p.id,
+        patient_insurance_id: isPivot ? p.pivot.id : p.id,
+        provider_name: p.package?.company?.name || p.provider_name || 'Unknown Provider',
+        policy_number: isPivot ? p.pivot.group_number : (p.group_number || p.policy_number)
+      };
+    });
+
+    setPatientInsurances(policies);
+    if (policies.length > 0) {
+      defaultPolicyId = String(policies[0].id);
     }
     
-    const balance = Number(invoice.amount) - Number(invoice.paidAmount || 0);
+    const insPortion = Number(invoice.insuranceResponsibility || 0);
     
     setClaimFormData({
       patient_insurance_id: defaultPolicyId,
       claim_number: `CLM-${Math.floor(1000 + Math.random() * 9000)}`,
       total_amount: invoice.amount,
-      claimed_amount: balance.toString(),
-      status: 'pending'
+      claimed_amount: insPortion > 0 ? insPortion.toString() : (Number(invoice.amount) - Number(invoice.paidAmount || 0)).toString(),
+      status: 'Draft'
     });
     setIsClaimFormOpen(true);
   };
@@ -380,7 +389,47 @@ export default function BillingPage() {
               Manage invoices and patient billing.
             </CardDescription>
           </div>
-          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center">
+          
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center flex-wrap sm:justify-end">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Popover>
+                    <PopoverTrigger asChild>
+                    <Button
+                        id="date"
+                        variant={"outline"}
+                        className={cn(
+                        "w-full sm:w-[250px] justify-start text-left font-normal",
+                        !dateRange && "text-muted-foreground"
+                        )}
+                    >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {dateRange?.from ? (
+                        dateRange.to ? (
+                            <>
+                            {format(dateRange.from, "LLL dd, y")} -{" "}
+                            {format(dateRange.to, "LLL dd, y")}
+                            </>
+                        ) : (
+                            format(dateRange.from, "LLL dd, y")
+                        )
+                        ) : (
+                        <span>Pick a date range</span>
+                        )}
+                    </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                        initialFocus
+                        mode="range"
+                        defaultMonth={dateRange?.from}
+                        selected={dateRange}
+                        onSelect={setDateRange}
+                        numberOfMonths={2}
+                    />
+                    </PopoverContent>
+                </Popover>
+                 <Button variant="outline" size="sm" onClick={() => setDateRange(undefined)} disabled={!dateRange}>Clear</Button>
+            </div>
             <div className="relative">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -392,7 +441,7 @@ export default function BillingPage() {
                 />
             </div>
             {hasPermission('billing:create') && (
-                <Button onClick={() => router.push('/billing/new')}>
+                <Button onClick={() => { setSelectedInvoice(undefined); setIsFormOpen(true); }}>
                     <PlusCircle className="mr-2 h-4 w-4" />
                     Create Invoice
                 </Button>
@@ -414,8 +463,9 @@ export default function BillingPage() {
                 <TableHead>Patient</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Issue Date</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Paid Amount</TableHead>
+                <TableHead>Total Bill</TableHead>
+                <TableHead>Ins. Portion</TableHead>
+                <TableHead>Pat. Portion</TableHead>
                 <TableHead>Balance</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -442,8 +492,23 @@ export default function BillingPage() {
                     {formatDate(invoice.issueDate)}
                   </TableCell>
                   <TableCell>{formatCurrency(invoice.amount)}</TableCell>
-                  <TableCell>{formatCurrency(invoice.paidAmount)}</TableCell>
-                  <TableCell>{formatCurrency(invoice.amount - invoice.paidAmount)}</TableCell>
+                  <TableCell className="text-blue-600 font-medium">
+                    {formatCurrency(invoice.insuranceResponsibility || 0)}
+                  </TableCell>
+                  <TableCell>
+                    {formatCurrency(invoice.patientResponsibility ?? invoice.amount)}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex flex-col text-sm">
+                      <span className="font-semibold text-red-600">{formatCurrency(invoice.amount - invoice.paidAmount)}</span>
+                      {((invoice.insuranceResponsibility || 0) > 0) && (
+                        <span className="text-xs text-muted-foreground mt-1">
+                          Pat: {formatCurrency(invoice.patientBalance || (invoice.patientResponsibility! - invoice.patientPaidAmount!))} <br/>
+                          Ins: {formatCurrency(invoice.insuranceBalance || (invoice.insuranceResponsibility! - invoice.insurancePaidAmount!))}
+                        </span>
+                      )}
+                    </div>
+                  </TableCell>
                   <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -536,45 +601,7 @@ export default function BillingPage() {
           )}
         </CardContent>
          <CardFooter className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Popover>
-                    <PopoverTrigger asChild>
-                    <Button
-                        id="date"
-                        variant={"outline"}
-                        className={cn(
-                        "w-[300px] justify-start text-left font-normal",
-                        !dateRange && "text-muted-foreground"
-                        )}
-                    >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {dateRange?.from ? (
-                        dateRange.to ? (
-                            <>
-                            {format(dateRange.from, "LLL dd, y")} -{" "}
-                            {format(dateRange.to, "LLL dd, y")}
-                            </>
-                        ) : (
-                            format(dateRange.from, "LLL dd, y")
-                        )
-                        ) : (
-                        <span>Pick a date range</span>
-                        )}
-                    </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                        initialFocus
-                        mode="range"
-                        defaultMonth={dateRange?.from}
-                        selected={dateRange}
-                        onSelect={setDateRange}
-                        numberOfMonths={2}
-                    />
-                    </PopoverContent>
-                </Popover>
-                 <Button variant="outline" size="sm" onClick={() => setDateRange(undefined)} disabled={!dateRange}>Clear</Button>
-            </div>
+            
              <div className="flex items-center gap-4 text-sm text-muted-foreground">
                 <span>Rows per page</span>
                 <Select value={String(itemsPerPage)} onValueChange={(value) => setItemsPerPage(Number(value))}>
@@ -682,9 +709,9 @@ export default function BillingPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setSelectedInvoice(undefined)}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => setSelectedInvoice(undefined)}>No</AlertDialogCancel>
             <AlertDialogAction onClick={handleDeleteInvoice} className="bg-destructive hover:bg-destructive/90">
-              Delete
+              Yes
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
