@@ -136,29 +136,35 @@ export default function AppointmentsPage() {
   }
 
   const handleSaveAppointment = async (data: Omit<Appointment, 'id' | 'branchId'>) => {
-    if (selectedAppointment) {
-        // Update
-        const updated = await updateAppointment(selectedAppointment.id, data);
-        if (updated) {
-          setAllAppointments(prev => prev.map(a => a.id === updated.id ? updated : a));
-        }
-    } else {
-        // Create
-        const payload = {
-          patient_name: data.patientName,
-          patient_id: data.patientId,
-          doctor_name: data.doctorName,
-          doctor_id: data.doctorId,
-          treatment: data.treatment,
-          date: data.date,
-          time: data.time,
-          branch_id: Number(selectedBranch || getCurrentUser()?.branchId),
-        };
+    try {
+        if (selectedAppointment) {
+            // Update
+            const updated = await updateAppointment(selectedAppointment.id, data);
+            if (updated) {
+              setAllAppointments(prev => prev.map(a => a.id === updated.id ? updated : a));
+              toast({ title: "Success", description: "Appointment updated successfully." });
+            }
+        } else {
+            // Create
+            const payload = {
+              patient_name: data.patientName,
+              patient_id: data.patientId,
+              doctor_name: data.doctorName,
+              doctor_id: data.doctorId,
+              treatment: data.treatment,
+              date: data.date,
+              time: data.time,
+              branch_id: Number(selectedBranch || getCurrentUser()?.branchId),
+            };
 
-        const newAppointment = await createAppointment(payload);
-        if (newAppointment) {
-          setAllAppointments(prev => [...prev, newAppointment]);
+            const newAppointment = await createAppointment(payload);
+            if (newAppointment) {
+              setAllAppointments(prev => [...prev, newAppointment]);
+              toast({ title: "Success", description: "Appointment created successfully." });
+            }
         }
+    } catch (e: any) {
+        toast({ title: "Error", description: e.message || "Failed to save appointment.", variant: "destructive" });
     }
     handleCloseForm();
   };

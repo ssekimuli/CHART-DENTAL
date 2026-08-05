@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useConfirm } from "@/hooks/use-confirm";
 import { summarizePatientHistory } from "@/ai/flows/summarize-patient-history";
 import {
   Table,
@@ -24,8 +25,10 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { useEffect, useState, use } from "react";
 import type { Patient, Treatment, BasePatient, PatientImage, DentalCondition, SystemTreatment } from "@/lib/types";
+import { AttachPolicyForm } from "./components/attach-policy-form";
+import { insuranceApi } from "@/services/api/insurance";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Trash, Pencil, FileText, Loader2, Upload, MoreHorizontal, HandCoins, Search, Send, Mail, MessageCircle } from "lucide-react";
+import { PlusCircle, Trash, Pencil, FileText, Loader2, Upload, MoreHorizontal, HandCoins, Search, Send, Mail, MessageCircle, Camera } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { TreatmentPlanForm } from "./components/treatment-plan-form";
 import { PatientForm } from "../components/patient-form";
@@ -59,6 +62,7 @@ import {
 import { deletePatient, getPatientById, updatePatient, addTreatment, updateTreatment, deleteTreatment, addImageToPatient, getTreatments, getPatientInvoices, processPayment, getPatientPrescriptions, deletePrescription, getPatientImages, sendPatientDocuments } from "@/lib/api";
 import { Input } from "@/components/ui/input";
 import { ImageUploadForm } from "./components/image-upload-form";
+import { AvatarUploadModal } from "./components/avatar-upload-modal";
 import { hasPermission, getCurrentUser, hasRole } from "@/lib/user";
 import { getPatientFullName } from "@/lib/utils";
 import { NextVisitButton } from "./components/next-visit-button";
@@ -75,6 +79,7 @@ export default function PatientDetailPage({
   const { id } = use(params);
   const router = useRouter();
   const { formatCurrency } = useCurrency();
+  const { confirm, ConfirmDialog } = useConfirm();
   const [patient, setPatient] = useState<Patient | undefined>(undefined);
   const [systemTreatments, setSystemTreatments] = useState<SystemTreatment[]>([]);
   const [invoices, setInvoices] = useState<any[]>([]);
@@ -94,6 +99,7 @@ export default function PatientDetailPage({
   const [isPatientFormOpen, setIsPatientFormOpen] = useState(false);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const [isImageFormOpen, setIsImageFormOpen] = useState(false);
+  const [isAvatarUploadModalOpen, setIsAvatarUploadModalOpen] = useState(false);
   const [historySummary, setHistorySummary] = useState<{ summary: string } | null>(null);
 
   const { toast } = useToast();
@@ -114,6 +120,18 @@ export default function PatientDetailPage({
     claimed_amount: '',
     status: 'pending'
   });
+
+  const [isAttachPolicyModalOpen, setIsAttachPolicyModalOpen] = useState(false);
+
+  const fetchPatientInsurances = async () => {
+    if (!id) return;
+    try {
+      const res = await insuranceApi.getPatientPolicies(Number(id));
+      setPatientInsurances(res.data?.data || []);
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   const handleOpenClaimForm = async (invoice: any) => {
     setSelectedInvoiceForClaim(invoice);
@@ -181,8 +199,7 @@ export default function PatientDetailPage({
     }
   };
 
-  const handleDeletePrescription = async (prescriptionId: string | number) => {
-    if (confirm("Are you sure you want to delete this prescription?")) {
+  const executeDeletePrescription = async (prescriptionId: string | number) => {
       const success = await deletePrescription(prescriptionId);
       if (success) {
         setPrescriptions(prev => prev.filter(p => String(p.id) !== String(prescriptionId)));
@@ -190,7 +207,13 @@ export default function PatientDetailPage({
       } else {
         toast({ title: "Error", description: "Failed to delete prescription.", variant: "destructive" });
       }
-    }
+  };
+
+  const handleDeletePrescription = (prescriptionId: string | number) => {
+    confirm({
+      description: "Are you sure you want to delete this prescription?",
+      onConfirm: () => executeDeletePrescription(prescriptionId)
+    });
   };
 
   const toggleDocumentSelection = (docId: number) => {
@@ -244,6 +267,7 @@ export default function PatientDetailPage({
         if (patientData && !isReceptionist && patientData.history) {
             summarizePatientHistory({ patientHistory: patientData.history }).then(setHistorySummary);
         }
+        await fetchPatientInsurances();
         setIsLoading(false);
     }
     fetchData();
@@ -282,36 +306,51 @@ export default function PatientDetailPage({
   }
   
   const handleUpdatePatient = async (data: BasePatient) => {
-    const updated = await updatePatient(patient.id, data);
-    if(updated) {
-        setPatient(updated);
+    try {
+        const updated = await updatePatient(patient.id, data);
+        if(updated) {
+            setPatient(updated);
+            toast({ title: "Success", description: "Patient updated successfully." });
+        }
+    } catch (e: any) {
+        toast({ title: "Error", description: e.message || "Failed to update patient.", variant: "destructive" });
     }
     setIsPatientFormOpen(false);
   }
 
   const handleDeletePatient = async () => {
-    await deletePatient(id);
-    router.push('/patients');
+    try {
+        await deletePatient(id);
+        toast({ title: "Success", description: "Patient deleted successfully." });
+        router.push('/patients');
+    } catch (e: any) {
+        toast({ title: "Error", description: e.message || "Failed to delete patient.", variant: "destructive" });
+    }
     setIsDeleteAlertOpen(false);
   }
 
   const handleSaveTreatment = async (treatmentData: Omit<Treatment, 'id' | 'date'>) => {
     if (!patient) return;
-
-    if (selectedTreatment) {
-        const updatedPatient = await updateTreatment(patient.id, { ...selectedTreatment, ...treatmentData });
-        if (updatedPatient) {
-            setPatient(updatedPatient);
+    try {
+        if (selectedTreatment) {
+            const updatedPatient = await updateTreatment(patient.id, { ...selectedTreatment, ...treatmentData });
+            if (updatedPatient) {
+                setPatient(updatedPatient);
+                toast({ title: "Success", description: "Treatment updated successfully." });
+            }
+        } else {
+            const savedTreatment = await addTreatment(patient.id, treatmentData);
+            if (savedTreatment) {
+                // Update the patient's treatment plans with the saved treatment
+                setPatient({
+                    ...patient,
+                    treatmentPlans: [...patient.treatmentPlans, savedTreatment]
+                });
+                toast({ title: "Success", description: "Treatment added successfully." });
+            }
         }
-    } else {
-        const savedTreatment = await addTreatment(patient.id, treatmentData);
-        if (savedTreatment) {
-            // Update the patient's treatment plans with the saved treatment
-            setPatient({
-                ...patient,
-                treatmentPlans: [...patient.treatmentPlans, savedTreatment]
-            });
-        }
+    } catch (e: any) {
+        toast({ title: "Error", description: e.message || "Failed to save treatment.", variant: "destructive" });
     }
 
     handleCloseTreatmentForm();
@@ -349,12 +388,24 @@ export default function PatientDetailPage({
 
   return (
     <div className="flex flex-col gap-6">
+      <ConfirmDialog />
+      <AvatarUploadModal 
+        patientId={patient.id} 
+        isOpen={isAvatarUploadModalOpen} 
+        onClose={() => setIsAvatarUploadModalOpen(false)} 
+        onAvatarUpdated={(newAvatarUrl) => setPatient({ ...patient, avatar: newAvatarUrl })}
+      />
       <Card>
         <CardHeader className="flex flex-row items-start gap-4">
-          <Avatar className="h-20 w-20 border">
-            <AvatarImage src={patient.avatar} />
-            <AvatarFallback>{patient.first_name.charAt(0)}</AvatarFallback>
-          </Avatar>
+          <div className="relative group cursor-pointer" onClick={() => setIsAvatarUploadModalOpen(true)}>
+            <Avatar className="h-20 w-20 border">
+              <AvatarImage src={patient.avatar} />
+              <AvatarFallback>{patient.first_name.charAt(0)}</AvatarFallback>
+            </Avatar>
+            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-full">
+              <Camera className="h-6 w-6 text-white" />
+            </div>
+          </div>
           <div className="flex-1">
             <CardTitle className="text-3xl">{getPatientFullName(patient)}</CardTitle>
             <CardDescription className="text-base">
@@ -403,9 +454,10 @@ export default function PatientDetailPage({
 
       {!isReceptionist && (
         <Tabs defaultValue="documents">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="documents">Patient documents</TabsTrigger>
             <TabsTrigger value="history">History</TabsTrigger>
+            <TabsTrigger value="insurance">Insurance</TabsTrigger>
             <TabsTrigger value="invoices">Invoices</TabsTrigger>
             <TabsTrigger value="prescriptions">Prescriptions</TabsTrigger>
           </TabsList>
@@ -513,6 +565,101 @@ export default function PatientDetailPage({
                   <div className="mt-1 rounded-md border bg-secondary/30 p-4 text-sm text-muted-foreground">
                       <p className="whitespace-pre-wrap">{patient.history}</p>
                   </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="insurance">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>Insurance Policies</CardTitle>
+                  <CardDescription>
+                    Manage insurance coverages assigned to this patient.
+                  </CardDescription>
+                </div>
+                <Button size="sm" onClick={() => setIsAttachPolicyModalOpen(true)}>
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  Assign Policy
+                </Button>
+              </CardHeader>
+              <CardContent>
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Policy #</TableHead>
+                        <TableHead>Package / Company</TableHead>
+                        <TableHead>Member ID</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead>Primary?</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {patientInsurances.map((ins: any) => (
+                        <TableRow key={ins.pivot.id}>
+                          <TableCell className="font-bold">{ins.policy_number}</TableCell>
+                          <TableCell>{ins.package?.name}</TableCell>
+                          <TableCell>{ins.pivot.subscriber_id}</TableCell>
+                          <TableCell className="capitalize">{ins.pivot.relationship_to_subscriber}</TableCell>
+                          <TableCell>
+                            {ins.pivot.is_primary ? (
+                              <Badge className="bg-primary text-primary-foreground">Primary</Badge>
+                            ) : (
+                              <Badge variant="outline">Secondary</Badge>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={ins.pivot.status === 'active' ? 'default' : 'secondary'}>{ins.pivot.status}</Badge>
+                          </TableCell>
+                          <TableCell className="text-right space-x-2">
+                            {!ins.pivot.is_primary && (
+                                <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    onClick={async () => {
+                                        await insuranceApi.setPrimaryPolicy(Number(id), ins.pivot.id);
+                                        fetchPatientInsurances();
+                                    }}
+                                >
+                                    Make Primary
+                                </Button>
+                            )}
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => {
+                                    confirm({
+                                        description: "Are you sure you want to remove this policy from this patient?",
+                                        onConfirm: async () => {
+                                            try {
+                                                await insuranceApi.removePolicyFromPatient(Number(id), ins.pivot.id);
+                                                toast({ title: "Success", description: "Policy removed from patient" });
+                                                fetchPatientInsurances();
+                                            } catch (error) {
+                                                toast({ title: "Error", description: "Failed to remove policy", variant: "destructive" });
+                                            }
+                                        }
+                                    });
+                                }}
+                            >
+                                <Trash className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      {patientInsurances.length === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={7} className="h-24 text-center">
+                            No active insurance policies found.
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
                 </div>
               </CardContent>
             </Card>
@@ -684,6 +831,15 @@ export default function PatientDetailPage({
             onOpenChange={handleCloseTreatmentForm}
         />
       )}
+      
+      {isAttachPolicyModalOpen && patient && (
+        <AttachPolicyForm 
+            patientId={patient.id} 
+            onSave={fetchPatientInsurances} 
+            onOpenChange={setIsAttachPolicyModalOpen} 
+        />
+      )}
+
       {isPatientFormOpen && (
         <PatientForm
             patient={patient}

@@ -1,4 +1,5 @@
 "use client";
+import { useToast } from "@/hooks/use-toast";
 
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
@@ -36,6 +37,7 @@ type RoleFormProps = {
 };
 
 export function RoleForm({ role, onSave, onOpenChange }: RoleFormProps) {
+  const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -48,8 +50,15 @@ export function RoleForm({ role, onSave, onOpenChange }: RoleFormProps) {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
     try {
-    onSave(values.name);
-      } finally {
+        await onSave(values.name);
+      } catch (error: any) {
+        console.error(error);
+        toast({
+            title: "Error",
+            description: error.message || "An unexpected error occurred.",
+            variant: "destructive",
+        });
+    } finally {
       setIsSubmitting(false);
     }
   }
