@@ -31,6 +31,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { PlusCircle, Search, Pill, FileText, ShoppingBag, Eye, Trash2, Edit, Loader2 } from "lucide-react";
+import { useConfirm } from "@/hooks/use-confirm";
 import { useBranch } from "@/context/branch-context";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PaginationControl } from "@/components/ui/pagination-control";
@@ -52,6 +53,7 @@ import type { Medicine, MedicineUnit, Prescription, Employee } from "@/lib/types
 
 export default function PharmacyPage() {
   const { selectedBranch } = useBranch();
+  const { confirm, ConfirmDialog } = useConfirm();
   const { formatCurrency } = useCurrency();
   const [activeTab, setActiveTab] = useState("inventory");
 
@@ -203,9 +205,7 @@ export default function PharmacyPage() {
     setIsMedModalOpen(true);
   };
 
-  // Delete Medicine
-  const handleDeleteMedicine = async (id: number) => {
-    if (confirm("Are you sure you want to delete this medicine?")) {
+  const executeDeleteMedicine = async (id: number) => {
       try {
         await deleteMedicine(id);
         toast({ title: "Deleted", description: "Medicine deleted successfully." });
@@ -213,7 +213,14 @@ export default function PharmacyPage() {
       } catch (err) {
         toast({ variant: "destructive", title: "Error", description: "Failed to delete medicine." });
       }
-    }
+  };
+
+  const handleDeleteMedicine = (id: number) => {
+    confirm({
+      title: "Delete Medicine",
+      description: "Are you sure you want to delete this medicine? This action cannot be undone.",
+      onConfirm: () => executeDeleteMedicine(id)
+    });
   };
 
   // Add Prescription Item Row
@@ -228,7 +235,7 @@ export default function PharmacyPage() {
   const removeRxItemRow = (index: number) => {
     setRxForm(prev => ({
       ...prev,
-      items: prev.items.filter((_, i) => i !== index)
+      items: rxForm.items.filter((_, i) => i !== index)
     }));
   };
 
@@ -359,7 +366,7 @@ export default function PharmacyPage() {
                 <CardTitle>Medicine Stock</CardTitle>
                 <CardDescription>Browse through available medicines, their unit packages, and prices.</CardDescription>
               </div>
-              <div className="relative w-full md:w-72">
+                <div className="relative w-full md:w-72">
                 <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Search medicine..."
@@ -870,6 +877,7 @@ export default function PharmacyPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <ConfirmDialog />
     </div>
   );
 }

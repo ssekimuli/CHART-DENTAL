@@ -1,4 +1,5 @@
 "use client";
+import { useToast } from "@/hooks/use-toast";
 
 import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -65,6 +66,7 @@ type LabOrderFormProps = {
 };
 
 export function LabOrderForm({ clients, doctors, onSave, onOpenChange }: LabOrderFormProps) {
+  const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -78,11 +80,18 @@ export function LabOrderForm({ clients, doctors, onSave, onOpenChange }: LabOrde
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
     try {
-        onSave({
+        await onSave({
             ...values,
             sentDate: format(values.sentDate, "yyyy-MM-dd"),
             dueDate: format(values.dueDate, "yyyy-MM-dd"),
             receivedDate: values.receivedDate ? format(values.receivedDate, "yyyy-MM-dd") : undefined,
+        });
+    } catch (error: any) {
+        console.error(error);
+        toast({
+            title: "Error",
+            description: error.message || "An unexpected error occurred.",
+            variant: "destructive",
         });
     } finally {
       setIsSubmitting(false);

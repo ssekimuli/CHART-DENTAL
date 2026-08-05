@@ -155,7 +155,7 @@ export function PrescriptionForm({
           ? "Prescription saved and billed to the current pending invoice."
           : "Prescription saved successfully.",
       });
-      if (onSave) onSave();
+      if (onSave) await onSave();
       onOpenChange(false);
     } catch (err) {
       console.error(err);

@@ -80,6 +80,7 @@ const allLinks: NavLink[] = [
   { href: "/branches", label: "Branches", icon: Building, permission: 'branches:read' },
   { href: "/reports", label: "Reports", icon: BarChart3 },
   { href: "/settings", label: "Settings", icon: Settings },
+  { href: "/insurance-setup", label: "Insurance Setup", icon: Handshake },
   { href: "/activity-logs", label: "Activity Logs", icon: History },
   { href: "/admin/migration", label: "Data Migration", icon: Database },
 ];
@@ -114,7 +115,7 @@ export function MainNav() {
     if ((newLink.href === '/inventory' || newLink.label === 'HRM' || newLink.href === '/reports') && !hasRole(['Super Admin', 'HR'])) {
         return null;
     }
-    if ((newLink.href === '/settings' || newLink.href === '/activity-logs') && !hasRole('Super Admin')) {
+    if ((newLink.href === '/settings' || newLink.href === '/activity-logs' || newLink.href === '/insurance-setup') && !hasRole('Super Admin')) {
         return null;
     }
     if (newLink.href === '/admin/migration' && !hasRole('Super Admin')) {
