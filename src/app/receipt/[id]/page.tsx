@@ -1,8 +1,7 @@
 "use client";
 
 import { notFound, useParams } from 'next/navigation';
-import { useState, useEffect, useMemo, useRef } from 'react';
-import { useReactToPrint } from 'react-to-print';
+import { useState, useEffect, useMemo } from 'react';
 import type { Invoice, Patient } from '@/lib/types';
 import { getInvoiceById, getPatientById } from '@/lib/api';
 import moment from 'moment';
@@ -46,11 +45,9 @@ export default function ReceiptPage() {
     fetchData();
   }, [id]);
 
-  const componentRef = useRef<HTMLDivElement>(null);
-  const handlePrint = useReactToPrint({
-    contentRef: componentRef,
-    documentTitle: `Receipt-${invoice?.receiptNumber || invoice?.id || 'doc'}`,
-  });
+  const handlePrint = () => {
+    window.print();
+  };
 
   useEffect(() => {
     // Removed auto-print as many mobile browsers block iframe printing without a user gesture.
@@ -147,7 +144,7 @@ export default function ReceiptPage() {
          </button>
       </div>
 
-      <div className="receipt-container" ref={componentRef}>
+      <div className="receipt-container">
         <div className="text-center mb-2">
             <h2 className="font-bold" style={{ fontSize: '16px', margin: '0 0 4px 0' }}>{invoice.branch?.name || 'CHART DENTAL'}</h2>
             <div>{invoice.branch?.address || ''}</div>
