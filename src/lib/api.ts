@@ -249,8 +249,20 @@ export const getCurrencies = async (): Promise<any[]> => {
     }
 }
 
-const mapPeriodontalRecords = (records: any[]): PeriodontalRecord => {
-    return (records || []).map((record: any) => ({
+const parseJsonArraySafe = (data: any): any[] => {
+    if (typeof data === 'string') {
+        try {
+            const parsed = JSON.parse(data);
+            return Array.isArray(parsed) ? parsed : [];
+        } catch {
+            return [];
+        }
+    }
+    return Array.isArray(data) ? data : [];
+};
+
+const mapPeriodontalRecords = (records: any[] | string): PeriodontalRecord => {
+    return parseJsonArraySafe(records).map((record: any) => ({
         toothId: Number(record.tooth_id || record.toothId),
         pockets: record.pockets || {},
         recession: record.recession !== undefined && record.recession !== null ? Number(record.recession) : undefined,
@@ -260,8 +272,8 @@ const mapPeriodontalRecords = (records: any[]): PeriodontalRecord => {
     }));
 };
 
-const mapEndodonticRecords = (records: any[]): EndodonticRecord[] => {
-    return (records || []).map((record: any) => ({
+const mapEndodonticRecords = (records: any[] | string): EndodonticRecord[] => {
+    return parseJsonArraySafe(records).map((record: any) => ({
         id: String(record.id),
         date: record.date || record.created_at?.split('T')[0] || new Date().toISOString().split('T')[0],
         toothId: Number(record.tooth_id),
@@ -283,8 +295,7 @@ type GetPatientsFilters = {
 };
 
 export const mapOrthodonticRecords = (records: any): OrthodonticRecord[] => {
-    if (!records || !Array.isArray(records)) return [];
-    return records.map((record: any) => ({
+    return parseJsonArraySafe(records).map((record: any) => ({
         id: record.id,
         appliance: record.appliance,
         applianceLocation: record.appliance_location || record.applianceLocation,
@@ -479,13 +490,14 @@ export const getPatientById = async (id: string | number): Promise<Patient | und
             status: patient.status,
             history: patient.history || '',
             branchId: String(patient.branch_id),
-            dentalRecords: (patient.dental_records || []).map((record: any) => ({
+            dentalRecords: parseJsonArraySafe(patient.dental_records).map((record: any) => ({
                 toothId: record.tooth_id,
                 condition: record.condition,
                 notes: record.notes || '',
             })),
-            treatmentPlans: (patient.treatment_plans || []).map((plan: any) => ({
+             treatmentPlans: parseJsonArraySafe(patient.treatment_plans).map((plan: any) => ({
                 id: String(plan.id),
+                procedureId: plan.procedure_id || plan.procedureId || String(plan.id),
                 procedure: plan.procedure,
                 tooth: plan.tooth,
                 status: plan.status,
@@ -498,10 +510,10 @@ export const getPatientById = async (id: string | number): Promise<Patient | und
             occlusalRecords: typeof patient.occlusal_records === 'string'
                 ? JSON.parse(patient.occlusal_records)
                 : (patient.occlusal_records || { overbite: 0, overjet: 0, crossbite: 'None', openbite: 'None', malocclusion: 'Class I' }),
-            softTissueRecords: patient.soft_tissue_records || [],
+            softTissueRecords: parseJsonArraySafe(patient.soft_tissue_records),
             orthodonticRecords: mapOrthodonticRecords(patient.orthodontic_records),
             endodonticRecords: mapEndodonticRecords(patient.endodontic_records || patient.endodonticRecords),
-            restorativeRecords: (patient.restorative_records || patient.restorativeRecords || []).map((record: any) => ({
+            restorativeRecords: parseJsonArraySafe(patient.restorative_records || patient.restorativeRecords).map((record: any) => ({
                 id: String(record.id),
                 toothId: Number(record.tooth_id || record.toothId),
                 surface: record.surface,
@@ -540,6 +552,19 @@ export const getPatientInvoices = async (patientId: string | number): Promise<In
             issueDate: inv.issue_date,
             dueDate: inv.due_date,
             branchId: inv.branch_id,
+            otherCharges: (inv.other_charges || inv.otherCharges || []).map((charge: any) => ({
+                description: charge.description,
+                amount: Number(charge.amount) || 0
+            })),
+            treatments: (inv.treatments || []).map((t: any) => ({
+                procedureId: t.procedure_id || t.id || '',
+                procedure: t.procedure || '',
+                cost: Number(t.cost) || 0,
+                tooth: t.tooth,
+                insuranceAmount: Number(t.insurance_amount || 0),
+                patientAmount: Number(t.patient_amount || 0)
+            })),
+            medicines: inv.medicines || [],
         }));
     } catch (error) {
         console.error('Failed to fetch patient invoices:', error);
@@ -796,17 +821,37 @@ export const getInvoices = async (filters?: {
             // ✅ FIX FIELD NAMES (VERY IMPORTANT)
             patientName: inv.patient_name,
             patientId: inv.patient_id ?? inv.patientId,
+            patient: inv.patient,
             issueDate: inv.issue_date,
             branchId: inv.branch_id,
             discount: Number(inv.discount || 0),
             tax: Number(inv.tax || 0),
             insuranceCoverage: Number(inv.insurance_coverage || 0),
+            patientResponsibility: Number(inv.patient_responsibility || 0),
+            insuranceResponsibility: Number(inv.insurance_responsibility || 0),
+            patientPaidAmount: Number(inv.patient_paid_amount || 0),
+            insurancePaidAmount: Number(inv.insurance_paid_amount || 0),
+            patientBalance: Number(inv.patient_balance || 0),
+            insuranceBalance: Number(inv.insurance_balance || 0),
             branch: inv.branch ? {
                 id: inv.branch.id,
                 name: inv.branch.name,
                 currency: inv.branch.currency || 'USD',
                 address: inv.branch.address || ''
             } : undefined,
+            otherCharges: (inv.other_charges || inv.otherCharges || []).map((charge: any) => ({
+                description: charge.description,
+                amount: Number(charge.amount) || 0
+            })),
+            treatments: (inv.treatments || []).map((t: any) => ({
+                procedureId: t.procedure_id || t.id || '',
+                procedure: t.procedure || '',
+                cost: Number(t.cost) || 0,
+                tooth: t.tooth,
+                insuranceAmount: Number(t.insurance_amount || 0),
+                patientAmount: Number(t.patient_amount || 0)
+            })),
+            medicines: inv.medicines || [],
         }));
 
         console.log('Fetched invoices from API:', invoices);
@@ -875,12 +920,19 @@ export const getInvoiceById = async (id: string | number): Promise<Invoice | und
             // Map field names from API to your component expectations
             patientName: invoiceData.patient_name || invoiceData.patientName || 'Unknown',
             patientId: invoiceData.patient_id ?? invoiceData.patientId ?? '',
+            patient: invoiceData.patient,
             issueDate: invoiceData.issue_date || invoiceData.issueDate || new Date().toISOString(),
             dueDate: invoiceData.due_date || invoiceData.dueDate || new Date().toISOString(),
             paymentMethod: invoiceData.payment_method || invoiceData.paymentMethod || null,
             discount: Number(invoiceData.discount || 0),
             tax: Number(invoiceData.tax || 0),
             insuranceCoverage: Number(invoiceData.insurance_coverage || 0),
+            patientResponsibility: Number(invoiceData.patient_responsibility || 0),
+            insuranceResponsibility: Number(invoiceData.insurance_responsibility || 0),
+            patientPaidAmount: Number(invoiceData.patient_paid_amount || 0),
+            insurancePaidAmount: Number(invoiceData.insurance_paid_amount || 0),
+            patientBalance: Number(invoiceData.patient_balance || 0),
+            insuranceBalance: Number(invoiceData.insurance_balance || 0),
             branchId: invoiceData.branch_id || invoiceData.branchId,
             branch: invoiceData.branch ? {
                 id: invoiceData.branch.id,
@@ -902,7 +954,9 @@ export const getInvoiceById = async (id: string | number): Promise<Invoice | und
                 procedureId: t.procedure_id || t.id || '',
                 procedure: t.procedure || '',
                 cost: Number(t.cost) || 0,
-                tooth: t.tooth
+                tooth: t.tooth,
+                insuranceAmount: Number(t.insurance_amount || 0),
+                patientAmount: Number(t.patient_amount || 0)
             })),
             // Keep original fields for reference (optional)
             patient_name: invoiceData.patient_name,
@@ -2233,6 +2287,7 @@ export const addImageToPatient = async (patientId: string | number, imageFormDat
             })),
             treatmentPlans: (updatedPatient.treatment_plans || []).map((plan: any) => ({
                 id: String(plan.id),
+                procedureId: plan.procedure_id || plan.procedureId || String(plan.id),
                 procedure: plan.procedure,
                 tooth: plan.tooth,
                 status: plan.status,
@@ -3075,6 +3130,12 @@ export const createNewInvoice = async (data: Omit<Invoice, 'id' | 'amount' | 'pa
             other_charges: (data.otherCharges || []).map(charge => ({
                 description: charge.description,
                 amount: Number(charge.amount) || 0
+            })),
+            medicines: (data.medicines || []).map(med => ({
+                medicine_id: med.medicine_id,
+                medicine_unit_id: med.medicine_unit_id,
+                quantity: med.quantity,
+                price: Number(med.price) || 0
             })),
             notes: data.notes || '',
             payment_method: data.paymentMethod || null,
@@ -4486,4 +4547,12 @@ export const getActivityLogs = async (params: { page?: number; per_page?: number
     console.error('Error fetching activity logs:', error);
     throw error;
   }
+};
+export const updatePatientAvatar = async (patientId: string | number, file: File): Promise<{ avatar: string }> => {
+    const formData = new FormData();
+    formData.append('avatar', file);
+    const response = await customAxios.post(`/patients/${patientId}/avatar`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
 };

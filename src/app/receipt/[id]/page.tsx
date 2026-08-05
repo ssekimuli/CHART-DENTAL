@@ -15,6 +15,7 @@ export default function ReceiptPage() {
   const [invoice, setInvoice] = useState<Invoice | undefined>(undefined);
   const [patient, setPatient] = useState<Patient | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(true);
+  const [paperSize, setPaperSize] = useState<'80mm' | '58mm'>('80mm');
 
   useEffect(() => {
     if (typeof id !== 'string') {
@@ -45,12 +46,33 @@ export default function ReceiptPage() {
     fetchData();
   }, [id]);
 
-  useEffect(() => {
-    if (!isLoading && invoice) {
-      setTimeout(() => {
-        window.print();
-      }, 800);
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const handleDownloadPDF = async () => {
+    try {
+      // Dynamically import to avoid Next.js SSR window errors
+      const html2pdf = (await import('html2pdf.js')).default;
+      const element = document.getElementById('receipt-content');
+      
+      const opt = {
+        margin:       0,
+        filename:     `Receipt-${invoice?.receiptNumber || invoice?.id || 'doc'}.pdf`,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2, useCORS: true },
+        jsPDF:        { unit: 'mm', format: paperSize === '58mm' ? [58, 200] : [80, 200], orientation: 'portrait' }
+      };
+      
+      html2pdf().set(opt).from(element).save();
+    } catch (error) {
+      console.error('Error generating PDF:', error);
     }
+  };
+
+  useEffect(() => {
+    // Removed auto-print as many mobile browsers block iframe printing without a user gesture.
+    // The user will now tap the 'Print Receipt' button.
   }, [isLoading, invoice]);
 
   const formatCurrency = (value: any) => baseFormatCurrency(value, invoice?.branch?.currency);
@@ -101,13 +123,50 @@ export default function ReceiptPage() {
             background: #fff;
             color: #000;
         }
+        .no-print {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+        .paper-toggle {
+            display: flex;
+            gap: 10px;
+        }
+        .paper-toggle button {
+            padding: 8px 16px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            cursor: pointer;
+            background: #fff;
+            font-weight: bold;
+        }
+        .paper-toggle button.active {
+            background: #000;
+            color: #fff;
+            border-color: #000;
+        }
+        .print-btn {
+            padding: 10px 20px;
+            background-color: #000;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            max-width: 200px;
+        }
         .receipt-container {
             width: 100%;
-            max-width: 80mm;
+            max-width: ${paperSize};
             margin: 0 auto;
-            padding: 10px;
+            padding: ${paperSize === '58mm' ? '5px' : '10px'};
             font-family: monospace;
-            font-size: 12px;
+            font-size: ${paperSize === '58mm' ? '10px' : '12px'};
             line-height: 1.4;
         }
         .text-center { text-align: center; }
@@ -121,7 +180,32 @@ export default function ReceiptPage() {
         .mt-2 { margin-top: 8px; }
       `}} />
       
-      <div className="receipt-container">
+      <div className="no-print">
+         <div className="paper-toggle">
+            <button 
+              className={paperSize === '80mm' ? 'active' : ''} 
+              onClick={() => setPaperSize('80mm')}
+            >
+              80mm Paper
+            </button>
+            <button 
+              className={paperSize === '58mm' ? 'active' : ''} 
+              onClick={() => setPaperSize('58mm')}
+            >
+              58mm Paper
+            </button>
+         </div>
+         <div className="flex gap-2 w-full max-w-[200px] flex-col">
+             <button onClick={() => handlePrint()} className="print-btn">
+                 Print Receipt
+             </button>
+             <button onClick={() => handleDownloadPDF()} className="print-btn" style={{ background: '#3b82f6' }}>
+                 Download PDF
+             </button>
+         </div>
+      </div>
+
+      <div className="receipt-container" id="receipt-content">
         <div className="text-center mb-2">
             <h2 className="font-bold" style={{ fontSize: '16px', margin: '0 0 4px 0' }}>{invoice.branch?.name || 'CHART DENTAL'}</h2>
             <div>{invoice.branch?.address || ''}</div>
