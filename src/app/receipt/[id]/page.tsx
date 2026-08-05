@@ -15,6 +15,7 @@ export default function ReceiptPage() {
   const [invoice, setInvoice] = useState<Invoice | undefined>(undefined);
   const [patient, setPatient] = useState<Patient | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(true);
+  const [paperSize, setPaperSize] = useState<'80mm' | '58mm'>('80mm');
 
   useEffect(() => {
     if (typeof id !== 'string') {
@@ -104,9 +105,28 @@ export default function ReceiptPage() {
         }
         .no-print {
             display: flex;
-            justify-content: center;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
             padding: 20px;
             background: #f8f9fa;
+        }
+        .paper-toggle {
+            display: flex;
+            gap: 10px;
+        }
+        .paper-toggle button {
+            padding: 8px 16px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            cursor: pointer;
+            background: #fff;
+            font-weight: bold;
+        }
+        .paper-toggle button.active {
+            background: #000;
+            color: #fff;
+            border-color: #000;
         }
         .print-btn {
             padding: 10px 20px;
@@ -117,14 +137,16 @@ export default function ReceiptPage() {
             font-size: 16px;
             font-weight: bold;
             cursor: pointer;
+            width: 100%;
+            max-width: 200px;
         }
         .receipt-container {
             width: 100%;
-            max-width: 80mm;
+            max-width: ${paperSize};
             margin: 0 auto;
-            padding: 10px;
+            padding: ${paperSize === '58mm' ? '5px' : '10px'};
             font-family: monospace;
-            font-size: 12px;
+            font-size: ${paperSize === '58mm' ? '10px' : '12px'};
             line-height: 1.4;
         }
         .text-center { text-align: center; }
@@ -139,6 +161,20 @@ export default function ReceiptPage() {
       `}} />
       
       <div className="no-print">
+         <div className="paper-toggle">
+            <button 
+              className={paperSize === '80mm' ? 'active' : ''} 
+              onClick={() => setPaperSize('80mm')}
+            >
+              80mm Paper
+            </button>
+            <button 
+              className={paperSize === '58mm' ? 'active' : ''} 
+              onClick={() => setPaperSize('58mm')}
+            >
+              58mm Paper
+            </button>
+         </div>
          <button onClick={() => handlePrint()} className="print-btn">
              Print Receipt
          </button>
