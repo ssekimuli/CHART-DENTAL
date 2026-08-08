@@ -261,6 +261,17 @@ const parseJsonArraySafe = (data: any): any[] => {
     return Array.isArray(data) ? data : [];
 };
 
+const parseJsonSafe = (data: any, fallback: any = null): any => {
+    if (typeof data === 'string') {
+        try {
+            return JSON.parse(data);
+        } catch {
+            return fallback;
+        }
+    }
+    return data || fallback;
+};
+
 const mapPeriodontalRecords = (records: any[] | string): PeriodontalRecord => {
     return parseJsonArraySafe(records).map((record: any) => ({
         toothId: Number(record.tooth_id || record.toothId),
@@ -373,9 +384,7 @@ export const getPatients = async (filters?: string | number | GetPatientsFilters
             treatmentPlans: patient.treatment_plans || [],
             imaging: patient.images || patient.imaging || [], // Backend returns 'images', not 'imaging'
             periodontalRecords: mapPeriodontalRecords(patient.periodontal_records),
-            occlusalRecords: typeof patient.occlusal_records === 'string'
-                ? JSON.parse(patient.occlusal_records)
-                : (patient.occlusal_records || { overbite: 0, overjet: 0, crossbite: 'None', openbite: 'None', malocclusion: 'Class I' }),
+            occlusalRecords: parseJsonSafe(patient.occlusal_records, { overbite: 0, overjet: 0, crossbite: 'None', openbite: 'None', malocclusion: 'Class I' }),
             softTissueRecords: patient.soft_tissue_records || [],
             orthodonticRecords: mapOrthodonticRecords(patient.orthodontic_records),
             endodonticRecords: mapEndodonticRecords(patient.endodontic_records || patient.endodonticRecords),
@@ -507,9 +516,7 @@ export const getPatientById = async (id: string | number): Promise<Patient | und
             })),
             imaging: patient.images || patient.imaging || [], // Backend returns 'images', not 'imaging'
             periodontalRecords: mapPeriodontalRecords(patient.periodontal_records),
-            occlusalRecords: typeof patient.occlusal_records === 'string'
-                ? JSON.parse(patient.occlusal_records)
-                : (patient.occlusal_records || { overbite: 0, overjet: 0, crossbite: 'None', openbite: 'None', malocclusion: 'Class I' }),
+            occlusalRecords: parseJsonSafe(patient.occlusal_records, { overbite: 0, overjet: 0, crossbite: 'None', openbite: 'None', malocclusion: 'Class I' }),
             softTissueRecords: parseJsonArraySafe(patient.soft_tissue_records),
             orthodonticRecords: mapOrthodonticRecords(patient.orthodontic_records),
             endodonticRecords: mapEndodonticRecords(patient.endodontic_records || patient.endodonticRecords),
@@ -2044,9 +2051,7 @@ export const createPatient = async (data: BasePatient & { branchId: string | num
             treatmentPlans: newPatient.treatment_plans || [],
             imaging: newPatient.images || newPatient.imaging || [], // Backend returns 'images', not 'imaging'
             periodontalRecords: mapPeriodontalRecords(newPatient.periodontal_records),
-            occlusalRecords: typeof newPatient.occlusal_records === 'string'
-                ? JSON.parse(newPatient.occlusal_records)
-                : (newPatient.occlusal_records || { overbite: 0, overjet: 0, crossbite: 'None', openbite: 'None', malocclusion: 'Class I' }),
+            occlusalRecords: parseJsonSafe(newPatient.occlusal_records, { overbite: 0, overjet: 0, crossbite: 'None', openbite: 'None', malocclusion: 'Class I' }),
             softTissueRecords: newPatient.soft_tissue_records || [],
             orthodonticRecords: mapOrthodonticRecords(newPatient.orthodontic_records),
             endodonticRecords: mapEndodonticRecords(newPatient.endodontic_records || newPatient.endodonticRecords),
@@ -2089,9 +2094,7 @@ export const updateNextVisit = async (id: string | number, date: string | null):
             treatmentPlans: updatedPatient.treatment_plans || updatedPatient.treatmentPlans || [],
             imaging: updatedPatient.patient_images || updatedPatient.imaging || [],
             periodontalRecords: mapPeriodontalRecords(updatedPatient.periodontal_records),
-            occlusalRecords: typeof updatedPatient.occlusal_records === 'string'
-                ? JSON.parse(updatedPatient.occlusal_records)
-                : (updatedPatient.occlusal_records || { overbite: 0, overjet: 0, crossbite: 'None', openbite: 'None', malocclusion: 'Class I' }),
+            occlusalRecords: parseJsonSafe(updatedPatient.occlusal_records, { overbite: 0, overjet: 0, crossbite: 'None', openbite: 'None', malocclusion: 'Class I' }),
             softTissueRecords: updatedPatient.soft_tissue_records || [],
             orthodonticRecords: mapOrthodonticRecords(updatedPatient.orthodontic_records),
             endodonticRecords: mapEndodonticRecords(updatedPatient.endodontic_records || updatedPatient.endodonticRecords),
@@ -2158,12 +2161,19 @@ export const updatePatient = async (id: string | number, data: Partial<Patient>)
             treatmentPlans: updatedPatient.treatment_plans || [],
             imaging: updatedPatient.images || updatedPatient.imaging || [],
             periodontalRecords: mapPeriodontalRecords(updatedPatient.periodontal_records),
-            occlusalRecords: typeof updatedPatient.occlusal_records === 'string'
-                ? JSON.parse(updatedPatient.occlusal_records)
-                : (updatedPatient.occlusal_records || { overbite: 0, overjet: 0, crossbite: 'None', openbite: 'None', malocclusion: 'Class I' }),
+            occlusalRecords: parseJsonSafe(updatedPatient.occlusal_records, { overbite: 0, overjet: 0, crossbite: 'None', openbite: 'None', malocclusion: 'Class I' }),
             softTissueRecords: updatedPatient.soft_tissue_records || [],
             orthodonticRecords: mapOrthodonticRecords(updatedPatient.orthodontic_records),
             endodonticRecords: mapEndodonticRecords(updatedPatient.endodontic_records || updatedPatient.endodonticRecords),
+            restorativeRecords: parseJsonArraySafe(updatedPatient.restorative_records || updatedPatient.restorativeRecords).map((record: any) => ({
+                id: String(record.id),
+                toothId: Number(record.tooth_id || record.toothId),
+                surface: record.surface,
+                material: record.material,
+                notes: record.notes || '',
+                createdAt: record.created_at || record.createdAt,
+                updatedAt: record.updated_at || record.updatedAt,
+            })),
         };
 
         // Update local cache
@@ -2179,10 +2189,12 @@ export const updatePatient = async (id: string | number, data: Partial<Patient>)
             if (error.response?.status === 404) {
                 throw new Error("Patient not found");
             }
-            throw new Error(error.response?.data?.message || "Failed to update patient");
+            const errorMessage = error.response?.data?.message || error.message || "Failed to update patient";
+            throw new Error(errorMessage);
         } else {
             console.error("An unexpected error occurred during patient update:", error);
-            throw error;
+            const errorMessage = error instanceof Error ? error.message : "Failed to update patient";
+            throw new Error(errorMessage);
         }
     }
 }
@@ -2297,9 +2309,7 @@ export const addImageToPatient = async (patientId: string | number, imageFormDat
             })),
             imaging: updatedPatient.images || updatedPatient.imaging || [], // Backend returns 'images', not 'imaging'
             periodontalRecords: mapPeriodontalRecords(updatedPatient.periodontal_records),
-            occlusalRecords: typeof updatedPatient.occlusal_records === 'string'
-                ? JSON.parse(updatedPatient.occlusal_records)
-                : (updatedPatient.occlusal_records || { overbite: 0, overjet: 0, crossbite: 'None', openbite: 'None', malocclusion: 'Class I' }),
+            occlusalRecords: parseJsonSafe(updatedPatient.occlusal_records, { overbite: 0, overjet: 0, crossbite: 'None', openbite: 'None', malocclusion: 'Class I' }),
             softTissueRecords: updatedPatient.soft_tissue_records || [],
             orthodonticRecords: mapOrthodonticRecords(updatedPatient.orthodontic_records),
             endodonticRecords: mapEndodonticRecords(updatedPatient.endodontic_records || updatedPatient.endodonticRecords),

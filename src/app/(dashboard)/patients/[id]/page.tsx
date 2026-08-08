@@ -313,7 +313,8 @@ export default function PatientDetailPage({
             toast({ title: "Success", description: "Patient updated successfully." });
         }
     } catch (e: any) {
-        toast({ title: "Error", description: e.message || "Failed to update patient.", variant: "destructive" });
+        const errorMessage = e?.message || "Failed to update patient.";
+        toast({ title: "Error", description: errorMessage, variant: "destructive" });
     }
     setIsPatientFormOpen(false);
   }
