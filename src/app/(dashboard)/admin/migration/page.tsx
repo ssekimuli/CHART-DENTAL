@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Upload, CheckCircle2, AlertCircle, FileText, Database, X, Loader2, Download } from 'lucide-react';
+import { Upload, CheckCircle2, AlertCircle, FileText, Database, Loader2, Download, Merge } from 'lucide-react';
 import { getAuthToken } from '@/lib/user';
 import { toast } from '@/hooks/use-toast';
 
@@ -23,6 +23,7 @@ interface ImportResult {
   };
   errors?: ImportError[];
   warnings?: string[];
+  import_type?: 'single' | 'combined';
 }
 
 interface ImportSummary {
@@ -243,9 +244,12 @@ export default function MigrationPage() {
       appointments: 'appointments_sample.csv',
       clinical: 'treatments_sample.csv',
       financial: 'financial_sample.csv',
+      combined: 'migrate/template/download'
     };
 
-    if (templates[stageId]) {
+    if (stageId === 'combined') {
+      window.location.href = `${baseUrl}/migrate/template/download`;
+    } else if (templates[stageId]) {
       window.open(`${baseUrl}/import/templates/download/${templates[stageId]}`, '_blank');
     }
   };
@@ -288,9 +292,27 @@ export default function MigrationPage() {
             </div>
           </div>
 
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-start space-x-3 text-amber-800 text-sm">
-            <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
-            <p><strong>Important:</strong> Data must be imported in the exact order shown below to preserve relational integrity. Each stage must complete successfully before moving to the next.</p>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-start space-x-3 text-amber-800 text-sm">
+              <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+              <div>
+                <p><strong>Sequential Import:</strong> Upload 5 separate CSVs one at a time.</p>
+                <p className="mt-1 text-xs">Required for ordered data import.</p>
+              </div>
+            </div>
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-start space-x-3 text-green-800 text-sm">
+              <CheckCircle2 className="w-5 h-5 flex-shrink-0 mt-0.5" />
+              <div>
+                <p><strong>Combined Import:</strong> Upload 1 Excel file with all data.</p>
+                <button
+                  onClick={() => handleDownloadTemplate('combined')}
+                  className="mt-2 inline-flex items-center gap-1 text-green-700 hover:text-green-900 font-medium text-xs bg-green-100 hover:bg-green-200 px-3 py-1 rounded transition-colors"
+                >
+                  <Download className="w-3 h-3" />
+                  Download Template
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
