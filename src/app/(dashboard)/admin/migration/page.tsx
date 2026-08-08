@@ -316,6 +316,114 @@ export default function MigrationPage() {
           </div>
         </div>
 
+        {/* Combined Import Upload Section */}
+        <div className="bg-white rounded-xl border border-slate-200 p-8">
+          <h2 className="text-2xl font-bold text-slate-900 mb-4">Combined Import</h2>
+          <p className="text-slate-600 mb-6">Upload your Excel file with all data types. The system will process automatically in the correct order.</p>
+
+          <div className="border-2 border-dashed border-slate-300 rounded-lg p-8 text-center hover:border-green-400 transition-colors cursor-pointer group">
+            <input
+              type="file"
+              accept=".xlsx,.csv"
+              id="combined-import-input"
+              className="hidden"
+              disabled={uploadStatus.combined === 'uploading'}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+
+                // Validate file type
+                if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.csv')) {
+                  setUploadErrors(prev => ({ ...prev, combined: 'Only Excel (.xlsx) or CSV files are supported' }));
+                  toast({
+                    title: "Invalid File",
+                    description: "Please upload an Excel or CSV file.",
+                    variant: "destructive"
+                  });
+                  return;
+                }
+
+                // Validate file size (max 50MB)
+                if (file.size > 50 * 1024 * 1024) {
+                  setUploadErrors(prev => ({ ...prev, combined: 'File size exceeds 50MB limit' }));
+                  toast({
+                    title: "File Too Large",
+                    description: "Maximum file size is 50MB.",
+                    variant: "destructive"
+                  });
+                  return;
+                }
+
+                setUploadStatus(prev => ({ ...prev, combined: 'uploading' }));
+                setUploadErrors(prev => ({ ...prev, combined: '' }));
+
+                const formData = new FormData();
+                formData.append('file', file);
+
+                const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://stagingapi.poslycloud.com/api';
+
+                fetch(`${baseUrl}/migrate/combined`, {
+                  method: 'POST',
+                  body: formData,
+                  headers: {
+                    'Accept': 'application/json',
+                    'Authorization': `Bearer ${getAuthToken()}`
+                  }
+                })
+                .then(response => response.json())
+                .then(data => {
+                  if (response.ok && data.success) {
+                    setUploadStatus(prev => ({ ...prev, combined: 'success' }));
+                    toast({
+                      title: "Success",
+                      description: `${data.stats.imported} records imported successfully.`
+                    });
+                  } else {
+                    const errorMsg = data.errors?.[0]?.reason || data.errors?.[0]?.field || 'Upload failed';
+                    throw new Error(errorMsg);
+                  }
+                })
+                .catch(error => {
+                  const errorMessage = error instanceof Error ? error.message : 'Failed to upload file';
+                  setUploadStatus(prev => ({ ...prev, combined: 'error' }));
+                  setUploadErrors(prev => ({ ...prev, combined: errorMessage }));
+                  toast({
+                    title: "Upload Failed",
+                    description: errorMessage,
+                    variant: "destructive"
+                  });
+                });
+              }}
+            />
+            <label htmlFor="combined-import-input" className="cursor-pointer block">
+              <Upload className="w-12 h-12 text-slate-400 mx-auto mb-4 group-hover:text-green-400 transition-colors" />
+              <p className="text-slate-900 font-semibold mb-1">Click to upload or drag and drop</p>
+              <p className="text-slate-500 text-sm">Excel (.xlsx) or CSV file up to 50MB</p>
+            </label>
+          </div>
+
+          {uploadErrors.combined && (
+            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700 flex items-start space-x-2">
+              <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+              <span>{uploadErrors.combined}</span>
+            </div>
+          )}
+
+          {uploadStatus.combined === 'uploading' && (
+            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded text-sm text-blue-700 flex items-center space-x-2">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span>Uploading and processing...</span>
+            </div>
+          )}
+
+          {uploadStatus.combined === 'success' && (
+            <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded text-sm text-green-700 flex items-center space-x-2">
+              <CheckCircle2 className="w-4 h-4" />
+              <span>Upload successful! File processed.</span>
+            </div>
+          )}
+        </div>
+
         <div className="space-y-4">
           {stages.map((stage, index) => {
             const isEnabled = index <= activeStage;
