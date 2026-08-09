@@ -348,13 +348,32 @@ export default function PatientChartingPage({
   }
 
   const handleConfirmBridge = async (toothIds: number[], bridgeGroupId: string) => {
+    if (!patient) return;
+    const savedRecords: DentalRecord[] = [];
+
     for (const toothId of toothIds) {
-      await handleSaveDentalRecord({
+      const savedRecord = await saveDentalRecord(patient.id, {
         toothId,
         condition: 'Bridge',
         notes: '',
         bridgeGroupId
       });
+      if (savedRecord) {
+        savedRecords.push(savedRecord);
+      }
+    }
+
+    if (savedRecords.length > 0) {
+      const newRecords = [...patient.dentalRecords];
+      for (const savedRecord of savedRecords) {
+        const recordIndex = newRecords.findIndex(r => r.toothId === savedRecord.toothId);
+        if (recordIndex > -1) {
+          newRecords[recordIndex] = savedRecord;
+        } else {
+          newRecords.push(savedRecord);
+        }
+      }
+      setPatient({ ...patient, dentalRecords: newRecords });
     }
   }
 
