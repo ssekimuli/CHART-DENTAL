@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
-import BluetoothPrinterService, { BluetoothDevice, PrinterSize } from "@/lib/bluetooth-printer";
+import { getPrinterService, type BluetoothDevice, type PrinterSize } from "@/lib/bluetooth-printer";
 import { generateReceiptBytes, type ReceiptData } from "@/lib/escpos-printer";
 import { useToast } from "@/hooks/use-toast";
 
@@ -23,14 +23,15 @@ export function useThermalPrinter() {
     error: null,
   });
 
-  const [printerService] = useState(() => new BluetoothPrinterService());
+  // Use singleton printer service
+  const printerService = getPrinterService();
 
-  // Check support on mount
+  // Check support and restore connection on mount
   useEffect(() => {
-    const isSupported = BluetoothPrinterService.isSupported();
+    const isSupported = getPrinterService.toString().includes('serial');
     setState(prev => ({ ...prev, isSupported }));
 
-    // Load saved printer info
+    // Try to restore saved printer connection info
     try {
       const saved = localStorage.getItem("connected_printer");
       const savedSize = localStorage.getItem("printer_size") as PrinterSize;
@@ -40,6 +41,7 @@ export function useThermalPrinter() {
           ...prev,
           connectedDevice: device,
           printerSize: savedSize || "58mm",
+          isSupported: true,
         }));
       }
     } catch (error) {
@@ -47,31 +49,43 @@ export function useThermalPrinter() {
     }
   }, []);
 
-  const connect = useCallback(
-    async (device: BluetoothDevice, size: PrinterSize) => {
+  const requestAndConnect = useCallback(
+    async (size: PrinterSize): Promise<boolean> => {
       setState(prev => ({ ...prev, error: null }));
 
       try {
-        const success = await printerService.connect();
+        // Request port first (user selects the device)
+        const portSelected = await printerService.requestPort();
+        if (!portSelected) {
+          throw new Error('No port selected');
+        }
 
-        if (success) {
+        // Then connect
+        const connected = await printerService.connect();
+        if (connected) {
+          const device = printerService.getConnectedDevice();
+
           setState(prev => ({
             ...prev,
             isConnected: true,
             connectedDevice: device,
             printerSize: size,
+            error: null,
           }));
 
+          // Save for future use
           try {
-            localStorage.setItem("connected_printer", JSON.stringify(device));
-            localStorage.setItem("printer_size", size);
+            if (device) {
+              localStorage.setItem("connected_printer", JSON.stringify(device));
+              localStorage.setItem("printer_size", size);
+            }
           } catch {
             // Storage quota exceeded
           }
 
           toast({
             title: "Connected",
-            description: `Connected to ${device.name}`,
+            description: `Connected to ${device?.name || 'printer'}`,
           });
 
           return true;
@@ -80,7 +94,7 @@ export function useThermalPrinter() {
         return false;
       } catch (error: any) {
         const errorMsg = error.message || "Failed to connect to printer";
-        setState(prev => ({ ...prev, error: errorMsg }));
+        setState(prev => ({ ...prev, error: errorMsg, isConnected: false }));
 
         toast({
           variant: "destructive",
@@ -101,6 +115,7 @@ export function useThermalPrinter() {
         ...prev,
         isConnected: false,
         connectedDevice: null,
+        error: null,
       }));
 
       try {
@@ -121,7 +136,7 @@ export function useThermalPrinter() {
   }, [printerService, toast]);
 
   const print = useCallback(
-    async (receiptData: ReceiptData) => {
+    async (receiptData: ReceiptData): Promise<boolean> => {
       if (!state.isConnected || !state.connectedDevice) {
         const errorMsg = "Printer is not connected";
         setState(prev => ({ ...prev, error: errorMsg }));
@@ -144,6 +159,8 @@ export function useThermalPrinter() {
           printerSize: state.printerSize,
         });
 
+        console.log(`Printing ${receiptBytes.length} bytes...`);
+
         // Send to printer
         await printerService.print(receiptBytes);
 
@@ -157,7 +174,7 @@ export function useThermalPrinter() {
         return true;
       } catch (error: any) {
         const errorMsg = error.message || "Failed to print receipt";
-        setState(prev => ({ ...prev, isPrinting: false, error: errorMsg }));
+        setState(prev => ({ ...prev, isPrinting: false, error: errorMsg, isConnected: false }));
 
         toast({
           variant: "destructive",
@@ -177,7 +194,7 @@ export function useThermalPrinter() {
 
   return {
     ...state,
-    connect,
+    requestAndConnect,
     disconnect,
     print,
     clearError,

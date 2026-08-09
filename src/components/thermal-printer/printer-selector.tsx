@@ -78,9 +78,15 @@ export function PrinterSelector({
     setIsScanning(true);
     try {
       const printer = new BluetoothPrinterService();
-      const device = await printer.requestDevice();
+      const success = await printer.requestPort();
 
-      if (device) {
+      if (success) {
+        // Create device object with a generated ID
+        const device: BluetoothDevice = {
+          id: Date.now().toString(),
+          name: 'Thermal Printer',
+        };
+
         setSelectedDevice(device);
 
         // Save device for future use
@@ -91,7 +97,7 @@ export function PrinterSelector({
         try {
           localStorage.setItem("bluetooth_devices", JSON.stringify(savedDevices.slice(0, 5)));
         } catch {
-          // Storage quota exceeded, ignore
+          // Storage quota exceeded
         }
 
         toast({
@@ -103,7 +109,7 @@ export function PrinterSelector({
       toast({
         variant: "destructive",
         title: "Scan Failed",
-        description: error.message || "Failed to scan for Bluetooth devices",
+        description: error.message || "Failed to find printer",
       });
     } finally {
       setIsScanning(false);
@@ -111,35 +117,41 @@ export function PrinterSelector({
   };
 
   const handleConnect = async () => {
-    if (!selectedDevice) {
-      toast({
-        variant: "destructive",
-        title: "No Device Selected",
-        description: "Please select a printer first",
-      });
-      return;
-    }
-
     setIsConnecting(true);
     try {
       const printer = new BluetoothPrinterService();
-      const success = await printer.connect();
 
-      if (success) {
-        setConnectedDevice(selectedDevice);
+      // First, request the port
+      const portSelected = await printer.requestPort();
+      if (!portSelected) {
+        throw new Error('No printer port selected');
+      }
+
+      // Get device info after port selection
+      const device = printer.getConnectedDevice();
+
+      // Then connect
+      const connected = await printer.connect();
+      if (connected) {
+        const finalDevice = device || selectedDevice;
+        if (!finalDevice) {
+          throw new Error('Unable to identify selected printer');
+        }
+
+        setConnectedDevice(finalDevice);
         try {
-          localStorage.setItem("connected_printer", JSON.stringify(selectedDevice));
+          localStorage.setItem("connected_printer", JSON.stringify(finalDevice));
           localStorage.setItem("printer_size", printerSize);
         } catch {
-          // Storage quota exceeded, ignore
+          // Storage quota exceeded
         }
 
         toast({
           title: "Connected",
-          description: `Successfully connected to ${selectedDevice.name}`,
+          description: `Successfully connected to ${finalDevice.name}`,
         });
 
-        onPrinterSelected(selectedDevice, printerSize);
+        onPrinterSelected(finalDevice, printerSize);
         onOpenChange(false);
       }
     } catch (error: any) {

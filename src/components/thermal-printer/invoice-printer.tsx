@@ -18,7 +18,7 @@ interface InvoicePrinterProps {
 
 export function InvoicePrinter({
   invoice,
-  businessName = "DENTAL CLINIC",
+  businessName = "CHART DENTAL",
   businessPhone = "+256 XXX XXX XXX",
   businessAddress = "Your Address Here",
 }: InvoicePrinterProps) {
@@ -31,7 +31,7 @@ export function InvoicePrinter({
     connectedDevice,
     printerSize,
     print,
-    connect,
+    requestAndConnect,
   } = useThermalPrinter();
 
   const handlePrint = async () => {
@@ -50,18 +50,18 @@ export function InvoicePrinter({
       date: new Date(invoice.issueDate || Date.now()).toLocaleDateString(),
       time: new Date().toLocaleTimeString(),
       patientName: invoice.patientName || "N/A",
-      doctorName: invoice.doctorName,
+      doctorName: (invoice as any).doctorName,
       items: (invoice.treatments || []).map(treatment => ({
         description: treatment.procedure,
         quantity: 1,
         unitPrice: treatment.cost,
         total: treatment.cost,
       })),
-      subtotal: invoice.subtotal || 0,
-      tax: invoice.tax,
-      discount: invoice.discount,
+      subtotal: (invoice as any).subtotal || 0,
+      tax: (invoice as any).tax,
+      discount: (invoice as any).discount,
       total: invoice.amount || 0,
-      paymentMethod: invoice.paymentMethod,
+      paymentMethod: (invoice as any).paymentMethod,
       footer: `Invoice #${invoice.id} | Thank you for choosing us!`,
     };
 
@@ -74,15 +74,24 @@ export function InvoicePrinter({
     }
   };
 
-  const handlePrinterSelected = async (device: any, size: any) => {
-    await connect(device, size);
+  const handlePrinterSelected = async (_device: any, size: any) => {
+    await requestAndConnect(size);
   };
+
+  if (!isSupported) {
+    return (
+      <Button variant="outline" disabled title="Web Serial API not supported">
+        <Printer className="mr-2 h-4 w-4" />
+        Print (Not Supported)
+      </Button>
+    );
+  }
 
   return (
     <>
       <Button
         onClick={handlePrint}
-        disabled={isPrinting || (isSupported && !isConnected && !showPrinterSelector)}
+        disabled={isPrinting}
         variant={isConnected ? "default" : "outline"}
       >
         {isPrinting ? (
@@ -93,7 +102,7 @@ export function InvoicePrinter({
         ) : (
           <>
             <Printer className="mr-2 h-4 w-4" />
-            {isConnected ? `Print (${connectedDevice?.name})` : "Print Receipt"}
+            {isConnected ? `Print (${connectedDevice?.name || "Printer"})` : "Print Receipt"}
           </>
         )}
       </Button>

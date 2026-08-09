@@ -10,7 +10,7 @@ interface ReceiptItem {
   total: number;
 }
 
-interface ReceiptData {
+export interface ReceiptData {
   title?: string;
   printerSize: PrinterSize;
   businessName?: string;
