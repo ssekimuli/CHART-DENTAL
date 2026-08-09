@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -12,21 +12,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useThermalPrinter, type PrinterState } from "@/hooks/use-thermal-printer";
+import { getWindowsPrinterService } from "@/lib/windows-printer";
+import { generateSimpleReceiptHTML } from "@/lib/receipt-html-generator";
 import {
   AlertCircle,
   CheckCircle,
-  Wifi,
-  WifiOff,
+  Printer as PrinterIcon,
   Loader2,
   FileText,
   Settings,
-  X,
 } from "lucide-react";
 
 export default function PrinterTestPage() {
-  const printer = useThermalPrinter();
+  const [printerName, setPrinterName] = useState("POS58 Printer(2)");
   const [printerSize, setPrinterSize] = useState<"58mm" | "80mm">("58mm");
+  const [isPrinting, setIsPrinting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+
   const [testData, setTestData] = useState({
     clinicName: "CHART Dental Clinic",
     patientName: "John Doe",
@@ -35,47 +38,34 @@ export default function PrinterTestPage() {
     date: new Date().toLocaleDateString(),
   });
 
-  const handleSelectPrinter = async () => {
-    await printer.requestAndConnect(printerSize);
-  };
-
-  const handleDisconnect = async () => {
-    await printer.disconnect();
-  };
-
-  const handleTestPrint = async () => {
-    const success = await printer.print({
-      clinicName: testData.clinicName,
-      patientName: testData.patientName,
-      treatmentType: testData.treatmentType,
-      amount: testData.amount,
-      date: testData.date,
-      billNumber: "BL-001",
-    });
-
-    if (!success) {
-      console.error("Print failed");
-    }
-  };
-
-  const handlePrintTestPattern = async () => {
-    // Send raw test pattern bytes
-    const testPattern = new Uint8Array([
-      0x1b, 0x40, // Initialize printer
-      0x1b, 0x21, 0x08, // Font size
-      0x54, 0x45, 0x53, 0x54, 0x20, 0x50, 0x41, 0x54, 0x54, 0x45, 0x52, 0x4e, // "TEST PATTERN"
-      0x0a, 0x0a, // Line breaks
-      0x2d, 0x2d, 0x2d, 0x2d, 0x2d, 0x2d, 0x2d, 0x2d, 0x2d, 0x2d, // dashes
-      0x0a,
-      0x54, 0x68, 0x69, 0x73, 0x20, 0x69, 0x73, 0x20, 0x61, 0x20, 0x74, 0x65, 0x73, 0x74, // "This is a test"
-      0x0a,
-      0x1b, 0x69, // Partial cut
-    ]);
+  const handlePrintReceipt = async () => {
+    setIsPrinting(true);
+    setError(null);
+    setSuccess(false);
 
     try {
-      await printer.print(testPattern);
-    } catch (error: any) {
-      console.error("Test pattern failed:", error.message);
+      const printerService = getWindowsPrinterService();
+      printerService.setPrinterName(printerName);
+      printerService.setPaperSize(printerSize);
+
+      const html = generateSimpleReceiptHTML(
+        testData.clinicName,
+        testData.patientName,
+        testData.treatmentType,
+        parseFloat(testData.amount),
+        "BL-001",
+        testData.date,
+        printerSize
+      );
+
+      await printerService.printReceipt(html, { printerName, paperSize: printerSize });
+      setSuccess(true);
+      setTimeout(() => setSuccess(false), 3000);
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : "Print failed";
+      setError(errorMsg);
+    } finally {
+      setIsPrinting(false);
     }
   };
 
@@ -84,244 +74,195 @@ export default function PrinterTestPage() {
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-slate-900 mb-2">Bluetooth Printer Test</h1>
-          <p className="text-slate-600">
-            Test and manage Bluetooth thermal printer connections directly from your browser
-          </p>
+          <h1 className="text-4xl font-bold text-slate-900 mb-2">Thermal Printer Test</h1>
+          <p className="text-slate-600">Test Windows thermal printer connectivity</p>
         </div>
 
-        {/* Browser Support Alert */}
-        {!printer.isSupported && (
-          <Alert className="mb-6 border-orange-200 bg-orange-50">
-            <AlertCircle className="h-4 w-4 text-orange-600" />
-            <AlertDescription className="text-orange-800">
-              Web Serial API is not supported in your browser. Please use Chrome, Edge, or Opera.
+        {/* Success Alert */}
+        {success && (
+          <Alert className="mb-6 border-green-200 bg-green-50">
+            <CheckCircle className="h-4 w-4 text-green-600" />
+            <AlertDescription className="text-green-800">
+              ✓ Print job sent successfully! Check your printer.
             </AlertDescription>
           </Alert>
         )}
 
-        {/* Connection Status Card */}
+        {/* Error Alert */}
+        {error && (
+          <Alert className="mb-6 border-red-200 bg-red-50">
+            <AlertCircle className="h-4 w-4 text-red-600" />
+            <AlertDescription className="text-red-800 flex items-center justify-between">
+              <span>{error}</span>
+              <button onClick={() => setError(null)} className="text-red-600 hover:text-red-900">
+                ✕
+              </button>
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Printer Configuration */}
         <Card className="mb-6">
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
-              <span>Connection Status</span>
-              {printer.isConnected ? (
-                <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
-                  <Wifi className="w-3 h-3 mr-1" /> Connected
-                </Badge>
-              ) : (
-                <Badge variant="secondary">
-                  <WifiOff className="w-3 h-3 mr-1" /> Disconnected
-                </Badge>
-              )}
+              <span className="flex items-center gap-2">
+                <PrinterIcon className="w-5 h-5" />
+                Printer Configuration
+              </span>
+              <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">
+                <CheckCircle className="w-3 h-3 mr-1" /> Ready
+              </Badge>
             </CardTitle>
+            <CardDescription>Configure your thermal printer settings</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Connected Device Info */}
-            {printer.isConnected && printer.connectedDevice && (
-              <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="font-semibold text-slate-900">
-                      {printer.connectedDevice.name}
-                    </p>
-                    <p className="text-sm text-slate-600 mt-1">
-                      Size: <strong>{printer.printerSize}</strong>
-                    </p>
-                  </div>
-                  <CheckCircle className="w-5 h-5 text-green-600 mt-1" />
-                </div>
-              </div>
-            )}
-
-            {/* Error Display */}
-            {printer.error && (
-              <Alert className="border-red-200 bg-red-50">
-                <AlertCircle className="h-4 w-4 text-red-600" />
-                <AlertDescription className="text-red-800">
-                  <div className="flex items-start justify-between">
-                    <span>{printer.error}</span>
-                    <button
-                      onClick={printer.clearError}
-                      className="ml-2 text-red-600 hover:text-red-900"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                </AlertDescription>
-              </Alert>
-            )}
-
-            {/* Connection Controls */}
-            <div className="flex gap-2">
-              {!printer.isConnected ? (
-                <Button
-                  onClick={handleSelectPrinter}
-                  disabled={!printer.isSupported || printer.isPrinting}
-                  className="flex-1"
-                >
-                  {printer.isPrinting ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Connecting...
-                    </>
-                  ) : (
-                    <>
-                      <Settings className="w-4 h-4 mr-2" />
-                      Select & Connect Printer
-                    </>
-                  )}
-                </Button>
-              ) : (
-                <Button onClick={handleDisconnect} variant="destructive" className="flex-1">
-                  <X className="w-4 h-4 mr-2" />
-                  Disconnect
-                </Button>
-              )}
+            {/* Printer Name */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Printer Name
+              </label>
+              <input
+                type="text"
+                value={printerName}
+                onChange={(e) => setPrinterName(e.target.value)}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="e.g., POS58 Printer(2)"
+              />
+              <p className="text-xs text-slate-500 mt-1">
+                Name of your Windows-installed thermal printer
+              </p>
             </div>
 
-            {/* Printer Size Selection */}
-            {!printer.isConnected && (
-              <div className="pt-2">
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Printer Width
-                </label>
-                <Select value={printerSize} onValueChange={(v) => setPrinterSize(v as any)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="58mm">58mm (Mobile Receipt Printer)</SelectItem>
-                    <SelectItem value="80mm">80mm (Large Thermal Printer)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
+            {/* Paper Size */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Paper Width</label>
+              <Select value={printerSize} onValueChange={(v) => setPrinterSize(v as any)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="58mm">58mm (Mobile Receipt Printer)</SelectItem>
+                  <SelectItem value="80mm">80mm (Standard Thermal Printer)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </CardContent>
         </Card>
 
-        {/* Test Print Options */}
-        {printer.isConnected && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <FileText className="w-5 h-5 mr-2" />
-                Print Test
-              </CardTitle>
-              <CardDescription>Send test data to your printer</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Test Data Form */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Clinic Name
-                  </label>
-                  <input
-                    type="text"
-                    value={testData.clinicName}
-                    onChange={(e) =>
-                      setTestData({ ...testData, clinicName: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Patient Name
-                  </label>
-                  <input
-                    type="text"
-                    value={testData.patientName}
-                    onChange={(e) =>
-                      setTestData({ ...testData, patientName: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Treatment Type
-                  </label>
-                  <input
-                    type="text"
-                    value={testData.treatmentType}
-                    onChange={(e) =>
-                      setTestData({ ...testData, treatmentType: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Amount
-                  </label>
-                  <input
-                    type="text"
-                    value={testData.amount}
-                    onChange={(e) => setTestData({ ...testData, amount: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
+        {/* Test Data Form */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <FileText className="w-5 h-5 mr-2" />
+              Receipt Data
+            </CardTitle>
+            <CardDescription>Fill in test receipt information</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Clinic Name
+                </label>
+                <input
+                  type="text"
+                  value={testData.clinicName}
+                  onChange={(e) => setTestData({ ...testData, clinicName: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
               </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Patient Name
+                </label>
+                <input
+                  type="text"
+                  value={testData.patientName}
+                  onChange={(e) => setTestData({ ...testData, patientName: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Treatment Type
+                </label>
+                <input
+                  type="text"
+                  value={testData.treatmentType}
+                  onChange={(e) => setTestData({ ...testData, treatmentType: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Amount</label>
+                <input
+                  type="text"
+                  value={testData.amount}
+                  onChange={(e) => setTestData({ ...testData, amount: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-              {/* Print Buttons */}
-              <div className="flex gap-2">
-                <Button
-                  onClick={handleTestPrint}
-                  disabled={printer.isPrinting}
-                  className="flex-1"
-                >
-                  {printer.isPrinting ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Printing...
-                    </>
-                  ) : (
-                    <>
-                      <FileText className="w-4 h-4 mr-2" />
-                      Print Receipt
-                    </>
-                  )}
-                </Button>
-                <Button
-                  onClick={handlePrintTestPattern}
-                  variant="outline"
-                  disabled={printer.isPrinting}
-                >
-                  Print Test Pattern
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+        {/* Print Button */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Print Receipt</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Button
+              onClick={handlePrintReceipt}
+              disabled={isPrinting}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 text-lg"
+            >
+              {isPrinting ? (
+                <>
+                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                  Sending to Printer...
+                </>
+              ) : (
+                <>
+                  <PrinterIcon className="w-5 h-5 mr-2" />
+                  Print Receipt
+                </>
+              )}
+            </Button>
 
-        {/* Browser Support Info */}
-        {printer.isSupported && !printer.isConnected && (
-          <Card className="mt-6 bg-blue-50 border-blue-200">
-            <CardHeader>
-              <CardTitle className="text-base">Getting Started</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 text-sm text-slate-700">
-              <div>
-                <h4 className="font-semibold mb-2">Step 1: Pair Your Printer</h4>
-                <p>Make sure your Bluetooth printer is paired with your device first:</p>
-                <ul className="list-disc list-inside mt-1 ml-2 text-slate-600">
-                  <li>Windows: Settings → Devices → Bluetooth & devices → Add device</li>
-                  <li>macOS: System Preferences → Bluetooth</li>
-                </ul>
-              </div>
-              <div>
-                <h4 className="font-semibold mb-2">Step 2: Select Printer Size</h4>
-                <p>Choose the correct paper width for your printer (58mm or 80mm)</p>
-              </div>
-              <div>
-                <h4 className="font-semibold mb-2">Step 3: Connect & Test</h4>
-                <p>Click "Select & Connect Printer" and choose your printer from the system dialog</p>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+            {/* Instructions */}
+            <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <h3 className="font-semibold text-blue-900 mb-2">How to Use:</h3>
+              <ol className="list-decimal list-inside space-y-1 text-sm text-blue-800">
+                <li>Make sure your printer (POS58 Printer(2)) is installed in Windows</li>
+                <li>Fill in the receipt data above</li>
+                <li>Click "Print Receipt"</li>
+                <li>Use the print dialog to select your printer and adjust settings</li>
+                <li>Click "Print" to send to your thermal printer</li>
+              </ol>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Troubleshooting */}
+        <Card className="mt-6 bg-amber-50 border-amber-200">
+          <CardHeader>
+            <CardTitle className="text-amber-900">Troubleshooting</CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm text-amber-800 space-y-2">
+            <p>
+              <strong>Print dialog doesn't appear?</strong> Make sure pop-ups aren't blocked in your
+              browser.
+            </p>
+            <p>
+              <strong>Printer not in list?</strong> Check Windows Settings → Devices → Printers &
+              scanners to verify your printer is installed.
+            </p>
+            <p>
+              <strong>Output looks wrong?</strong> Try different paper size settings (58mm vs 80mm).
+            </p>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

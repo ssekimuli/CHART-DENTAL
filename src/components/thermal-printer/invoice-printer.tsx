@@ -2,12 +2,11 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { PrinterSelector } from "./printer-selector";
-import { useThermalPrinter } from "@/hooks/use-thermal-printer";
 import { Printer, Loader2 } from "lucide-react";
 import type { Invoice } from "@/lib/types";
-import type { ReceiptData } from "@/lib/escpos-printer";
 import { useToast } from "@/hooks/use-toast";
+import { getWindowsPrinterService } from "@/lib/windows-printer";
+import { generateReceiptHTML } from "@/lib/receipt-html-generator";
 
 interface InvoicePrinterProps {
   invoice: Invoice;
@@ -23,96 +22,67 @@ export function InvoicePrinter({
   businessAddress = "Your Address Here",
 }: InvoicePrinterProps) {
   const { toast } = useToast();
-  const [showPrinterSelector, setShowPrinterSelector] = useState(false);
-  const {
-    isSupported,
-    isConnected,
-    isPrinting,
-    connectedDevice,
-    printerSize,
-    print,
-    requestAndConnect,
-  } = useThermalPrinter();
+  const [isPrinting, setIsPrinting] = useState(false);
 
   const handlePrint = async () => {
-    if (!isConnected) {
-      setShowPrinterSelector(true);
-      return;
-    }
+    setIsPrinting(true);
 
-    // Convert invoice to receipt data
-    const receiptData: ReceiptData = {
-      printerSize,
-      businessName,
-      businessPhone,
-      businessAddress,
-      invoiceNumber: String(invoice.id),
-      date: new Date(invoice.issueDate || Date.now()).toLocaleDateString(),
-      time: new Date().toLocaleTimeString(),
-      patientName: invoice.patientName || "N/A",
-      doctorName: (invoice as any).doctorName,
-      items: (invoice.treatments || []).map(treatment => ({
-        description: treatment.procedure,
-        quantity: 1,
-        unitPrice: treatment.cost,
-        total: treatment.cost,
-      })),
-      subtotal: (invoice as any).subtotal || 0,
-      tax: (invoice as any).tax,
-      discount: (invoice as any).discount,
-      total: invoice.amount || 0,
-      paymentMethod: (invoice as any).paymentMethod,
-      footer: `Invoice #${invoice.id} | Thank you for choosing us!`,
-    };
+    try {
+      const printerService = getWindowsPrinterService();
 
-    const success = await print(receiptData);
-    if (success) {
+      // Calculate totals
+      const treatments = invoice.treatments || [];
+      const treatmentItems = treatments.map(t => ({
+        name: t.procedure || "Treatment",
+        amount: typeof t.cost === "string" ? parseFloat(t.cost) : t.cost || 0,
+      }));
+
+      // Generate receipt HTML
+      const html = generateReceiptHTML(
+        {
+          clinicName: businessName,
+          clinicPhone: businessPhone,
+          clinicAddress: businessAddress,
+          patientName: invoice.patientName || "Unknown Patient",
+          treatments: treatmentItems,
+          billNumber: String(invoice.id || ""),
+          date: new Date(invoice.issueDate || Date.now()).toLocaleDateString(),
+        },
+        "58mm" // Default to 58mm for receipts
+      );
+
+      // Send to printer (shows print dialog)
+      await printerService.printReceipt(html);
+
       toast({
         title: "Success",
-        description: "Invoice sent to printer",
+        description: "Invoice sent to printer. Use the print dialog to select your printer.",
       });
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : "Print failed";
+      toast({
+        variant: "destructive",
+        title: "Print Failed",
+        description: errorMsg,
+      });
+    } finally {
+      setIsPrinting(false);
     }
   };
 
-  const handlePrinterSelected = async (_device: any, size: any) => {
-    await requestAndConnect(size);
-  };
-
-  if (!isSupported) {
-    return (
-      <Button variant="outline" disabled title="Web Serial API not supported">
-        <Printer className="mr-2 h-4 w-4" />
-        Print (Not Supported)
-      </Button>
-    );
-  }
-
   return (
-    <>
-      <Button
-        onClick={handlePrint}
-        disabled={isPrinting}
-        variant={isConnected ? "default" : "outline"}
-      >
-        {isPrinting ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Printing...
-          </>
-        ) : (
-          <>
-            <Printer className="mr-2 h-4 w-4" />
-            {isConnected ? `Print (${connectedDevice?.name || "Printer"})` : "Print Receipt"}
-          </>
-        )}
-      </Button>
-
-      <PrinterSelector
-        open={showPrinterSelector}
-        onOpenChange={setShowPrinterSelector}
-        onPrinterSelected={handlePrinterSelected}
-        isSupported={isSupported}
-      />
-    </>
+    <Button onClick={handlePrint} disabled={isPrinting} variant="default">
+      {isPrinting ? (
+        <>
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          Printing...
+        </>
+      ) : (
+        <>
+          <Printer className="mr-2 h-4 w-4" />
+          Print Receipt
+        </>
+      )}
+    </Button>
   );
 }
