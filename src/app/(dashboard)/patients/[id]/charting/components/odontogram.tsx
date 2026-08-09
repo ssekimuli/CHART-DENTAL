@@ -498,7 +498,7 @@ export function Odontogram({
     };
 
     return (
-      <svg className="absolute inset-0 pointer-events-none w-full h-full" style={{ zIndex: 5 }}>
+      <svg className="absolute inset-0 pointer-events-none w-full h-full" style={{ zIndex: 50 }}>
         {bridgeGroups.map((group, groupIdx) => {
           const sortedTeeth = group.map(r => r.toothId).sort((a, b) => a - b);
           const lines = [];
