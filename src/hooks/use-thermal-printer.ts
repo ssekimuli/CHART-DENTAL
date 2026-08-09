@@ -28,7 +28,7 @@ export function useThermalPrinter() {
 
   // Check support and restore connection on mount
   useEffect(() => {
-    const isSupported = getPrinterService.toString().includes('serial');
+    const isSupported = typeof (navigator as any).serial !== "undefined";
     setState(prev => ({ ...prev, isSupported }));
 
     // Try to restore saved printer connection info
