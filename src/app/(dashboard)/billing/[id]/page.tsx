@@ -13,6 +13,7 @@ import { useRouter } from 'next/navigation';
 import { hasPermission } from '@/lib/user';
 import moment from 'moment';
 import { useCurrency } from '@/hooks/use-currency';
+import { InvoicePrinter } from '@/components/thermal-printer/invoice-printer';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -132,7 +133,7 @@ export default function InvoiceDetailPage() {
     return moment(date).format("MMM DD, YYYY");
   };
 
-  const handlePrint = () => {
+  const handleBrowserPrint = () => {
     window.print();
   };
 
@@ -214,9 +215,14 @@ export default function InvoiceDetailPage() {
                   <Trash2 className="mr-2 h-4 w-4" /> Delete
                 </Button>
               )}
-              <Button variant="outline" onClick={handlePrint}>
-                <Printer className="mr-2 h-4 w-4" /> Print
-              </Button>
+              {invoice && (
+                <InvoicePrinter
+                  invoice={invoice}
+                  businessName="CHART DENTAL"
+                  businessPhone="+256 XXX XXX XXX"
+                  businessAddress="Kampala, Uganda"
+                />
+              )}
               <Button onClick={handleDownload}>
                 <Download className="mr-2 h-4 w-4" /> Download PDF
               </Button>
