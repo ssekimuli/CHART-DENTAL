@@ -13,6 +13,13 @@ import {
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 
 
 const upperRightQuadrant = [18, 17, 16, 15, 14, 13, 12, 11];
@@ -48,6 +55,7 @@ import type { RestorativeRecord } from "@/lib/types";
 export function DentalChart({ initialRecords, treatmentPlans, restorativeRecords = [], onAddTreatment, onLogCondition, onQuickLogCondition, onAddRestorativeRecord, onConfirmBridge }: DentalChartProps) {
   const [selectedToothData, setSelectedToothData] = useState<{id: number, surface?: string} | null>(null);
   const [bridgeTeethSelection, setBridgeTeethSelection] = useState<number[]>([]);
+  const [showBridgeModal, setShowBridgeModal] = useState(false);
 
   const selectedTooth = selectedToothData?.id || null;
   const allTeeth = [18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28, 38, 37, 36, 35, 34, 33, 32, 31, 41, 42, 43, 44, 45, 46, 47, 48];
@@ -101,144 +109,160 @@ export function DentalChart({ initialRecords, treatmentPlans, restorativeRecords
                 </SheetDescription>
             </SheetHeader>
             <div className="flex flex-col gap-6">
-                {bridgeTeethSelection.length > 0 ? (
-                  <div>
-                    <h4 className="text-sm font-medium mb-3">Bridge Teeth Selected</h4>
-                    <p className="text-xs text-muted-foreground mb-3">Tooth {selectedTooth} + Teeth: {bridgeTeethSelection.join(', ')}</p>
-                    <div className="space-y-2">
-                      <Button
-                        size="sm"
-                        className="w-full bg-fuchsia-600 hover:bg-fuchsia-700 text-white"
-                        onClick={() => {
-                          const allBridgeTeeth = [selectedTooth, ...bridgeTeethSelection].sort((a, b) => a - b);
-                          const bridgeGroupId = `bridge-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-                          if (onConfirmBridge) {
-                            onConfirmBridge(allBridgeTeeth, bridgeGroupId);
-                          }
-                          setBridgeTeethSelection([]);
-                          setSelectedToothData(null);
-                        }}
+              <h4 className="text-sm font-medium mb-3">Select Condition</h4>
+              <div className="grid grid-cols-2 gap-2">
+                  {conditionInfo.map(({ condition, twColor }) => (
+                     <Button
+                          key={condition}
+                          variant="outline"
+                          size="sm"
+                          className="justify-start"
+                          onClick={() => {
+                              if (condition !== 'Bridge') {
+                                if (selectedTooth && onQuickLogCondition) onQuickLogCondition(selectedTooth, condition);
+                                setSelectedToothData(null);
+                              }
+                          }}
+                          disabled={condition === 'Bridge'}
                       >
-                        ✓ Save Bridge
+                          <div className={cn('mr-2 h-3 w-3 rounded-full border', twColor, {'border-gray-400': condition === 'Healthy'})}></div>
+                          {condition}
                       </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full"
-                        onClick={() => setBridgeTeethSelection([])}
-                      >
-                        Clear Selection
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div>
-                    <h4 className="text-sm font-medium mb-3">Select Condition</h4>
-                    <div className="grid grid-cols-2 gap-2">
-                        {conditionInfo.map(({ condition, twColor }) => (
-                           <Button
-                                key={condition}
-                                variant="outline"
-                                size="sm"
-                                className="justify-start"
-                                onClick={() => {
-                                    if (condition !== 'Bridge') {
-                                      if (selectedTooth && onQuickLogCondition) onQuickLogCondition(selectedTooth, condition);
-                                      setSelectedToothData(null);
-                                    }
-                                }}
-                                disabled={condition === 'Bridge'}
-                            >
-                                <div className={cn('mr-2 h-3 w-3 rounded-full border', twColor, {'border-gray-400': condition === 'Healthy'})}></div>
-                                {condition}
-                            </Button>
-                        ))}
-                    </div>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      className="w-full mt-3 bg-fuchsia-500 hover:bg-fuchsia-600 text-white"
-                      onClick={() => setBridgeTeethSelection([selectedTooth!])}
-                    >
-                      🌉 Mark as Bridge
-                    </Button>
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        className="w-full mt-2"
-                        onClick={() => {
-                            if (selectedTooth) onLogCondition(selectedTooth);
-                            setSelectedToothData(null);
-                        }}
-                    >
-                        <FilePen className="mr-2 h-4 w-4" /> Add Detailed Note
-                    </Button>
+                  ))}
+              </div>
+              <Button
+                variant="secondary"
+                size="sm"
+                className="w-full bg-fuchsia-500 hover:bg-fuchsia-600 text-white"
+                onClick={() => {
+                  setBridgeTeethSelection([selectedTooth!]);
+                  setShowBridgeModal(true);
+                }}
+              >
+                🌉 Mark as Bridge
+              </Button>
+              <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full"
+                  onClick={() => {
+                      if (selectedTooth) onLogCondition(selectedTooth);
+                      setSelectedToothData(null);
+                  }}
+              >
+                  <FilePen className="mr-2 h-4 w-4" /> Add Detailed Note
+              </Button>
 
-                    {bridgeTeethSelection.length > 0 && (
-                      <div className="border-t pt-4 mt-4">
-                        <h4 className="text-sm font-medium mb-2">Select Other Teeth</h4>
-                        <div className="grid grid-cols-4 gap-2 max-h-[150px] overflow-y-auto p-2 border rounded bg-slate-900/50">
-                          {allTeeth.filter(tooth => tooth !== selectedTooth).map(tooth => (
-                            <label
-                              key={tooth}
-                              className="flex items-center gap-1 cursor-pointer p-1 hover:bg-slate-700 rounded text-xs"
-                            >
-                              <input
-                                type="checkbox"
-                                checked={bridgeTeethSelection.includes(tooth)}
-                                onChange={() => toggleBridgeTooth(tooth)}
-                                className="w-3 h-3"
-                              />
-                              <span>{tooth}</span>
-                            </label>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+              <div className="border-t pt-4">
+                <h4 className="text-sm font-medium mb-3">Restorative Record</h4>
+                <Button
+                  variant="secondary"
+                  className="w-full"
+                  onClick={() => {
+                      if (selectedTooth && onAddRestorativeRecord) onAddRestorativeRecord(selectedTooth, selectedToothData?.surface);
+                      setSelectedToothData(null);
+                  }}
+                >
+                  <Plus className="mr-2 h-4 w-4" /> Add Restorative Procedure
+                </Button>
+              </div>
 
-                    <div className="border-t pt-4">
-                      <h4 className="text-sm font-medium mb-3">Restorative Record</h4>
-                      <Button
-                        variant="secondary"
-                        className="w-full"
-                        onClick={() => {
-                            if (selectedTooth && onAddRestorativeRecord) onAddRestorativeRecord(selectedTooth, selectedToothData?.surface);
-                            setSelectedToothData(null);
-                        }}
-                      >
-                        <Plus className="mr-2 h-4 w-4" /> Add Restorative Procedure
-                      </Button>
-                    </div>
+              <div className="border-t pt-4">
+                <h4 className="text-sm font-medium mb-3">Treatment Plan</h4>
+                <Button
+                  className="w-full"
+                  onClick={() => {
+                      if (selectedTooth) onAddTreatment(selectedTooth);
+                      setSelectedToothData(null);
+                  }}
+                >
+                  <Plus className="mr-2 h-4 w-4" /> Add Treatment
+                </Button>
+              </div>
 
-                    <div className="border-t pt-4">
-                      <h4 className="text-sm font-medium mb-3">Treatment Plan</h4>
-                      <Button
-                        className="w-full"
-                        onClick={() => {
-                            if (selectedTooth) onAddTreatment(selectedTooth);
-                            setSelectedToothData(null);
-                        }}
-                      >
-                        <Plus className="mr-2 h-4 w-4" /> Add Treatment
-                      </Button>
-                    </div>
-
-                    <div className="border-t pt-4">
-                      <Button
-                        variant="outline"
-                        className="w-full"
-                        onClick={() => {
-                            window.location.href = `/patients/${window.location.pathname.split('/')[2]}/charting/tooth/${selectedTooth}`;
-                        }}
-                      >
-                        <FilePen className="mr-2 h-4 w-4" /> View Full History
-                      </Button>
-                    </div>
-                  </div>
-                )}
+              <div className="border-t pt-4">
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => {
+                      window.location.href = `/patients/${window.location.pathname.split('/')[2]}/charting/tooth/${selectedTooth}`;
+                  }}
+                >
+                  <FilePen className="mr-2 h-4 w-4" /> View Full History
+                </Button>
+              </div>
             </div>
         </SheetContent>
       </Sheet>
+
+      <Dialog open={showBridgeModal} onOpenChange={setShowBridgeModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Select Bridge Teeth</DialogTitle>
+            <DialogDescription>
+              Tooth #{selectedTooth} + Select other teeth for this bridge
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex flex-col gap-4">
+            <div className="bg-slate-100 dark:bg-slate-900 p-3 rounded">
+              <p className="text-sm font-medium mb-2">Selected Teeth</p>
+              <p className="text-lg font-semibold text-fuchsia-600">
+                {selectedTooth} {bridgeTeethSelection.length > 0 && `+ ${bridgeTeethSelection.join(', ')}`}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-sm font-medium mb-2">Select Other Teeth</p>
+              <div className="grid grid-cols-4 gap-2 max-h-[250px] overflow-y-auto p-3 border rounded bg-slate-50 dark:bg-slate-950">
+                {allTeeth.filter(tooth => tooth !== selectedTooth).map(tooth => (
+                  <label
+                    key={tooth}
+                    className="flex items-center gap-2 cursor-pointer p-2 hover:bg-slate-200 dark:hover:bg-slate-800 rounded text-sm font-medium"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={bridgeTeethSelection.includes(tooth)}
+                      onChange={() => toggleBridgeTooth(tooth)}
+                      className="w-4 h-4"
+                    />
+                    <span>{tooth}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => {
+                  setBridgeTeethSelection([]);
+                  setShowBridgeModal(false);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="flex-1 bg-fuchsia-600 hover:bg-fuchsia-700 text-white"
+                disabled={bridgeTeethSelection.length === 0}
+                onClick={() => {
+                  const allBridgeTeeth = [selectedTooth, ...bridgeTeethSelection].sort((a, b) => a - b);
+                  const bridgeGroupId = `bridge-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+                  if (onConfirmBridge) {
+                    onConfirmBridge(allBridgeTeeth, bridgeGroupId);
+                  }
+                  setBridgeTeethSelection([]);
+                  setShowBridgeModal(false);
+                  setSelectedToothData(null);
+                }}
+              >
+                ✓ Save Bridge
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
