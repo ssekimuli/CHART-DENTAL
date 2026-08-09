@@ -58,6 +58,32 @@ export function DentalChart({ initialRecords, treatmentPlans, restorativeRecords
   const [showBridgeModal, setShowBridgeModal] = useState(false);
 
   const selectedTooth = selectedToothData?.id || null;
+
+  // Keyboard shortcuts for condition selection
+  React.useEffect(() => {
+    if (!selectedTooth) return;
+
+    const handleKeyPress = (e: KeyboardEvent) => {
+      const key = parseInt(e.key);
+      if (key >= 1 && key <= 8) {
+        e.preventDefault();
+        const selectedCondition = conditionInfo[key - 1];
+        if (selectedCondition && selectedCondition.condition !== 'Bridge') {
+          if (onQuickLogCondition) onQuickLogCondition(selectedTooth, selectedCondition.condition);
+          setSelectedToothData(null);
+        }
+      }
+      // Bridge shortcut
+      if (e.key === 'b' || e.key === 'B') {
+        e.preventDefault();
+        setBridgeTeethSelection([selectedTooth]);
+        setShowBridgeModal(true);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [selectedTooth, onQuickLogCondition]);
   const allTeeth = [18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28, 38, 37, 36, 35, 34, 33, 32, 31, 41, 42, 43, 44, 45, 46, 47, 48];
 
   const toggleBridgeTooth = (toothId: number) => {
@@ -112,14 +138,17 @@ export function DentalChart({ initialRecords, treatmentPlans, restorativeRecords
                 </SheetDescription>
             </SheetHeader>
             <div className="flex flex-col gap-6">
-              <h4 className="text-sm font-medium mb-3">Select Condition</h4>
+              <div>
+                <h4 className="text-sm font-medium mb-3">Select Condition</h4>
+                <p className="text-xs text-muted-foreground mb-3">Click a condition or use keyboard shortcuts (1-8)</p>
+              </div>
               <div className="grid grid-cols-2 gap-2">
-                  {conditionInfo.map(({ condition, twColor }) => (
+                  {conditionInfo.map(({ condition, twColor, icon, description }, idx) => (
                      <Button
                           key={condition}
                           variant="outline"
                           size="sm"
-                          className="justify-start"
+                          className={cn("justify-start h-auto py-2 flex-col items-start", condition === 'Bridge' && 'opacity-50')}
                           onClick={() => {
                               if (condition !== 'Bridge') {
                                 if (selectedTooth && onQuickLogCondition) onQuickLogCondition(selectedTooth, condition);
@@ -127,22 +156,29 @@ export function DentalChart({ initialRecords, treatmentPlans, restorativeRecords
                               }
                           }}
                           disabled={condition === 'Bridge'}
+                          title={`${description} (Press ${idx + 1})`}
                       >
-                          <div className={cn('mr-2 h-3 w-3 rounded-full border', twColor, {'border-gray-400': condition === 'Healthy'})}></div>
-                          {condition}
+                          <div className="flex items-center gap-2 w-full">
+                            <div className={cn('h-3 w-3 rounded-full border', twColor, {'border-gray-400': condition === 'Healthy'})}></div>
+                            <span className="flex-1 text-left">{condition}</span>
+                            <span className="text-xs text-muted-foreground">{icon}</span>
+                          </div>
+                          <span className="text-xs text-muted-foreground mt-1 w-full text-left">{description}</span>
                       </Button>
                   ))}
               </div>
               <Button
                 variant="secondary"
                 size="sm"
-                className="w-full bg-fuchsia-500 hover:bg-fuchsia-600 text-white"
+                className="w-full bg-fuchsia-500 hover:bg-fuchsia-600 text-white flex items-center justify-between"
                 onClick={() => {
                   setBridgeTeethSelection([selectedTooth!]);
                   setShowBridgeModal(true);
                 }}
+                title="Press B to quickly mark as bridge"
               >
-                🌉 Mark as Bridge
+                <span className="flex items-center gap-2">🌉 Mark as Bridge</span>
+                <span className="text-xs opacity-75">B</span>
               </Button>
               <Button
                   variant="ghost"
