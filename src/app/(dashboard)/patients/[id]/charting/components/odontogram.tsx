@@ -499,13 +499,17 @@ export function Odontogram({
           const x2 = rect2.left - containerRect.left + rect2.width / 2;
           const y2 = rect2.top - containerRect.top + rect2.height / 2;
 
-          lines.push({
-            x1,
-            y1,
-            x2,
-            y2,
-            id: `bridge-${groupIdx}-${i}`
-          });
+          // Only add line if teeth are reasonably close and not too vertical
+          const distance = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+          if (distance > 0 && distance < 500 && Math.abs(x2 - x1) > 5) {
+            lines.push({
+              x1,
+              y1,
+              x2,
+              y2,
+              id: `bridge-${groupIdx}-${i}`
+            });
+          }
         }
       }
     });
@@ -536,13 +540,16 @@ export function Odontogram({
             const x2 = rect2.left - containerRect.left + rect2.width / 2;
             const y2 = rect2.top - containerRect.top + rect2.height / 2;
 
-            newLines.push({
-              x1,
-              y1,
-              x2,
-              y2,
-              id: `bridge-${groupIdx}-${i}`
-            });
+            const distance = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+            if (distance > 0 && distance < 500 && Math.abs(x2 - x1) > 5) {
+              newLines.push({
+                x1,
+                y1,
+                x2,
+                y2,
+                id: `bridge-${groupIdx}-${i}`
+              });
+            }
           }
         }
       });
