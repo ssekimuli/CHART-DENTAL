@@ -204,30 +204,12 @@ function OdontogramToothImage({ toothId, records, dentalRecord, hasTreatment, on
                  }} 
               />
             );
-        } else if (dentalRecord.condition === 'Bridge') {
-          // Bridge: use border/stroke only, no fill
-          overlays.push(
-            <div
-               key={`cond-${dentalRecord.id}`}
-               className="absolute inset-0 pointer-events-none z-20 border-4 rounded-full"
-               style={{
-                  borderColor: '#06B6D4',
-                  WebkitMaskImage: `url(/teeth/restore/tooth_${toothId}/top.png)`,
-                  WebkitMaskSize: 'contain',
-                  WebkitMaskPosition: 'center',
-                  WebkitMaskRepeat: 'no-repeat',
-                  maskImage: `url(/teeth/restore/tooth_${toothId}/top.png)`,
-                  maskSize: 'contain',
-                  maskPosition: 'center',
-                  maskRepeat: 'no-repeat'
-               }}
-            />
-          );
         } else {
           // Beautiful full-tooth radial shading instead of a dot
           const rgb = conditionColor === '#EA580C' ? '234, 88, 12' : // Caries
                       conditionColor === '#0284C7' ? '2, 132, 199' : // Filling
                       conditionColor === '#9333EA' ? '147, 51, 234' : // Crown
+                      conditionColor === '#06B6D4' ? '6, 182, 212' : // Bridge
                       conditionColor === '#DC2626' ? '220, 38, 38' : '16, 185, 129'; // Fracture / Healthy
           overlays.push(
             <div
