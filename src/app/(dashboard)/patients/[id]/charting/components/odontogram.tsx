@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState } from "react";
 import Image from "next/image";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -421,7 +421,7 @@ export function Odontogram({
       <TooltipProvider key={id}>
         <Tooltip delayDuration={300}>
           <TooltipTrigger asChild>
-            <div className="flex justify-center" data-tooth-id={id}>
+            <div className="flex justify-center">
               <OdontogramToothImage
                 toothId={id}
                 records={toothRecords}
@@ -464,77 +464,7 @@ export function Odontogram({
     );
   };
 
-  const containerRef = useRef<HTMLDivElement>(null);
 
-  const calculateBridgeLines = () => {
-    const bridgeGroups = getBridgeGroups();
-    if (bridgeGroups.length === 0) return [];
-
-    const lines: Array<{ x1: number; y1: number; x2: number; y2: number; id: string }> = [];
-
-    bridgeGroups.forEach((group, groupIdx) => {
-      const sortedTeeth = group.map(r => r.toothId).sort((a, b) => a - b);
-
-      for (let i = 0; i < sortedTeeth.length - 1; i++) {
-        const tooth1 = sortedTeeth[i];
-        const tooth2 = sortedTeeth[i + 1];
-
-        const elem1 = document.querySelector(`[data-tooth-id="${tooth1}"]`);
-        const elem2 = document.querySelector(`[data-tooth-id="${tooth2}"]`);
-
-        if (elem1 && elem2 && containerRef.current) {
-          const containerRect = containerRef.current.getBoundingClientRect();
-          const rect1 = elem1.getBoundingClientRect();
-          const rect2 = elem2.getBoundingClientRect();
-
-          const x1 = rect1.left - containerRect.left + rect1.width / 2;
-          const y1 = rect1.top - containerRect.top + rect1.height / 2;
-          const x2 = rect2.left - containerRect.left + rect2.width / 2;
-          const y2 = rect2.top - containerRect.top + rect2.height / 2;
-
-          lines.push({
-            x1,
-            y1,
-            x2,
-            y2,
-            id: `bridge-${groupIdx}-${i}`
-          });
-        }
-      }
-    });
-
-    return lines;
-  };
-
-  const renderBridgeConnectors = () => {
-    const bridgeLines = calculateBridgeLines();
-    if (bridgeLines.length === 0) return null;
-
-    return (
-      <svg
-        className="absolute inset-0 pointer-events-none overflow-visible"
-        style={{ zIndex: 5, width: '100%', height: '100%' }}
-      >
-        {bridgeLines.map(line => (
-          <g key={line.id}>
-            <line
-              x1={line.x1}
-              y1={line.y1}
-              x2={line.x2}
-              y2={line.y2}
-              stroke="#06B6D4"
-              strokeWidth="5"
-              opacity="0.85"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-            <circle cx={line.x1} cy={line.y1} r="3" fill="#06B6D4" opacity="0.9" />
-            <circle cx={line.x2} cy={line.y2} r="3" fill="#06B6D4" opacity="0.9" />
-          </g>
-        ))}
-      </svg>
-    );
-  };
 
   return (
     <div className="w-full max-w-full flex flex-col select-none">
@@ -544,8 +474,7 @@ export function Odontogram({
       </div>
 
       {/* Teeth Arches */}
-      <div ref={containerRef} className="flex flex-col gap-10 min-w-max px-4 mx-auto w-full pb-6 relative">
-        {renderBridgeConnectors()}
+      <div className="flex flex-col gap-10 min-w-max px-4 mx-auto w-full pb-6 relative">
 
         {/* UPPER ARCH */}
           <div className="flex flex-col items-center w-full">
