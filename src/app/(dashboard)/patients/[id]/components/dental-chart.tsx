@@ -230,6 +230,15 @@ export function DentalChart({ initialRecords, treatmentPlans, restorativeRecords
                   <FilePen className="mr-2 h-4 w-4" /> View Full History
                 </Button>
               </div>
+
+              <div className="border-t pt-4 bg-slate-900/50 p-3 rounded">
+                <h4 className="text-xs font-semibold mb-2 text-slate-400">⌨️ Keyboard Shortcuts</h4>
+                <div className="text-xs text-muted-foreground space-y-1">
+                  <div className="flex justify-between"><span>1-8</span><span>Quick select condition</span></div>
+                  <div className="flex justify-between"><span>B</span><span>Mark as bridge</span></div>
+                  <div className="flex justify-between"><span>Esc</span><span>Close panel</span></div>
+                </div>
+              </div>
             </div>
         </SheetContent>
       </Sheet>
