@@ -42,7 +42,7 @@ import { Combobox } from "@/components/ui/combobox";
 
 const formSchema = z.object({
   clientId: z.string({ required_error: "Please select a client."}),
-  patientName: z.string().min(1, "Patient name is required."),
+  patientName: z.string().optional(),
   lab: z.string().min(2, "Lab name must be at least 2 characters."),
   item: z.string().min(2, "Item description must be at least 2 characters."),
   tooth: z.coerce.number().optional(),
@@ -134,7 +134,7 @@ export function LabOrderForm({ clients, doctors, onSave, onOpenChange }: LabOrde
                         name="patientName"
                         render={({ field }) => (
                             <FormItem>
-                            <FormLabel>Patient Name</FormLabel>
+                            <FormLabel>Patient Name (Optional)</FormLabel>
                             <FormControl>
                                 <Input placeholder="e.g., John Doe" {...field} />
                             </FormControl>

@@ -48,7 +48,8 @@ export function LabTable({ data }: { data: LaboratoryOrder[] }) {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Patient</TableHead>
+            <TableHead>Client Name</TableHead>
+            <TableHead>Phone/Email</TableHead>
             <TableHead>Doctor</TableHead>
             <TableHead>Lab</TableHead>
             <TableHead>Item</TableHead>
@@ -63,7 +64,13 @@ export function LabTable({ data }: { data: LaboratoryOrder[] }) {
             <TableRow
               key={order.id}
             >
-              <TableCell className="font-medium">{order.patientName}</TableCell>
+              <TableCell className="font-medium">{order.client?.name || '-'}</TableCell>
+              <TableCell>
+                <div className="space-y-0.5 text-sm">
+                  {order.client?.phone && <div>{order.client.phone}</div>}
+                  {order.client?.email && <div className="text-muted-foreground">{order.client.email}</div>}
+                </div>
+              </TableCell>
               <TableCell>{order.doctor?.name || '-'}</TableCell>
               <TableCell>{order.lab}</TableCell>
               <TableCell>{order.item} {order.tooth ? `(#${order.tooth})` : ''}</TableCell>
@@ -81,7 +88,7 @@ export function LabTable({ data }: { data: LaboratoryOrder[] }) {
           ))}
            {data.length === 0 && (
                 <TableRow>
-                    <TableCell colSpan={8} className="h-24 text-center">
+                    <TableCell colSpan={9} className="h-24 text-center">
                         No lab orders found.
                     </TableCell>
                 </TableRow>
