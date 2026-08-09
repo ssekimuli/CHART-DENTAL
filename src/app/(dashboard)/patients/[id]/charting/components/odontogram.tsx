@@ -205,12 +205,11 @@ function OdontogramToothImage({ toothId, records, dentalRecord, hasTreatment, on
                  }} 
               />
             );
-        } else {
-          // Beautiful full-tooth radial shading instead of a dot
+        } else if (!isBridge) {
+          // Beautiful full-tooth radial shading instead of a dot (not for bridge)
           const rgb = conditionColor === '#EA580C' ? '234, 88, 12' : // Caries
                       conditionColor === '#0284C7' ? '2, 132, 199' : // Filling
                       conditionColor === '#9333EA' ? '147, 51, 234' : // Crown
-                      conditionColor === '#06B6D4' ? '6, 182, 212' : // Bridge
                       conditionColor === '#DC2626' ? '220, 38, 38' : '16, 185, 129'; // Fracture / Healthy
           overlays.push(
             <div
@@ -230,17 +229,24 @@ function OdontogramToothImage({ toothId, records, dentalRecord, hasTreatment, on
                }}
             />
           );
+        }
 
-          // Add three red lines on top of bridge teeth
-          if (isBridge && view === "Top") {
-            overlays.push(
-              <svg key={`bridge-lines-${dentalRecord.id}`} viewBox="0 0 100 100" className="absolute inset-0 pointer-events-none z-30 w-full h-full">
-                <line x1="20" y1="35" x2="80" y2="35" stroke="#EF4444" strokeWidth="2" opacity="0.9" />
-                <line x1="20" y1="50" x2="80" y2="50" stroke="#EF4444" strokeWidth="2" opacity="0.9" />
-                <line x1="20" y1="65" x2="80" y2="65" stroke="#EF4444" strokeWidth="2" opacity="0.9" />
-              </svg>
-            );
-          }
+        // Add ten red lines on top of bridge teeth (no fill color)
+        if (isBridge && view === "Top") {
+          overlays.push(
+            <svg key={`bridge-lines-${dentalRecord.id}`} viewBox="0 0 100 100" className="absolute inset-0 pointer-events-none z-30 w-full h-full">
+              <line x1="15" y1="15" x2="85" y2="15" stroke="#EF4444" strokeWidth="2" opacity="0.9" />
+              <line x1="15" y1="26" x2="85" y2="26" stroke="#EF4444" strokeWidth="2" opacity="0.9" />
+              <line x1="15" y1="37" x2="85" y2="37" stroke="#EF4444" strokeWidth="2" opacity="0.9" />
+              <line x1="15" y1="48" x2="85" y2="48" stroke="#EF4444" strokeWidth="2" opacity="0.9" />
+              <line x1="15" y1="59" x2="85" y2="59" stroke="#EF4444" strokeWidth="2" opacity="0.9" />
+              <line x1="15" y1="70" x2="85" y2="70" stroke="#EF4444" strokeWidth="2" opacity="0.9" />
+              <line x1="15" y1="81" x2="85" y2="81" stroke="#EF4444" strokeWidth="2" opacity="0.9" />
+              <line x1="15" y1="23" x2="85" y2="23" stroke="#EF4444" strokeWidth="2" opacity="0.9" />
+              <line x1="15" y1="55" x2="85" y2="55" stroke="#EF4444" strokeWidth="2" opacity="0.9" />
+              <line x1="15" y1="34" x2="85" y2="34" stroke="#EF4444" strokeWidth="2" opacity="0.9" />
+            </svg>
+          );
         }
       }
     }
