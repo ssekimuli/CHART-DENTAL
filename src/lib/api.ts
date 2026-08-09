@@ -1179,7 +1179,8 @@ export const getClients = async (): Promise<Client[]> => {
     }
 }
 
-export const createClient = async (data: Omit<Client, 'id'>): Promise<Client> => {
+export const createClient = async (data: Omit<
+    Client, 'id'>): Promise<Client> => {
     try {
         const response = await customAxios.post('/clients', data);
         return response.data;
