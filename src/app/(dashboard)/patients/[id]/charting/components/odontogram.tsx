@@ -498,7 +498,7 @@ export function Odontogram({
     };
 
     return (
-      <svg className="absolute inset-0 pointer-events-none w-full h-full" style={{ zIndex: 50 }}>
+      <svg className="absolute inset-0 pointer-events-none" style={{ zIndex: 50, width: '100%', height: '100%' }} viewBox="0 0 100 100" preserveAspectRatio="none">
         {bridgeGroups.map((group, groupIdx) => {
           const sortedTeeth = group.map(r => r.toothId).sort((a, b) => a - b);
           const lines = [];
@@ -509,20 +509,20 @@ export function Odontogram({
 
             if (tooth1Pos && tooth2Pos && tooth1Pos.quadrant === tooth2Pos.quadrant) {
               // Same quadrant - draw horizontal line
-              const y = tooth1Pos.quadrant.startsWith('upper') ? '25%' : '75%';
+              const y = tooth1Pos.quadrant.startsWith('upper') ? 25 : 75;
               const x1 = ((tooth1Pos.index + 0.5) / 8) * 100;
               const x2 = ((tooth2Pos.index + 0.5) / 8) * 100;
 
               lines.push(
                 <line
                   key={`${groupIdx}-${i}`}
-                  x1={`${x1}%`}
+                  x1={x1}
                   y1={y}
-                  x2={`${x2}%`}
+                  x2={x2}
                   y2={y}
                   stroke="#000000"
-                  strokeWidth="4"
-                  opacity="0.8"
+                  strokeWidth="2"
+                  opacity="0.9"
                   strokeLinecap="round"
                 />
               );
