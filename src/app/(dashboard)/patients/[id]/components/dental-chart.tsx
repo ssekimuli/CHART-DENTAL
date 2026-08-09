@@ -5,7 +5,7 @@ import React, { useState, useMemo } from "react";
 import type { DentalRecord, DentalCondition, Treatment } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { FilePen, Plus } from "lucide-react";
+import { FilePen, Plus, Heart, AlertCircle, Droplets, Crown, Trash2, AlertTriangle, Zap, Link2 } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -27,15 +27,15 @@ const upperLeftQuadrant = [21, 22, 23, 24, 25, 26, 27, 28];
 const lowerLeftQuadrant = [31, 32, 33, 34, 35, 36, 37, 38];
 const lowerRightQuadrant = [48, 47, 46, 45, 44, 43, 42, 41];
 
-const conditionInfo: { condition: DentalCondition; color: string; twColor: string }[] = [
-    { condition: 'Healthy', color: 'transparent', twColor: 'bg-transparent border border-gray-400 border-dashed' },
-    { condition: 'Caries', color: '#EA580C', twColor: 'bg-orange-600' },
-    { condition: 'Filling', color: '#0284C7', twColor: 'bg-sky-600' },
-    { condition: 'Crown', color: '#9333EA', twColor: 'bg-purple-600' },
-    { condition: 'Missing', color: '#334155', twColor: 'bg-slate-700' },
-    { condition: 'Fracture', color: '#DC2626', twColor: 'bg-red-600' },
-    { condition: 'Implant', color: '#9CA3AF', twColor: 'bg-gray-400' },
-    { condition: 'Bridge', color: '#F59E0B', twColor: 'bg-amber-500' },
+const conditionInfo: { condition: DentalCondition; color: string; twColor: string; icon: React.ReactNode; description: string }[] = [
+    { condition: 'Healthy', color: 'transparent', twColor: 'bg-transparent border border-gray-400 border-dashed', icon: <Heart size={16} />, description: 'Healthy tooth' },
+    { condition: 'Caries', color: '#EA580C', twColor: 'bg-orange-600', icon: <AlertCircle size={16} />, description: 'Tooth decay/cavity' },
+    { condition: 'Filling', color: '#0284C7', twColor: 'bg-sky-600', icon: <Droplets size={16} />, description: 'Filled restoration' },
+    { condition: 'Crown', color: '#9333EA', twColor: 'bg-purple-600', icon: <Crown size={16} />, description: 'Crown restoration' },
+    { condition: 'Missing', color: '#334155', twColor: 'bg-slate-700', icon: <Trash2 size={16} />, description: 'Missing tooth' },
+    { condition: 'Fracture', color: '#DC2626', twColor: 'bg-red-600', icon: <AlertTriangle size={16} />, description: 'Broken tooth' },
+    { condition: 'Implant', color: '#9CA3AF', twColor: 'bg-gray-400', icon: <Zap size={16} />, description: 'Dental implant' },
+    { condition: 'Bridge', color: '#F59E0B', twColor: 'bg-amber-500', icon: <Link2 size={16} />, description: 'Bridge prosthetic' },
 ];
 
 type DentalChartProps = {
@@ -70,15 +70,18 @@ export function DentalChart({ initialRecords, treatmentPlans, restorativeRecords
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap justify-center gap-x-6 gap-y-2">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-wrap justify-center gap-x-6 gap-y-3 bg-slate-900/30 p-4 rounded-lg">
+        <div className="flex items-center gap-2 group cursor-help" title="Treatment planned procedures">
             <div className="h-4 w-4 rounded-full border-2 border-blue-500 bg-transparent"></div>
             <span className="text-sm text-muted-foreground">Treatment Plan</span>
         </div>
-        {conditionInfo.map(({ condition, twColor }) => (
-          <div key={condition} className="flex items-center gap-2">
+        {conditionInfo.map(({ condition, twColor, icon, description }) => (
+          <div key={condition} className="flex items-center gap-2 group cursor-help hover:bg-slate-800/50 px-2 py-1 rounded transition-colors" title={description}>
             <div className={cn('h-4 w-4 rounded-full border', twColor, {'border-gray-400': condition === 'Healthy'})}></div>
-            <span className="text-sm text-muted-foreground">{condition}</span>
+            <span className="text-xs sm:text-sm text-muted-foreground flex items-center gap-1">
+              {icon}
+              {condition}
+            </span>
           </div>
         ))}
       </div>
