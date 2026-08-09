@@ -168,7 +168,7 @@ function OdontogramToothImage({ toothId, records, dentalRecord, hasTreatment, on
         if (dentalRecord.condition === 'Missing') conditionColor = "#334155";
         if (dentalRecord.condition === 'Fracture') conditionColor = "#DC2626";
         if (dentalRecord.condition === 'Implant') conditionColor = "#9CA3AF";
-        if (dentalRecord.condition === 'Bridge') conditionColor = "#D946EF";
+        if (dentalRecord.condition === 'Bridge') conditionColor = "#06B6D4";
 
         if (dentalRecord.condition === 'Missing') {
           // Draw an X
@@ -209,7 +209,7 @@ function OdontogramToothImage({ toothId, records, dentalRecord, hasTreatment, on
           const rgb = conditionColor === '#EA580C' ? '234, 88, 12' : // Caries
                       conditionColor === '#0284C7' ? '2, 132, 199' : // Filling
                       conditionColor === '#9333EA' ? '147, 51, 234' : // Crown
-                      conditionColor === '#D946EF' ? '217, 70, 239' : // Bridge
+                      conditionColor === '#06B6D4' ? '6, 182, 212' : // Bridge
                       conditionColor === '#DC2626' ? '220, 38, 38' : '16, 185, 129'; // Fracture / Healthy
           overlays.push(
             <div 
@@ -398,6 +398,19 @@ export function Odontogram({
   const lowerRight = [48, 47, 46, 45, 44, 43, 42, 41];
   const lowerLeft = [31, 32, 33, 34, 35, 36, 37, 38];
 
+  const getBridgeGroups = () => {
+    const groups: { [key: string]: DentalRecord[] } = {};
+    dentalRecords.forEach(record => {
+      if (record.condition === 'Bridge' && record.bridgeGroupId) {
+        if (!groups[record.bridgeGroupId]) {
+          groups[record.bridgeGroupId] = [];
+        }
+        groups[record.bridgeGroupId].push(record);
+      }
+    });
+    return Object.values(groups).filter(g => g.length > 1);
+  };
+
   const renderTooth = (id: number) => {
     const dentalRecord = dentalRecords.find(r => r.toothId === id);
     const hasTreatment = treatmentPlans.some(p => p.tooth === id && (p.status === 'Proposed' || p.status === 'In Progress'));
@@ -451,16 +464,67 @@ export function Odontogram({
     );
   };
 
+  const renderBridgeConnectors = () => {
+    const bridgeGroups = getBridgeGroups();
+    if (bridgeGroups.length === 0) return null;
+
+    const teethPositions: { [key: number]: { arch: string; index: number } } = {};
+    [
+      ...upperRight.map((t, i) => ({ tooth: t, arch: 'upperRight', index: i })),
+      ...upperLeft.map((t, i) => ({ tooth: t, arch: 'upperLeft', index: i })),
+      ...lowerRight.map((t, i) => ({ tooth: t, arch: 'lowerRight', index: i })),
+      ...lowerLeft.map((t, i) => ({ tooth: t, arch: 'lowerLeft', index: i }))
+    ].forEach(({ tooth, arch, index }) => {
+      teethPositions[tooth] = { arch, index };
+    });
+
+    return (
+      <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 5 }}>
+        {bridgeGroups.map((group, groupIdx) => {
+          const sortedTeeth = group.map(r => r.toothId).sort((a, b) => a - b);
+          const connectorPairs: [number, number][] = [];
+
+          for (let i = 0; i < sortedTeeth.length - 1; i++) {
+            connectorPairs.push([sortedTeeth[i], sortedTeeth[i + 1]]);
+          }
+
+          return connectorPairs.map((pair, pairIdx) => {
+            const [tooth1, tooth2] = pair;
+            const pos1 = teethPositions[tooth1];
+            const pos2 = teethPositions[tooth2];
+
+            if (!pos1 || !pos2) return null;
+
+            return (
+              <line
+                key={`bridge-${groupIdx}-${pairIdx}`}
+                x1={`${((pos1.index + 0.5) / 8) * 100}%`}
+                y1={pos1.arch.startsWith('upper') ? '35%' : '65%'}
+                x2={`${((pos2.index + 0.5) / 8) * 100}%`}
+                y2={pos2.arch.startsWith('upper') ? '35%' : '65%'}
+                stroke="#06B6D4"
+                strokeWidth="2"
+                opacity="0.6"
+                strokeLinecap="round"
+              />
+            );
+          });
+        })}
+      </svg>
+    );
+  };
+
   return (
     <div className="w-full max-w-full flex flex-col select-none">
-      
+
       <div className="flex justify-between items-center w-full mb-6 px-2">
         <h3 className="text-lg md:text-xl font-bold text-slate-200">Odontogram</h3>
       </div>
 
       {/* Teeth Arches */}
-      <div className="flex flex-col gap-10 min-w-max px-4 mx-auto w-full pb-6">
-        
+      <div className="flex flex-col gap-10 min-w-max px-4 mx-auto w-full pb-6 relative">
+        {renderBridgeConnectors()}
+
         {/* UPPER ARCH */}
           <div className="flex flex-col items-center w-full">
             <div className="flex items-center justify-between w-full px-8 mb-3">
