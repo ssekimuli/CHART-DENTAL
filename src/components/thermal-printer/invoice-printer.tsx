@@ -6,7 +6,7 @@ import { Printer, Loader2 } from "lucide-react";
 import type { Invoice } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { getWindowsPrinterService } from "@/lib/windows-printer";
-import { generateReceiptHTML } from "@/lib/receipt-html-generator";
+import { generateSimpleReceiptHTML } from "@/lib/receipt-html-generator";
 
 interface InvoicePrinterProps {
   invoice: Invoice;
@@ -30,59 +30,40 @@ export function InvoicePrinter({
     try {
       const printerService = getWindowsPrinterService();
 
-      if (!invoice.id || !invoice.patientName || !invoice.issueDate) {
-        throw new Error("Invoice is missing required information");
-      }
-
-      // Process treatments
+      // Get first treatment as treatment type
       const treatments = invoice.treatments || [];
-      const treatmentItems = treatments
-        .filter(t => t && t.procedure) // Filter out invalid entries
-        .map(t => {
-          const amount = typeof t.cost === "string"
-            ? parseFloat(t.cost)
-            : typeof t.cost === "number"
-            ? t.cost
-            : 0;
+      const treatmentType = treatments.length > 0
+        ? String(treatments[0].procedure || "Treatment")
+        : "Services";
 
-          return {
-            name: String(t.procedure || "Treatment"),
-            amount: isNaN(amount) ? 0 : amount,
-          };
-        });
+      const amount = invoice.amount || 0;
+      const date = invoice.issueDate
+        ? new Date(invoice.issueDate).toLocaleDateString()
+        : new Date().toLocaleDateString();
+      const billNumber = String(invoice.id || "INV-001");
+      const patientName = String(invoice.patientName || "Patient");
 
-      // Fallback if no treatments
-      if (treatmentItems.length === 0 && invoice.amount > 0) {
-        treatmentItems.push({
-          name: "Services",
-          amount: invoice.amount,
-        });
-      }
-
-      // Generate receipt HTML
-      const html = generateReceiptHTML(
-        {
-          clinicName: businessName,
-          clinicPhone: businessPhone,
-          clinicAddress: businessAddress,
-          patientName: String(invoice.patientName),
-          treatments: treatmentItems,
-          billNumber: String(invoice.id),
-          date: new Date(invoice.issueDate).toLocaleDateString(),
-        },
-        "58mm" // Default to 58mm for receipts
+      // Generate receipt HTML (same way as /printer-test)
+      const html = generateSimpleReceiptHTML(
+        businessName,
+        patientName,
+        treatmentType,
+        amount,
+        billNumber,
+        date,
+        "58mm"
       );
 
-      // Send to printer (shows print dialog)
+      // Print using Windows printer (shows dialog like /printer-test)
       await printerService.printReceipt(html);
 
       toast({
         title: "Success",
-        description: "Invoice sent to printer. Use the print dialog to select your printer.",
+        description: "Receipt sent to printer!",
       });
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : "Print failed";
-      console.error("Print error:", error);
+      console.error("Print error:", errorMsg);
       toast({
         variant: "destructive",
         title: "Print Failed",
