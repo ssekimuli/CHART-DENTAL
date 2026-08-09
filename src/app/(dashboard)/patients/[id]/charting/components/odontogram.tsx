@@ -12,9 +12,11 @@ type OdontogramToothImageProps = {
   dentalRecord?: DentalRecord;
   hasTreatment?: boolean;
   onClick?: (toothId: number, surface?: string) => void;
+  isBridgeSelected?: boolean;
+  onBridgeToggle?: (toothId: number) => void;
 };
 
-function OdontogramToothImage({ toothId, records, dentalRecord, hasTreatment, onClick }: OdontogramToothImageProps) {
+function OdontogramToothImage({ toothId, records, dentalRecord, hasTreatment, onClick, isBridgeSelected, onBridgeToggle }: OdontogramToothImageProps) {
   const isUpper = toothId <= 28;
   const renderVisualProcedures = (view: "Back" | "Top" | "Front" | "Whole Tooth") => {
     // 1. Render RestorativeRecords (Visual Procedures)
@@ -241,8 +243,8 @@ function OdontogramToothImage({ toothId, records, dentalRecord, hasTreatment, on
   };
 
   return (
-    <div 
-      className={`flex flex-col items-center group w-14 sm:w-16 md:w-20 lg:w-24 ${onClick ? 'cursor-pointer hover:bg-slate-800/50 p-1 rounded-lg transition-colors' : ''}`}
+    <div
+      className={`flex flex-col items-center group w-14 sm:w-16 md:w-20 lg:w-24 ${onClick ? 'cursor-pointer hover:bg-slate-800/50 p-1 rounded-lg transition-colors' : ''} ${isBridgeSelected ? 'bg-fuchsia-500/20 border-2 border-fuchsia-500 rounded-lg' : ''}`}
       onClick={() => onClick && onClick(toothId)}
     >
       {isUpper && <span className="text-[10px] sm:text-xs md:text-sm font-bold text-slate-400 group-hover:text-slate-200 transition-colors mb-1">{toothId}</span>}
@@ -376,16 +378,20 @@ function OdontogramToothImage({ toothId, records, dentalRecord, hasTreatment, on
   );
 }
 
-export function Odontogram({ 
-  records = [], 
+export function Odontogram({
+  records = [],
   dentalRecords = [],
   treatmentPlans = [],
-  onToothClick
-}: { 
+  onToothClick,
+  selectedBridgeTeeth = [],
+  onBridgeToothToggle
+}: {
   records?: RestorativeRecord[],
   dentalRecords?: DentalRecord[],
   treatmentPlans?: Treatment[],
-  onToothClick?: (toothId: number, surface?: string) => void
+  onToothClick?: (toothId: number, surface?: string) => void,
+  selectedBridgeTeeth?: number[],
+  onBridgeToothToggle?: (toothId: number) => void
 }) {
   const upperRight = [18, 17, 16, 15, 14, 13, 12, 11];
   const upperLeft = [21, 22, 23, 24, 25, 26, 27, 28];
@@ -396,18 +402,21 @@ export function Odontogram({
     const dentalRecord = dentalRecords.find(r => r.toothId === id);
     const hasTreatment = treatmentPlans.some(p => p.tooth === id && (p.status === 'Proposed' || p.status === 'In Progress'));
     const toothRecords = records.filter(r => r.toothId == id);
-    
+    const isBridgeSelected = selectedBridgeTeeth.includes(id);
+
     return (
       <TooltipProvider key={id}>
         <Tooltip delayDuration={300}>
           <TooltipTrigger asChild>
             <div className="flex justify-center">
-              <OdontogramToothImage 
-                toothId={id} 
-                records={toothRecords} 
+              <OdontogramToothImage
+                toothId={id}
+                records={toothRecords}
                 dentalRecord={dentalRecord}
                 hasTreatment={hasTreatment}
                 onClick={onToothClick}
+                isBridgeSelected={isBridgeSelected}
+                onBridgeToggle={onBridgeToothToggle}
               />
             </div>
           </TooltipTrigger>

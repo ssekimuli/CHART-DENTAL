@@ -82,6 +82,7 @@ export type DentalRecord = {
   toothId: number;
   condition: DentalCondition;
   notes: string;
+  bridgeGroupId?: string;
   createdAt?: string;
   updatedAt?: string;
 };

@@ -347,6 +347,17 @@ export default function PatientChartingPage({
     });
   }
 
+  const handleConfirmBridge = async (toothIds: number[], bridgeGroupId: string) => {
+    for (const toothId of toothIds) {
+      await handleSaveDentalRecord({
+        toothId,
+        condition: 'Bridge',
+        notes: '',
+        bridgeGroupId
+      });
+    }
+  }
+
 
   return (
     <div className="flex flex-col gap-6">
@@ -391,7 +402,7 @@ export default function PatientChartingPage({
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <DentalChart 
+                    <DentalChart
                         initialRecords={patient.dentalRecords}
                         treatmentPlans={patient.treatmentPlans}
                         restorativeRecords={patient.restorativeRecords || []}
@@ -399,6 +410,7 @@ export default function PatientChartingPage({
                         onLogCondition={handleOpenConditionLogger}
                         onQuickLogCondition={handleQuickLogCondition}
                         onAddRestorativeRecord={handleOpenRestorativeForm}
+                        onConfirmBridge={handleConfirmBridge}
                     />
                 </CardContent>
             </Card>

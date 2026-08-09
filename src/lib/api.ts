@@ -16,7 +16,7 @@ import {
     roles as mockRoles,
     businesses as mockBusinesses
 } from '@/lib/data';
-import type { Business, PaginatedArray, Patient, Appointment, Invoice, ChartData, PracticeTrendPoint, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, BasePatient, InvoiceTreatment, OtherCharge, SystemTreatment, PaymentMethod, PaymentTransaction, AttendanceRecord, LeaveRequest, StaffAdvance, StaffAdvanceStatus, Expense, ExpenseCategory, ExpenseSummary, IncomeRecord, RolePermissions, Permission, DentalRecord, PeriodontalRecord, OcclusalRecord, SoftTissueRecord, OrthodonticRecord, Treatment, DentalCondition, PatientImage, FinancialSummary, CurrentUser, ProfileData, AppointmentStatus, DashboardSummary, EmployeeRole, ReportsOverview, Medicine, MedicineUnit, Prescription, PrescriptionItem, InvoiceMedicine, EndodonticRecord, RestorativeRecord } from '@/lib/types';
+import type { Business, PaginatedArray, Patient, Appointment, Invoice, ChartData, PracticeTrendPoint, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, BasePatient, InvoiceTreatment, OtherCharge, SystemTreatment, PaymentMethod, PaymentTransaction, AttendanceRecord, LeaveRequest, StaffAdvance, StaffAdvanceStatus, Expense, ExpenseCategory, ExpenseSummary, IncomeRecord, RolePermissions, Permission, DentalRecord, PeriodontalRecord, OcclusalRecord, SoftTissueRecord, OrthodonticRecord, Treatment, DentalCondition, PatientImage, FinancialSummary, CurrentUser, ProfileData, AppointmentStatus, DashboardSummary, EmployeeRole, ReportsOverview, Medicine, MedicineUnit, Prescription, PrescriptionItem, InvoiceMedicine, EndodonticRecord, RestorativeRecord, Client } from '@/lib/types';
 import { format, parse } from "date-fns";
 import { speak } from '@/ai/flows/speak';
 import { clearCurrentUser, setCurrentUser } from './user';
@@ -2355,6 +2355,7 @@ export const saveDentalRecord = async (patientId: string | number, record: Denta
         tooth_id: record.toothId,
         condition: record.condition,
         notes: record.notes || undefined,
+        bridge_group_id: record.bridgeGroupId || undefined,
     };
 
     try {
@@ -2367,6 +2368,7 @@ export const saveDentalRecord = async (patientId: string | number, record: Denta
             condition: savedRecord.condition,
             notes: savedRecord.notes || '',
             id: savedRecord.id,
+            bridgeGroupId: savedRecord.bridge_group_id || savedRecord.bridgeGroupId,
             createdAt: savedRecord.created_at || savedRecord.createdAt,
             updatedAt: savedRecord.updated_at || savedRecord.updatedAt,
         };

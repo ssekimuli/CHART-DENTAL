@@ -39,15 +39,26 @@ type DentalChartProps = {
   onLogCondition: (toothId: number) => void;
   onQuickLogCondition?: (toothId: number, condition: DentalCondition) => void;
   onAddRestorativeRecord?: (toothId: number, surface?: string) => void;
+  onConfirmBridge?: (toothIds: number[], bridgeGroupId: string) => void;
 };
 
 import { Odontogram } from "../charting/components/odontogram";
 import type { RestorativeRecord } from "@/lib/types";
 
-export function DentalChart({ initialRecords, treatmentPlans, restorativeRecords = [], onAddTreatment, onLogCondition, onQuickLogCondition, onAddRestorativeRecord }: DentalChartProps) {
+export function DentalChart({ initialRecords, treatmentPlans, restorativeRecords = [], onAddTreatment, onLogCondition, onQuickLogCondition, onAddRestorativeRecord, onConfirmBridge }: DentalChartProps) {
   const [selectedToothData, setSelectedToothData] = useState<{id: number, surface?: string} | null>(null);
-  
+  const [bridgeMode, setBridgeMode] = useState(false);
+  const [selectedBridgeTeeth, setSelectedBridgeTeeth] = useState<number[]>([]);
+
   const selectedTooth = selectedToothData?.id || null;
+
+  const handleBridgeToothClick = (toothId: number) => {
+    if (selectedBridgeTeeth.includes(toothId)) {
+      setSelectedBridgeTeeth(selectedBridgeTeeth.filter(id => id !== toothId));
+    } else {
+      setSelectedBridgeTeeth([...selectedBridgeTeeth, toothId].sort((a, b) => a - b));
+    }
+  };
 
   return (
     <div className="flex flex-col gap-6">
@@ -66,11 +77,20 @@ export function DentalChart({ initialRecords, treatmentPlans, restorativeRecords
       
       <div className="rounded-lg bg-muted/10 p-6 border overflow-x-auto flex justify-center items-center min-h-[450px]">
         <div className="w-full scale-100 origin-center py-4 flex flex-col relative">
-          <Odontogram 
+          {bridgeMode && selectedBridgeTeeth.length > 0 && (
+            <div className="mb-4 px-4 py-2 bg-fuchsia-500/10 border border-fuchsia-500/50 rounded-lg text-center">
+              <p className="text-sm text-fuchsia-300">
+                Bridge Mode: Selected teeth {selectedBridgeTeeth.join(', ')} <span className="text-xs ml-2">(Click teeth to add/remove)</span>
+              </p>
+            </div>
+          )}
+          <Odontogram
             records={restorativeRecords}
             dentalRecords={initialRecords}
             treatmentPlans={treatmentPlans}
-            onToothClick={(toothId, surface) => setSelectedToothData({ id: toothId, surface })}
+            onToothClick={(toothId, surface) => bridgeMode ? handleBridgeToothClick(toothId) : setSelectedToothData({ id: toothId, surface })}
+            selectedBridgeTeeth={selectedBridgeTeeth}
+            onBridgeToothToggle={handleBridgeToothClick}
           />
         </div>
       </div>
@@ -90,18 +110,63 @@ export function DentalChart({ initialRecords, treatmentPlans, restorativeRecords
                 </SheetDescription>
             </SheetHeader>
             <div className="flex flex-col gap-6">
-                <div>
+                {bridgeMode ? (
+                  <div>
+                    <h4 className="text-sm font-medium mb-3">Mark Bridge Teeth</h4>
+                    <div className="mb-3 p-2 bg-fuchsia-500/10 border border-fuchsia-500/50 rounded">
+                      <p className="text-xs text-fuchsia-300 mb-2">Selected: {selectedBridgeTeeth.length === 0 ? 'None' : selectedBridgeTeeth.join(', ')}</p>
+                      {selectedBridgeTeeth.length >= 2 && (
+                        <Button
+                          size="sm"
+                          className="w-full bg-fuchsia-600 hover:bg-fuchsia-700 text-white mb-2"
+                          onClick={() => {
+                            const bridgeGroupId = `bridge-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+                            if (onConfirmBridge) {
+                              onConfirmBridge(selectedBridgeTeeth, bridgeGroupId);
+                            } else {
+                              selectedBridgeTeeth.forEach(toothId => {
+                                if (onQuickLogCondition) onQuickLogCondition(toothId, 'Bridge');
+                              });
+                            }
+                            setBridgeMode(false);
+                            setSelectedBridgeTeeth([]);
+                            setSelectedToothData(null);
+                          }}
+                        >
+                          Confirm Bridge ({selectedBridgeTeeth.length} teeth)
+                        </Button>
+                      )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full"
+                        onClick={() => {
+                          setBridgeMode(false);
+                          setSelectedBridgeTeeth([]);
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div>
                     <h4 className="text-sm font-medium mb-3">Quick Log Condition</h4>
                     <div className="grid grid-cols-2 gap-2">
                         {conditionInfo.map(({ condition, twColor }) => (
-                           <Button 
+                           <Button
                                 key={condition}
-                                variant="outline" 
-                                size="sm" 
+                                variant="outline"
+                                size="sm"
                                 className="justify-start"
                                 onClick={() => {
-                                    if (selectedTooth && onQuickLogCondition) onQuickLogCondition(selectedTooth, condition);
-                                    setSelectedToothData(null);
+                                    if (condition === 'Bridge') {
+                                      setBridgeMode(true);
+                                      setSelectedBridgeTeeth([selectedTooth!]);
+                                    } else {
+                                      if (selectedTooth && onQuickLogCondition) onQuickLogCondition(selectedTooth, condition);
+                                      setSelectedToothData(null);
+                                    }
                                 }}
                             >
                                 <div className={cn('mr-2 h-3 w-3 rounded-full border', twColor, {'border-gray-400': condition === 'Healthy'})}></div>
@@ -109,8 +174,8 @@ export function DentalChart({ initialRecords, treatmentPlans, restorativeRecords
                             </Button>
                         ))}
                     </div>
-                    <Button 
-                        variant="ghost" 
+                    <Button
+                        variant="ghost"
                         size="sm"
                         className="w-full mt-2"
                         onClick={() => {
@@ -120,46 +185,46 @@ export function DentalChart({ initialRecords, treatmentPlans, restorativeRecords
                     >
                         <FilePen className="mr-2 h-4 w-4" /> Add Detailed Note
                     </Button>
-                </div>
-                
-                <div className="border-t pt-4">
-                     <h4 className="text-sm font-medium mb-3">Restorative Record</h4>
-                     <Button 
+                    <div className="border-t pt-4">
+                      <h4 className="text-sm font-medium mb-3">Restorative Record</h4>
+                      <Button
                         variant="secondary"
                         className="w-full"
                         onClick={() => {
                             if (selectedTooth && onAddRestorativeRecord) onAddRestorativeRecord(selectedTooth, selectedToothData?.surface);
                             setSelectedToothData(null);
                         }}
-                    >
+                      >
                         <Plus className="mr-2 h-4 w-4" /> Add Restorative Procedure
-                    </Button>
-                </div>
+                      </Button>
+                    </div>
 
-                <div className="border-t pt-4">
-                     <h4 className="text-sm font-medium mb-3">Treatment Plan</h4>
-                     <Button 
+                    <div className="border-t pt-4">
+                      <h4 className="text-sm font-medium mb-3">Treatment Plan</h4>
+                      <Button
                         className="w-full"
                         onClick={() => {
                             if (selectedTooth) onAddTreatment(selectedTooth);
-                            setSelectedTooth(null);
+                            setSelectedToothData(null);
                         }}
-                    >
+                      >
                         <Plus className="mr-2 h-4 w-4" /> Add Treatment
-                    </Button>
-                </div>
-                
-                <div className="border-t pt-4">
-                    <Button 
+                      </Button>
+                    </div>
+
+                    <div className="border-t pt-4">
+                      <Button
                         variant="outline"
                         className="w-full"
                         onClick={() => {
                             window.location.href = `/patients/${window.location.pathname.split('/')[2]}/charting/tooth/${selectedTooth}`;
                         }}
-                    >
+                      >
                         <FilePen className="mr-2 h-4 w-4" /> View Full History
-                    </Button>
-                </div>
+                      </Button>
+                    </div>
+                  </div>
+                )}
             </div>
         </SheetContent>
       </Sheet>
