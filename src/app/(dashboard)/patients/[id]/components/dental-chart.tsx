@@ -35,7 +35,7 @@ const conditionInfo: { condition: DentalCondition; color: string; twColor: strin
     { condition: 'Missing', color: '#334155', twColor: 'bg-slate-700' },
     { condition: 'Fracture', color: '#DC2626', twColor: 'bg-red-600' },
     { condition: 'Implant', color: '#9CA3AF', twColor: 'bg-gray-400' },
-    { condition: 'Bridge', color: '#D946EF', twColor: 'bg-fuchsia-500' },
+    { condition: 'Bridge', color: '#06B6D4', twColor: 'bg-cyan-500' },
 ];
 
 type DentalChartProps = {
