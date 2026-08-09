@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FileDown, PlusCircle, MoreHorizontal, Pencil, Trash, Eye, HandCoins, Calendar as CalendarIcon, Search, ChevronRight, ChevronDown, Printer, FileText } from "lucide-react";
+import { FileDown, PlusCircle, MoreHorizontal, Pencil, Trash, Eye, HandCoins, Calendar as CalendarIcon, Search, ChevronRight, ChevronDown, Printer, FileText, Loader2 } from "lucide-react";
 import type { Invoice, Patient, InvoiceTreatment, PaginatedArray } from "@/lib/types";
 import { InvoiceForm } from "./components/invoice-form";
 import { useBranch } from "@/context/branch-context";
@@ -45,10 +45,12 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
   } from "@/components/ui/alert-dialog";
-import { createNewInvoice, deleteInvoice, getInvoices, getPatientList, processPayment, updateInvoice, updatePatient } from "@/lib/api";
+import { createNewInvoice, deleteInvoice, getInvoices, getPatientList, processPayment, updateInvoice, updatePatient, getInvoiceById } from "@/lib/api";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PaymentForm } from "./components/payment-form";
+import { getWindowsPrinterService } from "@/lib/windows-printer";
+import { generateSimpleReceiptHTML } from "@/lib/receipt-html-generator";
 import { DateRange } from "react-day-picker";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
@@ -79,6 +81,7 @@ export default function BillingPage() {
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | undefined>(undefined);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const [expandedInvoiceId, setExpandedInvoiceId] = useState<string | number | null>(null);
+  const [printingInvoiceId, setPrintingInvoiceId] = useState<string | number | null>(null);
 
   // Claim form states
   const [isClaimFormOpen, setIsClaimFormOpen] = useState(false);
@@ -353,23 +356,67 @@ export default function BillingPage() {
     router.push(`/billing/${invoiceId}`);
   };
 
-  const handlePrintReceipt = (invoiceId: string | number) => {
-    const iframe = document.createElement('iframe');
-    iframe.style.position = 'absolute';
-    iframe.style.width = '0px';
-    iframe.style.height = '0px';
-    iframe.style.border = 'none';
-    iframe.style.left = '-9999px';
-    iframe.src = `/receipt/${invoiceId}`;
-    document.body.appendChild(iframe);
+  const handlePrintReceipt = async (invoiceId: string | number) => {
+    setPrintingInvoiceId(invoiceId);
 
-    // The receipt page will trigger print automatically after loading.
-    // Clean up the iframe after a reasonable time.
-    setTimeout(() => {
-      if (document.body.contains(iframe)) {
-        document.body.removeChild(iframe);
+    try {
+      // Fetch the invoice data
+      const invoice = await getInvoiceById(invoiceId);
+
+      if (!invoice) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Could not load invoice for printing",
+        });
+        return;
       }
-    }, 15000);
+
+      // Get printer service
+      const printerService = getWindowsPrinterService();
+
+      // Get first treatment or use service name
+      const treatments = invoice.treatments || [];
+      const treatmentType = treatments.length > 0
+        ? String(treatments[0].procedure || "Treatment")
+        : "Services";
+
+      const amount = invoice.amount || 0;
+      const date = invoice.issueDate
+        ? new Date(invoice.issueDate).toLocaleDateString()
+        : new Date().toLocaleDateString();
+      const billNumber = String(invoice.id || "INV-001");
+      const patientName = String(invoice.patientName || "Patient");
+
+      // Generate receipt HTML
+      const html = generateSimpleReceiptHTML(
+        "CHART DENTAL",
+        patientName,
+        treatmentType,
+        amount,
+        billNumber,
+        date,
+        "58mm"
+      );
+
+      // Send to printer
+      await printerService.printReceipt(html);
+
+      toast({
+        title: "Success",
+        description: "Receipt sent to printer!",
+      });
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : "Print failed";
+      console.error("Print error:", errorMsg);
+      toast({
+        variant: "destructive",
+        title: "Print Failed",
+        description: errorMsg,
+      });
+    } finally {
+      setPrintingInvoiceId(null);
+    }
   };
 
   // ADD THIS: Function to format date
@@ -523,9 +570,16 @@ export default function BillingPage() {
                                 <Eye className="mr-2 h-4 w-4" />
                                 View Invoice
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handlePrintReceipt(invoice.id)}>
-                                <Printer className="mr-2 h-4 w-4" />
-                                Print Receipt (POS)
+                            <DropdownMenuItem
+                              onClick={() => handlePrintReceipt(invoice.id)}
+                              disabled={printingInvoiceId === invoice.id}
+                            >
+                                {printingInvoiceId === invoice.id ? (
+                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Printer className="mr-2 h-4 w-4" />
+                                )}
+                                {printingInvoiceId === invoice.id ? "Printing..." : "Print Receipt (POS)"}
                             </DropdownMenuItem>
                             {hasPermission('billing:update') && (
                                 <DropdownMenuItem onClick={() => handleOpenForm(invoice)}>
