@@ -158,7 +158,8 @@ function OdontogramToothImage({ toothId, records, dentalRecord, hasTreatment, on
     // 2. Render DentalCondition overlays
     if (dentalRecord && dentalRecord.condition !== 'Healthy') {
       const isImplantCond = dentalRecord.condition === 'Implant';
-      
+      const isBridge = dentalRecord.condition === 'Bridge';
+
       // Implant on Back, Others on Top
       if ((!isImplantCond && view === "Top") || (isImplantCond && view === "Back")) {
         let conditionColor = "";
@@ -229,6 +230,17 @@ function OdontogramToothImage({ toothId, records, dentalRecord, hasTreatment, on
                }}
             />
           );
+
+          // Add three red lines on top of bridge teeth
+          if (isBridge && view === "Top") {
+            overlays.push(
+              <svg key={`bridge-lines-${dentalRecord.id}`} viewBox="0 0 100 100" className="absolute inset-0 pointer-events-none z-30 w-full h-full">
+                <line x1="20" y1="35" x2="80" y2="35" stroke="#EF4444" strokeWidth="2" opacity="0.9" />
+                <line x1="20" y1="50" x2="80" y2="50" stroke="#EF4444" strokeWidth="2" opacity="0.9" />
+                <line x1="20" y1="65" x2="80" y2="65" stroke="#EF4444" strokeWidth="2" opacity="0.9" />
+              </svg>
+            );
+          }
         }
       }
     }
