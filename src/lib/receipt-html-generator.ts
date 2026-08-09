@@ -1,6 +1,8 @@
 // Receipt HTML Generator
 // Generates formatted HTML for thermal printer receipts
 
+import { getCurrencyConfig } from "./currency";
+
 export interface ReceiptInfo {
   clinicName: string;
   clinicPhone?: string;
@@ -14,6 +16,7 @@ export interface ReceiptInfo {
     amount: number;
   }>;
   notes?: string;
+  currencyCode?: string;
 }
 
 export function generateReceiptHTML(info: ReceiptInfo, paperWidth: "58mm" | "80mm" = "58mm"): string {
@@ -28,6 +31,23 @@ export function generateReceiptHTML(info: ReceiptInfo, paperWidth: "58mm" | "80m
   if (treatments.length === 0) {
     throw new Error("Receipt must have at least one treatment");
   }
+
+  // Get currency config
+  const currencyConfig = getCurrencyConfig();
+  const currencySymbol = currencyConfig.symbol;
+
+  // Format amount with currency
+  const formatAmount = (amount: number): string => {
+    const formattedNum = amount.toLocaleString(currencyConfig.locale, {
+      minimumFractionDigits: currencyConfig.digits,
+      maximumFractionDigits: currencyConfig.digits,
+    });
+
+    if (["UGX", "KES", "TZS", "RWF", "BIF", "CDF", "SOS"].includes(currencyConfig.code)) {
+      return `${currencySymbol} ${formattedNum}`;
+    }
+    return `${currencySymbol}${formattedNum}`;
+  };
 
   // Calculate totals
   const totalAmount = treatments.reduce((sum, t) => {
@@ -99,8 +119,8 @@ export function generateReceiptHTML(info: ReceiptInfo, paperWidth: "58mm" | "80m
 
     const treatmentName = String(treatment.name).slice(0, Math.floor(charsPerLine * 0.6));
     const amount = typeof treatment.amount === "number"
-      ? `₹${treatment.amount.toFixed(2)}`
-      : "₹0.00";
+      ? formatAmount(treatment.amount)
+      : formatAmount(0);
     const line2 = rightAlign(treatmentName, amount);
     html += line(line2);
   }
@@ -109,7 +129,7 @@ export function generateReceiptHTML(info: ReceiptInfo, paperWidth: "58mm" | "80m
   html += line(dashes);
 
   // Total
-  const totalLine = rightAlign("TOTAL", `₹${totalAmount.toFixed(2)}`);
+  const totalLine = rightAlign("TOTAL", formatAmount(totalAmount));
   html += line(totalLine);
 
   html += line();
