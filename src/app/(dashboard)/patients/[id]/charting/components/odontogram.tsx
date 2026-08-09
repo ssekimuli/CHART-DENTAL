@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -421,7 +421,7 @@ export function Odontogram({
       <TooltipProvider key={id}>
         <Tooltip delayDuration={300}>
           <TooltipTrigger asChild>
-            <div className="flex justify-center">
+            <div className="flex justify-center" data-tooth-id={id}>
               <OdontogramToothImage
                 toothId={id}
                 records={toothRecords}
@@ -464,52 +464,118 @@ export function Odontogram({
     );
   };
 
-  const renderBridgeConnectors = () => {
-    const bridgeGroups = getBridgeGroups();
-    if (bridgeGroups.length === 0) return null;
+  const svgRef = useRef<SVGSVGElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [bridgeLines, setBridgeLines] = useState<Array<{ x1: number; y1: number; x2: number; y2: number; id: string }>>([]);
 
-    const teethPositions: { [key: number]: { arch: string; index: number } } = {};
-    [
-      ...upperRight.map((t, i) => ({ tooth: t, arch: 'upperRight', index: i })),
-      ...upperLeft.map((t, i) => ({ tooth: t, arch: 'upperLeft', index: i })),
-      ...lowerRight.map((t, i) => ({ tooth: t, arch: 'lowerRight', index: i })),
-      ...lowerLeft.map((t, i) => ({ tooth: t, arch: 'lowerLeft', index: i }))
-    ].forEach(({ tooth, arch, index }) => {
-      teethPositions[tooth] = { arch, index };
+  useEffect(() => {
+    if (!containerRef.current || !svgRef.current) return;
+
+    const bridgeGroups = getBridgeGroups();
+    if (bridgeGroups.length === 0) {
+      setBridgeLines([]);
+      return;
+    }
+
+    const lines: typeof bridgeLines = [];
+    const containerRect = containerRef.current.getBoundingClientRect();
+
+    bridgeGroups.forEach((group, groupIdx) => {
+      const sortedTeeth = group.map(r => r.toothId).sort((a, b) => a - b);
+
+      for (let i = 0; i < sortedTeeth.length - 1; i++) {
+        const tooth1 = sortedTeeth[i];
+        const tooth2 = sortedTeeth[i + 1];
+
+        const elem1 = document.querySelector(`[data-tooth-id="${tooth1}"]`);
+        const elem2 = document.querySelector(`[data-tooth-id="${tooth2}"]`);
+
+        if (elem1 && elem2) {
+          const rect1 = elem1.getBoundingClientRect();
+          const rect2 = elem2.getBoundingClientRect();
+
+          const x1 = rect1.left - containerRect.left + rect1.width / 2;
+          const y1 = rect1.top - containerRect.top + rect1.height / 2;
+          const x2 = rect2.left - containerRect.left + rect2.width / 2;
+          const y2 = rect2.top - containerRect.top + rect2.height / 2;
+
+          lines.push({
+            x1,
+            y1,
+            x2,
+            y2,
+            id: `bridge-${groupIdx}-${i}`
+          });
+        }
+      }
     });
 
-    return (
-      <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 5 }}>
-        {bridgeGroups.map((group, groupIdx) => {
-          const sortedTeeth = group.map(r => r.toothId).sort((a, b) => a - b);
-          const connectorPairs: [number, number][] = [];
+    setBridgeLines(lines);
 
-          for (let i = 0; i < sortedTeeth.length - 1; i++) {
-            connectorPairs.push([sortedTeeth[i], sortedTeeth[i + 1]]);
+    const handleResize = () => {
+      if (!containerRef.current) return;
+      const newLines: typeof bridgeLines = [];
+      const containerRect = containerRef.current.getBoundingClientRect();
+
+      bridgeGroups.forEach((group, groupIdx) => {
+        const sortedTeeth = group.map(r => r.toothId).sort((a, b) => a - b);
+
+        for (let i = 0; i < sortedTeeth.length - 1; i++) {
+          const tooth1 = sortedTeeth[i];
+          const tooth2 = sortedTeeth[i + 1];
+
+          const elem1 = document.querySelector(`[data-tooth-id="${tooth1}"]`);
+          const elem2 = document.querySelector(`[data-tooth-id="${tooth2}"]`);
+
+          if (elem1 && elem2) {
+            const rect1 = elem1.getBoundingClientRect();
+            const rect2 = elem2.getBoundingClientRect();
+
+            const x1 = rect1.left - containerRect.left + rect1.width / 2;
+            const y1 = rect1.top - containerRect.top + rect1.height / 2;
+            const x2 = rect2.left - containerRect.left + rect2.width / 2;
+            const y2 = rect2.top - containerRect.top + rect2.height / 2;
+
+            newLines.push({
+              x1,
+              y1,
+              x2,
+              y2,
+              id: `bridge-${groupIdx}-${i}`
+            });
           }
+        }
+      });
 
-          return connectorPairs.map((pair, pairIdx) => {
-            const [tooth1, tooth2] = pair;
-            const pos1 = teethPositions[tooth1];
-            const pos2 = teethPositions[tooth2];
+      setBridgeLines(newLines);
+    };
 
-            if (!pos1 || !pos2) return null;
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [dentalRecords]);
 
-            return (
-              <line
-                key={`bridge-${groupIdx}-${pairIdx}`}
-                x1={`${((pos1.index + 0.5) / 8) * 100}%`}
-                y1={pos1.arch.startsWith('upper') ? '35%' : '65%'}
-                x2={`${((pos2.index + 0.5) / 8) * 100}%`}
-                y2={pos2.arch.startsWith('upper') ? '35%' : '65%'}
-                stroke="#06B6D4"
-                strokeWidth="2"
-                opacity="0.6"
-                strokeLinecap="round"
-              />
-            );
-          });
-        })}
+  const renderBridgeConnectors = () => {
+    if (bridgeLines.length === 0) return null;
+
+    return (
+      <svg
+        ref={svgRef}
+        className="absolute inset-0 pointer-events-none overflow-visible"
+        style={{ zIndex: 5, width: '100%', height: '100%' }}
+      >
+        {bridgeLines.map(line => (
+          <line
+            key={line.id}
+            x1={line.x1}
+            y1={line.y1}
+            x2={line.x2}
+            y2={line.y2}
+            stroke="#06B6D4"
+            strokeWidth="3"
+            opacity="0.7"
+            strokeLinecap="round"
+          />
+        ))}
       </svg>
     );
   };
@@ -522,7 +588,7 @@ export function Odontogram({
       </div>
 
       {/* Teeth Arches */}
-      <div className="flex flex-col gap-10 min-w-max px-4 mx-auto w-full pb-6 relative">
+      <div ref={containerRef} className="flex flex-col gap-10 min-w-max px-4 mx-auto w-full pb-6 relative">
         {renderBridgeConnectors()}
 
         {/* UPPER ARCH */}
