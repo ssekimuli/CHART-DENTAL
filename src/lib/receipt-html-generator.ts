@@ -17,6 +17,15 @@ export interface ReceiptInfo {
   }>;
   notes?: string;
   currencyCode?: string;
+  // Additional billing details
+  subtotal?: number;
+  totalBill?: number;
+  insurancePortion?: number;
+  patientPortion?: number;
+  totalPaid?: number;
+  balanceDue?: number;
+  discount?: number;
+  tax?: number;
 }
 
 export function generateReceiptHTML(info: ReceiptInfo, paperWidth: "58mm" | "80mm" = "58mm"): string {
@@ -128,9 +137,56 @@ export function generateReceiptHTML(info: ReceiptInfo, paperWidth: "58mm" | "80m
   html += line();
   html += line(dashes);
 
-  // Total
-  const totalLine = rightAlign("TOTAL", formatAmount(totalAmount));
-  html += line(totalLine);
+  // Summary section with detailed billing info
+  html += line("SUMMARY");
+  html += line("-".repeat(Math.floor(charsPerLine * 0.8)));
+
+  // Treatments Subtotal
+  const subtotal = info.subtotal ?? totalAmount;
+  html += line(rightAlign("Subtotal:", formatAmount(subtotal)));
+
+  // Discount (if applicable)
+  if (info.discount && info.discount > 0) {
+    const discountAmount = subtotal * (info.discount / 100);
+    html += line(rightAlign(`Discount (${info.discount}%)`, `-${formatAmount(discountAmount)}`));
+  }
+
+  // Tax (if applicable)
+  if (info.tax && info.tax > 0) {
+    let taxBase = subtotal;
+    if (info.discount) {
+      taxBase = subtotal * (1 - info.discount / 100);
+    }
+    const taxAmount = taxBase * (info.tax / 100);
+    html += line(rightAlign(`Tax (${info.tax}%)`, formatAmount(taxAmount)));
+  }
+
+  // Total Bill
+  const totalBill = info.totalBill ?? totalAmount;
+  html += line(rightAlign("TOTAL BILL:", formatAmount(totalBill)));
+
+  html += line();
+
+  // Insurance & Patient portions
+  if (info.insurancePortion !== undefined && info.insurancePortion > 0) {
+    html += line(rightAlign("Insurance Portion:", formatAmount(info.insurancePortion)));
+  }
+
+  if (info.patientPortion !== undefined && info.patientPortion > 0) {
+    html += line(rightAlign("Patient Portion:", formatAmount(info.patientPortion)));
+  }
+
+  html += line();
+
+  // Payment information
+  if (info.totalPaid !== undefined && info.totalPaid > 0) {
+    html += line(rightAlign("Total Paid:", `-${formatAmount(info.totalPaid)}`));
+  }
+
+  if (info.balanceDue !== undefined) {
+    const balanceColor = info.balanceDue > 0 ? "DUE" : "PAID";
+    html += line(rightAlign(`Balance ${balanceColor}:`, formatAmount(Math.abs(info.balanceDue))));
+  }
 
   html += line();
   html += line(dashes);

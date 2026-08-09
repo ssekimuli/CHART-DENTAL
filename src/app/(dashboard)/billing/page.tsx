@@ -375,27 +375,39 @@ export default function BillingPage() {
       // Get printer service
       const printerService = getWindowsPrinterService();
 
-      // Get first treatment or use service name
-      const treatments = invoice.treatments || [];
-      const treatmentType = treatments.length > 0
-        ? String(treatments[0].procedure || "Treatment")
-        : "Services";
-
-      const amount = invoice.amount || 0;
       const date = invoice.issueDate
         ? new Date(invoice.issueDate).toLocaleDateString()
         : new Date().toLocaleDateString();
       const billNumber = String(invoice.id || "INV-001");
       const patientName = String(invoice.patientName || "Patient");
+      const treatments = invoice.treatments || [];
 
-      // Generate receipt HTML
-      const html = generateSimpleReceiptHTML(
-        "CHART DENTAL",
-        patientName,
-        treatmentType,
-        amount,
-        billNumber,
-        date,
+      // Calculate balance due
+      const balanceDue = (invoice.amount || 0) - (invoice.paidAmount || 0);
+
+      // Generate detailed receipt with all billing information
+      const { generateReceiptHTML } = await import("@/lib/receipt-html-generator");
+      const html = generateReceiptHTML(
+        {
+          clinicName: "CHART DENTAL",
+          clinicPhone: "+256 XXX XXX XXX",
+          clinicAddress: "Kampala, Uganda",
+          patientName: patientName,
+          date: date,
+          billNumber: billNumber,
+          treatments: treatments.map(t => ({
+            name: String(t.procedure || "Treatment"),
+            amount: typeof t.cost === "number" ? t.cost : 0,
+          })),
+          subtotal: treatments.reduce((sum, t) => sum + (typeof t.cost === "number" ? t.cost : 0), 0),
+          totalBill: invoice.amount,
+          insurancePortion: invoice.insuranceResponsibility,
+          patientPortion: invoice.patientResponsibility,
+          totalPaid: invoice.paidAmount,
+          balanceDue: balanceDue,
+          discount: invoice.discount,
+          tax: invoice.tax,
+        },
         "58mm"
       );
 

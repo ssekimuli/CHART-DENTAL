@@ -43,7 +43,11 @@ export function InvoicePrinter({
       const billNumber = String(invoice.id || "INV-001");
       const patientName = String(invoice.patientName || "Patient");
 
-      // Generate receipt HTML (same way as /printer-test)
+      // Calculate totals for detailed receipt
+      const subtotal = treatments.reduce((sum, t) => sum + (typeof t.cost === "number" ? t.cost : 0), 0);
+      const balanceDue = (invoice.amount || 0) - (invoice.paidAmount || 0);
+
+      // Generate detailed receipt HTML with full billing information
       const html = generateSimpleReceiptHTML(
         businessName,
         patientName,
@@ -54,8 +58,34 @@ export function InvoicePrinter({
         "58mm"
       );
 
+      // For detailed receipt, use generateReceiptHTML with all fields
+      const { generateReceiptHTML } = await import("@/lib/receipt-html-generator");
+      const detailedHtml = generateReceiptHTML(
+        {
+          clinicName: businessName,
+          clinicPhone: businessPhone,
+          clinicAddress: businessAddress,
+          patientName: patientName,
+          date: date,
+          billNumber: billNumber,
+          treatments: treatments.map(t => ({
+            name: String(t.procedure || "Treatment"),
+            amount: typeof t.cost === "number" ? t.cost : 0,
+          })),
+          subtotal: subtotal,
+          totalBill: amount,
+          insurancePortion: invoice.insuranceResponsibility,
+          patientPortion: invoice.patientResponsibility,
+          totalPaid: invoice.paidAmount,
+          balanceDue: balanceDue,
+          discount: invoice.discount,
+          tax: invoice.tax,
+        },
+        "58mm"
+      );
+
       // Print using Windows printer (shows dialog like /printer-test)
-      await printerService.printReceipt(html);
+      await printerService.printReceipt(detailedHtml);
 
       toast({
         title: "Success",
