@@ -502,7 +502,7 @@ export function Odontogram({
                   y1={y}
                   x2={`${x2}%`}
                   y2={y}
-                  stroke="#06B6D4"
+                  stroke="#000000"
                   strokeWidth="4"
                   opacity="0.8"
                   strokeLinecap="round"
