@@ -30,12 +30,34 @@ export function InvoicePrinter({
     try {
       const printerService = getWindowsPrinterService();
 
-      // Calculate totals
+      if (!invoice.id || !invoice.patientName || !invoice.issueDate) {
+        throw new Error("Invoice is missing required information");
+      }
+
+      // Process treatments
       const treatments = invoice.treatments || [];
-      const treatmentItems = treatments.map(t => ({
-        name: t.procedure || "Treatment",
-        amount: typeof t.cost === "string" ? parseFloat(t.cost) : t.cost || 0,
-      }));
+      const treatmentItems = treatments
+        .filter(t => t && t.procedure) // Filter out invalid entries
+        .map(t => {
+          const amount = typeof t.cost === "string"
+            ? parseFloat(t.cost)
+            : typeof t.cost === "number"
+            ? t.cost
+            : 0;
+
+          return {
+            name: String(t.procedure || "Treatment"),
+            amount: isNaN(amount) ? 0 : amount,
+          };
+        });
+
+      // Fallback if no treatments
+      if (treatmentItems.length === 0 && invoice.amount > 0) {
+        treatmentItems.push({
+          name: "Services",
+          amount: invoice.amount,
+        });
+      }
 
       // Generate receipt HTML
       const html = generateReceiptHTML(
@@ -43,10 +65,10 @@ export function InvoicePrinter({
           clinicName: businessName,
           clinicPhone: businessPhone,
           clinicAddress: businessAddress,
-          patientName: invoice.patientName || "Unknown Patient",
+          patientName: String(invoice.patientName),
           treatments: treatmentItems,
-          billNumber: String(invoice.id || ""),
-          date: new Date(invoice.issueDate || Date.now()).toLocaleDateString(),
+          billNumber: String(invoice.id),
+          date: new Date(invoice.issueDate).toLocaleDateString(),
         },
         "58mm" // Default to 58mm for receipts
       );
@@ -60,6 +82,7 @@ export function InvoicePrinter({
       });
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : "Print failed";
+      console.error("Print error:", error);
       toast({
         variant: "destructive",
         title: "Print Failed",

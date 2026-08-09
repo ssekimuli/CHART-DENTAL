@@ -19,8 +19,21 @@ export interface ReceiptInfo {
 export function generateReceiptHTML(info: ReceiptInfo, paperWidth: "58mm" | "80mm" = "58mm"): string {
   const charsPerLine = paperWidth === "58mm" ? 32 : 48;
 
+  // Validate and sanitize input
+  if (!info || typeof info !== "object") {
+    throw new Error("Invalid receipt information");
+  }
+
+  const treatments = Array.isArray(info.treatments) ? info.treatments : [];
+  if (treatments.length === 0) {
+    throw new Error("Receipt must have at least one treatment");
+  }
+
   // Calculate totals
-  const totalAmount = info.treatments.reduce((sum, t) => sum + t.amount, 0);
+  const totalAmount = treatments.reduce((sum, t) => {
+    const amount = typeof t.amount === "number" ? t.amount : 0;
+    return sum + (isNaN(amount) ? 0 : amount);
+  }, 0);
   const now = new Date().toLocaleTimeString();
 
   const line = (text: string = ""): string => {
@@ -81,9 +94,13 @@ export function generateReceiptHTML(info: ReceiptInfo, paperWidth: "58mm" | "80m
   html += line("TREATMENTS");
   html += line("-".repeat(Math.floor(charsPerLine * 0.8)));
 
-  for (const treatment of info.treatments) {
-    const treatmentName = treatment.name.slice(0, Math.floor(charsPerLine * 0.6));
-    const amount = `₹${treatment.amount.toFixed(2)}`;
+  for (const treatment of treatments) {
+    if (!treatment || !treatment.name) continue;
+
+    const treatmentName = String(treatment.name).slice(0, Math.floor(charsPerLine * 0.6));
+    const amount = typeof treatment.amount === "number"
+      ? `₹${treatment.amount.toFixed(2)}`
+      : "₹0.00";
     const line2 = rightAlign(treatmentName, amount);
     html += line(line2);
   }
