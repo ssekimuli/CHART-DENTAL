@@ -26,6 +26,9 @@ export interface ReceiptInfo {
   balanceDue?: number;
   discount?: number;
   tax?: number;
+  // Payment and branch information
+  paymentMethod?: string;
+  branchName?: string;
 }
 
 export function generateReceiptHTML(info: ReceiptInfo, paperWidth: "58mm" | "80mm" = "58mm"): string {
@@ -114,6 +117,14 @@ export function generateReceiptHTML(info: ReceiptInfo, paperWidth: "58mm" | "80m
   html += line(`Patient: ${info.patientName}`);
   if (info.patientPhone) {
     html += line(`Phone: ${info.patientPhone}`);
+  }
+
+  // Branch and payment method
+  if (info.branchName) {
+    html += line(`Branch: ${info.branchName}`);
+  }
+  if (info.paymentMethod) {
+    html += line(`Payment: ${info.paymentMethod}`);
   }
 
   html += line();

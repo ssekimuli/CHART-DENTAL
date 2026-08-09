@@ -407,6 +407,8 @@ export default function BillingPage() {
           balanceDue: balanceDue,
           discount: invoice.discount,
           tax: invoice.tax,
+          paymentMethod: invoice.paymentMethod,
+          branchName: invoice.branch?.name,
         },
         "58mm"
       );

@@ -80,6 +80,8 @@ export function InvoicePrinter({
           balanceDue: balanceDue,
           discount: invoice.discount,
           tax: invoice.tax,
+          paymentMethod: invoice.paymentMethod,
+          branchName: (invoice as any).branch?.name,
         },
         "58mm"
       );
