@@ -22,7 +22,11 @@ The ESC/POS receipt generation is working perfectly:
 3. **Ensure Drivers are Installed**:
    - If you see "Driver is unavailable", install drivers:
      - Check printer manufacturer's website
-     - Or search "" (common for thermal printers)
+     - Or search "
+     
+     
+     
+     " (common for thermal printers)
 
 ### Step 2: Test in Browser
 
