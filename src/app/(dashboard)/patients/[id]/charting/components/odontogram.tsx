@@ -466,6 +466,57 @@ export function Odontogram({
 
 
 
+  const renderBridgeLines = () => {
+    const bridgeGroups = getBridgeGroups();
+    if (bridgeGroups.length === 0) return null;
+
+    // Map tooth IDs to quadrant and position
+    const getToothPosition = (toothId: number) => {
+      if (toothId >= 11 && toothId <= 18) return { quadrant: 'upperRight', index: 18 - toothId };
+      if (toothId >= 21 && toothId <= 28) return { quadrant: 'upperLeft', index: toothId - 21 };
+      if (toothId >= 31 && toothId <= 38) return { quadrant: 'lowerLeft', index: toothId - 31 };
+      if (toothId >= 41 && toothId <= 48) return { quadrant: 'lowerRight', index: 48 - toothId };
+      return null;
+    };
+
+    return (
+      <svg className="absolute inset-0 pointer-events-none w-full h-full" style={{ zIndex: 5 }}>
+        {bridgeGroups.map((group, groupIdx) => {
+          const sortedTeeth = group.map(r => r.toothId).sort((a, b) => a - b);
+          const lines = [];
+
+          for (let i = 0; i < sortedTeeth.length - 1; i++) {
+            const tooth1Pos = getToothPosition(sortedTeeth[i]);
+            const tooth2Pos = getToothPosition(sortedTeeth[i + 1]);
+
+            if (tooth1Pos && tooth2Pos && tooth1Pos.quadrant === tooth2Pos.quadrant) {
+              // Same quadrant - draw horizontal line
+              const y = tooth1Pos.quadrant.startsWith('upper') ? '25%' : '75%';
+              const x1 = ((tooth1Pos.index + 0.5) / 8) * 100;
+              const x2 = ((tooth2Pos.index + 0.5) / 8) * 100;
+
+              lines.push(
+                <line
+                  key={`${groupIdx}-${i}`}
+                  x1={`${x1}%`}
+                  y1={y}
+                  x2={`${x2}%`}
+                  y2={y}
+                  stroke="#06B6D4"
+                  strokeWidth="4"
+                  opacity="0.8"
+                  strokeLinecap="round"
+                />
+              );
+            }
+          }
+
+          return lines;
+        })}
+      </svg>
+    );
+  };
+
   return (
     <div className="w-full max-w-full flex flex-col select-none">
 
@@ -475,6 +526,7 @@ export function Odontogram({
 
       {/* Teeth Arches */}
       <div className="flex flex-col gap-10 min-w-max px-4 mx-auto w-full pb-6 relative">
+        {renderBridgeLines()}
 
         {/* UPPER ARCH */}
           <div className="flex flex-col items-center w-full">
