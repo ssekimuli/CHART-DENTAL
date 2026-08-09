@@ -124,8 +124,8 @@ export function DentalChart({ initialRecords, treatmentPlans, restorativeRecords
       </div>
 
       <Sheet open={selectedTooth !== null} onOpenChange={(open) => !open && setSelectedToothData(null)}>
-        <SheetContent side="right" className="sm:max-w-md overflow-y-auto">
-            <SheetHeader className="mb-6">
+        <SheetContent side="right" className="sm:max-w-md w-full overflow-hidden flex flex-col p-4 sm:p-6">
+            <SheetHeader className="mb-4 shrink-0">
                 <SheetTitle className="flex items-center gap-2">
                     <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary font-bold text-sm">
                         {selectedTooth}
@@ -137,18 +137,18 @@ export function DentalChart({ initialRecords, treatmentPlans, restorativeRecords
                     {selectedToothData?.surface && <span className="block mt-1 font-medium text-primary">Selected View: {selectedToothData.surface}</span>}
                 </SheetDescription>
             </SheetHeader>
-            <div className="flex flex-col gap-6">
+            <div className="flex flex-col gap-4 overflow-y-auto flex-1 pr-2">
               <div>
-                <h4 className="text-sm font-medium mb-3">Select Condition</h4>
-                <p className="text-xs text-muted-foreground mb-3">Click a condition or use keyboard shortcuts (1-8)</p>
+                <h4 className="text-xs sm:text-sm font-medium mb-2">Select Condition</h4>
+                <p className="text-xs text-muted-foreground mb-2">Click or press 1-8</p>
               </div>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-1 sm:gap-2">
                   {conditionInfo.map(({ condition, twColor, icon, description }, idx) => (
                      <Button
                           key={condition}
                           variant="outline"
                           size="sm"
-                          className={cn("justify-start h-auto py-2 flex-col items-start", condition === 'Bridge' && 'opacity-50')}
+                          className={cn("justify-start h-auto py-1.5 sm:py-2 flex-col items-start text-xs sm:text-sm", condition === 'Bridge' && 'opacity-50')}
                           onClick={() => {
                               if (condition !== 'Bridge') {
                                 if (selectedTooth && onQuickLogCondition) onQuickLogCondition(selectedTooth, condition);
@@ -158,85 +158,77 @@ export function DentalChart({ initialRecords, treatmentPlans, restorativeRecords
                           disabled={condition === 'Bridge'}
                           title={`${description} (Press ${idx + 1})`}
                       >
-                          <div className="flex items-center gap-2 w-full">
-                            <div className={cn('h-3 w-3 rounded-full border', twColor, {'border-gray-400': condition === 'Healthy'})}></div>
-                            <span className="flex-1 text-left">{condition}</span>
-                            <span className="text-xs text-muted-foreground">{icon}</span>
+                          <div className="flex items-center gap-1.5 w-full">
+                            <div className={cn('h-2.5 w-2.5 sm:h-3 sm:w-3 rounded-full border', twColor, {'border-gray-400': condition === 'Healthy'})}></div>
+                            <span className="flex-1 text-left text-xs">{condition}</span>
+                            <span className="text-xs text-muted-foreground hidden sm:inline">{icon}</span>
                           </div>
-                          <span className="text-xs text-muted-foreground mt-1 w-full text-left">{description}</span>
+                          <span className="text-xs text-muted-foreground mt-0.5 w-full text-left line-clamp-1">{description}</span>
                       </Button>
                   ))}
               </div>
-              <Button
-                variant="secondary"
-                size="sm"
-                className="w-full bg-fuchsia-500 hover:bg-fuchsia-600 text-white flex items-center justify-between"
-                onClick={() => {
-                  setBridgeTeethSelection([selectedTooth!]);
-                  setShowBridgeModal(true);
-                }}
-                title="Press B to quickly mark as bridge"
-              >
-                <span className="flex items-center gap-2">🌉 Mark as Bridge</span>
-                <span className="text-xs opacity-75">B</span>
-              </Button>
-              <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-full"
-                  onClick={() => {
-                      if (selectedTooth) onLogCondition(selectedTooth);
-                      setSelectedToothData(null);
-                  }}
-              >
-                  <FilePen className="mr-2 h-4 w-4" /> Add Detailed Note
-              </Button>
-
-              <div className="border-t pt-4">
-                <h4 className="text-sm font-medium mb-3">Restorative Record</h4>
+              <div className="space-y-2">
                 <Button
                   variant="secondary"
-                  className="w-full"
+                  size="sm"
+                  className="w-full bg-fuchsia-500 hover:bg-fuchsia-600 text-white text-xs sm:text-sm h-8 sm:h-9"
+                  onClick={() => {
+                    setBridgeTeethSelection([selectedTooth!]);
+                    setShowBridgeModal(true);
+                  }}
+                  title="Press B to quickly mark as bridge"
+                >
+                  🌉 Bridge
+                </Button>
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full text-xs sm:text-sm h-8"
+                    onClick={() => {
+                        if (selectedTooth) onLogCondition(selectedTooth);
+                        setSelectedToothData(null);
+                    }}
+                >
+                    <FilePen className="mr-1 h-3 w-3" /> Note
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="w-full text-xs sm:text-sm h-8"
                   onClick={() => {
                       if (selectedTooth && onAddRestorativeRecord) onAddRestorativeRecord(selectedTooth, selectedToothData?.surface);
                       setSelectedToothData(null);
                   }}
                 >
-                  <Plus className="mr-2 h-4 w-4" /> Add Restorative Procedure
+                  <Plus className="mr-1 h-3 w-3" /> Restoration
                 </Button>
-              </div>
-
-              <div className="border-t pt-4">
-                <h4 className="text-sm font-medium mb-3">Treatment Plan</h4>
                 <Button
-                  className="w-full"
+                  size="sm"
+                  className="w-full text-xs sm:text-sm h-8"
                   onClick={() => {
                       if (selectedTooth) onAddTreatment(selectedTooth);
                       setSelectedToothData(null);
                   }}
                 >
-                  <Plus className="mr-2 h-4 w-4" /> Add Treatment
+                  <Plus className="mr-1 h-3 w-3" /> Treatment
                 </Button>
-              </div>
-
-              <div className="border-t pt-4">
                 <Button
                   variant="outline"
-                  className="w-full"
+                  size="sm"
+                  className="w-full text-xs sm:text-sm h-8"
                   onClick={() => {
                       window.location.href = `/patients/${window.location.pathname.split('/')[2]}/charting/tooth/${selectedTooth}`;
                   }}
                 >
-                  <FilePen className="mr-2 h-4 w-4" /> View Full History
+                  <FilePen className="mr-1 h-3 w-3" /> History
                 </Button>
               </div>
 
-              <div className="border-t pt-4 bg-slate-900/50 p-3 rounded">
-                <h4 className="text-xs font-semibold mb-2 text-slate-400">⌨️ Keyboard Shortcuts</h4>
-                <div className="text-xs text-muted-foreground space-y-1">
-                  <div className="flex justify-between"><span>1-8</span><span>Quick select condition</span></div>
-                  <div className="flex justify-between"><span>B</span><span>Mark as bridge</span></div>
-                  <div className="flex justify-between"><span>Esc</span><span>Close panel</span></div>
+              <div className="bg-slate-900/50 p-2 rounded text-xs shrink-0">
+                <h4 className="font-semibold mb-1 text-slate-400">⌨️ Shortcuts</h4>
+                <div className="text-muted-foreground space-y-0.5 text-xs">
+                  <div className="flex justify-between"><span>1-8</span><span>Condition</span></div>
+                  <div className="flex justify-between"><span>B</span><span>Bridge</span></div>
                 </div>
               </div>
             </div>
