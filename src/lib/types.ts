@@ -68,6 +68,7 @@ export type Patient = {
 };
 
 export type PatientImage = {
+  id?: string | number;
   url: string;
   description: string;
   date: string;
