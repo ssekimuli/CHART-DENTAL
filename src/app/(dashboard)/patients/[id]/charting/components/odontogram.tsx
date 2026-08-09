@@ -571,17 +571,21 @@ export function Odontogram({
         style={{ zIndex: 5, width: '100%', height: '100%' }}
       >
         {bridgeLines.map(line => (
-          <line
-            key={line.id}
-            x1={line.x1}
-            y1={line.y1}
-            x2={line.x2}
-            y2={line.y2}
-            stroke="#06B6D4"
-            strokeWidth="3"
-            opacity="0.7"
-            strokeLinecap="round"
-          />
+          <g key={line.id}>
+            <line
+              x1={line.x1}
+              y1={line.y1}
+              x2={line.x2}
+              y2={line.y2}
+              stroke="#06B6D4"
+              strokeWidth="5"
+              opacity="0.85"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            <circle cx={line.x1} cy={line.y1} r="3" fill="#06B6D4" opacity="0.9" />
+            <circle cx={line.x2} cy={line.y2} r="3" fill="#06B6D4" opacity="0.9" />
+          </g>
         ))}
       </svg>
     );
