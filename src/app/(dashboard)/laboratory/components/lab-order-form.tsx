@@ -54,7 +54,6 @@ const formSchema = z.object({
   material: z.string().optional(),
   instructions: z.string().optional(),
   cost: z.coerce.number().optional(),
-  invoiceNumber: z.string().optional(),
   doctorId: z.string().optional(),
 });
 
@@ -348,19 +347,6 @@ export function LabOrderForm({ clients, doctors, onSave, onOpenChange }: LabOrde
                             <FormLabel>Cost</FormLabel>
                             <FormControl>
                                 <Input type="number" step="0.01" placeholder="Lab Fee" {...field} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.value)} />
-                            </FormControl>
-                            <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name="invoiceNumber"
-                        render={({ field }) => (
-                            <FormItem>
-                            <FormLabel>Invoice Number</FormLabel>
-                            <FormControl>
-                                <Input placeholder="Optional" {...field} />
                             </FormControl>
                             <FormMessage />
                             </FormItem>
