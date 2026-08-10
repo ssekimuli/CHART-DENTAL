@@ -133,9 +133,9 @@ export function LabOrderForm({ clients, doctors, onSave, onOpenChange }: LabOrde
                         name="patientName"
                         render={({ field }) => (
                             <FormItem>
-                            <FormLabel>Patient Name (Optional)</FormLabel>
+                            <FormLabel>Patient/Client Name (Optional)</FormLabel>
                             <FormControl>
-                                <Input placeholder="e.g., John Doe" {...field} />
+                                <Input placeholder="Leave blank to use client name" {...field} />
                             </FormControl>
                             <FormMessage />
                             </FormItem>

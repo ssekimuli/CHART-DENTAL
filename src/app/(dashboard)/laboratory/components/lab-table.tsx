@@ -63,7 +63,7 @@ export function LabTable({ data, onDataChange }: { data: LaboratoryOrder[]; onDa
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Client Name</TableHead>
+            <TableHead>Name</TableHead>
             <TableHead>Phone/Email</TableHead>
             <TableHead>Doctor</TableHead>
             <TableHead>Lab</TableHead>
@@ -79,7 +79,7 @@ export function LabTable({ data, onDataChange }: { data: LaboratoryOrder[]; onDa
             <TableRow
               key={order.id}
             >
-              <TableCell className="font-medium">{order.client?.name || '-'}</TableCell>
+              <TableCell className="font-medium">{order.patientName || order.client?.name || '-'}</TableCell>
               <TableCell>
                 <div className="space-y-0.5 text-sm">
                   {order.client?.phone && <div>{order.client.phone}</div>}
