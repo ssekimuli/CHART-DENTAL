@@ -122,6 +122,23 @@ function LabOrderActions({ order, onStatusChange }: { order: LaboratoryOrder; on
     const [customChannel, setCustomChannel] = useState<'email' | 'whatsapp' | 'sms'>('email');
     const [customMessage, setCustomMessage] = useState("");
 
+    const getStatusDescription = (status: string) => {
+        switch (status) {
+            case 'Received':
+                return 'Review the order and confirm pricing.';
+            case 'In Production':
+                return 'Generate and send the invoice.';
+            case 'Ready for Delivery':
+                return 'Production is finished.';
+            case 'Delivered':
+                return 'Order delivered to the clinic.';
+            case 'Cancelled':
+                return 'Order has been cancelled.';
+            default:
+                return '';
+        }
+    };
+
     const handleStatusChange = async () => {
         if (selectedStatus === order.status) {
             setIsStatusDialogOpen(false);
@@ -137,7 +154,7 @@ function LabOrderActions({ order, onStatusChange }: { order: LaboratoryOrder; on
             toast({
                 title: "Status Updated",
                 description: isMovingToProduction
-                    ? `Lab order status updated to "${selectedStatus}". An invoice has been generated.`
+                    ? `Lab order moved to "In Production". Invoice has been generated and sent to the client.`
                     : `Lab order status updated to "${selectedStatus}".`,
             });
 
@@ -250,28 +267,42 @@ function LabOrderActions({ order, onStatusChange }: { order: LaboratoryOrder; on
         </Dialog>
 
         <Dialog open={isStatusDialogOpen} onOpenChange={setIsStatusDialogOpen}>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="sm:max-w-[500px]">
                 <DialogHeader>
                     <DialogTitle>Update Lab Order Status</DialogTitle>
                     <DialogDescription>
-                        Change the status of this lab order.
+                        Change the status of this lab order. Current status: <strong>{order.status}</strong>
                     </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
-                    <div className="space-y-2">
-                        <Label>Status</Label>
-                        <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Select status" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="Received">Received</SelectItem>
-                                <SelectItem value="In Production">In Production</SelectItem>
-                                <SelectItem value="Ready for Delivery">Ready for Delivery</SelectItem>
-                                <SelectItem value="Delivered">Delivered</SelectItem>
-                                <SelectItem value="Cancelled">Cancelled</SelectItem>
-                            </SelectContent>
-                        </Select>
+                    <div className="space-y-3">
+                        <Label>Select New Status</Label>
+                        <div className="space-y-2">
+                            {['Received', 'In Production', 'Ready for Delivery', 'Delivered', 'Cancelled'].map((status) => (
+                                <div
+                                    key={status}
+                                    onClick={() => setSelectedStatus(status)}
+                                    className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                                        selectedStatus === status
+                                            ? 'bg-blue-50 border-blue-500'
+                                            : 'bg-white border-gray-200 hover:border-gray-300'
+                                    }`}
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="radio"
+                                            checked={selectedStatus === status}
+                                            onChange={() => setSelectedStatus(status)}
+                                            className="cursor-pointer"
+                                        />
+                                        <div className="flex-1">
+                                            <p className="font-medium text-sm">{status}</p>
+                                            <p className="text-xs text-gray-600">{getStatusDescription(status)}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 </div>
                 <DialogFooter>
