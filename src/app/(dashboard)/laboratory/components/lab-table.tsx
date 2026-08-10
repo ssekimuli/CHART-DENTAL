@@ -33,8 +33,10 @@ import { Label } from "@/components/ui/label";
 export function LabTable({ data, onDataChange }: { data: LaboratoryOrder[]; onDataChange?: (updatedData: LaboratoryOrder[]) => void }) {
     const [orders, setOrders] = useState<LaboratoryOrder[]>(data);
 
-    const getStatusVariant = (status: "Received" | "In Production" | "Ready for Delivery" | "Delivered" | "Cancelled") => {
+    const getStatusVariant = (status: "Draft" | "Received" | "In Production" | "Ready for Delivery" | "Delivered" | "Cancelled") => {
         switch (status) {
+          case "Draft":
+            return "outline";
           case "Delivered":
             return "secondary";
           case "Received":
@@ -124,6 +126,8 @@ function LabOrderActions({ order, onStatusChange }: { order: LaboratoryOrder; on
 
     const getStatusDescription = (status: string) => {
         switch (status) {
+            case 'Draft':
+                return 'Order is in draft mode, not yet sent to lab.';
             case 'Received':
                 return 'Review the order and confirm pricing.';
             case 'In Production':
@@ -289,7 +293,7 @@ function LabOrderActions({ order, onStatusChange }: { order: LaboratoryOrder; on
                     <div className="space-y-3">
                         <Label>Select New Status</Label>
                         <div className="space-y-2">
-                            {['Received', 'In Production', 'Ready for Delivery', 'Delivered', 'Cancelled'].map((status) => (
+                            {['Draft', 'Received', 'In Production', 'Ready for Delivery', 'Delivered', 'Cancelled'].map((status) => (
                                 <div
                                     key={status}
                                     onClick={() => setSelectedStatus(status)}
