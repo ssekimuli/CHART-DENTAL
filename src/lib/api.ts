@@ -1169,6 +1169,28 @@ export const getLabOrders = async (branchId?: string | number, page?: number, pe
     }
 }
 
+export const updateLabOrderStatus = async (id: string | number, status: string): Promise<LaboratoryOrder> => {
+    try {
+        const response = await customAxios.patch(`/management/lab-orders/${id}/status`, { status });
+        return {
+            id: response.data.id,
+            clientId: String(response.data.client_id),
+            client: response.data.client,
+            patientName: response.data.patient_name || '',
+            lab: response.data.lab,
+            item: response.data.item,
+            tooth: response.data.tooth,
+            status: response.data.status,
+            sentDate: response.data.sent_date ? response.data.sent_date.split('T')[0] : '',
+            dueDate: response.data.due_date ? response.data.due_date.split('T')[0] : '',
+            branchId: String(response.data.branch_id),
+        };
+    } catch (error) {
+        console.error('Error updating lab order status:', error);
+        throw error;
+    }
+}
+
 export const getClients = async (): Promise<Client[]> => {
     try {
         const response = await customAxios.get('/clients');
@@ -3663,7 +3685,7 @@ export const createInventoryItem = async (data: Omit<InventoryItem, 'id' | 'stat
 }
 
 // Lab Orders
-export const sendLabOrder = async (id: number, channel: 'email' | 'whatsapp' | 'sms', customMessage?: string): Promise<any> => {
+export const sendLabOrder = async (id: string | number, channel: 'email' | 'whatsapp' | 'sms', customMessage?: string): Promise<any> => {
     return (await customAxios.post(`/management/lab-orders/${id}/send`, { channel, customMessage })).data;
 };
 

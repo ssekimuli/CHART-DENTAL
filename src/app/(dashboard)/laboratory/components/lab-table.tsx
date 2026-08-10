@@ -22,7 +22,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal, Mail, MessageCircle, Loader2, Send, Smartphone } from "lucide-react";
-import { sendLabOrder } from "@/lib/api";
+import { sendLabOrder, updateLabOrderStatus } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
@@ -30,19 +30,32 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 
-export function LabTable({ data }: { data: LaboratoryOrder[] }) {
-    const getStatusVariant = (status: "Sent" | "Received" | "Completed" | "Cancelled") => {
+export function LabTable({ data, onDataChange }: { data: LaboratoryOrder[]; onDataChange?: (updatedData: LaboratoryOrder[]) => void }) {
+    const [orders, setOrders] = useState<LaboratoryOrder[]>(data);
+
+    const getStatusVariant = (status: "Received" | "In Production" | "Ready for Delivery" | "Delivered" | "Cancelled") => {
         switch (status) {
-          case "Completed":
+          case "Delivered":
             return "secondary";
-          case "Sent":
           case "Received":
+          case "In Production":
+          case "Ready for Delivery":
             return "default";
           case "Cancelled":
             return "destructive";
         }
     };
-    
+
+    const handleStatusChange = (updatedOrder: LaboratoryOrder) => {
+        const updatedOrders = orders.map(o => o.id === updatedOrder.id ? updatedOrder : o);
+        setOrders(updatedOrders);
+        onDataChange?.(updatedOrders);
+    };
+
+    React.useEffect(() => {
+        setOrders(data);
+    }, [data]);
+
   return (
     <div className="rounded-md border">
       <Table>
@@ -60,7 +73,7 @@ export function LabTable({ data }: { data: LaboratoryOrder[] }) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {data.map((order) => (
+          {orders.map((order) => (
             <TableRow
               key={order.id}
             >
@@ -82,11 +95,11 @@ export function LabTable({ data }: { data: LaboratoryOrder[] }) {
               <TableCell>{order.sentDate}</TableCell>
               <TableCell>{order.dueDate}</TableCell>
               <TableCell>
-                  <LabOrderActions order={order} />
+                  <LabOrderActions order={order} onStatusChange={handleStatusChange} />
               </TableCell>
             </TableRow>
           ))}
-           {data.length === 0 && (
+           {orders.length === 0 && (
                 <TableRow>
                     <TableCell colSpan={9} className="h-24 text-center">
                         No lab orders found.
@@ -99,12 +112,48 @@ export function LabTable({ data }: { data: LaboratoryOrder[] }) {
   );
 }
 
-function LabOrderActions({ order }: { order: LaboratoryOrder }) {
+function LabOrderActions({ order, onStatusChange }: { order: LaboratoryOrder; onStatusChange?: (updatedOrder: LaboratoryOrder) => void }) {
     const { toast } = useToast();
     const [isSending, setIsSending] = useState(false);
+    const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
     const [isCustomDialogOpen, setIsCustomDialogOpen] = useState(false);
+    const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
+    const [selectedStatus, setSelectedStatus] = useState<string>(order.status);
     const [customChannel, setCustomChannel] = useState<'email' | 'whatsapp' | 'sms'>('email');
     const [customMessage, setCustomMessage] = useState("");
+
+    const handleStatusChange = async () => {
+        if (selectedStatus === order.status) {
+            setIsStatusDialogOpen(false);
+            return;
+        }
+
+        try {
+            setIsUpdatingStatus(true);
+            const updatedOrder = await updateLabOrderStatus(order.id, selectedStatus);
+
+            const isMovingToProduction = order.status !== 'In Production' && selectedStatus === 'In Production';
+
+            toast({
+                title: "Status Updated",
+                description: isMovingToProduction
+                    ? `Lab order status updated to "${selectedStatus}". An invoice has been generated.`
+                    : `Lab order status updated to "${selectedStatus}".`,
+            });
+
+            setIsStatusDialogOpen(false);
+            onStatusChange?.(updatedOrder);
+        } catch (error: any) {
+            setSelectedStatus(order.status);
+            toast({
+                variant: "destructive",
+                title: "Failed to update status",
+                description: error?.response?.data?.error || "An unexpected error occurred",
+            });
+        } finally {
+            setIsUpdatingStatus(false);
+        }
+    };
 
     const handleSend = async (channel: 'email' | 'whatsapp' | 'sms', message?: string) => {
         try {
@@ -131,12 +180,16 @@ function LabOrderActions({ order }: { order: LaboratoryOrder }) {
         <>
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="h-8 w-8 p-0" disabled={isSending}>
-                    {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <MoreHorizontal className="h-4 w-4" />}
+                <Button variant="ghost" className="h-8 w-8 p-0" disabled={isSending || isUpdatingStatus}>
+                    {isSending || isUpdatingStatus ? <Loader2 className="h-4 w-4 animate-spin" /> : <MoreHorizontal className="h-4 w-4" />}
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => setIsStatusDialogOpen(true)}>
+                    Update Status
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => handleSend('email')}>
                     <Mail className="mr-2 h-4 w-4" /> Send Default via Email
@@ -178,8 +231,8 @@ function LabOrderActions({ order }: { order: LaboratoryOrder }) {
                     </div>
                     <div className="space-y-2">
                         <Label>Message</Label>
-                        <Textarea 
-                            placeholder="Type your custom message here..." 
+                        <Textarea
+                            placeholder="Type your custom message here..."
                             value={customMessage}
                             onChange={(e) => setCustomMessage(e.target.value)}
                             rows={5}
@@ -191,6 +244,41 @@ function LabOrderActions({ order }: { order: LaboratoryOrder }) {
                     <Button onClick={() => handleSend(customChannel, customMessage)} disabled={isSending || !customMessage.trim()}>
                         {isSending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         Send Message
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
+        <Dialog open={isStatusDialogOpen} onOpenChange={setIsStatusDialogOpen}>
+            <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                    <DialogTitle>Update Lab Order Status</DialogTitle>
+                    <DialogDescription>
+                        Change the status of this lab order.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                    <div className="space-y-2">
+                        <Label>Status</Label>
+                        <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="Received">Received</SelectItem>
+                                <SelectItem value="In Production">In Production</SelectItem>
+                                <SelectItem value="Ready for Delivery">Ready for Delivery</SelectItem>
+                                <SelectItem value="Delivered">Delivered</SelectItem>
+                                <SelectItem value="Cancelled">Cancelled</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsStatusDialogOpen(false)}>Cancel</Button>
+                    <Button onClick={handleStatusChange} disabled={isUpdatingStatus || selectedStatus === order.status}>
+                        {isUpdatingStatus && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Update Status
                     </Button>
                 </DialogFooter>
             </DialogContent>

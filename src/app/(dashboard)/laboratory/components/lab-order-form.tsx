@@ -46,7 +46,7 @@ const formSchema = z.object({
   lab: z.string().min(2, "Lab name must be at least 2 characters."),
   item: z.string().min(2, "Item description must be at least 2 characters."),
   tooth: z.coerce.number().optional(),
-  status: z.enum(['Sent', 'Received', 'Completed', 'Cancelled']),
+  status: z.enum(['Received', 'In Production', 'Ready for Delivery', 'Delivered', 'Cancelled']),
   sentDate: z.date({ required_error: "A sent date is required." }),
   dueDate: z.date({ required_error: "A due date is required." }),
   receivedDate: z.date().optional(),
@@ -73,7 +73,7 @@ export function LabOrderForm({ clients, doctors, onSave, onOpenChange }: LabOrde
     resolver: zodResolver(formSchema),
     defaultValues: {
         sentDate: new Date(),
-        status: 'Sent',
+        status: 'Received',
     },
   });
 
@@ -214,9 +214,10 @@ export function LabOrderForm({ clients, doctors, onSave, onOpenChange }: LabOrde
                                 </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                    <SelectItem value="Sent">Sent</SelectItem>
                                     <SelectItem value="Received">Received</SelectItem>
-                                    <SelectItem value="Completed">Completed</SelectItem>
+                                    <SelectItem value="In Production">In Production</SelectItem>
+                                    <SelectItem value="Ready for Delivery">Ready for Delivery</SelectItem>
+                                    <SelectItem value="Delivered">Delivered</SelectItem>
                                     <SelectItem value="Cancelled">Cancelled</SelectItem>
                                 </SelectContent>
                             </Select>

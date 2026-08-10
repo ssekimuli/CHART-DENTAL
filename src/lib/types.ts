@@ -319,7 +319,7 @@ export type LaboratoryOrder = {
   lab: string;
   item: string;
   tooth?: number;
-  status: 'Sent' | 'Received' | 'Completed' | 'Cancelled';
+  status: 'Received' | 'In Production' | 'Ready for Delivery' | 'Delivered' | 'Cancelled';
   sentDate: string;
   dueDate: string;
   receivedDate?: string;

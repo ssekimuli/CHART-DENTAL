@@ -99,7 +99,7 @@ export default function LaboratoryPage() {
                 </div>
             ) : (
                 <>
-                    <LabTable data={labOrders} />
+                    <LabTable data={labOrders} onDataChange={setLabOrders} />
                     <PaginationControl
                         currentPage={page}
                         lastPage={labOrders.meta?.last_page || 1}
