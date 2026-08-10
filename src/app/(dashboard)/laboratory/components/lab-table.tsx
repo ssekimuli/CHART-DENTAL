@@ -150,13 +150,24 @@ function LabOrderActions({ order, onStatusChange }: { order: LaboratoryOrder; on
             const updatedOrder = await updateLabOrderStatus(order.id, selectedStatus);
 
             const isMovingToProduction = order.status !== 'In Production' && selectedStatus === 'In Production';
+            const isCancelling = selectedStatus === 'Cancelled';
 
-            toast({
-                title: "Status Updated",
-                description: isMovingToProduction
-                    ? `Lab order moved to "In Production". Invoice has been generated and sent to the client.`
-                    : `Lab order status updated to "${selectedStatus}".`,
-            });
+            if (isMovingToProduction) {
+                toast({
+                    title: "Status Updated",
+                    description: `Lab order moved to "In Production". Invoice has been generated and sent to the client.`,
+                });
+            } else if (isCancelling) {
+                toast({
+                    title: "Order Cancelled",
+                    description: `Lab order has been cancelled. Associated invoice has been voided and client has been notified.`,
+                });
+            } else {
+                toast({
+                    title: "Status Updated",
+                    description: `Lab order status updated to "${selectedStatus}".`,
+                });
+            }
 
             setIsStatusDialogOpen(false);
             onStatusChange?.(updatedOrder);
