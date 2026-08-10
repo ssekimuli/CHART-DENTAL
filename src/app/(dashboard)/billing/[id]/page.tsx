@@ -262,6 +262,74 @@ export default function InvoiceDetailPage() {
               </div>
           </div>
 
+          {invoice.lab_order_details && (
+            <div className="border rounded-lg p-4 bg-blue-50 dark:bg-blue-950/20">
+              <h4 className="font-semibold mb-4 flex items-center gap-2">
+                <span className="text-lg">🧪</span> Lab Order Details
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Lab/Client</p>
+                    <p className="font-medium">{invoice.lab_order_details.client_name || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Patient Name</p>
+                    <p className="font-medium">{invoice.lab_order_details.patient_name || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Item</p>
+                    <p className="font-medium">{invoice.lab_order_details.item || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Tooth Number</p>
+                    <p className="font-medium">{invoice.lab_order_details.tooth ? `#${invoice.lab_order_details.tooth}` : 'N/A'}</p>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Lab Status</p>
+                    <Badge className="mt-1">{invoice.lab_order_details.status || 'N/A'}</Badge>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Sent Date</p>
+                    <p className="font-medium">{invoice.lab_order_details.sent_date ? formatDate(invoice.lab_order_details.sent_date) : 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Due Date</p>
+                    <p className="font-medium">{invoice.lab_order_details.due_date ? formatDate(invoice.lab_order_details.due_date) : 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Received Date</p>
+                    <p className="font-medium">{invoice.lab_order_details.received_date ? formatDate(invoice.lab_order_details.received_date) : 'Pending'}</p>
+                  </div>
+                </div>
+              </div>
+              {(invoice.lab_order_details.material || invoice.lab_order_details.shade || invoice.lab_order_details.instructions) && (
+                <div className="mt-4 pt-4 border-t space-y-2">
+                  {invoice.lab_order_details.material && (
+                    <div>
+                      <p className="text-sm text-muted-foreground">Material</p>
+                      <p className="font-medium">{invoice.lab_order_details.material}</p>
+                    </div>
+                  )}
+                  {invoice.lab_order_details.shade && (
+                    <div>
+                      <p className="text-sm text-muted-foreground">Shade</p>
+                      <p className="font-medium">{invoice.lab_order_details.shade}</p>
+                    </div>
+                  )}
+                  {invoice.lab_order_details.instructions && (
+                    <div>
+                      <p className="text-sm text-muted-foreground">Special Instructions</p>
+                      <p className="font-medium">{invoice.lab_order_details.instructions}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
           <div>
               <h4 className="font-semibold mb-2">Treatments</h4>
               <Table>
