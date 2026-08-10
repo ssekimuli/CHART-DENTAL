@@ -3701,6 +3701,12 @@ export const createLabOrder = async (data: Omit<LaboratoryOrder, 'id'>): Promise
             status: data.status,
             sentDate: data.sentDate,
             dueDate: data.dueDate,
+            receivedDate: data.receivedDate,
+            shade: data.shade,
+            material: data.material,
+            instructions: data.instructions,
+            cost: data.cost,
+            doctorId: data.doctorId,
             branchId: data.branchId,
         });
         const order = response.data;
@@ -3715,6 +3721,13 @@ export const createLabOrder = async (data: Omit<LaboratoryOrder, 'id'>): Promise
             status: order.status,
             sentDate: order.sent_date ? order.sent_date.split('T')[0] : '',
             dueDate: order.due_date ? order.due_date.split('T')[0] : '',
+            receivedDate: order.received_date ? order.received_date.split('T')[0] : undefined,
+            shade: order.shade,
+            material: order.material,
+            instructions: order.instructions,
+            cost: order.cost,
+            doctorId: order.doctor_id ? String(order.doctor_id) : undefined,
+            doctor: order.doctor,
             branchId: String(order.branch_id),
         };
     } catch (error) {
