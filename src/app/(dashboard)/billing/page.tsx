@@ -521,7 +521,7 @@ export default function BillingPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Invoice ID</TableHead>
-                <TableHead>Patient</TableHead>
+                <TableHead>Name</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Issue Date</TableHead>
                 <TableHead>Total Bill</TableHead>
