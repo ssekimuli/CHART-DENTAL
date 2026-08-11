@@ -36,6 +36,17 @@ export default function LoginPage() {
       const loggedInUser = await login(email, password);
 
       if (loggedInUser) {
+        // Fetch business details and store in localStorage
+        try {
+          const businessResponse = await axios.get("/api/business");
+          if (businessResponse.data) {
+            localStorage.setItem("businessDetails", JSON.stringify(businessResponse.data));
+          }
+        } catch (businessError) {
+          console.error("Failed to fetch business details:", businessError);
+          // Don't block login if business details fail
+        }
+
         toast({
           title: "Login Successful",
           description: `Welcome back, ${loggedInUser.name}!`,

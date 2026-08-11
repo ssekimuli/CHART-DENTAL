@@ -61,12 +61,14 @@ import { Input } from "@/components/ui/input";
 import { Pagination, PaginationContent, PaginationItem, PaginationPrevious, PaginationNext, PaginationLink } from "@/components/ui/pagination";
 import { useCurrency } from "@/hooks/use-currency";
 import { useToast } from "@/hooks/use-toast";
+import { useBusinessDetails } from "@/hooks/use-business-details";
 
 
 export default function BillingPage() {
   const router = useRouter();
   const { selectedBranch } = useBranch();
   const { formatCurrency } = useCurrency();
+  const { clinicName, clinicAddress, clinicPhone } = useBusinessDetails();
   const [allInvoices, setAllInvoices] = useState<PaginatedArray<Invoice>>([] as unknown as PaginatedArray<Invoice>);
   const [allPatients, setAllPatients] = useState<Patient[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -389,9 +391,9 @@ export default function BillingPage() {
       const { generateReceiptHTML } = await import("@/lib/receipt-html-generator");
       const html = generateReceiptHTML(
         {
-          clinicName: "CHART DENTAL",
-          clinicPhone: "+256 XXX XXX XXX",
-          clinicAddress: "Kampala, Uganda",
+          clinicName: clinicName,
+          clinicPhone: clinicPhone,
+          clinicAddress: clinicAddress,
           patientName: patientName,
           date: date,
           billNumber: billNumber,
@@ -409,6 +411,21 @@ export default function BillingPage() {
           tax: invoice.tax,
           paymentMethod: invoice.paymentMethod,
           branchName: invoice.branch?.name,
+          labOrderDetails: invoice.lab_order_details ? {
+            item: invoice.lab_order_details.item,
+            client_name: invoice.lab_order_details.client_name,
+            patient_name: invoice.lab_order_details.patient_name,
+            tooth: invoice.lab_order_details.tooth,
+            material: invoice.lab_order_details.material,
+            shade: invoice.lab_order_details.shade,
+            status: invoice.lab_order_details.status,
+          } : undefined,
+          medicines: invoice.medicines ? invoice.medicines.map(m => ({
+            name: m.medicine?.name || `Medicine ID: ${m.medicine_id}`,
+            unit: m.unit?.unit_name,
+            quantity: m.quantity || 0,
+            price: typeof m.price === "number" ? m.price : 0,
+          })) : undefined,
         },
         "58mm"
       );

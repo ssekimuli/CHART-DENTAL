@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Printer, Loader2 } from "lucide-react";
 import type { Invoice } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { getWindowsPrinterService } from "@/lib/windows-printer";
+import { getClinicName, getClinicAddress, getClinicPhone } from "@/lib/business-details";
 
 interface InvoicePrinterProps {
   invoice: Invoice;
@@ -16,12 +17,22 @@ interface InvoicePrinterProps {
 
 export function InvoicePrinter({
   invoice,
-  businessName = "CHART DENTAL",
-  businessPhone = "+256 XXX XXX XXX",
-  businessAddress = "Your Address Here",
+  businessName: propBusinessName,
+  businessPhone: propBusinessPhone,
+  businessAddress: propBusinessAddress,
 }: InvoicePrinterProps) {
   const { toast } = useToast();
   const [isPrinting, setIsPrinting] = useState(false);
+  const [businessName, setBusinessName] = useState("");
+  const [businessPhone, setBusinessPhone] = useState("");
+  const [businessAddress, setBusinessAddress] = useState("");
+
+  // Load business details from localStorage on mount
+  useEffect(() => {
+    setBusinessName(propBusinessName || getClinicName());
+    setBusinessPhone(propBusinessPhone || getClinicPhone());
+    setBusinessAddress(propBusinessAddress || getClinicAddress());
+  }, [propBusinessName, propBusinessPhone, propBusinessAddress]);
 
   const handlePrint = async () => {
     setIsPrinting(true);
