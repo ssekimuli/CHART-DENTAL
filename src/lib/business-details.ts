@@ -40,7 +40,7 @@ export function getClinicAddress(): string {
 
 export function getClinicPhone(): string {
   // Phone number is not in the API response, keeping as default
-  return "+256 XXX XXX XXX";
+  return "+256 759672755";
 }
 
 export function getBranchCurrency(): string {
