@@ -625,32 +625,145 @@ export default function BillingPage() {
                 {expandedInvoiceId === invoice.id && (
                   <TableRow className="bg-muted/30 hover:bg-muted/30">
                     <TableCell colSpan={8} className="p-0">
-                      <div className="p-4 border-b">
-                        <h4 className="font-semibold mb-2 text-sm">Payment Transactions</h4>
-                        {invoice.transactions && invoice.transactions.length > 0 ? (
-                          <div className="rounded-md border bg-background">
+                      <div className="space-y-4 p-4">
+                        {/* Treatments Section */}
+                        {invoice.treatments && invoice.treatments.length > 0 && (
+                          <div className="border-b pb-4">
+                            <h4 className="font-semibold mb-2 text-sm">Treatments</h4>
+                            <div className="rounded-md border bg-background">
                               <Table>
                                 <TableHeader>
                                   <TableRow>
-                                    <TableHead className="h-8">Date</TableHead>
-                                    <TableHead className="h-8">Method</TableHead>
-                                    <TableHead className="text-right h-8">Amount</TableHead>
+                                    <TableHead className="h-8">Procedure</TableHead>
+                                    <TableHead className="text-right h-8">Cost</TableHead>
                                   </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                  {invoice.transactions.map((txn: any) => (
-                                    <TableRow key={txn.id}>
-                                      <TableCell className="py-2">{formatDate(txn.date)}</TableCell>
-                                      <TableCell className="py-2">{txn.method}</TableCell>
-                                      <TableCell className="text-right py-2">{formatCurrency(txn.amount)}</TableCell>
+                                  {invoice.treatments.map((tx: any) => (
+                                    <TableRow key={tx.id}>
+                                      <TableCell className="py-2">{tx.procedure}</TableCell>
+                                      <TableCell className="text-right py-2">{formatCurrency(tx.cost)}</TableCell>
                                     </TableRow>
                                   ))}
                                 </TableBody>
                               </Table>
+                            </div>
                           </div>
-                        ) : (
-                          <p className="text-sm text-muted-foreground">No payment transactions found for this invoice.</p>
                         )}
+
+                        {/* Lab Order Details Section */}
+                        {invoice.lab_order_details && (
+                          <div className="border-b pb-4">
+                            <div className="flex items-center justify-between mb-3">
+                              <h4 className="font-semibold text-sm">Lab Order Details</h4>
+                              {invoice.lab_order_details.cost && (
+                                <div className="text-right">
+                                  <p className="text-xs text-muted-foreground">Lab Order Cost</p>
+                                  <p className="font-bold text-base text-primary">{formatCurrency(invoice.lab_order_details.cost)}</p>
+                                </div>
+                              )}
+                            </div>
+                            <div className="rounded-md border bg-background p-3 space-y-2 text-sm">
+                              <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                  <p className="text-muted-foreground text-xs">Lab</p>
+                                  <p className="font-medium">{invoice.lab_order_details.lab}</p>
+                                </div>
+                                <div>
+                                  <p className="text-muted-foreground text-xs">Item</p>
+                                  <p className="font-medium">{invoice.lab_order_details.item}</p>
+                                </div>
+                                {invoice.lab_order_details.tooth && (
+                                  <div>
+                                    <p className="text-muted-foreground text-xs">Tooth</p>
+                                    <p className="font-medium">#{invoice.lab_order_details.tooth}</p>
+                                  </div>
+                                )}
+                                <div>
+                                  <p className="text-muted-foreground text-xs">Status</p>
+                                  <p className="font-medium">{invoice.lab_order_details.status}</p>
+                                </div>
+                                {invoice.lab_order_details.client_name && (
+                                  <div>
+                                    <p className="text-muted-foreground text-xs">Lab Client</p>
+                                    <p className="font-medium">{invoice.lab_order_details.client_name}</p>
+                                  </div>
+                                )}
+                                {invoice.lab_order_details.doctor_name && (
+                                  <div>
+                                    <p className="text-muted-foreground text-xs">Doctor</p>
+                                    <p className="font-medium">{invoice.lab_order_details.doctor_name}</p>
+                                  </div>
+                                )}
+                                {invoice.lab_order_details.sent_date && (
+                                  <div>
+                                    <p className="text-muted-foreground text-xs">Sent Date</p>
+                                    <p className="font-medium">{invoice.lab_order_details.sent_date}</p>
+                                  </div>
+                                )}
+                                {invoice.lab_order_details.due_date && (
+                                  <div>
+                                    <p className="text-muted-foreground text-xs">Due Date</p>
+                                    <p className="font-medium">{invoice.lab_order_details.due_date}</p>
+                                  </div>
+                                )}
+                                {invoice.lab_order_details.received_date && (
+                                  <div>
+                                    <p className="text-muted-foreground text-xs">Received Date</p>
+                                    <p className="font-medium">{invoice.lab_order_details.received_date}</p>
+                                  </div>
+                                )}
+                                {invoice.lab_order_details.shade && (
+                                  <div>
+                                    <p className="text-muted-foreground text-xs">Shade</p>
+                                    <p className="font-medium">{invoice.lab_order_details.shade}</p>
+                                  </div>
+                                )}
+                                {invoice.lab_order_details.material && (
+                                  <div>
+                                    <p className="text-muted-foreground text-xs">Material</p>
+                                    <p className="font-medium">{invoice.lab_order_details.material}</p>
+                                  </div>
+                                )}
+                                {invoice.lab_order_details.instructions && (
+                                  <div className="col-span-2">
+                                    <p className="text-muted-foreground text-xs">Instructions</p>
+                                    <p className="font-medium">{invoice.lab_order_details.instructions}</p>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Payment Transactions Section */}
+                        <div>
+                          <h4 className="font-semibold mb-2 text-sm">Payment Transactions</h4>
+                          {invoice.transactions && invoice.transactions.length > 0 ? (
+                            <div className="rounded-md border bg-background">
+                                <Table>
+                                  <TableHeader>
+                                    <TableRow>
+                                      <TableHead className="h-8">Date</TableHead>
+                                      <TableHead className="h-8">Method</TableHead>
+                                      <TableHead className="text-right h-8">Amount</TableHead>
+                                    </TableRow>
+                                  </TableHeader>
+                                  <TableBody>
+                                    {invoice.transactions.map((txn: any) => (
+                                      <TableRow key={txn.id}>
+                                        <TableCell className="py-2">{formatDate(txn.date)}</TableCell>
+                                        <TableCell className="py-2">{txn.method}</TableCell>
+                                        <TableCell className="text-right py-2">{formatCurrency(txn.amount)}</TableCell>
+                                      </TableRow>
+                                    ))}
+                                  </TableBody>
+                                </Table>
+                            </div>
+                          ) : (
+                            <p className="text-sm text-muted-foreground">No payment transactions found for this invoice.</p>
+                          )}
+                        </div>
                       </div>
                     </TableCell>
                   </TableRow>
