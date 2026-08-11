@@ -134,7 +134,7 @@ export const resetPassword = async (identifier: string, password?: string): Prom
     console.log('API CALL: resetPassword', { identifier });
     
     try {
-        const response = await customAxios.post('/reset-password', { identifier, password });
+        const response = await customAxios.post('/user-reset-password', { identifier, password });
         return {
             success: true,
             message: response.data.message || 'Password reset successfully.',
