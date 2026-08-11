@@ -68,6 +68,7 @@ export type Patient = {
 };
 
 export type PatientImage = {
+  id?: string | number;
   url: string;
   description: string;
   date: string;
@@ -81,6 +82,7 @@ export type DentalRecord = {
   toothId: number;
   condition: DentalCondition;
   notes: string;
+  bridgeGroupId?: string;
   createdAt?: string;
   updatedAt?: string;
 };
@@ -176,6 +178,26 @@ export type PaymentTransaction = {
   method: PaymentMethod;
 };
 
+export type LabOrderDetails = {
+  id: string | number;
+  client_id: string | number;
+  client_name: string;
+  patient_name: string;
+  lab: string;
+  item: string;
+  tooth: string | number;
+  status: string;
+  sent_date: string;
+  due_date: string;
+  received_date: string | null;
+  shade: string;
+  material: string;
+  instructions: string;
+  cost: string | number;
+  doctor_id: string | number;
+  doctor_name: string;
+};
+
 export type Invoice = {
   id: string | number;
   patientName: string;
@@ -203,6 +225,7 @@ export type Invoice = {
   insurancePaidAmount?: number;
   patientBalance?: number;
   insuranceBalance?: number;
+  lab_order_details?: LabOrderDetails | null;
 };
 
 export type ChartData = {
@@ -317,7 +340,7 @@ export type LaboratoryOrder = {
   lab: string;
   item: string;
   tooth?: number;
-  status: 'Sent' | 'Received' | 'Completed' | 'Cancelled';
+  status: 'Draft' | 'Received' | 'In Production' | 'Ready for Delivery' | 'Delivered' | 'Cancelled';
   sentDate: string;
   dueDate: string;
   receivedDate?: string;
