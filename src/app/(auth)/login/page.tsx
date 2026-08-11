@@ -9,8 +9,8 @@ import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { ToothIcon } from "@/components/icons/tooth-icon";
 import { login } from "@/lib/api";
+import customAxios from "@/lib/axios";
 import Link from "next/link";
-import axios from "axios";
 import { Mail, Lock, Loader2, ArrowRight } from "lucide-react";
 
 export default function LoginPage() {
@@ -38,7 +38,7 @@ export default function LoginPage() {
       if (loggedInUser) {
         // Fetch business details and store in localStorage
         try {
-          const businessResponse = await axios.get("/api/business");
+          const businessResponse = await customAxios.get("/business");
           if (businessResponse.data) {
             localStorage.setItem("businessDetails", JSON.stringify(businessResponse.data));
           }
@@ -60,13 +60,12 @@ export default function LoginPage() {
         });
       }
     } catch (error) {
-       if (!axios.isAxiosError(error) || error.response) {
-         toast({
-            variant: "destructive",
-            title: "Login Error",
-            description: "An unexpected error occurred. Please try again.",
-          });
-       }
+       console.error("Login error:", error);
+       toast({
+          variant: "destructive",
+          title: "Login Error",
+          description: "An unexpected error occurred. Please try again.",
+        });
     } finally {
         setIsLoading(false);
     }
