@@ -34,7 +34,7 @@ const nextConfig: NextConfig = {
     const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://dentalapi.poslycloud.com/api';
     return [
       {
-        source: '/api/backend/:path*',
+        source: '/api/:path*',
         destination: `${backendUrl}/:path*`,
       },
     ];

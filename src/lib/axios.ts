@@ -3,7 +3,7 @@ import { getAuthToken, clearCurrentUser } from './user';
 import { toast } from '@/hooks/use-toast';
 
 const customAxios = axios.create({
-  baseURL: '/api/backend',
+  baseURL: '/api',
 
   headers: {
     'Content-Type': 'application/json',
