@@ -3,7 +3,7 @@ import { getAuthToken, clearCurrentUser } from './user';
 import { toast } from '@/hooks/use-toast';
 
 const customAxios = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_BACKEND_URL ||'https://stagingapi.poslycloud.com/api',
+  baseURL: '/api/backend',
 
   headers: {
     'Content-Type': 'application/json',
