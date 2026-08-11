@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { BusinessDetails } from "@/lib/business-details";
-import { getBusinessDetails } from "@/lib/business-details";
+import { getBusinessDetails, getClinicPhone } from "@/lib/business-details";
 
 export function useBusinessDetails() {
   const [details, setDetails] = useState<BusinessDetails | null>(null);
@@ -17,7 +17,7 @@ export function useBusinessDetails() {
     isLoading,
     clinicName: details?.clinic_name || "CHART DENTAL",
     clinicAddress: details?.clinic_address || "Your Address Here",
-    clinicPhone: "+256 XXX XXX XXX",
+    clinicPhone: getClinicPhone(),
     currency: details?.branch?.currency || "UGX",
   };
 }
