@@ -35,7 +35,7 @@ export function getBusinessDetails(): BusinessDetails | null {
 
 export function getClinicName(): string {
   const details = getBusinessDetails();
-  return details?.clinic_name || details?.name || details?.branch?.name || "CHART DENTAL";
+  return details?.clinic_name || details?.name || details?.branch?.name || "CHART-CHAIR";
 }
 
 export function getClinicAddress(): string {
