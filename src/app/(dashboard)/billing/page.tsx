@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FileDown, PlusCircle, MoreHorizontal, Pencil, Trash, Eye, HandCoins, Calendar as CalendarIcon, Search, ChevronRight, ChevronDown, Printer, FileText } from "lucide-react";
+import { FileDown, PlusCircle, MoreHorizontal, Pencil, Trash, Eye, HandCoins, Calendar as CalendarIcon, Search, ChevronRight, ChevronDown, Printer, FileText, Loader2 } from "lucide-react";
 import type { Invoice, Patient, InvoiceTreatment, PaginatedArray } from "@/lib/types";
 import { InvoiceForm } from "./components/invoice-form";
 import { useBranch } from "@/context/branch-context";
@@ -45,10 +45,12 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
   } from "@/components/ui/alert-dialog";
-import { createNewInvoice, deleteInvoice, getInvoices, getPatientList, processPayment, updateInvoice, updatePatient } from "@/lib/api";
+import { createNewInvoice, deleteInvoice, getInvoices, getPatientList, processPayment, updateInvoice, updatePatient, getInvoiceById } from "@/lib/api";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PaymentForm } from "./components/payment-form";
+import { getWindowsPrinterService } from "@/lib/windows-printer";
+import { generateSimpleReceiptHTML } from "@/lib/receipt-html-generator";
 import { DateRange } from "react-day-picker";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
@@ -59,12 +61,14 @@ import { Input } from "@/components/ui/input";
 import { Pagination, PaginationContent, PaginationItem, PaginationPrevious, PaginationNext, PaginationLink } from "@/components/ui/pagination";
 import { useCurrency } from "@/hooks/use-currency";
 import { useToast } from "@/hooks/use-toast";
+import { useBusinessDetails } from "@/hooks/use-business-details";
 
 
 export default function BillingPage() {
   const router = useRouter();
   const { selectedBranch } = useBranch();
   const { formatCurrency } = useCurrency();
+  const { clinicName, clinicAddress, clinicPhone } = useBusinessDetails();
   const [allInvoices, setAllInvoices] = useState<PaginatedArray<Invoice>>([] as unknown as PaginatedArray<Invoice>);
   const [allPatients, setAllPatients] = useState<Patient[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -79,6 +83,7 @@ export default function BillingPage() {
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | undefined>(undefined);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const [expandedInvoiceId, setExpandedInvoiceId] = useState<string | number | null>(null);
+  const [printingInvoiceId, setPrintingInvoiceId] = useState<string | number | null>(null);
 
   // Claim form states
   const [isClaimFormOpen, setIsClaimFormOpen] = useState(false);
@@ -353,23 +358,96 @@ export default function BillingPage() {
     router.push(`/billing/${invoiceId}`);
   };
 
-  const handlePrintReceipt = (invoiceId: string | number) => {
-    const iframe = document.createElement('iframe');
-    iframe.style.position = 'absolute';
-    iframe.style.width = '0px';
-    iframe.style.height = '0px';
-    iframe.style.border = 'none';
-    iframe.style.left = '-9999px';
-    iframe.src = `/receipt/${invoiceId}`;
-    document.body.appendChild(iframe);
+  const handlePrintReceipt = async (invoiceId: string | number) => {
+    setPrintingInvoiceId(invoiceId);
 
-    // The receipt page will trigger print automatically after loading.
-    // Clean up the iframe after a reasonable time.
-    setTimeout(() => {
-      if (document.body.contains(iframe)) {
-        document.body.removeChild(iframe);
+    try {
+      // Fetch the invoice data
+      const invoice = await getInvoiceById(invoiceId);
+
+      if (!invoice) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Could not load invoice for printing",
+        });
+        return;
       }
-    }, 15000);
+
+      // Get printer service
+      const printerService = getWindowsPrinterService();
+
+      const date = invoice.issueDate
+        ? new Date(invoice.issueDate).toLocaleDateString()
+        : new Date().toLocaleDateString();
+      const billNumber = String(invoice.id || "INV-001");
+      const patientName = String(invoice.patientName || "Patient");
+      const treatments = invoice.treatments || [];
+
+      // Calculate balance due
+      const balanceDue = (invoice.amount || 0) - (invoice.paidAmount || 0);
+
+      // Generate detailed receipt with all billing information
+      const { generateReceiptHTML } = await import("@/lib/receipt-html-generator");
+      const html = generateReceiptHTML(
+        {
+          clinicName: clinicName,
+          clinicPhone: clinicPhone,
+          clinicAddress: clinicAddress,
+          patientName: patientName,
+          date: date,
+          billNumber: billNumber,
+          treatments: treatments.map(t => ({
+            name: String(t.procedure || "Treatment"),
+            amount: typeof t.cost === "number" ? t.cost : 0,
+          })),
+          subtotal: treatments.reduce((sum, t) => sum + (typeof t.cost === "number" ? t.cost : 0), 0),
+          totalBill: invoice.amount,
+          insurancePortion: invoice.insuranceResponsibility,
+          patientPortion: invoice.patientResponsibility,
+          totalPaid: invoice.paidAmount,
+          balanceDue: balanceDue,
+          discount: invoice.discount,
+          tax: invoice.tax,
+          paymentMethod: invoice.paymentMethod,
+          branchName: invoice.branch?.name,
+          labOrderDetails: invoice.lab_order_details ? {
+            item: invoice.lab_order_details.item,
+            client_name: invoice.lab_order_details.client_name,
+            patient_name: invoice.lab_order_details.patient_name,
+            tooth: invoice.lab_order_details.tooth,
+            material: invoice.lab_order_details.material,
+            shade: invoice.lab_order_details.shade,
+            status: invoice.lab_order_details.status,
+          } : undefined,
+          medicines: invoice.medicines ? invoice.medicines.map(m => ({
+            name: m.medicine?.name || `Medicine ID: ${m.medicine_id}`,
+            unit: m.unit?.unit_name,
+            quantity: m.quantity || 0,
+            price: typeof m.price === "number" ? m.price : 0,
+          })) : undefined,
+        },
+        "58mm"
+      );
+
+      // Send to printer
+      await printerService.printReceipt(html);
+
+      toast({
+        title: "Success",
+        description: "Receipt sent to printer!",
+      });
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : "Print failed";
+      console.error("Print error:", errorMsg);
+      toast({
+        variant: "destructive",
+        title: "Print Failed",
+        description: errorMsg,
+      });
+    } finally {
+      setPrintingInvoiceId(null);
+    }
   };
 
   // ADD THIS: Function to format date
@@ -460,7 +538,7 @@ export default function BillingPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Invoice ID</TableHead>
-                <TableHead>Patient</TableHead>
+                <TableHead>Name</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Issue Date</TableHead>
                 <TableHead>Total Bill</TableHead>
@@ -523,9 +601,16 @@ export default function BillingPage() {
                                 <Eye className="mr-2 h-4 w-4" />
                                 View Invoice
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handlePrintReceipt(invoice.id)}>
-                                <Printer className="mr-2 h-4 w-4" />
-                                Print Receipt (POS)
+                            <DropdownMenuItem
+                              onClick={() => handlePrintReceipt(invoice.id)}
+                              disabled={printingInvoiceId === invoice.id}
+                            >
+                                {printingInvoiceId === invoice.id ? (
+                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Printer className="mr-2 h-4 w-4" />
+                                )}
+                                {printingInvoiceId === invoice.id ? "Printing..." : "Print Receipt (POS)"}
                             </DropdownMenuItem>
                             {hasPermission('billing:update') && (
                                 <DropdownMenuItem onClick={() => handleOpenForm(invoice)}>
@@ -557,32 +642,145 @@ export default function BillingPage() {
                 {expandedInvoiceId === invoice.id && (
                   <TableRow className="bg-muted/30 hover:bg-muted/30">
                     <TableCell colSpan={8} className="p-0">
-                      <div className="p-4 border-b">
-                        <h4 className="font-semibold mb-2 text-sm">Payment Transactions</h4>
-                        {invoice.transactions && invoice.transactions.length > 0 ? (
-                          <div className="rounded-md border bg-background">
+                      <div className="space-y-4 p-4">
+                        {/* Treatments Section */}
+                        {invoice.treatments && invoice.treatments.length > 0 && (
+                          <div className="border-b pb-4">
+                            <h4 className="font-semibold mb-2 text-sm">Treatments</h4>
+                            <div className="rounded-md border bg-background">
                               <Table>
                                 <TableHeader>
                                   <TableRow>
-                                    <TableHead className="h-8">Date</TableHead>
-                                    <TableHead className="h-8">Method</TableHead>
-                                    <TableHead className="text-right h-8">Amount</TableHead>
+                                    <TableHead className="h-8">Procedure</TableHead>
+                                    <TableHead className="text-right h-8">Cost</TableHead>
                                   </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                  {invoice.transactions.map((txn: any) => (
-                                    <TableRow key={txn.id}>
-                                      <TableCell className="py-2">{formatDate(txn.date)}</TableCell>
-                                      <TableCell className="py-2">{txn.method}</TableCell>
-                                      <TableCell className="text-right py-2">{formatCurrency(txn.amount)}</TableCell>
+                                  {invoice.treatments.map((tx: any) => (
+                                    <TableRow key={tx.id}>
+                                      <TableCell className="py-2">{tx.procedure}</TableCell>
+                                      <TableCell className="text-right py-2">{formatCurrency(tx.cost)}</TableCell>
                                     </TableRow>
                                   ))}
                                 </TableBody>
                               </Table>
+                            </div>
                           </div>
-                        ) : (
-                          <p className="text-sm text-muted-foreground">No payment transactions found for this invoice.</p>
                         )}
+
+                        {/* Lab Order Details Section */}
+                        {invoice.lab_order_details && (
+                          <div className="border-b pb-4">
+                            <div className="flex items-center justify-between mb-3">
+                              <h4 className="font-semibold text-sm">Lab Order Details</h4>
+                              {invoice.lab_order_details.cost && (
+                                <div className="text-right">
+                                  <p className="text-xs text-muted-foreground">Lab Order Cost</p>
+                                  <p className="font-bold text-base text-primary">{formatCurrency(invoice.lab_order_details.cost)}</p>
+                                </div>
+                              )}
+                            </div>
+                            <div className="rounded-md border bg-background p-3 space-y-2 text-sm">
+                              <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                  <p className="text-muted-foreground text-xs">Lab</p>
+                                  <p className="font-medium">{invoice.lab_order_details.lab}</p>
+                                </div>
+                                <div>
+                                  <p className="text-muted-foreground text-xs">Item</p>
+                                  <p className="font-medium">{invoice.lab_order_details.item}</p>
+                                </div>
+                                {invoice.lab_order_details.tooth && (
+                                  <div>
+                                    <p className="text-muted-foreground text-xs">Tooth</p>
+                                    <p className="font-medium">#{invoice.lab_order_details.tooth}</p>
+                                  </div>
+                                )}
+                                <div>
+                                  <p className="text-muted-foreground text-xs">Status</p>
+                                  <p className="font-medium">{invoice.lab_order_details.status}</p>
+                                </div>
+                                {invoice.lab_order_details.client_name && (
+                                  <div>
+                                    <p className="text-muted-foreground text-xs">Lab Client</p>
+                                    <p className="font-medium">{invoice.lab_order_details.client_name}</p>
+                                  </div>
+                                )}
+                                {invoice.lab_order_details.doctor_name && (
+                                  <div>
+                                    <p className="text-muted-foreground text-xs">Doctor</p>
+                                    <p className="font-medium">{invoice.lab_order_details.doctor_name}</p>
+                                  </div>
+                                )}
+                                {invoice.lab_order_details.sent_date && (
+                                  <div>
+                                    <p className="text-muted-foreground text-xs">Sent Date</p>
+                                    <p className="font-medium">{invoice.lab_order_details.sent_date}</p>
+                                  </div>
+                                )}
+                                {invoice.lab_order_details.due_date && (
+                                  <div>
+                                    <p className="text-muted-foreground text-xs">Due Date</p>
+                                    <p className="font-medium">{invoice.lab_order_details.due_date}</p>
+                                  </div>
+                                )}
+                                {invoice.lab_order_details.received_date && (
+                                  <div>
+                                    <p className="text-muted-foreground text-xs">Received Date</p>
+                                    <p className="font-medium">{invoice.lab_order_details.received_date}</p>
+                                  </div>
+                                )}
+                                {invoice.lab_order_details.shade && (
+                                  <div>
+                                    <p className="text-muted-foreground text-xs">Shade</p>
+                                    <p className="font-medium">{invoice.lab_order_details.shade}</p>
+                                  </div>
+                                )}
+                                {invoice.lab_order_details.material && (
+                                  <div>
+                                    <p className="text-muted-foreground text-xs">Material</p>
+                                    <p className="font-medium">{invoice.lab_order_details.material}</p>
+                                  </div>
+                                )}
+                                {invoice.lab_order_details.instructions && (
+                                  <div className="col-span-2">
+                                    <p className="text-muted-foreground text-xs">Instructions</p>
+                                    <p className="font-medium">{invoice.lab_order_details.instructions}</p>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Payment Transactions Section */}
+                        <div>
+                          <h4 className="font-semibold mb-2 text-sm">Payment Transactions</h4>
+                          {invoice.transactions && invoice.transactions.length > 0 ? (
+                            <div className="rounded-md border bg-background">
+                                <Table>
+                                  <TableHeader>
+                                    <TableRow>
+                                      <TableHead className="h-8">Date</TableHead>
+                                      <TableHead className="h-8">Method</TableHead>
+                                      <TableHead className="text-right h-8">Amount</TableHead>
+                                    </TableRow>
+                                  </TableHeader>
+                                  <TableBody>
+                                    {invoice.transactions.map((txn: any) => (
+                                      <TableRow key={txn.id}>
+                                        <TableCell className="py-2">{formatDate(txn.date)}</TableCell>
+                                        <TableCell className="py-2">{txn.method}</TableCell>
+                                        <TableCell className="text-right py-2">{formatCurrency(txn.amount)}</TableCell>
+                                      </TableRow>
+                                    ))}
+                                  </TableBody>
+                                </Table>
+                            </div>
+                          ) : (
+                            <p className="text-sm text-muted-foreground">No payment transactions found for this invoice.</p>
+                          )}
+                        </div>
                       </div>
                     </TableCell>
                   </TableRow>

@@ -43,7 +43,7 @@ const formSchema = z.object({
   tooth: z.coerce.number().optional(),
   status: z.enum(['Proposed', 'In Progress', 'Completed', 'Cancelled']),
   cost: z.coerce.number().positive({ message: "Cost must be a positive number."}),
-  condition: z.enum(['Healthy', 'Caries', 'Filling', 'Crown', 'Missing', 'Fracture']).optional(),
+  condition: z.enum(['Healthy', 'Caries', 'Filling', 'Crown', 'Missing', 'Fracture', 'Implant', 'Bridge']).optional(),
 });
 
 type TreatmentPlanFormProps = {
@@ -69,7 +69,7 @@ export function TreatmentPlanForm({ treatment, onSave, onOpenChange, toothId, cu
       status: treatment?.status ?? 'Proposed',
       tooth: treatment?.tooth ?? toothId ?? undefined,
       cost: treatment?.cost ?? 0,
-      condition: currentCondition,
+      condition: (currentCondition && ['Healthy', 'Caries', 'Filling', 'Crown', 'Missing', 'Fracture', 'Implant', 'Bridge'].includes(currentCondition)) ? currentCondition as any : undefined,
     },
   });
 
@@ -98,7 +98,9 @@ export function TreatmentPlanForm({ treatment, onSave, onOpenChange, toothId, cu
           form.setValue('status', treatment.status);
           if (treatment.tooth) form.setValue('tooth', treatment.tooth);
           form.setValue('cost', treatment.cost);
-          if (currentCondition) form.setValue('condition', currentCondition);
+          if (currentCondition && ['Healthy', 'Caries', 'Filling', 'Crown', 'Missing', 'Fracture', 'Implant', 'Bridge'].includes(currentCondition)) {
+            form.setValue('condition', currentCondition as any);
+          }
       }
   }, [treatment, systemTreatments, form, currentCondition]);
   
@@ -117,24 +119,29 @@ export function TreatmentPlanForm({ treatment, onSave, onOpenChange, toothId, cu
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
     try {
-    const selectedSystemTreatment = systemTreatments.find(t => String(t.id) === String(values.procedureId));
-    
-    // When editing, it's okay if we can't find the system treatment (user may not have changed procedure)
-    // Fall back to the existing treatment prop's procedure name
-    const procedureName = selectedSystemTreatment?.procedure ?? treatment?.procedure ?? values.procedure ?? '';
-    if (!procedureName) return;
+      const selectedSystemTreatment = systemTreatments.find(t => String(t.id) === String(values.procedureId));
 
-    await onSave({
+      const procedureName = selectedSystemTreatment?.procedure ?? treatment?.procedure ?? values.procedure ?? '';
+      if (!procedureName) {
+        toast({
+          title: "Error",
+          description: "Procedure name is required.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      onSave({
         ...values,
         procedure: procedureName,
-    }, values.condition);
-      } catch (error: any) {
-        console.error(error);
-        toast({
-            title: "Error",
-            description: error.message || "An unexpected error occurred.",
-            variant: "destructive",
-        });
+      }, values.condition);
+    } catch (error: any) {
+      console.error(error);
+      toast({
+        title: "Error",
+        description: error.message || "An unexpected error occurred.",
+        variant: "destructive",
+      });
     } finally {
       setIsSubmitting(false);
     }

@@ -12,9 +12,11 @@ type OdontogramToothImageProps = {
   dentalRecord?: DentalRecord;
   hasTreatment?: boolean;
   onClick?: (toothId: number, surface?: string) => void;
+  isBridgeSelected?: boolean;
+  onBridgeToggle?: (toothId: number) => void;
 };
 
-function OdontogramToothImage({ toothId, records, dentalRecord, hasTreatment, onClick }: OdontogramToothImageProps) {
+function OdontogramToothImage({ toothId, records, dentalRecord, hasTreatment, onClick, isBridgeSelected, onBridgeToggle }: OdontogramToothImageProps) {
   const isUpper = toothId <= 28;
   const renderVisualProcedures = (view: "Back" | "Top" | "Front" | "Whole Tooth") => {
     // 1. Render RestorativeRecords (Visual Procedures)
@@ -156,7 +158,8 @@ function OdontogramToothImage({ toothId, records, dentalRecord, hasTreatment, on
     // 2. Render DentalCondition overlays
     if (dentalRecord && dentalRecord.condition !== 'Healthy') {
       const isImplantCond = dentalRecord.condition === 'Implant';
-      
+      const isBridge = dentalRecord.condition === 'Bridge';
+
       // Implant on Back, Others on Top
       if ((!isImplantCond && view === "Top") || (isImplantCond && view === "Back")) {
         let conditionColor = "";
@@ -166,7 +169,7 @@ function OdontogramToothImage({ toothId, records, dentalRecord, hasTreatment, on
         if (dentalRecord.condition === 'Missing') conditionColor = "#334155";
         if (dentalRecord.condition === 'Fracture') conditionColor = "#DC2626";
         if (dentalRecord.condition === 'Implant') conditionColor = "#9CA3AF";
-        if (dentalRecord.condition === 'Bridge') conditionColor = "#D946EF";
+        if (dentalRecord.condition === 'Bridge') conditionColor = "#06B6D4";
 
         if (dentalRecord.condition === 'Missing') {
           // Draw an X
@@ -202,18 +205,17 @@ function OdontogramToothImage({ toothId, records, dentalRecord, hasTreatment, on
                  }} 
               />
             );
-        } else {
-          // Beautiful full-tooth radial shading instead of a dot
+        } else if (!isBridge) {
+          // Beautiful full-tooth radial shading instead of a dot (not for bridge)
           const rgb = conditionColor === '#EA580C' ? '234, 88, 12' : // Caries
                       conditionColor === '#0284C7' ? '2, 132, 199' : // Filling
                       conditionColor === '#9333EA' ? '147, 51, 234' : // Crown
-                      conditionColor === '#D946EF' ? '217, 70, 239' : // Bridge
                       conditionColor === '#DC2626' ? '220, 38, 38' : '16, 185, 129'; // Fracture / Healthy
           overlays.push(
-            <div 
-               key={`cond-${dentalRecord.id}`} 
-               className="absolute inset-0 pointer-events-none z-20" 
-               style={{ 
+            <div
+               key={`cond-${dentalRecord.id}`}
+               className="absolute inset-0 pointer-events-none z-20"
+               style={{
                   backgroundColor: `rgba(${rgb}, 0.65)`,
                   WebkitMaskImage: `url(/teeth/restore/tooth_${toothId}/top.png)`,
                   WebkitMaskSize: 'contain',
@@ -224,8 +226,21 @@ function OdontogramToothImage({ toothId, records, dentalRecord, hasTreatment, on
                   maskPosition: 'center',
                   maskRepeat: 'no-repeat',
                   mixBlendMode: 'multiply'
-               }} 
+               }}
             />
+          );
+        }
+
+        // Add evenly-spaced bridge lines (representing bridge structure)
+        if (isBridge && view === "Top") {
+          overlays.push(
+            <svg key={`bridge-lines-${dentalRecord.id}`} viewBox="0 0 100 100" className="absolute inset-0 pointer-events-none z-30 w-full h-full">
+              <line x1="10" y1="20" x2="90" y2="20" stroke="#F59E0B" strokeWidth="2.5" opacity="0.85" />
+              <line x1="10" y1="35" x2="90" y2="35" stroke="#F59E0B" strokeWidth="2.5" opacity="0.85" />
+              <line x1="10" y1="50" x2="90" y2="50" stroke="#F59E0B" strokeWidth="2.5" opacity="0.85" />
+              <line x1="10" y1="65" x2="90" y2="65" stroke="#F59E0B" strokeWidth="2.5" opacity="0.85" />
+              <line x1="10" y1="80" x2="90" y2="80" stroke="#F59E0B" strokeWidth="2.5" opacity="0.85" />
+            </svg>
           );
         }
       }
@@ -241,8 +256,8 @@ function OdontogramToothImage({ toothId, records, dentalRecord, hasTreatment, on
   };
 
   return (
-    <div 
-      className={`flex flex-col items-center group w-14 sm:w-16 md:w-20 lg:w-24 ${onClick ? 'cursor-pointer hover:bg-slate-800/50 p-1 rounded-lg transition-colors' : ''}`}
+    <div
+      className={`flex flex-col items-center group w-14 sm:w-16 md:w-20 lg:w-24 ${onClick ? 'cursor-pointer hover:bg-slate-800/50 p-1 rounded-lg transition-colors' : ''} ${isBridgeSelected ? 'bg-fuchsia-500/20 border-2 border-fuchsia-500 rounded-lg' : ''}`}
       onClick={() => onClick && onClick(toothId)}
     >
       {isUpper && <span className="text-[10px] sm:text-xs md:text-sm font-bold text-slate-400 group-hover:text-slate-200 transition-colors mb-1">{toothId}</span>}
@@ -376,38 +391,58 @@ function OdontogramToothImage({ toothId, records, dentalRecord, hasTreatment, on
   );
 }
 
-export function Odontogram({ 
-  records = [], 
+export function Odontogram({
+  records = [],
   dentalRecords = [],
   treatmentPlans = [],
-  onToothClick
-}: { 
+  onToothClick,
+  selectedBridgeTeeth = [],
+  onBridgeToothToggle
+}: {
   records?: RestorativeRecord[],
   dentalRecords?: DentalRecord[],
   treatmentPlans?: Treatment[],
-  onToothClick?: (toothId: number, surface?: string) => void
+  onToothClick?: (toothId: number, surface?: string) => void,
+  selectedBridgeTeeth?: number[],
+  onBridgeToothToggle?: (toothId: number) => void
 }) {
   const upperRight = [18, 17, 16, 15, 14, 13, 12, 11];
   const upperLeft = [21, 22, 23, 24, 25, 26, 27, 28];
   const lowerRight = [48, 47, 46, 45, 44, 43, 42, 41];
   const lowerLeft = [31, 32, 33, 34, 35, 36, 37, 38];
 
+  const getBridgeGroups = () => {
+    const groups: { [key: string]: DentalRecord[] } = {};
+    dentalRecords.forEach(record => {
+      if (record.condition === 'Bridge' && record.bridgeGroupId) {
+        if (!groups[record.bridgeGroupId]) {
+          groups[record.bridgeGroupId] = [];
+        }
+        groups[record.bridgeGroupId].push(record);
+      }
+    });
+    return Object.values(groups).filter(g => g.length > 1);
+  };
+
   const renderTooth = (id: number) => {
     const dentalRecord = dentalRecords.find(r => r.toothId === id);
     const hasTreatment = treatmentPlans.some(p => p.tooth === id && (p.status === 'Proposed' || p.status === 'In Progress'));
     const toothRecords = records.filter(r => r.toothId == id);
-    
+    const isBridgeSelected = selectedBridgeTeeth.includes(id);
+
     return (
       <TooltipProvider key={id}>
         <Tooltip delayDuration={300}>
           <TooltipTrigger asChild>
             <div className="flex justify-center">
-              <OdontogramToothImage 
-                toothId={id} 
-                records={toothRecords} 
+              <OdontogramToothImage
+                toothId={id}
+                records={toothRecords}
                 dentalRecord={dentalRecord}
                 hasTreatment={hasTreatment}
                 onClick={onToothClick}
+                isBridgeSelected={isBridgeSelected}
+                onBridgeToggle={onBridgeToothToggle}
               />
             </div>
           </TooltipTrigger>
@@ -442,16 +477,70 @@ export function Odontogram({
     );
   };
 
+
+
+  const renderBridgeLines = () => {
+    const bridgeGroups = getBridgeGroups();
+    if (bridgeGroups.length === 0) return null;
+
+    // Map tooth IDs to quadrant and position
+    const getToothPosition = (toothId: number) => {
+      if (toothId >= 11 && toothId <= 18) return { quadrant: 'upperRight', index: 18 - toothId };
+      if (toothId >= 21 && toothId <= 28) return { quadrant: 'upperLeft', index: toothId - 21 };
+      if (toothId >= 31 && toothId <= 38) return { quadrant: 'lowerLeft', index: toothId - 31 };
+      if (toothId >= 41 && toothId <= 48) return { quadrant: 'lowerRight', index: 48 - toothId };
+      return null;
+    };
+
+    return (
+      <svg className="absolute inset-0 pointer-events-none" style={{ zIndex: 50, width: '100%', height: '100%' }} viewBox="0 0 100 100" preserveAspectRatio="none">
+        {bridgeGroups.map((group, groupIdx) => {
+          const sortedTeeth = group.map(r => r.toothId).sort((a, b) => a - b);
+          const lines = [];
+
+          for (let i = 0; i < sortedTeeth.length - 1; i++) {
+            const tooth1Pos = getToothPosition(sortedTeeth[i]);
+            const tooth2Pos = getToothPosition(sortedTeeth[i + 1]);
+
+            if (tooth1Pos && tooth2Pos && tooth1Pos.quadrant === tooth2Pos.quadrant) {
+              // Same quadrant - draw horizontal line
+              const y = tooth1Pos.quadrant.startsWith('upper') ? 25 : 75;
+              const x1 = ((tooth1Pos.index + 0.5) / 8) * 100;
+              const x2 = ((tooth2Pos.index + 0.5) / 8) * 100;
+
+              lines.push(
+                <line
+                  key={`${groupIdx}-${i}`}
+                  x1={x1}
+                  y1={y}
+                  x2={x2}
+                  y2={y}
+                  stroke="#000000"
+                  strokeWidth="2"
+                  opacity="0.9"
+                  strokeLinecap="round"
+                />
+              );
+            }
+          }
+
+          return lines;
+        })}
+      </svg>
+    );
+  };
+
   return (
     <div className="w-full max-w-full flex flex-col select-none">
-      
+
       <div className="flex justify-between items-center w-full mb-6 px-2">
         <h3 className="text-lg md:text-xl font-bold text-slate-200">Odontogram</h3>
       </div>
 
       {/* Teeth Arches */}
-      <div className="flex flex-col gap-10 min-w-max px-4 mx-auto w-full pb-6">
-        
+      <div className="flex flex-col gap-10 min-w-max px-4 mx-auto w-full pb-6 relative">
+        {renderBridgeLines()}
+
         {/* UPPER ARCH */}
           <div className="flex flex-col items-center w-full">
             <div className="flex items-center justify-between w-full px-8 mb-3">
