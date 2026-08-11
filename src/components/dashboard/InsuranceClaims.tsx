@@ -352,28 +352,64 @@ export const InsuranceClaims = () => {
                 
                 {selectedClaim.invoice?.treatments && selectedClaim.invoice.treatments.length > 0 && (
                   <div className="pt-4 border-t space-y-4">
-                    <h4 className="font-medium text-sm">Procedures</h4>
-                    <div className="rounded-md border">
+                    <h4 className="font-medium text-sm">Procedures Covered by Insurance</h4>
+                    <div className="rounded-md border overflow-x-auto">
                       <table className="w-full text-sm text-left">
                         <thead className="bg-muted text-muted-foreground">
                           <tr>
                             <th className="px-3 py-2 font-medium">Code/Name</th>
-                            <th className="px-3 py-2 font-medium">Qty</th>
-                            <th className="px-3 py-2 font-medium text-right">Unit Price</th>
                             <th className="px-3 py-2 font-medium text-right">Total</th>
+                            <th className="px-3 py-2 font-medium text-right">Coverage %</th>
+                            <th className="px-3 py-2 font-medium text-right">Insurance Pays</th>
+                            <th className="px-3 py-2 font-medium text-right">Patient Pays</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y">
                           {selectedClaim.invoice.treatments.map((t: any) => (
-                            <tr key={t.id}>
-                              <td className="px-3 py-2">{t.procedure || `Procedure #${t.procedure_id}`}</td>
-                              <td className="px-3 py-2">{t.quantity}</td>
-                              <td className="px-3 py-2 text-right">{formatCurrency(t.unit_price)}</td>
-                              <td className="px-3 py-2 text-right font-medium">{formatCurrency(t.total_amount)}</td>
+                            <tr key={t.id} className="hover:bg-slate-50">
+                              <td className="px-3 py-2 font-medium">{t.procedure || `Procedure #${t.procedure_id}`}</td>
+                              <td className="px-3 py-2 text-right">{formatCurrency(t.total_amount)}</td>
+                              <td className="px-3 py-2 text-right">
+                                {t.coverage_percentage ? (
+                                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                    {parseFloat(t.coverage_percentage).toFixed(1)}%
+                                  </span>
+                                ) : (
+                                  <span className="text-muted-foreground">-</span>
+                                )}
+                              </td>
+                              <td className="px-3 py-2 text-right font-medium text-emerald-600">{formatCurrency(t.insurance_amount)}</td>
+                              <td className="px-3 py-2 text-right font-medium text-orange-600">{formatCurrency(t.patient_amount)}</td>
                             </tr>
                           ))}
                         </tbody>
                       </table>
+                    </div>
+                    <div className="grid grid-cols-3 gap-4 pt-2">
+                      <div className="p-3 bg-emerald-50 rounded-md border border-emerald-200">
+                        <p className="text-xs text-emerald-600 uppercase font-medium">Total Insurance</p>
+                        <p className="text-lg font-bold text-emerald-700">
+                          {formatCurrency(
+                            selectedClaim.invoice.treatments.reduce((sum: number, t: any) => sum + parseFloat(t.insurance_amount || 0), 0)
+                          )}
+                        </p>
+                      </div>
+                      <div className="p-3 bg-orange-50 rounded-md border border-orange-200">
+                        <p className="text-xs text-orange-600 uppercase font-medium">Total Patient</p>
+                        <p className="text-lg font-bold text-orange-700">
+                          {formatCurrency(
+                            selectedClaim.invoice.treatments.reduce((sum: number, t: any) => sum + parseFloat(t.patient_amount || 0), 0)
+                          )}
+                        </p>
+                      </div>
+                      <div className="p-3 bg-slate-50 rounded-md border border-slate-200">
+                        <p className="text-xs text-slate-600 uppercase font-medium">Invoice Total</p>
+                        <p className="text-lg font-bold text-slate-700">
+                          {formatCurrency(
+                            selectedClaim.invoice.treatments.reduce((sum: number, t: any) => sum + parseFloat(t.total_amount || 0), 0)
+                          )}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -384,29 +420,77 @@ export const InsuranceClaims = () => {
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label>Approved Amount</Label>
-                        <Input 
-                          type="number" step="0.01" 
-                          value={paidFormData.approved_amount} 
-                          onChange={e => setPaidFormData({...paidFormData, approved_amount: e.target.value})} 
+                        <Input
+                          type="number" step="0.01"
+                          value={paidFormData.approved_amount}
+                          onChange={e => setPaidFormData({...paidFormData, approved_amount: e.target.value})}
+                          placeholder="0.00"
                         />
                       </div>
                       <div className="space-y-2">
                         <Label>Write-Off (Adjustment)</Label>
-                        <Input 
-                          type="number" step="0.01" 
-                          value={paidFormData.write_off_amount} 
-                          onChange={e => setPaidFormData({...paidFormData, write_off_amount: e.target.value})} 
+                        <Input
+                          type="number" step="0.01"
+                          value={paidFormData.write_off_amount}
+                          onChange={e => setPaidFormData({...paidFormData, write_off_amount: e.target.value})}
+                          placeholder="0.00"
                         />
                       </div>
                     </div>
+
+                    {/* Payment Summary */}
+                    <div className="bg-slate-50 rounded-md p-4 border border-slate-200 space-y-3">
+                      <h5 className="font-medium text-xs uppercase text-slate-600">Payment Summary</h5>
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-slate-600">Claimed Amount:</span>
+                          <span className="font-medium">{formatCurrency(selectedClaim.claimed_amount)}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-slate-600">Insurance Approves:</span>
+                          <span className="font-medium text-emerald-600">
+                            {formatCurrency(paidFormData.approved_amount || 0)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-slate-600">Write-Off (Insurance):</span>
+                          <span className="font-medium text-orange-600">
+                            -{formatCurrency(paidFormData.write_off_amount || 0)}
+                          </span>
+                        </div>
+                        <div className="border-t pt-2 flex justify-between text-sm font-bold">
+                          <span className="text-slate-700">Patient Balance:</span>
+                          <span className={parseFloat(selectedClaim.claimed_amount) - parseFloat(paidFormData.approved_amount || 0) - parseFloat(paidFormData.write_off_amount || 0) > 0 ? 'text-orange-600' : 'text-emerald-600'}>
+                            {formatCurrency(
+                              parseFloat(selectedClaim.claimed_amount) - parseFloat(paidFormData.approved_amount || 0) - parseFloat(paidFormData.write_off_amount || 0)
+                            )}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
                     <div className="flex justify-end gap-2 pt-2">
                       <Button variant="outline" onClick={() => setIsViewModalOpen(false)}>Cancel</Button>
                       <Button onClick={handleMarkAsPaid} className="bg-emerald-600 hover:bg-emerald-700">Mark as Paid</Button>
                     </div>
                   </div>
                 ) : (
-                  <div className="pt-4 flex justify-end gap-2">
-                    <Button variant="outline" onClick={() => setIsViewModalOpen(false)}>Close</Button>
+                  <div className="pt-4 border-t space-y-4">
+                    <div className="bg-emerald-50 rounded-md p-4 border border-emerald-200">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <p className="text-xs text-emerald-600 uppercase font-medium">Status</p>
+                          <p className="text-lg font-bold text-emerald-700">Paid</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs text-emerald-600 uppercase font-medium">Amount Paid</p>
+                          <p className="text-lg font-bold text-emerald-700">{formatCurrency(selectedClaim.approved_amount || selectedClaim.claimed_amount)}</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex justify-end gap-2">
+                      <Button variant="outline" onClick={() => setIsViewModalOpen(false)}>Close</Button>
+                    </div>
                   </div>
                 )}
 

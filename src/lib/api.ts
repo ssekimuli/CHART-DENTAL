@@ -16,7 +16,7 @@ import {
     roles as mockRoles,
     businesses as mockBusinesses
 } from '@/lib/data';
-import type { Business, PaginatedArray, Patient, Appointment, Invoice, ChartData, PracticeTrendPoint, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, BasePatient, InvoiceTreatment, OtherCharge, SystemTreatment, PaymentMethod, PaymentTransaction, AttendanceRecord, LeaveRequest, StaffAdvance, StaffAdvanceStatus, Expense, ExpenseCategory, ExpenseSummary, IncomeRecord, RolePermissions, Permission, DentalRecord, PeriodontalRecord, OcclusalRecord, SoftTissueRecord, OrthodonticRecord, Treatment, DentalCondition, PatientImage, FinancialSummary, CurrentUser, ProfileData, AppointmentStatus, DashboardSummary, EmployeeRole, ReportsOverview, Medicine, MedicineUnit, Prescription, PrescriptionItem, InvoiceMedicine, EndodonticRecord, RestorativeRecord } from '@/lib/types';
+import type { Business, PaginatedArray, Patient, Appointment, Invoice, ChartData, PracticeTrendPoint, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, BasePatient, InvoiceTreatment, OtherCharge, SystemTreatment, PaymentMethod, PaymentTransaction, AttendanceRecord, LeaveRequest, StaffAdvance, StaffAdvanceStatus, Expense, ExpenseCategory, ExpenseSummary, IncomeRecord, RolePermissions, Permission, DentalRecord, PeriodontalRecord, OcclusalRecord, SoftTissueRecord, OrthodonticRecord, Treatment, DentalCondition, PatientImage, FinancialSummary, CurrentUser, ProfileData, AppointmentStatus, DashboardSummary, EmployeeRole, ReportsOverview, Medicine, MedicineUnit, Prescription, PrescriptionItem, InvoiceMedicine, EndodonticRecord, RestorativeRecord, Client } from '@/lib/types';
 import { format, parse } from "date-fns";
 import { speak } from '@/ai/flows/speak';
 import { clearCurrentUser, setCurrentUser } from './user';
@@ -134,7 +134,7 @@ export const resetPassword = async (identifier: string, password?: string): Prom
     console.log('API CALL: resetPassword', { identifier });
     
     try {
-        const response = await customAxios.post('/reset-password', { identifier, password });
+        const response = await customAxios.post('/user-reset-password', { identifier, password });
         return {
             success: true,
             message: response.data.message || 'Password reset successfully.',
@@ -261,6 +261,17 @@ const parseJsonArraySafe = (data: any): any[] => {
     return Array.isArray(data) ? data : [];
 };
 
+const parseJsonSafe = (data: any, fallback: any = null): any => {
+    if (typeof data === 'string') {
+        try {
+            return JSON.parse(data);
+        } catch {
+            return fallback;
+        }
+    }
+    return data || fallback;
+};
+
 const mapPeriodontalRecords = (records: any[] | string): PeriodontalRecord => {
     return parseJsonArraySafe(records).map((record: any) => ({
         toothId: Number(record.tooth_id || record.toothId),
@@ -373,9 +384,7 @@ export const getPatients = async (filters?: string | number | GetPatientsFilters
             treatmentPlans: patient.treatment_plans || [],
             imaging: patient.images || patient.imaging || [], // Backend returns 'images', not 'imaging'
             periodontalRecords: mapPeriodontalRecords(patient.periodontal_records),
-            occlusalRecords: typeof patient.occlusal_records === 'string'
-                ? JSON.parse(patient.occlusal_records)
-                : (patient.occlusal_records || { overbite: 0, overjet: 0, crossbite: 'None', openbite: 'None', malocclusion: 'Class I' }),
+            occlusalRecords: parseJsonSafe(patient.occlusal_records, { overbite: 0, overjet: 0, crossbite: 'None', openbite: 'None', malocclusion: 'Class I' }),
             softTissueRecords: patient.soft_tissue_records || [],
             orthodonticRecords: mapOrthodonticRecords(patient.orthodontic_records),
             endodonticRecords: mapEndodonticRecords(patient.endodontic_records || patient.endodonticRecords),
@@ -507,9 +516,7 @@ export const getPatientById = async (id: string | number): Promise<Patient | und
             })),
             imaging: patient.images || patient.imaging || [], // Backend returns 'images', not 'imaging'
             periodontalRecords: mapPeriodontalRecords(patient.periodontal_records),
-            occlusalRecords: typeof patient.occlusal_records === 'string'
-                ? JSON.parse(patient.occlusal_records)
-                : (patient.occlusal_records || { overbite: 0, overjet: 0, crossbite: 'None', openbite: 'None', malocclusion: 'Class I' }),
+            occlusalRecords: parseJsonSafe(patient.occlusal_records, { overbite: 0, overjet: 0, crossbite: 'None', openbite: 'None', malocclusion: 'Class I' }),
             softTissueRecords: parseJsonArraySafe(patient.soft_tissue_records),
             orthodonticRecords: mapOrthodonticRecords(patient.orthodontic_records),
             endodonticRecords: mapEndodonticRecords(patient.endodontic_records || patient.endodonticRecords),
@@ -1124,8 +1131,23 @@ export const getInventory = async (branchId?: string | number, page?: number, pe
     }
 }
 
-export const getLabOrders = async (branchId?: string | number, page?: number, perPage?: number): Promise<PaginatedArray<LaboratoryOrder>> => {
-    console.log('API CALL: getLabOrders', { branchId, page, perPage });
+export const getLabOrders = async (
+    branchId?: string | number,
+    page?: number,
+    perPage?: number,
+    filters?: {
+        search?: string;
+        status?: string;
+        client_id?: string | number;
+        doctor_id?: string | number;
+        sent_date_from?: string;
+        sent_date_to?: string;
+        due_date_from?: string;
+        due_date_to?: string;
+        sort_by?: string;
+        sort_order?: 'asc' | 'desc';
+    }
+): Promise<PaginatedArray<LaboratoryOrder>> => {
     try {
         const params: any = {};
         if (branchId !== undefined && branchId !== null) {
@@ -1134,9 +1156,23 @@ export const getLabOrders = async (branchId?: string | number, page?: number, pe
         if (page) params.page = page;
         if (perPage) params.per_page = perPage;
 
+        // Add filter parameters
+        if (filters) {
+            if (filters.search) params.search = filters.search;
+            if (filters.status) params.status = filters.status;
+            if (filters.client_id) params.client_id = filters.client_id;
+            if (filters.doctor_id) params.doctor_id = filters.doctor_id;
+            if (filters.sent_date_from) params.sent_date_from = filters.sent_date_from;
+            if (filters.sent_date_to) params.sent_date_to = filters.sent_date_to;
+            if (filters.due_date_from) params.due_date_from = filters.due_date_from;
+            if (filters.due_date_to) params.due_date_to = filters.due_date_to;
+            if (filters.sort_by) params.sort_by = filters.sort_by;
+            if (filters.sort_order) params.sort_order = filters.sort_order;
+        }
+
         const response = await customAxios.get('/management/lab-orders', { params });
         const rawOrders = Array.isArray(response.data) ? response.data : (response.data.data || []);
-        
+
         const orders: PaginatedArray<LaboratoryOrder> = rawOrders.map((order: any) => ({
             id: order.id,
             clientId: String(order.client_id),
@@ -1149,6 +1185,8 @@ export const getLabOrders = async (branchId?: string | number, page?: number, pe
             sentDate: order.sent_date ? order.sent_date.split('T')[0] : '',
             dueDate: order.due_date ? order.due_date.split('T')[0] : '',
             branchId: String(order.branch_id),
+            doctor: order.doctor,
+            cost: order.cost,
         }));
 
         if (response.data && response.data.meta) {
@@ -1162,6 +1200,28 @@ export const getLabOrders = async (branchId?: string | number, page?: number, pe
     }
 }
 
+export const updateLabOrderStatus = async (id: string | number, status: string): Promise<LaboratoryOrder> => {
+    try {
+        const response = await customAxios.patch(`/management/lab-orders/${id}/status`, { status });
+        return {
+            id: response.data.id,
+            clientId: String(response.data.client_id),
+            client: response.data.client,
+            patientName: response.data.patient_name || '',
+            lab: response.data.lab,
+            item: response.data.item,
+            tooth: response.data.tooth,
+            status: response.data.status,
+            sentDate: response.data.sent_date ? response.data.sent_date.split('T')[0] : '',
+            dueDate: response.data.due_date ? response.data.due_date.split('T')[0] : '',
+            branchId: String(response.data.branch_id),
+        };
+    } catch (error) {
+        console.error('Error updating lab order status:', error);
+        throw error;
+    }
+}
+
 export const getClients = async (): Promise<Client[]> => {
     try {
         const response = await customAxios.get('/clients');
@@ -1172,7 +1232,8 @@ export const getClients = async (): Promise<Client[]> => {
     }
 }
 
-export const createClient = async (data: Omit<Client, 'id'>): Promise<Client> => {
+export const createClient = async (data: Omit<
+    Client, 'id'>): Promise<Client> => {
     try {
         const response = await customAxios.post('/clients', data);
         return response.data;
@@ -2044,9 +2105,7 @@ export const createPatient = async (data: BasePatient & { branchId: string | num
             treatmentPlans: newPatient.treatment_plans || [],
             imaging: newPatient.images || newPatient.imaging || [], // Backend returns 'images', not 'imaging'
             periodontalRecords: mapPeriodontalRecords(newPatient.periodontal_records),
-            occlusalRecords: typeof newPatient.occlusal_records === 'string'
-                ? JSON.parse(newPatient.occlusal_records)
-                : (newPatient.occlusal_records || { overbite: 0, overjet: 0, crossbite: 'None', openbite: 'None', malocclusion: 'Class I' }),
+            occlusalRecords: parseJsonSafe(newPatient.occlusal_records, { overbite: 0, overjet: 0, crossbite: 'None', openbite: 'None', malocclusion: 'Class I' }),
             softTissueRecords: newPatient.soft_tissue_records || [],
             orthodonticRecords: mapOrthodonticRecords(newPatient.orthodontic_records),
             endodonticRecords: mapEndodonticRecords(newPatient.endodontic_records || newPatient.endodonticRecords),
@@ -2089,9 +2148,7 @@ export const updateNextVisit = async (id: string | number, date: string | null):
             treatmentPlans: updatedPatient.treatment_plans || updatedPatient.treatmentPlans || [],
             imaging: updatedPatient.patient_images || updatedPatient.imaging || [],
             periodontalRecords: mapPeriodontalRecords(updatedPatient.periodontal_records),
-            occlusalRecords: typeof updatedPatient.occlusal_records === 'string'
-                ? JSON.parse(updatedPatient.occlusal_records)
-                : (updatedPatient.occlusal_records || { overbite: 0, overjet: 0, crossbite: 'None', openbite: 'None', malocclusion: 'Class I' }),
+            occlusalRecords: parseJsonSafe(updatedPatient.occlusal_records, { overbite: 0, overjet: 0, crossbite: 'None', openbite: 'None', malocclusion: 'Class I' }),
             softTissueRecords: updatedPatient.soft_tissue_records || [],
             orthodonticRecords: mapOrthodonticRecords(updatedPatient.orthodontic_records),
             endodonticRecords: mapEndodonticRecords(updatedPatient.endodontic_records || updatedPatient.endodonticRecords),
@@ -2158,12 +2215,19 @@ export const updatePatient = async (id: string | number, data: Partial<Patient>)
             treatmentPlans: updatedPatient.treatment_plans || [],
             imaging: updatedPatient.images || updatedPatient.imaging || [],
             periodontalRecords: mapPeriodontalRecords(updatedPatient.periodontal_records),
-            occlusalRecords: typeof updatedPatient.occlusal_records === 'string'
-                ? JSON.parse(updatedPatient.occlusal_records)
-                : (updatedPatient.occlusal_records || { overbite: 0, overjet: 0, crossbite: 'None', openbite: 'None', malocclusion: 'Class I' }),
+            occlusalRecords: parseJsonSafe(updatedPatient.occlusal_records, { overbite: 0, overjet: 0, crossbite: 'None', openbite: 'None', malocclusion: 'Class I' }),
             softTissueRecords: updatedPatient.soft_tissue_records || [],
             orthodonticRecords: mapOrthodonticRecords(updatedPatient.orthodontic_records),
             endodonticRecords: mapEndodonticRecords(updatedPatient.endodontic_records || updatedPatient.endodonticRecords),
+            restorativeRecords: parseJsonArraySafe(updatedPatient.restorative_records || updatedPatient.restorativeRecords).map((record: any) => ({
+                id: String(record.id),
+                toothId: Number(record.tooth_id || record.toothId),
+                surface: record.surface,
+                material: record.material,
+                notes: record.notes || '',
+                createdAt: record.created_at || record.createdAt,
+                updatedAt: record.updated_at || record.updatedAt,
+            })),
         };
 
         // Update local cache
@@ -2179,10 +2243,12 @@ export const updatePatient = async (id: string | number, data: Partial<Patient>)
             if (error.response?.status === 404) {
                 throw new Error("Patient not found");
             }
-            throw new Error(error.response?.data?.message || "Failed to update patient");
+            const errorMessage = error.response?.data?.message || error.message || "Failed to update patient";
+            throw new Error(errorMessage);
         } else {
             console.error("An unexpected error occurred during patient update:", error);
-            throw error;
+            const errorMessage = error instanceof Error ? error.message : "Failed to update patient";
+            throw new Error(errorMessage);
         }
     }
 }
@@ -2297,9 +2363,7 @@ export const addImageToPatient = async (patientId: string | number, imageFormDat
             })),
             imaging: updatedPatient.images || updatedPatient.imaging || [], // Backend returns 'images', not 'imaging'
             periodontalRecords: mapPeriodontalRecords(updatedPatient.periodontal_records),
-            occlusalRecords: typeof updatedPatient.occlusal_records === 'string'
-                ? JSON.parse(updatedPatient.occlusal_records)
-                : (updatedPatient.occlusal_records || { overbite: 0, overjet: 0, crossbite: 'None', openbite: 'None', malocclusion: 'Class I' }),
+            occlusalRecords: parseJsonSafe(updatedPatient.occlusal_records, { overbite: 0, overjet: 0, crossbite: 'None', openbite: 'None', malocclusion: 'Class I' }),
             softTissueRecords: updatedPatient.soft_tissue_records || [],
             orthodonticRecords: mapOrthodonticRecords(updatedPatient.orthodontic_records),
             endodonticRecords: mapEndodonticRecords(updatedPatient.endodontic_records || updatedPatient.endodonticRecords),
@@ -2345,6 +2409,7 @@ export const saveDentalRecord = async (patientId: string | number, record: Denta
         tooth_id: record.toothId,
         condition: record.condition,
         notes: record.notes || undefined,
+        bridge_group_id: record.bridgeGroupId || undefined,
     };
 
     try {
@@ -2357,6 +2422,7 @@ export const saveDentalRecord = async (patientId: string | number, record: Denta
             condition: savedRecord.condition,
             notes: savedRecord.notes || '',
             id: savedRecord.id,
+            bridgeGroupId: savedRecord.bridge_group_id || savedRecord.bridgeGroupId,
             createdAt: savedRecord.created_at || savedRecord.createdAt,
             updatedAt: savedRecord.updated_at || savedRecord.updatedAt,
         };
@@ -3650,7 +3716,7 @@ export const createInventoryItem = async (data: Omit<InventoryItem, 'id' | 'stat
 }
 
 // Lab Orders
-export const sendLabOrder = async (id: number, channel: 'email' | 'whatsapp' | 'sms', customMessage?: string): Promise<any> => {
+export const sendLabOrder = async (id: string | number, channel: 'email' | 'whatsapp' | 'sms', customMessage?: string): Promise<any> => {
     return (await customAxios.post(`/management/lab-orders/${id}/send`, { channel, customMessage })).data;
 };
 
@@ -3666,6 +3732,12 @@ export const createLabOrder = async (data: Omit<LaboratoryOrder, 'id'>): Promise
             status: data.status,
             sentDate: data.sentDate,
             dueDate: data.dueDate,
+            receivedDate: data.receivedDate,
+            shade: data.shade,
+            material: data.material,
+            instructions: data.instructions,
+            cost: data.cost,
+            doctorId: data.doctorId,
             branchId: data.branchId,
         });
         const order = response.data;
@@ -3680,6 +3752,13 @@ export const createLabOrder = async (data: Omit<LaboratoryOrder, 'id'>): Promise
             status: order.status,
             sentDate: order.sent_date ? order.sent_date.split('T')[0] : '',
             dueDate: order.due_date ? order.due_date.split('T')[0] : '',
+            receivedDate: order.received_date ? order.received_date.split('T')[0] : undefined,
+            shade: order.shade,
+            material: order.material,
+            instructions: order.instructions,
+            cost: order.cost,
+            doctorId: order.doctor_id ? String(order.doctor_id) : undefined,
+            doctor: order.doctor,
             branchId: String(order.branch_id),
         };
     } catch (error) {
