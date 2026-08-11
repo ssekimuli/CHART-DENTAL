@@ -41,6 +41,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getPatientFullName } from "@/lib/utils";
 import { PaginationControl } from "@/components/ui/pagination-control";
+import { toast } from "@/hooks/use-toast";
 
 export default function PatientsPage() {
   const router = useRouter();
@@ -161,7 +162,8 @@ export default function PatientsPage() {
             }
         }
     } catch (e: any) {
-        toast({ title: "Error", description: e.message || "Failed to save patient.", variant: "destructive" });
+        const errorMessage = e?.message || "Failed to save patient.";
+        toast({ title: "Error", description: errorMessage, variant: "destructive" });
     }
     handleCloseForm();
   }
