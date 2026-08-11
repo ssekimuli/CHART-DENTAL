@@ -42,11 +42,11 @@ import { Combobox } from "@/components/ui/combobox";
 
 const formSchema = z.object({
   clientId: z.string({ required_error: "Please select a client."}),
-  patientName: z.string().min(1, "Patient name is required."),
+  patientName: z.string().optional(),
   lab: z.string().min(2, "Lab name must be at least 2 characters."),
   item: z.string().min(2, "Item description must be at least 2 characters."),
   tooth: z.coerce.number().optional(),
-  status: z.enum(['Sent', 'Received', 'Completed', 'Cancelled']),
+  status: z.enum(['Draft', 'Received', 'In Production', 'Ready for Delivery', 'Delivered', 'Cancelled']),
   sentDate: z.date({ required_error: "A sent date is required." }),
   dueDate: z.date({ required_error: "A due date is required." }),
   receivedDate: z.date().optional(),
@@ -54,7 +54,6 @@ const formSchema = z.object({
   material: z.string().optional(),
   instructions: z.string().optional(),
   cost: z.coerce.number().optional(),
-  invoiceNumber: z.string().optional(),
   doctorId: z.string().optional(),
 });
 
@@ -73,7 +72,7 @@ export function LabOrderForm({ clients, doctors, onSave, onOpenChange }: LabOrde
     resolver: zodResolver(formSchema),
     defaultValues: {
         sentDate: new Date(),
-        status: 'Sent',
+        status: 'Draft',
     },
   });
 
@@ -134,9 +133,9 @@ export function LabOrderForm({ clients, doctors, onSave, onOpenChange }: LabOrde
                         name="patientName"
                         render={({ field }) => (
                             <FormItem>
-                            <FormLabel>Patient Name</FormLabel>
+                            <FormLabel>Patient/Client Name (Optional)</FormLabel>
                             <FormControl>
-                                <Input placeholder="e.g., John Doe" {...field} />
+                                <Input placeholder="Leave blank to use client name" {...field} />
                             </FormControl>
                             <FormMessage />
                             </FormItem>
@@ -214,9 +213,11 @@ export function LabOrderForm({ clients, doctors, onSave, onOpenChange }: LabOrde
                                 </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                    <SelectItem value="Sent">Sent</SelectItem>
+                                    <SelectItem value="Draft">Draft</SelectItem>
                                     <SelectItem value="Received">Received</SelectItem>
-                                    <SelectItem value="Completed">Completed</SelectItem>
+                                    <SelectItem value="In Production">In Production</SelectItem>
+                                    <SelectItem value="Ready for Delivery">Ready for Delivery</SelectItem>
+                                    <SelectItem value="Delivered">Delivered</SelectItem>
                                     <SelectItem value="Cancelled">Cancelled</SelectItem>
                                 </SelectContent>
                             </Select>
@@ -347,19 +348,6 @@ export function LabOrderForm({ clients, doctors, onSave, onOpenChange }: LabOrde
                             <FormLabel>Cost</FormLabel>
                             <FormControl>
                                 <Input type="number" step="0.01" placeholder="Lab Fee" {...field} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.value)} />
-                            </FormControl>
-                            <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name="invoiceNumber"
-                        render={({ field }) => (
-                            <FormItem>
-                            <FormLabel>Invoice Number</FormLabel>
-                            <FormControl>
-                                <Input placeholder="Optional" {...field} />
                             </FormControl>
                             <FormMessage />
                             </FormItem>
