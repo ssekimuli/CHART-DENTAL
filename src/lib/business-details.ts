@@ -35,7 +35,7 @@ export function getClinicName(): string {
 
 export function getClinicAddress(): string {
   const details = getBusinessDetails();
-  return details?.clinic_address || "Your Address Here";
+  return details?.clinic_address || "null";
 }
 
 export function getClinicPhone(): string {
