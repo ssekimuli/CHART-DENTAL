@@ -313,7 +313,8 @@ export default function PatientDetailPage({
             toast({ title: "Success", description: "Patient updated successfully." });
         }
     } catch (e: any) {
-        toast({ title: "Error", description: e.message || "Failed to update patient.", variant: "destructive" });
+        const errorMessage = e?.message || "Failed to update patient.";
+        toast({ title: "Error", description: errorMessage, variant: "destructive" });
     }
     setIsPatientFormOpen(false);
   }
@@ -329,7 +330,7 @@ export default function PatientDetailPage({
     setIsDeleteAlertOpen(false);
   }
 
-  const handleSaveTreatment = async (treatmentData: Omit<Treatment, 'id' | 'date'>) => {
+  const handleSaveTreatment = async (treatmentData: Omit<Treatment, 'id' | 'date'>, condition?: DentalCondition) => {
     if (!patient) return;
     try {
         if (selectedTreatment) {
@@ -339,7 +340,7 @@ export default function PatientDetailPage({
                 toast({ title: "Success", description: "Treatment updated successfully." });
             }
         } else {
-            const savedTreatment = await addTreatment(patient.id, treatmentData);
+            const savedTreatment = await addTreatment(patient.id, treatmentData, condition);
             if (savedTreatment) {
                 // Update the patient's treatment plans with the saved treatment
                 setPatient({
@@ -454,8 +455,9 @@ export default function PatientDetailPage({
 
       {!isReceptionist && (
         <Tabs defaultValue="documents">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="documents">Patient documents</TabsTrigger>
+            <TabsTrigger value="treatment">Treatment Plans</TabsTrigger>
             <TabsTrigger value="history">History</TabsTrigger>
             <TabsTrigger value="insurance">Insurance</TabsTrigger>
             <TabsTrigger value="invoices">Invoices</TabsTrigger>
@@ -544,6 +546,105 @@ export default function PatientDetailPage({
                     </TabsContent>
                   ))}
                 </Tabs>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="treatment">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>Treatment Plans</CardTitle>
+                  <CardDescription>
+                    Manage treatment plans for this patient.
+                  </CardDescription>
+                </div>
+                {canUpdatePatient && (
+                  <Button size="sm" onClick={() => handleOpenTreatmentForm()}>
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Add Treatment
+                  </Button>
+                )}
+              </CardHeader>
+              <CardContent>
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Procedure</TableHead>
+                        <TableHead>Tooth #</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Cost</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {patient.treatmentPlans && patient.treatmentPlans.length > 0 ? (
+                        patient.treatmentPlans.map((treatment) => (
+                          <TableRow key={treatment.id}>
+                            <TableCell className="font-medium">{treatment.procedure}</TableCell>
+                            <TableCell>{treatment.tooth || '-'}</TableCell>
+                            <TableCell>
+                              <Badge
+                                variant={
+                                  treatment.status === 'Completed'
+                                    ? 'secondary'
+                                    : treatment.status === 'Cancelled'
+                                    ? 'destructive'
+                                    : 'outline'
+                                }
+                              >
+                                {treatment.status}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right font-mono">
+                              {formatCurrency(treatment.cost)}
+                            </TableCell>
+                            <TableCell>{treatment.date ? moment(treatment.date).format("MMM DD, YYYY") : '-'}</TableCell>
+                            <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                              {canUpdatePatient && (
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" className="h-8 w-8 p-0">
+                                      <span className="sr-only">Open menu</span>
+                                      <MoreHorizontal className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                    <DropdownMenuItem onClick={() => handleOpenTreatmentForm(treatment)}>
+                                      <Pencil className="mr-2 h-4 w-4" />
+                                      Edit
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onClick={() => {
+                                        confirm({
+                                          description: "Are you sure you want to delete this treatment plan?",
+                                          onConfirm: () => handleDeleteTreatment(treatment.id)
+                                        });
+                                      }}
+                                      className="text-destructive focus:text-destructive"
+                                    >
+                                      <Trash className="mr-2 h-4 w-4" />
+                                      Delete
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={6} className="h-24 text-center">
+                            No treatment plans found.
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
