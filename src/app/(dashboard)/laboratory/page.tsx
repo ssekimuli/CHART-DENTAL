@@ -163,12 +163,12 @@ export default function LaboratoryPage() {
                     {/* Status Filter */}
                     <div className="space-y-2">
                         <Label htmlFor="status" className="text-xs">Status</Label>
-                        <Select value={statusFilter} onValueChange={(val) => { setStatusFilter(val); setPage(1); }}>
+                        <Select value={statusFilter || "all"} onValueChange={(val) => { setStatusFilter(val === "all" ? "" : val); setPage(1); }}>
                             <SelectTrigger id="status" className="h-9 text-sm">
                                 <SelectValue placeholder="All Statuses" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="">All Statuses</SelectItem>
+                                <SelectItem value="all">All Statuses</SelectItem>
                                 <SelectItem value="Draft">Draft</SelectItem>
                                 <SelectItem value="Received">Received</SelectItem>
                                 <SelectItem value="In Production">In Production</SelectItem>
@@ -182,12 +182,12 @@ export default function LaboratoryPage() {
                     {/* Client Filter */}
                     <div className="space-y-2">
                         <Label htmlFor="client" className="text-xs">Lab Client</Label>
-                        <Select value={clientFilter} onValueChange={(val) => { setClientFilter(val); setPage(1); }}>
+                        <Select value={clientFilter || "all"} onValueChange={(val) => { setClientFilter(val === "all" ? "" : val); setPage(1); }}>
                             <SelectTrigger id="client" className="h-9 text-sm">
                                 <SelectValue placeholder="All Clients" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="">All Clients</SelectItem>
+                                <SelectItem value="all">All Clients</SelectItem>
                                 {clients.map(client => (
                                     <SelectItem key={client.id} value={String(client.id)}>
                                         {client.name}
@@ -200,12 +200,12 @@ export default function LaboratoryPage() {
                     {/* Doctor Filter */}
                     <div className="space-y-2">
                         <Label htmlFor="doctor" className="text-xs">Doctor</Label>
-                        <Select value={doctorFilter} onValueChange={(val) => { setDoctorFilter(val); setPage(1); }}>
+                        <Select value={doctorFilter || "all"} onValueChange={(val) => { setDoctorFilter(val === "all" ? "" : val); setPage(1); }}>
                             <SelectTrigger id="doctor" className="h-9 text-sm">
                                 <SelectValue placeholder="All Doctors" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="">All Doctors</SelectItem>
+                                <SelectItem value="all">All Doctors</SelectItem>
                                 {doctors.map(doctor => (
                                     <SelectItem key={doctor.id} value={String(doctor.id)}>
                                         {doctor.name}
