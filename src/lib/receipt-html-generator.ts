@@ -29,6 +29,23 @@ export interface ReceiptInfo {
   // Payment and branch information
   paymentMethod?: string;
   branchName?: string;
+  // Lab order details
+  labOrderDetails?: {
+    item: string;
+    client_name?: string;
+    patient_name?: string;
+    tooth?: string | number;
+    material?: string;
+    shade?: string;
+    status?: string;
+  };
+  // Medicines/Prescriptions
+  medicines?: Array<{
+    name: string;
+    unit?: string;
+    quantity: number;
+    price: number;
+  }>;
 }
 
 export function generateReceiptHTML(info: ReceiptInfo, paperWidth: "58mm" | "80mm" = "58mm"): string {
@@ -40,8 +57,11 @@ export function generateReceiptHTML(info: ReceiptInfo, paperWidth: "58mm" | "80m
   }
 
   const treatments = Array.isArray(info.treatments) ? info.treatments : [];
-  if (treatments.length === 0) {
-    throw new Error("Receipt must have at least one treatment");
+  const hasLabOrder = info.labOrderDetails && Object.keys(info.labOrderDetails).length > 0;
+  const medicines = Array.isArray(info.medicines) ? info.medicines : [];
+
+  if (treatments.length === 0 && !hasLabOrder && medicines.length === 0) {
+    throw new Error("Receipt must have at least one treatment, lab order, or medicine");
   }
 
   // Get currency config
@@ -130,19 +150,59 @@ export function generateReceiptHTML(info: ReceiptInfo, paperWidth: "58mm" | "80m
   html += line();
   html += line(dashes);
 
-  // Treatments
-  html += line("TREATMENTS");
-  html += line("-".repeat(Math.floor(charsPerLine * 0.8)));
+  // Treatments, Lab Order, or Medicines
+  if (treatments.length > 0) {
+    html += line("TREATMENTS");
+    html += line("-".repeat(Math.floor(charsPerLine * 0.8)));
 
-  for (const treatment of treatments) {
-    if (!treatment || !treatment.name) continue;
+    for (const treatment of treatments) {
+      if (!treatment || !treatment.name) continue;
 
-    const treatmentName = String(treatment.name).slice(0, Math.floor(charsPerLine * 0.6));
-    const amount = typeof treatment.amount === "number"
-      ? formatAmount(treatment.amount)
-      : formatAmount(0);
-    const line2 = rightAlign(treatmentName, amount);
-    html += line(line2);
+      const treatmentName = String(treatment.name).slice(0, Math.floor(charsPerLine * 0.6));
+      const amount = typeof treatment.amount === "number"
+        ? formatAmount(treatment.amount)
+        : formatAmount(0);
+      const line2 = rightAlign(treatmentName, amount);
+      html += line(line2);
+    }
+  } else if (hasLabOrder) {
+    html += line("LAB ORDER");
+    html += line("-".repeat(Math.floor(charsPerLine * 0.8)));
+
+    const lab = info.labOrderDetails!;
+    if (lab.client_name) {
+      html += line(`Lab: ${String(lab.client_name).slice(0, Math.floor(charsPerLine * 0.8))}`);
+    }
+    if (lab.item) {
+      html += line(`Item: ${String(lab.item).slice(0, Math.floor(charsPerLine * 0.8))}`);
+    }
+    if (lab.tooth) {
+      html += line(`Tooth: #${lab.tooth}`);
+    }
+    if (lab.material) {
+      html += line(`Material: ${String(lab.material).slice(0, Math.floor(charsPerLine * 0.8))}`);
+    }
+    if (lab.shade) {
+      html += line(`Shade: ${String(lab.shade).slice(0, Math.floor(charsPerLine * 0.8))}`);
+    }
+    if (lab.status) {
+      html += line(`Status: ${String(lab.status).slice(0, Math.floor(charsPerLine * 0.8))}`);
+    }
+  } else if (medicines.length > 0) {
+    html += line("MEDICINES/PRESCRIPTIONS");
+    html += line("-".repeat(Math.floor(charsPerLine * 0.8)));
+
+    for (const medicine of medicines) {
+      if (!medicine || !medicine.name) continue;
+
+      const medicineName = String(medicine.name).slice(0, Math.floor(charsPerLine * 0.5));
+      const qty = medicine.quantity || 0;
+      const price = typeof medicine.price === "number" ? medicine.price : 0;
+      const total = qty * price;
+      const amount = formatAmount(total);
+      const line2 = rightAlign(`${medicineName} x${qty}`, amount);
+      html += line(line2);
+    }
   }
 
   html += line();

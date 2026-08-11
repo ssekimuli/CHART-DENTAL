@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -10,9 +10,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { PlusCircle, Search, X } from "lucide-react";
+import { PlusCircle, Search, X, Package, Clock, CheckCircle2, AlertCircle } from "lucide-react";
 import { LabTable } from "./components/lab-table";
-import type { LaboratoryOrder, Patient, PaginatedArray } from "@/lib/types";
+import type { LaboratoryOrder, PaginatedArray } from "@/lib/types";
 import { LabOrderForm } from "./components/lab-order-form";
 import { useBranch } from "@/context/branch-context";
 import { createLabOrder, getLabOrders, getClients, getEmployees } from "@/lib/api";
@@ -109,37 +109,98 @@ export default function LaboratoryPage() {
         setIsFormOpen(false);
     }
 
+  const stats = {
+    total: labOrders?.meta?.total || 0,
+    inProduction: (labOrders as any[])?.filter(o => o.status === 'In Production').length || 0,
+    delivered: (labOrders as any[])?.filter(o => o.status === 'Delivered').length || 0,
+    pending: (labOrders as any[])?.filter(o => o.status === 'Draft' || o.status === 'Received').length || 0,
+  };
+
   return (
     <>
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/20 dark:to-blue-900/20 border-blue-200 dark:border-blue-800">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground font-medium">Total Orders</p>
+                  <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">{stats.total}</p>
+                </div>
+                <Package className="h-10 w-10 text-blue-400 opacity-50" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/20 dark:to-purple-900/20 border-purple-200 dark:border-purple-800">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground font-medium">In Production</p>
+                  <p className="text-3xl font-bold text-purple-600 dark:text-purple-400">{stats.inProduction}</p>
+                </div>
+                <Clock className="h-10 w-10 text-purple-400 opacity-50" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/20 dark:to-green-900/20 border-green-200 dark:border-green-800">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground font-medium">Delivered</p>
+                  <p className="text-3xl font-bold text-green-600 dark:text-green-400">{stats.delivered}</p>
+                </div>
+                <CheckCircle2 className="h-10 w-10 text-green-400 opacity-50" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/20 dark:to-purple-900/20 border-purple-200 dark:border-purple-800">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground font-medium">Pending</p>
+                  <p className="text-3xl font-bold text-purple-600 dark:text-purple-400">{stats.pending}</p>
+                </div>
+                <AlertCircle className="h-10 w-10 text-purple-400 opacity-50" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
         <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader className="flex flex-row items-center justify-between bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900/50 dark:to-slate-800/50">
             <div>
-            <CardTitle>Laboratory</CardTitle>
+            <CardTitle className="text-2xl">Laboratory Orders</CardTitle>
             <CardDescription>
-                Track and manage dental lab orders.
+                Track and manage dental lab orders across your practice.
             </CardDescription>
             </div>
             {hasPermission('laboratory:create') && (
-                <Button onClick={() => setIsFormOpen(true)}>
-                <PlusCircle className="mr-2" />
-                Add Order
+                <Button onClick={() => setIsFormOpen(true)} className="gap-2 bg-blue-600 hover:bg-blue-700">
+                <PlusCircle className="h-4 w-4" />
+                New Order
                 </Button>
             )}
         </CardHeader>
         <CardContent className="space-y-6">
             {/* Filters Section */}
-            <div className="space-y-4 p-4 bg-muted/30 rounded-lg border">
+            <div className="space-y-4 p-5 bg-gradient-to-b from-blue-50/50 to-slate-50/50 dark:from-blue-950/10 dark:to-slate-900/10 rounded-lg border border-blue-100 dark:border-blue-900/20">
                 <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-semibold">Search & Filter</h3>
+                    <div className="flex items-center gap-2">
+                        <Search className="h-4 w-4 text-muted-foreground" />
+                        <h3 className="text-sm font-semibold">Search & Filter Orders</h3>
+                    </div>
                     {hasActiveFilters && (
                         <Button
                             variant="ghost"
                             size="sm"
                             onClick={handleClearFilters}
-                            className="text-xs"
+                            className="text-xs hover:bg-red-50 dark:hover:bg-red-950/20 text-red-600 dark:text-red-400"
                         >
                             <X className="h-3 w-3 mr-1" />
-                            Clear Filters
+                            Clear All
                         </Button>
                     )}
                 </div>
