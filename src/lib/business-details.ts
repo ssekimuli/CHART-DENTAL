@@ -3,11 +3,13 @@
 export interface BusinessDetails {
   clinic_name: string;
   clinic_address: string;
+  clinic_phone?: string;
   branch?: {
     id: number;
     name: string;
     address: string;
     currency: string;
+    contactNumber?: string;
   };
 }
 
@@ -39,8 +41,8 @@ export function getClinicAddress(): string {
 }
 
 export function getClinicPhone(): string {
-  // Phone number is not in the API response, keeping as default
-  return "+256 759672755";
+  const details = getBusinessDetails();
+  return details?.clinic_phone || details?.branch?.contactNumber || "";
 }
 
 export function getBranchCurrency(): string {
