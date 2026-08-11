@@ -21,10 +21,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Mail, MessageCircle, Loader2, Send, Smartphone } from "lucide-react";
+import { MoreHorizontal, Mail, MessageCircle, Loader2, Send, Smartphone, Package, FileText } from "lucide-react";
 import { sendLabOrder, updateLabOrderStatus } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -33,18 +34,20 @@ import { Label } from "@/components/ui/label";
 export function LabTable({ data, onDataChange }: { data: LaboratoryOrder[]; onDataChange?: (updatedData: LaboratoryOrder[]) => void }) {
     const [orders, setOrders] = useState<LaboratoryOrder[]>(data);
 
-    const getStatusVariant = (status: "Draft" | "Received" | "In Production" | "Ready for Delivery" | "Delivered" | "Cancelled") => {
+    const getStatusColor = (status: "Draft" | "Received" | "In Production" | "Ready for Delivery" | "Delivered" | "Cancelled") => {
         switch (status) {
           case "Draft":
-            return "outline";
-          case "Delivered":
-            return "secondary";
+            return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200";
           case "Received":
+            return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300";
           case "In Production":
+            return "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300";
           case "Ready for Delivery":
-            return "default";
+            return "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300";
+          case "Delivered":
+            return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300";
           case "Cancelled":
-            return "destructive";
+            return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300";
         }
     };
 
@@ -59,52 +62,74 @@ export function LabTable({ data, onDataChange }: { data: LaboratoryOrder[]; onDa
     }, [data]);
 
   return (
-    <div className="rounded-md border">
+    <div className="rounded-lg border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
       <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Phone/Email</TableHead>
-            <TableHead>Doctor</TableHead>
-            <TableHead>Lab</TableHead>
-            <TableHead>Item</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Sent Date</TableHead>
-            <TableHead>Due Date</TableHead>
-            <TableHead className="w-[80px]">Actions</TableHead>
+        <TableHeader className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900/50 dark:to-slate-800/50 border-b border-slate-200 dark:border-slate-800">
+          <TableRow className="hover:bg-transparent">
+            <TableHead className="font-semibold text-slate-700 dark:text-slate-300">Patient Name</TableHead>
+            <TableHead className="font-semibold text-slate-700 dark:text-slate-300">Contact</TableHead>
+            <TableHead className="font-semibold text-slate-700 dark:text-slate-300">Doctor</TableHead>
+            <TableHead className="font-semibold text-slate-700 dark:text-slate-300">Lab</TableHead>
+            <TableHead className="font-semibold text-slate-700 dark:text-slate-300">Item</TableHead>
+            <TableHead className="font-semibold text-slate-700 dark:text-slate-300">Status</TableHead>
+            <TableHead className="font-semibold text-slate-700 dark:text-slate-300 text-right">Timeline</TableHead>
+            <TableHead className="font-semibold text-slate-700 dark:text-slate-300 text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {orders.map((order) => (
             <TableRow
               key={order.id}
+              className="hover:bg-slate-50 dark:hover:bg-slate-900/20 transition-colors border-b border-slate-200 dark:border-slate-800"
             >
-              <TableCell className="font-medium">{order.patientName || order.client?.name || '-'}</TableCell>
-              <TableCell>
-                <div className="space-y-0.5 text-sm">
-                  {order.client?.phone && <div>{order.client.phone}</div>}
-                  {order.client?.email && <div className="text-muted-foreground">{order.client.email}</div>}
+              <TableCell className="font-semibold text-slate-900 dark:text-slate-100">
+                <div className="flex items-center gap-2">
+                  <span>{order.patientName || order.client?.name || '-'}</span>
+                  {order.invoiceId && (
+                    <Badge variant="outline" className="text-xs gap-1 py-0.5 px-1.5 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800">
+                      <FileText className="h-3 w-3" />
+                      Invoice
+                    </Badge>
+                  )}
                 </div>
               </TableCell>
-              <TableCell>{order.doctor?.name || '-'}</TableCell>
-              <TableCell>{order.lab}</TableCell>
-              <TableCell>{order.item} {order.tooth ? `(#${order.tooth})` : ''}</TableCell>
               <TableCell>
-                <Badge variant={getStatusVariant(order.status)}>
+                <div className="space-y-1 text-sm">
+                  {order.client?.phone && <div className="text-slate-700 dark:text-slate-300">{order.client.phone}</div>}
+                  {order.client?.email && <div className="text-slate-500 dark:text-slate-400 truncate text-xs">{order.client.email}</div>}
+                </div>
+              </TableCell>
+              <TableCell className="text-slate-700 dark:text-slate-300">{order.doctor?.name || '-'}</TableCell>
+              <TableCell className="text-slate-700 dark:text-slate-300 font-medium">{order.lab}</TableCell>
+              <TableCell>
+                <div className="flex items-center gap-2">
+                  <div className="text-slate-700 dark:text-slate-300">{order.item}</div>
+                  {order.tooth && <Badge variant="outline" className="text-xs">#{order.tooth}</Badge>}
+                </div>
+              </TableCell>
+              <TableCell>
+                <Badge className={`font-medium ${getStatusColor(order.status)}`}>
                   {order.status}
                 </Badge>
               </TableCell>
-              <TableCell>{order.sentDate}</TableCell>
-              <TableCell>{order.dueDate}</TableCell>
-              <TableCell>
+              <TableCell className="text-right">
+                <div className="space-y-1 text-xs text-slate-500 dark:text-slate-400">
+                  <div>Sent: {order.sentDate || 'N/A'}</div>
+                  <div>Due: {order.dueDate || 'N/A'}</div>
+                </div>
+              </TableCell>
+              <TableCell className="text-right">
                   <LabOrderActions order={order} onStatusChange={handleStatusChange} />
               </TableCell>
             </TableRow>
           ))}
            {orders.length === 0 && (
-                <TableRow>
-                    <TableCell colSpan={9} className="h-24 text-center">
-                        No lab orders found.
+                <TableRow className="hover:bg-transparent">
+                    <TableCell colSpan={8} className="h-24 text-center text-slate-500 dark:text-slate-400">
+                        <div className="flex flex-col items-center justify-center gap-2">
+                          <Package className="h-8 w-8 opacity-40" />
+                          <p>No lab orders found. Create one to get started.</p>
+                        </div>
                     </TableCell>
                 </TableRow>
             )}
@@ -116,6 +141,7 @@ export function LabTable({ data, onDataChange }: { data: LaboratoryOrder[]; onDa
 
 function LabOrderActions({ order, onStatusChange }: { order: LaboratoryOrder; onStatusChange?: (updatedOrder: LaboratoryOrder) => void }) {
     const { toast } = useToast();
+    const router = useRouter();
     const [isSending, setIsSending] = useState(false);
     const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
     const [isCustomDialogOpen, setIsCustomDialogOpen] = useState(false);
@@ -131,16 +157,21 @@ function LabOrderActions({ order, onStatusChange }: { order: LaboratoryOrder; on
             case 'Received':
                 return 'Review the order and confirm pricing.';
             case 'In Production':
-                return 'Generate and send the invoice.';
+                return 'This will generate and send an invoice for this lab order to the billing system.';
             case 'Ready for Delivery':
-                return 'Production is finished.';
+                return 'Lab work is complete and ready for pickup/delivery.';
             case 'Delivered':
-                return 'Order delivered to the clinic.';
+                return 'Order has been delivered to the clinic.';
             case 'Cancelled':
                 return 'Order has been cancelled.';
             default:
                 return '';
         }
+    };
+
+    const getStatusDisplayLabel = (status: string) => {
+        if (status === 'In Production') return 'Generate Invoice';
+        return status;
     };
 
     const handleStatusChange = async () => {
@@ -212,69 +243,123 @@ function LabOrderActions({ order, onStatusChange }: { order: LaboratoryOrder; on
         <>
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="h-8 w-8 p-0" disabled={isSending || isUpdatingStatus}>
-                    {isSending || isUpdatingStatus ? <Loader2 className="h-4 w-4 animate-spin" /> : <MoreHorizontal className="h-4 w-4" />}
+                <Button
+                  variant="ghost"
+                  className="h-8 w-8 p-0 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md"
+                  disabled={isSending || isUpdatingStatus}
+                >
+                    {isSending || isUpdatingStatus ? (
+                      <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
+                    ) : (
+                      <MoreHorizontal className="h-4 w-4 text-slate-600 dark:text-slate-400" />
+                    )}
                 </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+            <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuLabel className="font-semibold">Actions</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => setIsStatusDialogOpen(true)}>
+                {order.invoiceId && (
+                  <>
+                    <DropdownMenuItem
+                      onClick={() => router.push(`/billing/${order.invoiceId}`)}
+                      className="cursor-pointer text-blue-600 dark:text-blue-400"
+                    >
+                      <FileText className="mr-2 h-4 w-4" />
+                      View Invoice
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                  </>
+                )}
+                <DropdownMenuItem
+                  onClick={() => setIsStatusDialogOpen(true)}
+                  className="cursor-pointer"
+                >
                     Update Status
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => handleSend('email')}>
-                    <Mail className="mr-2 h-4 w-4" /> Send Default via Email
+                <div className="px-2 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-400">Send Order</div>
+                <DropdownMenuItem
+                  onClick={() => handleSend('email')}
+                  className="cursor-pointer"
+                >
+                    <Mail className="mr-2 h-4 w-4 text-blue-500" /> Email
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleSend('whatsapp')}>
-                    <MessageCircle className="mr-2 h-4 w-4 text-green-500" /> Send Default via WhatsApp
+                <DropdownMenuItem
+                  onClick={() => handleSend('whatsapp')}
+                  className="cursor-pointer"
+                >
+                    <MessageCircle className="mr-2 h-4 w-4 text-green-500" /> WhatsApp
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleSend('sms')}>
-                    <Smartphone className="mr-2 h-4 w-4 text-blue-500" /> Send Default via SMS
+                <DropdownMenuItem
+                  onClick={() => handleSend('sms')}
+                  className="cursor-pointer"
+                >
+                    <Smartphone className="mr-2 h-4 w-4 text-blue-600" /> SMS
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => setIsCustomDialogOpen(true)}>
-                    <Send className="mr-2 h-4 w-4" /> Send Custom Message
+                <DropdownMenuItem
+                  onClick={() => setIsCustomDialogOpen(true)}
+                  className="cursor-pointer"
+                >
+                    <Send className="mr-2 h-4 w-4 text-slate-600" /> Custom Message
                 </DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>
 
         <Dialog open={isCustomDialogOpen} onOpenChange={setIsCustomDialogOpen}>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="sm:max-w-[500px]">
                 <DialogHeader>
-                    <DialogTitle>Send Custom Message</DialogTitle>
+                    <DialogTitle className="text-xl">Send Custom Message</DialogTitle>
                     <DialogDescription>
-                        Send a custom update regarding this lab order.
+                        Send a personalized message to the lab regarding this order.
                     </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                     <div className="space-y-2">
-                        <Label>Channel</Label>
+                        <Label className="font-semibold">Communication Channel</Label>
                         <Select value={customChannel} onValueChange={(val: any) => setCustomChannel(val)}>
-                            <SelectTrigger>
+                            <SelectTrigger className="h-10">
                                 <SelectValue placeholder="Select channel" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="email">Email</SelectItem>
-                                <SelectItem value="whatsapp">WhatsApp</SelectItem>
-                                <SelectItem value="sms">SMS</SelectItem>
+                                <SelectItem value="email">
+                                  <span className="flex items-center gap-2">
+                                    <Mail className="h-4 w-4" /> Email
+                                  </span>
+                                </SelectItem>
+                                <SelectItem value="whatsapp">
+                                  <span className="flex items-center gap-2">
+                                    <MessageCircle className="h-4 w-4" /> WhatsApp
+                                  </span>
+                                </SelectItem>
+                                <SelectItem value="sms">
+                                  <span className="flex items-center gap-2">
+                                    <Smartphone className="h-4 w-4" /> SMS
+                                  </span>
+                                </SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
                     <div className="space-y-2">
-                        <Label>Message</Label>
+                        <Label className="font-semibold">Message</Label>
                         <Textarea
                             placeholder="Type your custom message here..."
                             value={customMessage}
                             onChange={(e) => setCustomMessage(e.target.value)}
                             rows={5}
+                            className="resize-none"
                         />
+                        <p className="text-xs text-slate-500">{customMessage.length} characters</p>
                     </div>
                 </div>
                 <DialogFooter>
                     <Button variant="outline" onClick={() => setIsCustomDialogOpen(false)}>Cancel</Button>
-                    <Button onClick={() => handleSend(customChannel, customMessage)} disabled={isSending || !customMessage.trim()}>
-                        {isSending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    <Button
+                      onClick={() => handleSend(customChannel, customMessage)}
+                      disabled={isSending || !customMessage.trim()}
+                      className="gap-2 bg-blue-600 hover:bg-blue-700"
+                    >
+                        {isSending && <Loader2 className="h-4 w-4 animate-spin" />}
                         Send Message
                     </Button>
                 </DialogFooter>
@@ -282,37 +367,46 @@ function LabOrderActions({ order, onStatusChange }: { order: LaboratoryOrder; on
         </Dialog>
 
         <Dialog open={isStatusDialogOpen} onOpenChange={setIsStatusDialogOpen}>
-            <DialogContent className="sm:max-w-[500px]">
+            <DialogContent className="sm:max-w-[550px]">
                 <DialogHeader>
-                    <DialogTitle>Update Lab Order Status</DialogTitle>
+                    <DialogTitle className="text-xl">Update Lab Order Status</DialogTitle>
                     <DialogDescription>
-                        Change the status of this lab order. Current status: <strong>{order.status}</strong>
+                        Change the status of this lab order. Current: <span className="font-semibold text-slate-700 dark:text-slate-300">{order.status}</span>
                     </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                     <div className="space-y-3">
-                        <Label>Select New Status</Label>
-                        <div className="space-y-2">
+                        <Label className="font-semibold">Select New Status</Label>
+                        <div className="space-y-2 max-h-96 overflow-y-auto">
                             {['Draft', 'Received', 'In Production', 'Ready for Delivery', 'Delivered', 'Cancelled'].map((status) => (
                                 <div
                                     key={status}
                                     onClick={() => setSelectedStatus(status)}
-                                    className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                                    className={`p-4 border rounded-lg cursor-pointer transition-all ${
                                         selectedStatus === status
-                                            ? 'bg-blue-50 border-blue-500'
-                                            : 'bg-white border-gray-200 hover:border-gray-300'
+                                            ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-500 dark:border-blue-600 shadow-sm'
+                                            : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
                                     }`}
                                 >
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex items-start gap-3">
                                         <input
                                             type="radio"
                                             checked={selectedStatus === status}
                                             onChange={() => setSelectedStatus(status)}
-                                            className="cursor-pointer"
+                                            className="cursor-pointer mt-1"
                                         />
                                         <div className="flex-1">
-                                            <p className="font-medium text-sm">{status}</p>
-                                            <p className="text-xs text-gray-600">{getStatusDescription(status)}</p>
+                                            <div className="flex items-center gap-2">
+                                                <p className="font-semibold text-sm text-slate-900 dark:text-slate-100">
+                                                    {getStatusDisplayLabel(status)}
+                                                </p>
+                                                {status === 'In Production' && (
+                                                    <Badge variant="outline" className="text-xs bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800">
+                                                        Creates Invoice
+                                                    </Badge>
+                                                )}
+                                            </div>
+                                            <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">{getStatusDescription(status)}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -322,8 +416,12 @@ function LabOrderActions({ order, onStatusChange }: { order: LaboratoryOrder; on
                 </div>
                 <DialogFooter>
                     <Button variant="outline" onClick={() => setIsStatusDialogOpen(false)}>Cancel</Button>
-                    <Button onClick={handleStatusChange} disabled={isUpdatingStatus || selectedStatus === order.status}>
-                        {isUpdatingStatus && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    <Button
+                      onClick={handleStatusChange}
+                      disabled={isUpdatingStatus || selectedStatus === order.status}
+                      className="gap-2 bg-blue-600 hover:bg-blue-700"
+                    >
+                        {isUpdatingStatus && <Loader2 className="h-4 w-4 animate-spin" />}
                         Update Status
                     </Button>
                 </DialogFooter>

@@ -349,6 +349,7 @@ export type LaboratoryOrder = {
   instructions?: string;
   cost?: number;
   invoiceNumber?: string;
+  invoiceId?: string | number;
   doctorId?: string | number;
   doctor?: Employee;
   branchId: string | number;

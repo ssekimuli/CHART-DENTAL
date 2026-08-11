@@ -134,7 +134,7 @@ export const resetPassword = async (identifier: string, password?: string): Prom
     console.log('API CALL: resetPassword', { identifier });
     
     try {
-        const response = await customAxios.post('/reset-password', { identifier, password });
+        const response = await customAxios.post('/user-reset-password', { identifier, password });
         return {
             success: true,
             message: response.data.message || 'Password reset successfully.',
@@ -1131,8 +1131,23 @@ export const getInventory = async (branchId?: string | number, page?: number, pe
     }
 }
 
-export const getLabOrders = async (branchId?: string | number, page?: number, perPage?: number): Promise<PaginatedArray<LaboratoryOrder>> => {
-    console.log('API CALL: getLabOrders', { branchId, page, perPage });
+export const getLabOrders = async (
+    branchId?: string | number,
+    page?: number,
+    perPage?: number,
+    filters?: {
+        search?: string;
+        status?: string;
+        client_id?: string | number;
+        doctor_id?: string | number;
+        sent_date_from?: string;
+        sent_date_to?: string;
+        due_date_from?: string;
+        due_date_to?: string;
+        sort_by?: string;
+        sort_order?: 'asc' | 'desc';
+    }
+): Promise<PaginatedArray<LaboratoryOrder>> => {
     try {
         const params: any = {};
         if (branchId !== undefined && branchId !== null) {
@@ -1141,9 +1156,23 @@ export const getLabOrders = async (branchId?: string | number, page?: number, pe
         if (page) params.page = page;
         if (perPage) params.per_page = perPage;
 
+        // Add filter parameters
+        if (filters) {
+            if (filters.search) params.search = filters.search;
+            if (filters.status) params.status = filters.status;
+            if (filters.client_id) params.client_id = filters.client_id;
+            if (filters.doctor_id) params.doctor_id = filters.doctor_id;
+            if (filters.sent_date_from) params.sent_date_from = filters.sent_date_from;
+            if (filters.sent_date_to) params.sent_date_to = filters.sent_date_to;
+            if (filters.due_date_from) params.due_date_from = filters.due_date_from;
+            if (filters.due_date_to) params.due_date_to = filters.due_date_to;
+            if (filters.sort_by) params.sort_by = filters.sort_by;
+            if (filters.sort_order) params.sort_order = filters.sort_order;
+        }
+
         const response = await customAxios.get('/management/lab-orders', { params });
         const rawOrders = Array.isArray(response.data) ? response.data : (response.data.data || []);
-        
+
         const orders: PaginatedArray<LaboratoryOrder> = rawOrders.map((order: any) => ({
             id: order.id,
             clientId: String(order.client_id),
@@ -1156,6 +1185,8 @@ export const getLabOrders = async (branchId?: string | number, page?: number, pe
             sentDate: order.sent_date ? order.sent_date.split('T')[0] : '',
             dueDate: order.due_date ? order.due_date.split('T')[0] : '',
             branchId: String(order.branch_id),
+            doctor: order.doctor,
+            cost: order.cost,
         }));
 
         if (response.data && response.data.meta) {

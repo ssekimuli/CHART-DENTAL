@@ -6,7 +6,6 @@ import { Printer, Loader2 } from "lucide-react";
 import type { Invoice } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { getWindowsPrinterService } from "@/lib/windows-printer";
-import { generateSimpleReceiptHTML } from "@/lib/receipt-html-generator";
 
 interface InvoicePrinterProps {
   invoice: Invoice;
@@ -30,12 +29,7 @@ export function InvoicePrinter({
     try {
       const printerService = getWindowsPrinterService();
 
-      // Get first treatment as treatment type
       const treatments = invoice.treatments || [];
-      const treatmentType = treatments.length > 0
-        ? String(treatments[0].procedure || "Treatment")
-        : "Services";
-
       const amount = invoice.amount || 0;
       const date = invoice.issueDate
         ? new Date(invoice.issueDate).toLocaleDateString()
@@ -46,17 +40,6 @@ export function InvoicePrinter({
       // Calculate totals for detailed receipt
       const subtotal = treatments.reduce((sum, t) => sum + (typeof t.cost === "number" ? t.cost : 0), 0);
       const balanceDue = (invoice.amount || 0) - (invoice.paidAmount || 0);
-
-      // Generate detailed receipt HTML with full billing information
-      const html = generateSimpleReceiptHTML(
-        businessName,
-        patientName,
-        treatmentType,
-        amount,
-        billNumber,
-        date,
-        "58mm"
-      );
 
       // For detailed receipt, use generateReceiptHTML with all fields
       const { generateReceiptHTML } = await import("@/lib/receipt-html-generator");
@@ -82,6 +65,21 @@ export function InvoicePrinter({
           tax: invoice.tax,
           paymentMethod: invoice.paymentMethod,
           branchName: (invoice as any).branch?.name,
+          labOrderDetails: invoice.lab_order_details ? {
+            item: invoice.lab_order_details.item,
+            client_name: invoice.lab_order_details.client_name,
+            patient_name: invoice.lab_order_details.patient_name,
+            tooth: invoice.lab_order_details.tooth,
+            material: invoice.lab_order_details.material,
+            shade: invoice.lab_order_details.shade,
+            status: invoice.lab_order_details.status,
+          } : undefined,
+          medicines: invoice.medicines ? invoice.medicines.map(m => ({
+            name: m.medicine?.name || `Medicine ID: ${m.medicine_id}`,
+            unit: m.unit?.unit_name,
+            quantity: m.quantity || 0,
+            price: typeof m.price === "number" ? m.price : 0,
+          })) : undefined,
         },
         "58mm"
       );
