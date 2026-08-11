@@ -9,6 +9,7 @@ import type { Invoice, Patient, PaymentMethod, PaymentTransaction } from '@/lib/
 import { Button } from '@/components/ui/button';
 import { Printer, Download, Loader2, ArrowLeft, Trash2 } from 'lucide-react';
 import { getInvoiceById, getPatientById, deleteInvoice } from '@/lib/api';
+import { getClinicName, getClinicAddress, getClinicPhone } from '@/lib/business-details';
 import { useRouter } from 'next/navigation';
 import { hasPermission } from '@/lib/user';
 import moment from 'moment';
@@ -218,9 +219,9 @@ export default function InvoiceDetailPage() {
               {invoice && (
                 <InvoicePrinter
                   invoice={invoice}
-                  businessName="CHART DENTAL"
-                  businessPhone="+256 XXX XXX XXX"
-                  businessAddress="Kampala, Uganda"
+                  businessName={getClinicName()}
+                  businessPhone={getClinicPhone()}
+                  businessAddress={getClinicAddress()}
                 />
               )}
               <Button onClick={handleDownload}>
@@ -230,7 +231,7 @@ export default function InvoiceDetailPage() {
         </CardHeader>
         <div className="hidden print:block text-2xl font-bold p-6 border-b" data-html2canvas-show="true">
              <div className="flex justify-between items-center">
-                 <span>CHART DENTAL</span>
+                 <span>{getClinicName()}</span>
                  <span className="text-xl">Invoice #{invoice.id}</span>
              </div>
         </div>
