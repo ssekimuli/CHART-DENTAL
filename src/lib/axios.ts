@@ -35,7 +35,7 @@ customAxios.interceptors.response.use(
     if (axios.isAxiosError(error) && error.response) {
       const { status, data } = error.response;
 
-      // Check for 401 status or "Unauthenticated" mge
+      // Check for 401 status or "Unauthenticated"
 
       if (status === 401 || data?.message === "Unauthenticated.") {
         // Clear user session
