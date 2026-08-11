@@ -389,7 +389,7 @@ export default function BillingPage() {
       const { generateReceiptHTML } = await import("@/lib/receipt-html-generator");
       const html = generateReceiptHTML(
         {
-          clinicName: "CHART DENTAL",
+          clinicName: "CHART ",
           clinicPhone: "+256 XXX XXX XXX",
           clinicAddress: "Kampala, Uganda",
           patientName: patientName,
