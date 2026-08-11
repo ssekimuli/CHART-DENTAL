@@ -74,7 +74,7 @@ export default function LaboratoryPage() {
             ]);
             setLabOrders(orders);
             setClients(clientsData);
-            setDoctors(employeesData.filter(emp => emp.role === 'Dentist' || emp.role === 'Hygienist'));
+            setDoctors(employeesData.filter(emp => emp.role === 'Dentist' || emp.role === 'Hygienist' || emp.role === 'Super Admin'));
             setIsLoading(false);
         };
         fetchData();
