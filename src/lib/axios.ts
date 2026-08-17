@@ -4,7 +4,6 @@ import { toast } from '@/hooks/use-toast';
 
 const customAxios = axios.create({
   baseURL: process.env.NEXT_PUBLIC_BACKEND_URL || 'https://arisedentalapi.poslycloud.com/api',
-
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
