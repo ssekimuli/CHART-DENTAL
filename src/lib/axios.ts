@@ -2,8 +2,12 @@ import axios from 'axios';
 import { getAuthToken, clearCurrentUser } from './user';
 import { toast } from '@/hooks/use-toast';
 
+const getBaseURL = (): string => {
+  return process.env.NEXT_PUBLIC_BACKEND_URL || 'https://stagingapi.poslycloud.com/api';
+};
+
 const customAxios = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_BACKEND_URL || 'https://stagingapi.poslycloud.com/api',
+  baseURL: getBaseURL(),
 
   headers: {
     'Content-Type': 'application/json',
