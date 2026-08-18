@@ -420,7 +420,7 @@ export default function AppointmentsPage() {
         </AlertDialogContent>
       </AlertDialog>
       <Dialog open={isShareDialogOpen} onOpenChange={setIsShareDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Share Booking Link</DialogTitle>
             <DialogDescription>
@@ -428,8 +428,9 @@ export default function AppointmentsPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-4">
-            <div className="bg-muted p-3 rounded-md break-all text-sm font-mono">
-              {bookingLink}
+            <div className="bg-muted p-4 rounded-md break-all text-sm">
+              <p className="font-semibold mb-2 text-foreground">Booking Link:</p>
+              <p className="font-mono text-xs leading-relaxed">{bookingLink}</p>
             </div>
             <Button
               onClick={() => {
