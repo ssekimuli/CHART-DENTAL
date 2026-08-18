@@ -288,7 +288,10 @@ export default function AppointmentsPage() {
               <div className="flex gap-2">
                 <Button
                   onClick={() => {
-                    const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL?.replace('/api', '') || '';
+                    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://stagingapi.poslycloud.com/api';
+                    const baseUrl = backendUrl.endsWith('/api')
+                      ? backendUrl.slice(0, -4)
+                      : backendUrl;
                     const link = `${baseUrl}/book-appointment`;
                     setBookingLink(link);
                     setIsShareDialogOpen(true);
@@ -420,7 +423,7 @@ export default function AppointmentsPage() {
         </AlertDialogContent>
       </AlertDialog>
       <Dialog open={isShareDialogOpen} onOpenChange={setIsShareDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Share Booking Link</DialogTitle>
             <DialogDescription>
@@ -428,9 +431,10 @@ export default function AppointmentsPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-4">
-            <div className="bg-muted p-4 rounded-md break-all text-sm">
-              <p className="font-semibold mb-2 text-foreground">Booking Link:</p>
-              <p className="font-mono text-xs leading-relaxed">{bookingLink}</p>
+            <div className="bg-muted p-4 rounded-md">
+              <p className="font-mono text-sm leading-relaxed break-all word-break">
+                {bookingLink}
+              </p>
             </div>
             <Button
               onClick={() => {
