@@ -21,7 +21,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { useState, useMemo, useEffect } from "react";
 import type { Appointment, Employee, Patient, AppointmentStatus } from "@/lib/types";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, PlusCircle, Trash, Pencil, FileText, Send } from "lucide-react";
+import { MoreHorizontal, PlusCircle, Trash, Pencil, FileText, Send, Share2 } from "lucide-react";
 import { AppointmentForm } from "./components/appointment-form";
 import { useBranch } from "@/context/branch-context";
 import {  hasRole , getCurrentUser } from "@/lib/user";
@@ -50,10 +50,12 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { DayContent, DayContentProps } from "react-day-picker";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useToast } from "@/hooks/use-toast";
 
 export default function AppointmentsPage() {
   const router = useRouter();
   const { selectedBranch } = useBranch();
+  const { toast } = useToast();
   const [allAppointments, setAllAppointments] = useState<Appointment[]>([]);
   const [allPatients, setAllPatients] = useState<Patient[]>([]);
   const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
@@ -343,6 +345,20 @@ export default function AppointmentsPage() {
                                 <DropdownMenuItem onClick={() => handleSendToQueue(appointment)} disabled={appointment.status !== 'Scheduled'}>
                                   <Send className="mr-2 h-4 w-4" />
                                   Send to Queue
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL.replace('/api', '');
+                                    const bookingLink = `${baseUrl}/book-appointment`;
+                                    navigator.clipboard.writeText(bookingLink);
+                                    toast({
+                                      title: "Copied",
+                                      description: "Booking link copied to clipboard."
+                                    });
+                                  }}
+                                >
+                                  <Share2 className="mr-2 h-4 w-4" />
+                                  Share Booking Link
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem className="text-red-600" onClick={() => openDeleteDialog(appointment)}>
