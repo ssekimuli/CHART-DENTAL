@@ -18,6 +18,7 @@ import { getCurrentUser, clearCurrentUser } from "@/lib/user";
 import { useEffect, useState } from "react";
 import type { CurrentUser } from "@/lib/types";
 import { logout } from "@/lib/api";
+import customAxios from "@/lib/axios";
 
 export function UserNav() {
   const router = useRouter();
@@ -35,13 +36,11 @@ export function UserNav() {
 
   const handleDownloadPrinterDriver = async () => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/downloads/printer-driver`);
+      const response = await customAxios.get('/downloads/printer-driver', {
+        responseType: 'blob',
+      });
 
-      if (!response.ok) {
-        throw new Error('Failed to download printer driver');
-      }
-
-      const blob = await response.blob();
+      const blob = response.data;
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
