@@ -1,6 +1,7 @@
 
 "use client";
 
+import { getApiUrl } from "@/lib/api-utils";
 import {
   Card,
   CardContent,
@@ -288,7 +289,7 @@ export default function AppointmentsPage() {
               <div className="flex gap-2">
                 <Button
                   onClick={() => {
-                    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://stagingapi.poslycloud.com/api';
+                    const backendUrl = getApiUrl();
                     const baseUrl = backendUrl.endsWith('/api')
                       ? backendUrl.slice(0, -4)
                       : backendUrl;
