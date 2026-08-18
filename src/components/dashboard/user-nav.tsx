@@ -12,7 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { CreditCard, LogOut, Settings, User } from "lucide-react";
+import { CreditCard, Download, LogOut, Settings, User } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { getCurrentUser, clearCurrentUser } from "@/lib/user";
 import { useEffect, useState } from "react";
@@ -31,6 +31,29 @@ export function UserNav() {
     await logout();
     clearCurrentUser();
     router.push("/login");
+  };
+
+  const handleDownloadPrinterDriver = async () => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/downloads/printer-driver`);
+
+      if (!response.ok) {
+        throw new Error('Failed to download printer driver');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'bluetooth printer driver.exe';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading printer driver:', error);
+      alert('Failed to download printer driver. Please try again.');
+    }
   };
 
   if (!user) {
@@ -83,6 +106,10 @@ export function UserNav() {
           <DropdownMenuItem onClick={() => router.push('/settings')}>
             <Settings className="mr-2 h-4 w-4" />
             <span>Settings</span>
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={handleDownloadPrinterDriver}>
+            <Download className="mr-2 h-4 w-4" />
+            <span>Download Printer Driver</span>
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
