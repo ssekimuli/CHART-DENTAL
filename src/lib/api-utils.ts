@@ -1,7 +1,7 @@
 import customAxios from './axios';
 
 export const getApiUrl = (): string => {
-  return process.env.NEXT_PUBLIC_BACKEND_URL || 'https://stagingapi.poslycloud.com/api';
+  return customAxios.defaults.baseURL || '';
 };
 
 export const getCustomAxios = () => {
