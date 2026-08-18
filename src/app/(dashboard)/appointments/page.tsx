@@ -43,6 +43,13 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
   } from "@/components/ui/alert-dialog";
+  import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+  } from "@/components/ui/dialog";
   import { getAppointments, getPatientList, getDoctors, createAppointment, updateAppointment, deleteAppointment } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter } from "next/navigation";
@@ -64,6 +71,8 @@ export default function AppointmentsPage() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | undefined>(undefined);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
+  const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
+  const [bookingLink, setBookingLink] = useState('');
   
   useEffect(() => {
     const fetchData = async () => {
@@ -276,10 +285,24 @@ export default function AppointmentsPage() {
                   {selectedDate ? `Showing appointments for ${format(selectedDate, 'PPP')}` : 'Select a date to view appointments.'}
                 </CardDescription>
               </div>
-              <Button onClick={() => handleOpenForm()}>
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Create Appointment
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => {
+                    const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL?.replace('/api', '') || '';
+                    const link = `${baseUrl}/book-appointment`;
+                    setBookingLink(link);
+                    setIsShareDialogOpen(true);
+                  }}
+                  variant="outline"
+                >
+                  <Share2 className="mr-2 h-4 w-4" />
+                  Share Booking Link
+                </Button>
+                <Button onClick={() => handleOpenForm()}>
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  Create Appointment
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               {isLoading ? (
@@ -346,20 +369,6 @@ export default function AppointmentsPage() {
                                   <Send className="mr-2 h-4 w-4" />
                                   Send to Queue
                                 </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={() => {
-                                    const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL.replace('/api', '');
-                                    const bookingLink = `${baseUrl}/book-appointment`;
-                                    navigator.clipboard.writeText(bookingLink);
-                                    toast({
-                                      title: "Copied",
-                                      description: "Booking link copied to clipboard."
-                                    });
-                                  }}
-                                >
-                                  <Share2 className="mr-2 h-4 w-4" />
-                                  Share Booking Link
-                                </DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem className="text-red-600" onClick={() => openDeleteDialog(appointment)}>
                                     <Trash className="mr-2 h-4 w-4" />
@@ -410,6 +419,34 @@ export default function AppointmentsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <Dialog open={isShareDialogOpen} onOpenChange={setIsShareDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Share Booking Link</DialogTitle>
+            <DialogDescription>
+              Copy and share this link with patients to book appointments
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-4">
+            <div className="bg-muted p-3 rounded-md break-all text-sm font-mono">
+              {bookingLink}
+            </div>
+            <Button
+              onClick={() => {
+                navigator.clipboard.writeText(bookingLink);
+                toast({
+                  title: "Copied",
+                  description: "Booking link copied to clipboard."
+                });
+                setIsShareDialogOpen(false);
+              }}
+              className="w-full"
+            >
+              Copy Link
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
