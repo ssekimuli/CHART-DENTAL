@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Upload, CheckCircle2, AlertCircle, FileText, Database, Loader2, Download, Merge } from 'lucide-react';
 import { getAuthToken } from '@/lib/user';
+import { getApiUrl } from '@/lib/api-utils';
 import { toast } from '@/hooks/use-toast';
 
 interface ImportError {
@@ -186,7 +187,7 @@ export default function MigrationPage() {
     formData.append('section', stageId);
 
     try {
-      const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://stagingapi.poslycloud.com/api';
+      const baseUrl = getApiUrl();
       const response = await fetch(`${baseUrl}/migrate`, {
         method: 'POST',
         body: formData,
@@ -237,7 +238,7 @@ export default function MigrationPage() {
   };
 
   const handleDownloadTemplate = (stageId: string) => {
-    const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://stagingapi.poslycloud.com/api';
+    const baseUrl = getApiUrl();
     const templates: Record<string, string> = {
       employees: 'employees_sample.csv',
       patients: 'patients_sample.csv',
@@ -360,7 +361,7 @@ export default function MigrationPage() {
                 const formData = new FormData();
                 formData.append('file', file);
 
-                const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://stagingapi.poslycloud.com/api';
+                const baseUrl = getApiUrl();
 
                 fetch(`${baseUrl}/migrate/combined`, {
                   method: 'POST',
