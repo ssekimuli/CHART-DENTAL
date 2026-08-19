@@ -1,4 +1,5 @@
 import { getAuthToken } from './user';
+import { getApiUrl } from './api-utils';
 
 export interface ImportError {
   row: number;
@@ -56,7 +57,7 @@ export interface DuplicateCheckResult {
   };
 }
 
-const getBaseUrl = () => process.env.NEXT_PUBLIC_BACKEND_URL || 'https://stagingapi.poslycloud.com/api';
+const getBaseUrl = () => getApiUrl();
 
 const getHeaders = () => ({
   'Accept': 'application/json',

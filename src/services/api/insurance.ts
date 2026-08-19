@@ -1,4 +1,6 @@
-import customAxios from '../../lib/axios';
+import { getCustomAxios } from '../../lib/api-utils';
+
+const customAxios = getCustomAxios();
 
 export const insuranceApi = {
   getCompanies: (search?: string) => customAxios.get('/insurance/companies', { params: { search } }),
