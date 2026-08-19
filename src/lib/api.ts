@@ -20,8 +20,10 @@ import type { Business, PaginatedArray, Patient, Appointment, Invoice, ChartData
 import { format, parse } from "date-fns";
 import { speak } from '@/ai/flows/speak';
 import { clearCurrentUser, setCurrentUser } from './user';
-import customAxios from './axios';
+import { getCustomAxios } from './api-utils';
 import axios from 'axios';
+
+const customAxios = getCustomAxios();
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 

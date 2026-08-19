@@ -42,6 +42,7 @@ export function EmployeesTable({ data, onView, onEdit, onDelete, onBlockToggle }
         <TableHeader>
           <TableRow>
             <TableHead>Name</TableHead>
+            <TableHead>Phone</TableHead>
             <TableHead>Role</TableHead>
             <TableHead>Gender</TableHead>
             <TableHead>Status</TableHead>
@@ -65,6 +66,7 @@ export function EmployeesTable({ data, onView, onEdit, onDelete, onBlockToggle }
                   <div className="text-sm text-muted-foreground">{employee.email}</div>
                 </div>
               </TableCell>
+              <TableCell>{employee.phone || '-'}</TableCell>
               <TableCell>{employee.role}</TableCell>
               <TableCell>{employee.gender || '-'}</TableCell>
               <TableCell>
@@ -129,7 +131,7 @@ export function EmployeesTable({ data, onView, onEdit, onDelete, onBlockToggle }
           ))}
           {data.length === 0 && (
             <TableRow>
-                <TableCell colSpan={7} className="h-24 text-center">
+                <TableCell colSpan={8} className="h-24 text-center">
                     No employees found for this branch.
                 </TableCell>
             </TableRow>
