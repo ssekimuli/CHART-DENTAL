@@ -250,6 +250,7 @@ export type Employee = {
   name: string;
   avatar: string;
   email: string;
+  phone?: string;
   role: EmployeeRole;
   status: 'Active' | 'On Leave' | 'Blocked';
   salary: number;
