@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { getClientConfig } from '@/lib/client-config';
+import { useClientConfig } from '@/hooks/useClientConfig';
 import Link from 'next/link';
 
 interface ResetPasswordProps {
@@ -10,17 +10,39 @@ interface ResetPasswordProps {
 
 /**
  * Client-branded reset password page
- * Shows client-specific title and branding
+ * Shows client-specific title and branding fetched from API
  * Used when user clicks reset link from email
  */
 export function ClientBrandedResetPassword({ token }: ResetPasswordProps) {
-  const config = getClientConfig();
+  const { config, loading: configLoading, error: configError } = useClientConfig();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  if (configLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div className="text-center">
+          <div className="animate-spin inline-block w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full"></div>
+          <p className="mt-4 text-gray-700">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (configError || !config) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div className="bg-white rounded-xl shadow-xl p-8 w-full max-w-md">
+          <p className="text-red-600">Failed to load application configuration</p>
+          {configError && <p className="text-sm text-gray-600 mt-2">{configError.message}</p>}
+        </div>
+      </div>
+    );
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

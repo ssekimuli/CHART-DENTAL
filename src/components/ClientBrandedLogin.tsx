@@ -1,13 +1,35 @@
 'use client';
 
-import { getClientConfig } from '@/lib/client-config';
+import { useClientConfig } from '@/hooks/useClientConfig';
 
 /**
  * Client-branded login page
- * Shows client-specific title and branding
+ * Shows client-specific title and branding fetched from API
  */
 export function ClientBrandedLogin() {
-  const config = getClientConfig();
+  const { config, loading, error } = useClientConfig();
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div className="text-center">
+          <div className="animate-spin inline-block w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full"></div>
+          <p className="mt-4 text-gray-700">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !config) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div className="bg-white rounded-xl shadow-xl p-8 w-full max-w-md">
+          <p className="text-red-600">Failed to load application configuration</p>
+          <p className="text-sm text-gray-600 mt-2">{error?.message}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">

@@ -35,21 +35,23 @@ if (!fs.existsSync(clientDir)) {
 }
 
 // Create .env.local
+// Note: Client branding (name, colors, support info) now comes from API
+// Only backend URL is needed in .env since it's set at build time
 const envContent = `# ${client.name} Environment Configuration
+# API-driven client configuration - most values fetched from backend at runtime
 
-# Backend API
+# Backend API URL (REQUIRED)
+# Used to fetch client configuration from: GET /client-config
 NEXT_PUBLIC_BACKEND_URL=${client.backendUrl}
 
-# Client Branding
-NEXT_PUBLIC_CLIENT_ID=${client.id}
-NEXT_PUBLIC_CLIENT_NAME=${client.name}
-NEXT_PUBLIC_CLIENT_DISPLAY_NAME=${client.displayName}
-NEXT_PUBLIC_APP_NAME=${client.appName}
-NEXT_PUBLIC_PRIMARY_COLOR=${client.theme?.primaryColor || '#0070f3'}
-
-# Support Contact
-NEXT_PUBLIC_SUPPORT_EMAIL=${client.supportEmail || ''}
-NEXT_PUBLIC_SUPPORT_PHONE=${client.supportPhone || ''}
+# Note: The following client configuration is now fetched dynamically from API:
+# - Client ID, Name, Display Name
+# - App Name (shown in browser tab and desktop app)
+# - Theme & Brand Colors
+# - Support Email & Phone
+# - Feature Flags (PWA, Desktop, Offline)
+#
+# See API_CLIENT_CONFIG.md for backend implementation details
 `;
 
 fs.writeFileSync(path.join(clientDir, '.env.local'), envContent);
@@ -141,10 +143,22 @@ Client ID: \`${client.id}\`
 
 ## Files
 
-- \`.env.local\` - Environment variables (backend URL, etc.)
+- \`.env.local\` - Backend URL only (branding from API)
 - \`vercel.json\` - Vercel deployment configuration
 - \`src-tauri/tauri.conf.json\` - Desktop app configuration
 - \`dist/\` - Build outputs (web and desktop)
+
+## Client Configuration
+
+Most client configuration (branding, colors, support info) is **fetched dynamically from API**:
+
+\`\`\`
+GET /client-config → Returns client branding & config
+\`\`\`
+
+This allows updating client branding without redeploying.
+
+See \`API_CLIENT_CONFIG.md\` for backend implementation.
 
 ## Deploy
 
@@ -163,14 +177,18 @@ npm run desktop:build
 
 ## Customization
 
-Edit these files to customize for this client:
-- \`.env.local\` - Change backend URL
-- \`vercel.json\` - Vercel-specific settings
-- \`src-tauri/tauri.conf.json\` - Desktop app name/icon
+Only these files need customization:
+- \`.env.local\` - Backend URL (if different)
+- \`vercel.json\` - Vercel-specific settings (rarely needed)
+- \`src-tauri/tauri.conf.json\` - Desktop app name only
+
+**Branding changes:** Update in database/backend API, not in config files.
 
 ---
 
 Generated from template. All clients share the same \`src/\` and \`public/\` code.
+
+Client configuration is fetched from API at runtime for true multi-tenant support.
 `;
 
 fs.writeFileSync(

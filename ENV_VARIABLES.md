@@ -1,14 +1,67 @@
 # Environment Variables Reference
 
-Complete guide to all environment variables used in DentiChair.
+Complete guide to environment variables used in DentiChair.
 
 ## 📋 Overview
 
-DentiChair uses environment variables for configuration across all platforms (web, PWA, desktop). Variables prefixed with `NEXT_PUBLIC_` are accessible in the browser.
+DentiChair now uses **API-driven configuration** for client settings. Most configuration (branding, support info, features) is fetched from your backend API at runtime.
+
+**Environment variables are minimal** - only essential configuration that's needed before the API call:
+- Backend URL
+- Optional API keys (Gemini, Stripe)
+- Application environment
+
+Variables prefixed with `NEXT_PUBLIC_` are accessible in the browser.
 
 ---
 
-## 🎨 Client & Branding Variables
+## 🔄 Configuration Strategy
+
+### Before (Hardcoded)
+```
+.env → App reads client config → Shows branding
+```
+
+### Now (API-Driven)
+```
+.env → API call to /client-config → API returns client config → App shows branding
+```
+
+**Advantages:**
+- ✅ Update client branding without redeploying
+- ✅ Support unlimited clients with single deployment
+- ✅ True multi-tenant architecture
+- ✅ Dynamic configuration changes
+- ✅ Minimal .env file
+
+---
+
+## 🎨 Variables Moved to API
+
+These variables are **no longer needed in `.env`** - they're fetched from API:
+
+- ❌ `NEXT_PUBLIC_CLIENT_ID`
+- ❌ `NEXT_PUBLIC_CLIENT_NAME`
+- ❌ `NEXT_PUBLIC_CLIENT_DISPLAY_NAME`
+- ❌ `NEXT_PUBLIC_APP_NAME`
+- ❌ `NEXT_PUBLIC_PRIMARY_COLOR`
+- ❌ `NEXT_PUBLIC_BRAND_COLOR`
+- ❌ `NEXT_PUBLIC_SUPPORT_EMAIL`
+- ❌ `NEXT_PUBLIC_SUPPORT_PHONE`
+- ❌ `NEXT_PUBLIC_COMPANY_NAME`
+- ❌ `NEXT_PUBLIC_PWA_ENABLED`
+- ❌ `NEXT_PUBLIC_DESKTOP_FEATURES_ENABLED`
+- ❌ `NEXT_PUBLIC_OFFLINE_SUPPORT`
+- ❌ `NEXT_PUBLIC_ANALYTICS_ENABLED`
+- ❌ `NEXT_PUBLIC_ANALYTICS_ID`
+
+See **API_CLIENT_CONFIG.md** for details on fetching these from your backend.
+
+---
+
+## 📊 Current Required Variables
+
+Only these variables are needed in `.env`:
 
 These variables define client-specific branding shown to users.
 
