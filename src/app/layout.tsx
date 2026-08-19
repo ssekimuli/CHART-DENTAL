@@ -5,16 +5,17 @@ import { cn } from "@/lib/utils";
 import { Toaster } from "@/components/ui/toaster";
 import { Analytics } from "@vercel/analytics/next";
 import { PwaInstallPrompt } from "@/components/PwaInstallPrompt";
+import { getAppTitle, getAppDescription, getClientConfig } from "@/lib/client-config";
 
 export const metadata: Metadata = {
-  title: "CHART Dental",
-  description: "Advanced Dental Charting and Practice Management",
-  applicationName: "CHART Dental",
+  title: getAppTitle(),
+  description: getAppDescription(),
+  applicationName: getAppTitle(),
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "CHART Dental",
+    title: getAppTitle(),
   },
   formatDetection: {
     telephone: false,
@@ -26,7 +27,7 @@ export const metadata: Metadata = {
   other: {
     "mobile-web-app-capable": "yes",
     "mobile-web-app-status-bar-style": "black-translucent",
-    "mobile-web-app-title": "CHART",
+    "mobile-web-app-title": getClientConfig().displayName || "DentiChair",
   },
 };
 

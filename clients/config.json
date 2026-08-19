@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
   "description": "Multi-client deployment configuration",
-  "mainRepo": "https://github.com/your-org/chart-dental",
+  "mainRepo": "https://github.com/your-org/dentichair",
   "clients": [
     {
       "id": "client-a",
@@ -10,12 +10,12 @@
       "domain": "dentist-a.com",
       "backendUrl": "https://api-a.example.com/api",
       "backendName": "Dentist A Backend",
-      "vercelProject": "chart-dental-client-a",
+      "vercelProject": "dentichair-client-a",
       "vercelTeam": "your-vercel-team",
-      "tauriId": "com.dentist-a.chart",
-      "appName": "CHART - Dentist A",
+      "tauriId": "com.dentist-a.dentichair",
+      "appName": "DentiChair - Dentist A",
       "version": "0.1.0",
-      "icon": "assets/logo-a.png",
+      "icon": "public/assets/icon.png",
       "theme": {
         "primaryColor": "#0070f3",
         "brandColor": "#0070f3"
@@ -35,12 +35,12 @@
       "domain": "dentist-b.com",
       "backendUrl": "https://api-b.example.com/api",
       "backendName": "Dentist B Backend",
-      "vercelProject": "chart-dental-client-b",
+      "vercelProject": "dentichair-client-b",
       "vercelTeam": "your-vercel-team",
-      "tauriId": "com.dentist-b.chart",
-      "appName": "CHART - Dentist B",
+      "tauriId": "com.dentist-b.dentichair",
+      "appName": "DentiChair - Dentist B",
       "version": "0.1.0",
-      "icon": "assets/logo-b.png",
+      "icon": "public/assets/icon.png",
       "theme": {
         "primaryColor": "#0070f3",
         "brandColor": "#0070f3"

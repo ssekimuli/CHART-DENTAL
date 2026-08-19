@@ -1,7 +1,7 @@
 {
-  "name": "chart-dental-multi-client",
+  "name": "dentichair-multi-client",
   "version": "1.0.0",
-  "description": "Multi-client deployment management for CHART Dental",
+  "description": "Multi-client deployment management for DentiChair",
   "scripts": {
     "setup": "node setup-client.js",
     "build:desktop": "node build-desktop.js",

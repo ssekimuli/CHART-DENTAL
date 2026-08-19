@@ -1,7 +1,7 @@
 {
-  "name": "CHART Dental",
-  "short_name": "CHART",
-  "description": "Dental practice management system",
+  "name": "DentiChair",
+  "short_name": "DentiChair",
+  "description": "Professional dental practice management system",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

@@ -1,11 +1,11 @@
 [package]
-name = "chart-dental"
+name = "dentichair"
 version = "0.1.0"
-description = "Advanced Dental Practice Management System"
-authors = ["CHART Team"]
+description = "Professional Dental Practice Management System"
+authors = ["DentiChair Team"]
 license = "MIT"
 repository = ""
-default-run = "chart-dental"
+default-run = "dentichair"
 edition = "2021"
 rust-version = "1.60"
 

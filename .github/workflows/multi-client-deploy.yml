@@ -2,7 +2,7 @@ name: Multi-Client Build & Deploy
 
 on:
   push:
-    branches: [main]
+    branches: [staging-setups]
   workflow_dispatch:
     inputs:
       clientId:

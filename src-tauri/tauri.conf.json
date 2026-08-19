@@ -1,7 +1,7 @@
 {
-  "productName": "CHART Dental",
+  "productName": "DentiChair",
   "version": "0.1.0",
-  "identifier": "com.chart.dental",
+  "identifier": "com.dentichair.app",
   "build": {
     "beforeBuildCommand": "npm run build",
     "beforeDevCommand": "npm run dev",
@@ -11,7 +11,7 @@
   "app": {
     "windows": [
       {
-        "title": "CHART Dental",
+        "title": "DentiChair",
         "width": 1400,
         "height": 900,
         "minWidth": 800,
@@ -39,7 +39,7 @@
   "bundle": {
     "active": true,
     "targets": "all",
-    "identifier": "com.chart.dental",
+    "identifier": "com.dentichair.app",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -48,10 +48,10 @@
       "icons/icon.ico"
     ],
     "resources": [],
-    "copyright": "© 2024 CHART Dental. All rights reserved.",
+    "copyright": "© 2024 DentiChair. All rights reserved.",
     "category": "Utilities",
-    "shortDescription": "Advanced Dental Practice Management",
-    "longDescription": "CHART Dental is a comprehensive dental practice management system with charting, patient records, and scheduling.",
+    "shortDescription": "Professional Dental Practice Management",
+    "longDescription": "DentiChair is a comprehensive dental practice management system with charting, patient records, and scheduling.",
     "deb": {
       "depends": [],
       "useBootstrapper": true
@@ -60,14 +60,14 @@
       "frameworks": [],
       "minimumSystemVersion": "10.13",
       "useBootstrapper": true,
-      "exceptionDomain": "com.chart.dental"
+      "exceptionDomain": "com.dentichair.app"
     },
     "windows": {
       "certificateThumbprint": null,
       "digestAlgorithm": "sha256",
       "signingIdentity": null,
       "sign": "./gen/signing",
-      "publisher": "CHART Dental"
+      "publisher": "DentiChair"
     }
   }
 }

@@ -36,11 +36,20 @@ if (!fs.existsSync(clientDir)) {
 
 // Create .env.local
 const envContent = `# ${client.name} Environment Configuration
+
+# Backend API
 NEXT_PUBLIC_BACKEND_URL=${client.backendUrl}
+
+# Client Branding
 NEXT_PUBLIC_CLIENT_ID=${client.id}
+NEXT_PUBLIC_CLIENT_NAME=${client.name}
+NEXT_PUBLIC_CLIENT_DISPLAY_NAME=${client.displayName}
 NEXT_PUBLIC_APP_NAME=${client.appName}
-NEXT_PUBLIC_SUPPORT_EMAIL=${client.supportEmail}
-NEXT_PUBLIC_SUPPORT_PHONE=${client.supportPhone}
+NEXT_PUBLIC_PRIMARY_COLOR=${client.theme?.primaryColor || '#0070f3'}
+
+# Support Contact
+NEXT_PUBLIC_SUPPORT_EMAIL=${client.supportEmail || ''}
+NEXT_PUBLIC_SUPPORT_PHONE=${client.supportPhone || ''}
 `;
 
 fs.writeFileSync(path.join(clientDir, '.env.local'), envContent);
@@ -57,7 +66,12 @@ const vercelConfig = {
   env: {
     NEXT_PUBLIC_BACKEND_URL: client.backendUrl,
     NEXT_PUBLIC_CLIENT_ID: client.id,
-    NEXT_PUBLIC_APP_NAME: client.appName
+    NEXT_PUBLIC_CLIENT_NAME: client.name,
+    NEXT_PUBLIC_CLIENT_DISPLAY_NAME: client.displayName,
+    NEXT_PUBLIC_APP_NAME: client.appName,
+    NEXT_PUBLIC_PRIMARY_COLOR: client.theme?.primaryColor || '#0070f3',
+    NEXT_PUBLIC_SUPPORT_EMAIL: client.supportEmail || '',
+    NEXT_PUBLIC_SUPPORT_PHONE: client.supportPhone || ''
   }
 };
 
@@ -67,11 +81,11 @@ fs.writeFileSync(
 );
 console.log(`✅ Created: ${clientId}/vercel.json`);
 
-// Create tauri.conf.json template
+// Create tauri.conf.json template (for client-specific Tauri config)
 const tauriConfig = {
   productName: client.appName,
   version: client.version,
-  identifier: client.tauriId,
+  identifier: client.tauriId || 'com.dentichair.app',
   build: {
     beforeBuildCommand: 'npm run build',
     beforeDevCommand: 'npm run dev',
