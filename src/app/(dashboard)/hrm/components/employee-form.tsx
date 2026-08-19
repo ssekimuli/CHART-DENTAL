@@ -46,6 +46,7 @@ import { useBranch } from "@/context/branch-context";
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
   email: z.string().email("Please enter a valid email."),
+  phone: z.string().min(7, "Please enter a valid phone number.").optional().or(z.literal('')),
   role: z.string({ required_error: "Role is required."}),
   status: z.enum(['Active', 'On Leave', 'Blocked']),
   salary: z.coerce.number().positive("Salary must be a positive number.").optional(),
@@ -77,6 +78,7 @@ export function EmployeeForm({ employee, onSave, onOpenChange }: EmployeeFormPro
     defaultValues: {
         name: employee?.name ?? "",
         email: employee?.email ?? "",
+        phone: employee?.phone ?? "",
         role: employee?.role,
         status: employee?.status ?? 'Active',
         salary: Number(employee?.salary),
@@ -101,6 +103,7 @@ export function EmployeeForm({ employee, onSave, onOpenChange }: EmployeeFormPro
       form.reset({
         name: employee.name ?? "",
         email: employee.email ?? "",
+        phone: employee.phone ?? "",
         role: roleId,
         status: employee.status ?? 'Active',
         salary: Number(employee.salary),
@@ -202,6 +205,21 @@ export function EmployeeForm({ employee, onSave, onOpenChange }: EmployeeFormPro
                                 <FormLabel>Email</FormLabel>
                                 <FormControl>
                                     <Input placeholder="e.g., john.doe@example.com" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                            control={form.control}
+                            name="phone"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Phone</FormLabel>
+                                <FormControl>
+                                    <Input placeholder="e.g., +1 (555) 123-4567" {...field} />
                                 </FormControl>
                                 <FormMessage />
                                 </FormItem>
