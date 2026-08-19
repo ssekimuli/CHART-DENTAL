@@ -1,0 +1,18 @@
+# Desktop App Environment Variables
+
+# Backend API URL (used by both web and desktop)
+NEXT_PUBLIC_BACKEND_URL=https://stagingapi.poslycloud.com/api
+
+# Desktop App Settings
+# Tauri app identifier (matches tauri.conf.json)
+TAURI_IDENTITY=com.chart.dental
+
+# Update server URL (optional - for auto-updates)
+TAURI_UPDATE_URL=https://your-domain.com/updates
+
+# Analytics (optional)
+NEXT_PUBLIC_ANALYTICS_ID=your-analytics-id
+
+# Feature flags
+NEXT_PUBLIC_DESKTOP_FEATURES_ENABLED=true
+NEXT_PUBLIC_PWA_ENABLED=true

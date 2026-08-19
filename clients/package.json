@@ -1,0 +1,13 @@
+{
+  "name": "chart-dental-multi-client",
+  "version": "1.0.0",
+  "description": "Multi-client deployment management for CHART Dental",
+  "scripts": {
+    "setup": "node setup-client.js",
+    "build:desktop": "node build-desktop.js",
+    "build:all": "node build-all.js"
+  },
+  "keywords": ["deployment", "multi-client", "vercel", "tauri"],
+  "author": "",
+  "license": "MIT"
+}

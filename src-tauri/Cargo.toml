@@ -1,0 +1,26 @@
+[package]
+name = "chart-dental"
+version = "0.1.0"
+description = "Advanced Dental Practice Management System"
+authors = ["CHART Team"]
+license = "MIT"
+repository = ""
+default-run = "chart-dental"
+edition = "2021"
+rust-version = "1.60"
+
+[build-dependencies]
+tauri-build = { version = "2.5", features = [] }
+
+[dependencies]
+serde_json = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+tauri = { version = "2.5", features = ["shell-open", "window-all"] }
+tokio = { version = "1", features = ["full"] }
+
+[features]
+# By default Tauri runs in strict mode where all net requests are blocked.
+# Uncomment this to relax that restriction with granular domain/url allowlisting.
+# See https://tauri.app/1.0/api/config#security for more info on configuring TLS certificate validation
+default = ["custom-protocol"]
+custom-protocol = ["tauri/custom-protocol"]

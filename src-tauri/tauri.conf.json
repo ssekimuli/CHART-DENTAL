@@ -1,0 +1,73 @@
+{
+  "productName": "CHART Dental",
+  "version": "0.1.0",
+  "identifier": "com.chart.dental",
+  "build": {
+    "beforeBuildCommand": "npm run build",
+    "beforeDevCommand": "npm run dev",
+    "devPath": "http://localhost:9002",
+    "frontendDist": "../.next/static"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "CHART Dental",
+        "width": 1400,
+        "height": 900,
+        "minWidth": 800,
+        "minHeight": 600,
+        "resizable": true,
+        "fullscreen": false,
+        "focus": true,
+        "alwaysOnTop": false,
+        "kdeTransparencyHint": false,
+        "skipTaskbar": false,
+        "hiddenTitle": false,
+        "visible": true,
+        "decorations": true,
+        "transparent": false,
+        "maximized": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://cdn.jsdelivr.net; font-src 'self' https://js.stripe.com https://fonts.googleapis.com https://fonts.gstatic.com; frame-src https://js.stripe.com https://hooks.stripe.com; connect-src 'self' https://api.stripe.com https://q.stripe.com https://dentalapi.poslycloud.com https://stagingapi.poslycloud.com; img-src 'self' data: https:;"
+    },
+    "features": {
+      "linux-protocol-body": false
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "identifier": "com.chart.dental",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "resources": [],
+    "copyright": "© 2024 CHART Dental. All rights reserved.",
+    "category": "Utilities",
+    "shortDescription": "Advanced Dental Practice Management",
+    "longDescription": "CHART Dental is a comprehensive dental practice management system with charting, patient records, and scheduling.",
+    "deb": {
+      "depends": [],
+      "useBootstrapper": true
+    },
+    "macOS": {
+      "frameworks": [],
+      "minimumSystemVersion": "10.13",
+      "useBootstrapper": true,
+      "exceptionDomain": "com.chart.dental"
+    },
+    "windows": {
+      "certificateThumbprint": null,
+      "digestAlgorithm": "sha256",
+      "signingIdentity": null,
+      "sign": "./gen/signing",
+      "publisher": "CHART Dental"
+    }
+  }
+}

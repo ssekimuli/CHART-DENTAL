@@ -1,0 +1,138 @@
+name: Multi-Client Build & Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      clientId:
+        description: 'Build specific client (leave empty for all)'
+        required: false
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      clients: ${{ steps.set-clients.outputs.clients }}
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Determine clients to build
+        id: set-clients
+        run: |
+          if [ "${{ github.event.inputs.clientId }}" != "" ]; then
+            echo "clients=[\"${{ github.event.inputs.clientId }}\"]" >> $GITHUB_OUTPUT
+          else
+            echo "clients=$(node -e "console.log(JSON.stringify(require('./clients/config.json').clients.map(c => c.id)))")" >> $GITHUB_OUTPUT
+          fi
+
+  build-web:
+    needs: setup
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        clientId: ${{ fromJson(needs.setup.outputs.clients) }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Get client config
+        id: config
+        run: |
+          CLIENT_CONFIG=$(node -e "
+            const config = require('./clients/config.json');
+            const client = config.clients.find(c => c.id === '${{ matrix.clientId }}');
+            console.log(JSON.stringify(client));
+          ")
+          echo "config=$CLIENT_CONFIG" >> $GITHUB_OUTPUT
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build web app
+        env:
+          NEXT_PUBLIC_BACKEND_URL: ${{ fromJson(steps.config.outputs.config).backendUrl }}
+          NEXT_PUBLIC_CLIENT_ID: ${{ matrix.clientId }}
+          NEXT_PUBLIC_APP_NAME: ${{ fromJson(steps.config.outputs.config).appName }}
+        run: npm run build
+
+      - name: Deploy to Vercel
+        uses: vercel/action@v4
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ fromJson(steps.config.outputs.config).vercelProject }}
+          production: true
+
+  build-desktop:
+    needs: setup
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        clientId: ${{ fromJson(needs.setup.outputs.clients) }}
+        os: [windows-latest, macos-latest, ubuntu-latest]
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Get client config
+        id: config
+        run: |
+          $ClientConfig = node -e "
+            const config = require('./clients/config.json');
+            const client = config.clients.find(c => c.id === '${{ matrix.clientId }}');
+            console.log(JSON.stringify(client));
+          "
+          echo "config=$ClientConfig" >> $GITHUB_OUTPUT
+        shell: pwsh
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build web app
+        env:
+          NEXT_PUBLIC_BACKEND_URL: ${{ fromJson(steps.config.outputs.config).backendUrl }}
+          NEXT_PUBLIC_CLIENT_ID: ${{ matrix.clientId }}
+          NEXT_PUBLIC_APP_NAME: ${{ fromJson(steps.config.outputs.config).appName }}
+        run: npm run build
+
+      - name: Build desktop app
+        env:
+          NEXT_PUBLIC_BACKEND_URL: ${{ fromJson(steps.config.outputs.config).backendUrl }}
+          NEXT_PUBLIC_CLIENT_ID: ${{ matrix.clientId }}
+          NEXT_PUBLIC_APP_NAME: ${{ fromJson(steps.config.outputs.config).appName }}
+        run: npm run desktop:build
+
+      - name: Upload to release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: src-tauri/target/release/bundle/**/*
+          name: ${{ fromJson(steps.config.outputs.config).appName }} v${{ github.ref_name }}
+          tag_name: ${{ matrix.clientId }}-${{ github.ref_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Save artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: desktop-${{ matrix.clientId }}-${{ matrix.os }}
+          path: src-tauri/target/release/bundle/**/*
+          retention-days: 30
+
+  summary:
+    needs: [build-web, build-desktop]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Deployment summary
+        run: |
+          echo "✅ Build complete!"
+          echo "Check artifacts for desktop apps"

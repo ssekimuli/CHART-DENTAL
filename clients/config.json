@@ -1,0 +1,67 @@
+{
+  "version": "1.0.0",
+  "description": "Multi-client deployment configuration",
+  "mainRepo": "https://github.com/your-org/chart-dental",
+  "clients": [
+    {
+      "id": "client-a",
+      "name": "Dentist A Practice",
+      "displayName": "Dentist A",
+      "domain": "dentist-a.com",
+      "backendUrl": "https://api-a.example.com/api",
+      "backendName": "Dentist A Backend",
+      "vercelProject": "chart-dental-client-a",
+      "vercelTeam": "your-vercel-team",
+      "tauriId": "com.dentist-a.chart",
+      "appName": "CHART - Dentist A",
+      "version": "0.1.0",
+      "icon": "assets/logo-a.png",
+      "theme": {
+        "primaryColor": "#0070f3",
+        "brandColor": "#0070f3"
+      },
+      "features": {
+        "desktop": true,
+        "pwa": true,
+        "offlineSupport": true
+      },
+      "supportEmail": "support@dentist-a.com",
+      "supportPhone": "+1-555-0100"
+    },
+    {
+      "id": "client-b",
+      "name": "Dentist B Clinic",
+      "displayName": "Dentist B",
+      "domain": "dentist-b.com",
+      "backendUrl": "https://api-b.example.com/api",
+      "backendName": "Dentist B Backend",
+      "vercelProject": "chart-dental-client-b",
+      "vercelTeam": "your-vercel-team",
+      "tauriId": "com.dentist-b.chart",
+      "appName": "CHART - Dentist B",
+      "version": "0.1.0",
+      "icon": "assets/logo-b.png",
+      "theme": {
+        "primaryColor": "#0070f3",
+        "brandColor": "#0070f3"
+      },
+      "features": {
+        "desktop": true,
+        "pwa": true,
+        "offlineSupport": true
+      },
+      "supportEmail": "support@dentist-b.com",
+      "supportPhone": "+1-555-0200"
+    }
+  ],
+  "deployment": {
+    "buildDir": "dist",
+    "deploymentStrategy": "vercel",
+    "desktopOutputPath": "src-tauri/target/release/bundle",
+    "autoUpdate": false
+  },
+  "sharing": {
+    "sharedCode": true,
+    "description": "All clients use the same codebase with client-specific config"
+  }
+}
