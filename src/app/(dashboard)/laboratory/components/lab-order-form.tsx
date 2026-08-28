@@ -1,7 +1,7 @@
 "use client";
 import { useToast } from "@/hooks/use-toast";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -32,12 +32,14 @@ import {
     SelectTrigger,
     SelectValue,
   } from "@/components/ui/select";
-import type { LaboratoryOrder, Client, Employee } from "@/lib/types";
+import type { LaboratoryOrder, Client, Employee, LabService } from "@/lib/types";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { CalendarIcon, Loader2 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Combobox } from "@/components/ui/combobox";
+import { useBranch } from "@/context/branch-context";
+import { getLabServices, getActivePriceForService } from "@/lib/api-lab-prices";
 
 
 const formSchema = z.object({
@@ -55,6 +57,8 @@ const formSchema = z.object({
   instructions: z.string().optional(),
   cost: z.coerce.number().optional(),
   doctorId: z.string().optional(),
+  lab_service_id: z.number().optional().nullable(),
+  applied_price: z.number().optional().nullable(),
 });
 
 type LabOrderFormProps = {
@@ -66,15 +70,55 @@ type LabOrderFormProps = {
 
 export function LabOrderForm({ clients, doctors, onSave, onOpenChange }: LabOrderFormProps) {
   const { toast } = useToast();
+  const { selectedBranch } = useBranch();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [labServices, setLabServices] = useState<LabService[]>([]);
+  const [servicesLoading, setServicesLoading] = useState(false);
+  const [priceLoading, setPriceLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchServices = async () => {
+      setServicesLoading(true);
+      try {
+        const data = await getLabServices(selectedBranch);
+        if (Array.isArray(data)) {
+          setLabServices(data);
+        } else {
+          setLabServices(data || []);
+        }
+      } catch (error) {
+        console.error("Error fetching lab services:", error);
+      } finally {
+        setServicesLoading(false);
+      }
+    };
+    fetchServices();
+  }, [selectedBranch]);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
         sentDate: new Date(),
         status: 'Draft',
+        lab_service_id: null,
+        applied_price: null,
     },
   });
+
+  const handleLabServiceSelect = async (serviceId: number) => {
+    form.setValue('lab_service_id', serviceId);
+    setPriceLoading(true);
+    try {
+      const price = await getActivePriceForService(serviceId);
+      if (price) {
+        form.setValue('applied_price', price.base_price);
+      }
+    } catch (error) {
+      console.error("Error fetching price:", error);
+    } finally {
+      setPriceLoading(false);
+    }
+  };
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
@@ -84,7 +128,7 @@ export function LabOrderForm({ clients, doctors, onSave, onOpenChange }: LabOrde
             sentDate: format(values.sentDate, "yyyy-MM-dd"),
             dueDate: format(values.dueDate, "yyyy-MM-dd"),
             receivedDate: values.receivedDate ? format(values.receivedDate, "yyyy-MM-dd") : undefined,
-        });
+        } as any);
     } catch (error: any) {
         console.error(error);
         toast({
@@ -155,6 +199,55 @@ export function LabOrderForm({ clients, doctors, onSave, onOpenChange }: LabOrde
                                     placeholder="Select a doctor"
                                     searchPlaceholder="Search doctors..."
                                     emptyMessage="No doctor found."
+                                />
+                            </FormControl>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="lab_service_id"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Lab Service (Optional)</FormLabel>
+                            <FormControl>
+                                <Select
+                                  value={field.value?.toString() || ""}
+                                  onValueChange={(val) => handleLabServiceSelect(parseInt(val))}
+                                  disabled={servicesLoading || priceLoading}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select a service to auto-populate price" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {labServices.map((service) => (
+                                            <SelectItem key={service.id} value={service.id.toString()}>
+                                                {service.service_name} {service.category && `(${service.category})`}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </FormControl>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="applied_price"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Price</FormLabel>
+                            <FormControl>
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  placeholder="Auto-filled from service or enter manually"
+                                  {...field}
+                                  value={field.value || ""}
+                                  onChange={e => field.onChange(e.target.value === '' ? null : parseFloat(e.target.value))}
+                                  disabled={priceLoading}
                                 />
                             </FormControl>
                             <FormMessage />
