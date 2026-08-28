@@ -44,7 +44,6 @@ import { getLabServices, getActivePriceForService } from "@/lib/api-lab-prices";
 
 const formSchema = z.object({
   clientId: z.string({ required_error: "Please select a client."}),
-  patientName: z.string().optional(),
   lab: z.string().min(2, "Lab name must be at least 2 characters."),
   item: z.string().min(2, "Item description must be at least 2 characters."),
   tooth: z.coerce.number().optional(),
@@ -64,7 +63,7 @@ const formSchema = z.object({
 type LabOrderFormProps = {
     clients: Client[];
     doctors: Employee[];
-    onSave: (data: Omit<LaboratoryOrder, 'id' | 'patientName' | 'branchId'>) => void;
+    onSave: (data: Omit<LaboratoryOrder, 'id' | 'branchId'>) => void;
     onOpenChange: (open: boolean) => void;
 };
 
@@ -167,19 +166,6 @@ export function LabOrderForm({ clients, doctors, onSave, onOpenChange }: LabOrde
                                     searchPlaceholder="Search clients..."
                                     emptyMessage="No client found."
                                 />
-                            </FormControl>
-                            <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name="patientName"
-                        render={({ field }) => (
-                            <FormItem>
-                            <FormLabel>Patient/Client Name (Optional)</FormLabel>
-                            <FormControl>
-                                <Input placeholder="Leave blank to use client name" {...field} />
                             </FormControl>
                             <FormMessage />
                             </FormItem>
