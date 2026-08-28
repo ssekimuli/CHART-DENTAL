@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -59,6 +59,26 @@ export function LabServicePriceForm({
       is_active: price?.is_active ?? true,
     },
   });
+
+  useEffect(() => {
+    if (isOpen && price) {
+      reset({
+        lab_service_id: price.lab_service_id || 0,
+        lab: price.lab || "",
+        base_price: price.base_price || 0,
+        is_active: price.is_active ?? true,
+      });
+      setSelectedService(price.lab_service_id.toString());
+    } else if (isOpen && !price) {
+      reset({
+        lab_service_id: 0,
+        lab: "",
+        base_price: 0,
+        is_active: true,
+      });
+      setSelectedService("");
+    }
+  }, [isOpen, price, reset]);
 
   const handleFormSubmit = async (data: LabServicePriceFormData) => {
     try {
