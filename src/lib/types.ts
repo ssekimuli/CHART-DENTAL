@@ -354,6 +354,30 @@ export type LaboratoryOrder = {
   doctorId?: string | number;
   doctor?: Employee;
   branchId: string | number;
+  lab_service_id?: number | null;
+  applied_price?: number | null;
+};
+
+export type LabService = {
+  id: number;
+  service_name: string;
+  category?: string;
+  is_active: boolean;
+  current_price?: number;
+  branch_id: number;
+  prices?: LabServicePrice[];
+  created_at: string;
+  updated_at: string;
+};
+
+export type LabServicePrice = {
+  id: number;
+  lab_service_id: number;
+  lab: string;
+  base_price: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
 };
 
 export type BasePatient = Omit<Patient, 'id' | 'dentalRecords' | 'treatmentPlans' | 'imaging' | 'periodontalRecords' | 'occlusalRecords' | 'softTissueRecords' | 'orthodonticRecords'>;

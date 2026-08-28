@@ -3769,6 +3769,55 @@ export const createLabOrder = async (data: Omit<LaboratoryOrder, 'id'>): Promise
     }
 }
 
+export const updateLabOrder = async (id: number, data: Partial<Omit<LaboratoryOrder, 'id'>>): Promise<LaboratoryOrder> => {
+    console.log('API CALL: updateLabOrder', { id, data });
+    try {
+        const response = await customAxios.put(`/management/lab-orders/${id}`, {
+            ...(data.clientId && { clientId: data.clientId }),
+            ...(data.patientName && { patientName: data.patientName }),
+            ...(data.lab && { lab: data.lab }),
+            ...(data.item && { item: data.item }),
+            ...(data.tooth !== undefined && { tooth: data.tooth }),
+            ...(data.status && { status: data.status }),
+            ...(data.sentDate && { sentDate: data.sentDate }),
+            ...(data.dueDate && { dueDate: data.dueDate }),
+            ...(data.receivedDate && { receivedDate: data.receivedDate }),
+            ...(data.shade && { shade: data.shade }),
+            ...(data.material && { material: data.material }),
+            ...(data.instructions && { instructions: data.instructions }),
+            ...(data.cost !== undefined && { cost: data.cost }),
+            ...(data.doctorId && { doctorId: data.doctorId }),
+            ...(data.lab_service_id !== undefined && { labServiceId: data.lab_service_id }),
+            ...(data.applied_price !== undefined && { appliedPrice: data.applied_price }),
+            ...(data.invoice_id !== undefined && { invoiceId: data.invoice_id }),
+        });
+        const order = response.data;
+        return {
+            id: order.id,
+            clientId: String(order.client_id),
+            client: order.client,
+            patientName: order.patient_name || '',
+            lab: order.lab,
+            item: order.item,
+            tooth: order.tooth,
+            status: order.status,
+            sentDate: order.sent_date ? order.sent_date.split('T')[0] : '',
+            dueDate: order.due_date ? order.due_date.split('T')[0] : '',
+            receivedDate: order.received_date ? order.received_date.split('T')[0] : undefined,
+            shade: order.shade,
+            material: order.material,
+            instructions: order.instructions,
+            cost: order.cost,
+            doctorId: order.doctor_id ? String(order.doctor_id) : undefined,
+            doctor: order.doctor,
+            branchId: String(order.branch_id),
+        };
+    } catch (error) {
+        console.error('Error updating lab order:', error);
+        throw error;
+    }
+}
+
 // Payroll
 export const createPayroll = async (data: Omit<Payroll, 'id'>): Promise<Payroll> => {
     console.log('API CALL: createPayroll', { data });
