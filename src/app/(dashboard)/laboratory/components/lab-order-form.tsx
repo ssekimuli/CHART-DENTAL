@@ -110,7 +110,9 @@ export function LabOrderForm({ clients, doctors, onSave, onOpenChange }: LabOrde
     try {
       const price = await getActivePriceForService(serviceId, selectedBranch);
       if (price) {
-        form.setValue('applied_price', price.base_price);
+        const parsedPrice = parseFloat(String(price.base_price));
+        form.setValue('applied_price', parsedPrice);
+        form.setValue('cost', parsedPrice);
       }
     } catch (error) {
       console.error("Error fetching price:", error);
