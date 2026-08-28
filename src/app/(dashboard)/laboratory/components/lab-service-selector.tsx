@@ -111,7 +111,7 @@ export function LabServiceSelector({
                         )}
                       </div>
                       {service.current_price && (
-                        <div className="ml-2 font-semibold">${service.current_price.toFixed(2)}</div>
+                        <div className="ml-2 font-semibold">${parseFloat(String(service.current_price)).toFixed(2)}</div>
                       )}
                     </CommandItem>
                   ))}
@@ -145,7 +145,7 @@ export function LabServiceSelector({
             <div className="text-sm text-muted-foreground">Fetching price...</div>
           ) : appliedPrice ? (
             <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-bold">${appliedPrice.toFixed(2)}</span>
+              <span className="text-2xl font-bold">${parseFloat(String(appliedPrice)).toFixed(2)}</span>
               <span className="text-xs text-muted-foreground">
                 {selectedService.current_price === appliedPrice ? "Current price" : "Custom price"}
               </span>
@@ -177,7 +177,7 @@ export function LabServiceSelector({
         <div className="space-y-2 p-3 border rounded bg-muted/50">
           <Label htmlFor="manual-price">Manual Price</Label>
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-bold">${appliedPrice.toFixed(2)}</span>
+            <span className="text-2xl font-bold">${parseFloat(String(appliedPrice)).toFixed(2)}</span>
             <span className="text-xs text-muted-foreground">Custom price (no service)</span>
           </div>
         </div>

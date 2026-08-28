@@ -86,7 +86,7 @@ export function LabPricesTable({
                       )}
                     </TableCell>
                     <TableCell>
-                      <span className="font-semibold text-lg">${price.base_price.toFixed(2)}</span>
+                      <span className="font-semibold text-lg">${parseFloat(String(price.base_price)).toFixed(2)}</span>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">

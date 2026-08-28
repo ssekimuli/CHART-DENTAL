@@ -78,7 +78,7 @@ export function LabServicesTable({
                   </TableCell>
                   <TableCell>
                     {service.current_price ? (
-                      <span className="font-semibold">${service.current_price.toFixed(2)}</span>
+                      <span className="font-semibold">${parseFloat(String(service.current_price)).toFixed(2)}</span>
                     ) : (
                       <span className="text-muted-foreground">No price set</span>
                     )}
