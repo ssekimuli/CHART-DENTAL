@@ -227,3 +227,13 @@ export const updateLabOrder = async (
     throw error;
   }
 };
+
+export const deleteLabOrder = async (id: number): Promise<void> => {
+  console.log('API CALL: deleteLabOrder', { id });
+  try {
+    await customAxios.delete(`/management/lab-orders/${id}`);
+  } catch (error) {
+    console.error('Error deleting lab order:', error);
+    throw error;
+  }
+};

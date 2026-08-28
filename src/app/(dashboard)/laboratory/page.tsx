@@ -303,6 +303,25 @@ export default function LaboratoryPage() {
     setSelectedOrder(null);
   };
 
+  const handleDeleteOrder = async (orderId: number) => {
+    try {
+      const data = await getLabOrders(selectedBranch, ordersPage, 10, {
+        search: ordersSearch || undefined,
+      });
+      setLabOrders(data);
+      toast({
+        title: "Success",
+        description: "Lab order deleted successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to refresh orders after delete",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <>
       <Card>
@@ -339,7 +358,7 @@ export default function LaboratoryPage() {
                 </div>
               ) : (
                 <>
-                  <LabTable data={labOrders} onEdit={handleEditOrder} />
+                  <LabTable data={labOrders} onEdit={handleEditOrder} onDelete={handleDeleteOrder} />
                   <PaginationControl
                     currentPage={ordersPage}
                     lastPage={labOrders.meta?.last_page || 1}
