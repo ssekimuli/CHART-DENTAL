@@ -5,7 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { format, parseISO, parse } from "date-fns";
+import { format, parseISO, parse, subYears } from "date-fns";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -60,11 +60,12 @@ const formSchema = z.object({
   nationality: z.string().optional(),
   address: z.string().optional(),
   gender: z.enum(['Male', 'Female', 'Other']).optional(),
-  dateOfBirth: z.string().regex(/^\d{2}-\d{2}-\d{4}$/, "Date must be in DD-MM-YYYY format").min(10, "Required"),
+  dateOfBirth: z.string().min(1, "Date of birth or age is required"),
   nextVisit: z.date().optional().nullable(),
   status: z.enum(['Active', 'Inactive']),
   history: z.string().optional(),
   avatar: z.string().url().optional().or(z.literal('')),
+  useAge: z.boolean().default(false),
 });
 
 type PatientFormProps = {
@@ -77,6 +78,13 @@ type PatientFormProps = {
 export function PatientForm({ patient, onSave, onOpenChange, asModal = true }: PatientFormProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [useAge, setUseAge] = useState(false);
+
+  const calculateDateOfBirth = (age: number): string => {
+    const today = new Date();
+    const dateOfBirth = subYears(today, age);
+    return format(dateOfBirth, "yyyy-MM-dd");
+  };
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -93,12 +101,40 @@ export function PatientForm({ patient, onSave, onOpenChange, asModal = true }: P
         status: patient?.status ?? 'Active',
         history: patient?.history ?? "",
         avatar: patient?.avatar ?? "",
+        useAge: false,
     },
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
     try {
+        let dateOfBirthFormatted: string;
+
+        if (values.useAge) {
+          const age = parseInt(values.dateOfBirth);
+          if (isNaN(age) || age < 0 || age > 150) {
+            toast({
+              title: "Invalid Age",
+              description: "Please enter a valid age between 0 and 150",
+              variant: "destructive",
+            });
+            setIsSubmitting(false);
+            return;
+          }
+          dateOfBirthFormatted = calculateDateOfBirth(age);
+        } else {
+          if (!/^\d{2}-\d{2}-\d{4}$/.test(values.dateOfBirth)) {
+            toast({
+              title: "Invalid Date Format",
+              description: "Date must be in DD-MM-YYYY format",
+              variant: "destructive",
+            });
+            setIsSubmitting(false);
+            return;
+          }
+          dateOfBirthFormatted = format(parse(values.dateOfBirth, "dd-MM-yyyy", new Date()), "yyyy-MM-dd");
+        }
+
         await onSave({
             first_name: values.first_name,
             last_name: values.last_name,
@@ -108,7 +144,7 @@ export function PatientForm({ patient, onSave, onOpenChange, asModal = true }: P
             address: values.address,
             gender: values.gender,
             status: values.status,
-            dateOfBirth: format(parse(values.dateOfBirth, "dd-MM-yyyy", new Date()), "yyyy-MM-dd"),
+            dateOfBirth: dateOfBirthFormatted,
             nextVisit: values.nextVisit ? format(values.nextVisit, "yyyy-MM-dd") : undefined,
             history: values.history,
             branchId: patient?.branchId ?? "",
@@ -161,11 +197,35 @@ export function PatientForm({ patient, onSave, onOpenChange, asModal = true }: P
                             name="dateOfBirth"
                             render={({ field }) => (
                                 <FormItem className="flex flex-col">
-                                <FormLabel>Date of Birth</FormLabel>
+                                <div className="flex items-center justify-between">
+                                  <FormLabel>{useAge ? "Age (Years)" : "Date of Birth"}</FormLabel>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setUseAge(!useAge);
+                                      form.setValue("useAge", !useAge);
+                                      form.setValue("dateOfBirth", "");
+                                    }}
+                                    className="text-xs px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300"
+                                  >
+                                    {useAge ? "Use Date" : "Use Age"}
+                                  </button>
+                                </div>
                                 <FormControl>
-                                    <Input placeholder="DD-MM-YYYY" {...field} />
+                                    <Input
+                                      placeholder={useAge ? "e.g., 30" : "DD-MM-YYYY"}
+                                      {...field}
+                                      type={useAge ? "number" : "text"}
+                                      min={useAge ? "0" : undefined}
+                                      max={useAge ? "150" : undefined}
+                                    />
                                 </FormControl>
                                 <FormMessage />
+                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                                  {useAge
+                                    ? "Enter patient age in years"
+                                    : "Enter in DD-MM-YYYY format (e.g., 15-06-1990)"}
+                                </p>
                                 </FormItem>
                             )}
                         />
