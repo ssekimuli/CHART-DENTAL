@@ -27,6 +27,7 @@ import { LabServicePriceForm } from "./components/lab-service-price-form";
 import { LabPricesFilter } from "./components/lab-prices-filter";
 import { LabTable } from "./components/lab-table";
 import { LabOrderEditForm } from "./components/lab-order-edit-form";
+import { LabOrderForm } from "./components/lab-order-form";
 
 // Import API functions
 import {
@@ -39,7 +40,7 @@ import {
   updateLabServicePrice,
   deleteLabServicePrice,
 } from "@/lib/api-lab-prices";
-import { getLabOrders, getClients, getEmployees } from "@/lib/api";
+import { getLabOrders, getClients, getEmployees, createLabOrder } from "@/lib/api";
 
 import type { LabService, LabServicePrice, LaboratoryOrder, PaginatedArray } from "@/lib/types";
 import type { LabServiceFormData } from "./schemas/lab-service.schema";
@@ -60,6 +61,7 @@ export default function LaboratoryPage() {
   const [ordersSearch, setOrdersSearch] = useState("");
   const [selectedOrder, setSelectedOrder] = useState<LaboratoryOrder | null>(null);
   const [isEditFormOpen, setIsEditFormOpen] = useState(false);
+  const [isCreateFormOpen, setIsCreateFormOpen] = useState(false);
   const [clients, setClients] = useState<any[]>([]);
   const [doctors, setDoctors] = useState<any[]>([]);
   const [clientsLoading, setClientsLoading] = useState(false);
@@ -322,6 +324,27 @@ export default function LaboratoryPage() {
     }
   };
 
+  const handleCreateOrder = async (data: any) => {
+    try {
+      await createLabOrder({ ...data, branchId: selectedBranch });
+      const updated = await getLabOrders(selectedBranch, ordersPage, 10, {
+        search: ordersSearch || undefined,
+      });
+      setLabOrders(updated);
+      setIsCreateFormOpen(false);
+      toast({
+        title: "Success",
+        description: "Lab order created successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to create lab order",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <>
       <Card>
@@ -349,6 +372,10 @@ export default function LaboratoryPage() {
                     className="pl-8"
                   />
                 </div>
+                <Button onClick={() => setIsCreateFormOpen(true)}>
+                  <PlusCircle className="mr-2 w-4 h-4" />
+                  Add Order
+                </Button>
               </div>
 
               {ordersLoading ? (
@@ -517,6 +544,16 @@ export default function LaboratoryPage() {
         onSubmit={selectedPrice ? handleUpdatePrice : handleCreatePrice}
         isLoading={pricesLoading}
       />
+
+      {/* Lab Order Create Form Modal */}
+      {isCreateFormOpen && (
+        <LabOrderForm
+          clients={clients}
+          doctors={doctors}
+          onSave={handleCreateOrder}
+          onOpenChange={setIsCreateFormOpen}
+        />
+      )}
 
       {/* Lab Order Edit Form Modal */}
       {selectedOrder && (
