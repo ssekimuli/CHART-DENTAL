@@ -200,10 +200,14 @@ export const deleteLabServicePrice = async (id: number): Promise<void> => {
   }
 };
 
-export const getActivePriceForService = async (serviceId: number): Promise<LabServicePrice | null> => {
-  console.log('API CALL: getActivePriceForService', { serviceId });
+export const getActivePriceForService = async (serviceId: number, branchId?: number): Promise<LabServicePrice | null> => {
+  console.log('API CALL: getActivePriceForService', { serviceId, branchId });
   try {
-    const response = await customAxios.get(`/lab-services/price-for-date?service_id=${serviceId}`);
+    const params: any = { service_id: serviceId };
+    if (branchId) {
+      params.branch_id = branchId;
+    }
+    const response = await customAxios.get(`/lab-services/price-for-date`, { params });
     return response.data;
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.status === 404) {

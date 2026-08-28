@@ -108,7 +108,7 @@ export function LabOrderForm({ clients, doctors, onSave, onOpenChange }: LabOrde
     form.setValue('lab_service_id', serviceId);
     setPriceLoading(true);
     try {
-      const price = await getActivePriceForService(serviceId);
+      const price = await getActivePriceForService(serviceId, selectedBranch);
       if (price) {
         form.setValue('applied_price', price.base_price);
       }
