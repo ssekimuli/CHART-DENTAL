@@ -61,6 +61,7 @@ const formSchema = z.object({
   address: z.string().optional(),
   gender: z.enum(['Male', 'Female', 'Other']).optional(),
   dateOfBirth: z.string().min(1, "Date of birth or age is required"),
+  lastVisit: z.date().optional().nullable(),
   nextVisit: z.date().optional().nullable(),
   status: z.enum(['Active', 'Inactive']),
   history: z.string().optional(),
@@ -97,6 +98,7 @@ export function PatientForm({ patient, onSave, onOpenChange, asModal = true }: P
         address: patient?.address ?? "",
         gender: patient?.gender,
         dateOfBirth: patient?.dateOfBirth ? format(parseISO(patient.dateOfBirth), "dd-MM-yyyy") : "",
+        lastVisit: patient?.lastVisit ? parseISO(patient.lastVisit) : undefined,
         nextVisit: patient?.nextVisit ? parseISO(patient.nextVisit) : undefined,
         status: patient?.status ?? 'Active',
         history: patient?.history ?? "",
@@ -145,6 +147,7 @@ export function PatientForm({ patient, onSave, onOpenChange, asModal = true }: P
             gender: values.gender,
             status: values.status,
             dateOfBirth: dateOfBirthFormatted,
+            lastVisit: values.lastVisit ? format(values.lastVisit, "yyyy-MM-dd") : undefined,
             nextVisit: values.nextVisit ? format(values.nextVisit, "yyyy-MM-dd") : undefined,
             history: values.history,
             branchId: patient?.branchId ?? "",
@@ -331,10 +334,51 @@ export function PatientForm({ patient, onSave, onOpenChange, asModal = true }: P
                         />
                         <FormField
                             control={form.control}
+                            name="lastVisit"
+                            render={({ field }) => (
+                                <FormItem className="flex flex-col">
+                                <FormLabel>Last Visit Date (Optional)</FormLabel>
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                    <FormControl>
+                                        <Button
+                                        variant={"outline"}
+                                        className={cn(
+                                            "pl-3 text-left font-normal",
+                                            !field.value && "text-muted-foreground"
+                                        )}
+                                        >
+                                        {field.value ? (
+                                            format(field.value, "PPP")
+                                        ) : (
+                                            <span>Pick a date</span>
+                                        )}
+                                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                        </Button>
+                                    </FormControl>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0" align="start">
+                                    <Calendar
+                                        mode="single"
+                                        selected={field.value || undefined}
+                                        onSelect={field.onChange}
+                                        captionLayout="dropdown-buttons"
+                                        fromYear={new Date().getFullYear() - 10}
+                                        toYear={new Date().getFullYear()}
+                                        initialFocus
+                                    />
+                                    </PopoverContent>
+                                </Popover>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
                             name="nextVisit"
                             render={({ field }) => (
                                 <FormItem className="flex flex-col">
-                                <FormLabel>Next Visit Target Date</FormLabel>
+                                <FormLabel>Next Visit Target Date (Optional)</FormLabel>
                                 <Popover>
                                     <PopoverTrigger asChild>
                                     <FormControl>
