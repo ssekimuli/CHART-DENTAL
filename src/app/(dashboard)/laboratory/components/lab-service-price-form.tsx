@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { labServicePriceSchema, type LabServicePriceFormData } from "../schemas/lab-service-price.schema";
 import type { LabService, LabServicePrice } from "@/lib/types";
@@ -47,7 +47,7 @@ export function LabServicePriceForm({
   const {
     register,
     handleSubmit,
-    watch,
+    control,
     reset,
     formState: { errors },
   } = useForm<LabServicePriceFormData>({
@@ -59,8 +59,6 @@ export function LabServicePriceForm({
       is_active: price?.is_active ?? true,
     },
   });
-
-  const isActive = watch("is_active");
 
   const handleFormSubmit = async (data: LabServicePriceFormData) => {
     try {
@@ -148,11 +146,17 @@ export function LabServicePriceForm({
           </div>
 
           <div className="flex items-center gap-2">
-            <Switch
-              id="is_active"
-              checked={isActive}
-              onCheckedChange={(checked) => register("is_active").onChange({ target: { value: checked } })}
-              disabled={isLoading}
+            <Controller
+              name="is_active"
+              control={control}
+              render={({ field }) => (
+                <Switch
+                  id="is_active"
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                  disabled={isLoading}
+                />
+              )}
             />
             <Label htmlFor="is_active">Active (Sets this as the current price)</Label>
           </div>

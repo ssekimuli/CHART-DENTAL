@@ -11,7 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { labServiceSchema, type LabServiceFormData } from "../schemas/lab-service.schema";
 import type { LabService } from "@/lib/types";
@@ -36,7 +36,7 @@ export function LabServiceForm({
   const {
     register,
     handleSubmit,
-    watch,
+    control,
     reset,
     formState: { errors },
   } = useForm<LabServiceFormData>({
@@ -47,8 +47,6 @@ export function LabServiceForm({
       is_active: service?.is_active ?? true,
     },
   });
-
-  const isActive = watch("is_active");
 
   const handleFormSubmit = async (data: LabServiceFormData) => {
     try {
@@ -102,11 +100,17 @@ export function LabServiceForm({
           </div>
 
           <div className="flex items-center gap-2">
-            <Switch
-              id="is_active"
-              checked={isActive}
-              onCheckedChange={(checked) => register("is_active").onChange({ target: { value: checked } })}
-              disabled={isLoading}
+            <Controller
+              name="is_active"
+              control={control}
+              render={({ field }) => (
+                <Switch
+                  id="is_active"
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                  disabled={isLoading}
+                />
+              )}
             />
             <Label htmlFor="is_active">Active</Label>
           </div>
