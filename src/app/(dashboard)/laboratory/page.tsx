@@ -409,17 +409,15 @@ export default function LaboratoryPage() {
                     className="pl-8"
                   />
                 </div>
-                {hasPermission("lab_services:create") && (
-                  <Button
-                    onClick={() => {
-                      setSelectedService(null);
-                      setIsServiceFormOpen(true);
-                    }}
-                  >
-                    <PlusCircle className="mr-2 w-4 h-4" />
-                    Add Service
-                  </Button>
-                )}
+                <Button
+                  onClick={() => {
+                    setSelectedService(null);
+                    setIsServiceFormOpen(true);
+                  }}
+                >
+                  <PlusCircle className="mr-2 w-4 h-4" />
+                  Add Service
+                </Button>
               </div>
 
               {servicesLoading ? (
@@ -478,17 +476,15 @@ export default function LaboratoryPage() {
               />
 
               <div className="flex justify-end">
-                {hasPermission("lab_services:create") && (
-                  <Button
-                    onClick={() => {
-                      setSelectedPrice(null);
-                      setIsPriceFormOpen(true);
-                    }}
-                  >
-                    <PlusCircle className="mr-2 w-4 h-4" />
-                    Add Price
-                  </Button>
-                )}
+                <Button
+                  onClick={() => {
+                    setSelectedPrice(null);
+                    setIsPriceFormOpen(true);
+                  }}
+                >
+                  <PlusCircle className="mr-2 w-4 h-4" />
+                  Add Price
+                </Button>
               </div>
 
               {pricesLoading ? (
