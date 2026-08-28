@@ -88,7 +88,6 @@ export const updateLabService = async (
 };
 
 export const deleteLabService = async (id: number): Promise<void> => {
-  console.log('API CALL: deleteLabService', { id });
   try {
     await customAxios.delete(`/lab-services/${id}`);
   } catch (error) {
