@@ -18,14 +18,17 @@ export const getLabServices = async (
 ): Promise<PaginatedArray<LabService>> => {
   console.log('API CALL: getLabServices', { branchId, page, filters });
   try {
-    const params = new URLSearchParams();
-    if (page) params.append('page', page.toString());
-    if (limit) params.append('limit', limit.toString());
-    if (filters?.search) params.append('search', filters.search);
-    if (filters?.category) params.append('category', filters.category);
-    if (filters?.active !== undefined) params.append('active', filters.active.toString());
+    const params: any = {};
+    if (branchId !== undefined && branchId !== null) {
+      params.branch_id = branchId;
+    }
+    if (page) params.page = page;
+    if (limit) params.limit = limit;
+    if (filters?.search) params.search = filters.search;
+    if (filters?.category) params.category = filters.category;
+    if (filters?.active !== undefined) params.active = filters.active;
 
-    const response = await customAxios.get(`/lab-services?${params.toString()}`);
+    const response = await customAxios.get(`/lab-services`, { params });
     const data = response.data;
 
     if (Array.isArray(data)) {
@@ -123,17 +126,17 @@ export const getLabServicePrices = async (
 ): Promise<PaginatedArray<LabServicePrice>> => {
   console.log('API CALL: getLabServicePrices', { page, filters });
   try {
-    const params = new URLSearchParams();
-    if (page) params.append('page', page.toString());
-    if (limit) params.append('limit', limit.toString());
-    if (filters?.search) params.append('search', filters.search);
-    if (filters?.lab) params.append('lab', filters.lab);
-    if (filters?.service_id) params.append('service_id', filters.service_id.toString());
-    if (filters?.min_price !== undefined) params.append('min_price', filters.min_price.toString());
-    if (filters?.max_price !== undefined) params.append('max_price', filters.max_price.toString());
-    if (filters?.active !== undefined) params.append('active', filters.active.toString());
+    const params: any = {};
+    if (page) params.page = page;
+    if (limit) params.limit = limit;
+    if (filters?.search) params.search = filters.search;
+    if (filters?.lab) params.lab = filters.lab;
+    if (filters?.service_id) params.service_id = filters.service_id;
+    if (filters?.min_price !== undefined) params.min_price = filters.min_price;
+    if (filters?.max_price !== undefined) params.max_price = filters.max_price;
+    if (filters?.active !== undefined) params.active = filters.active;
 
-    const response = await customAxios.get(`/lab-service-prices?${params.toString()}`);
+    const response = await customAxios.get(`/lab-service-prices`, { params });
     const data = response.data;
 
     if (Array.isArray(data)) {

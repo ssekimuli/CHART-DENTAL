@@ -1224,9 +1224,13 @@ export const updateLabOrderStatus = async (id: string | number, status: string):
     }
 }
 
-export const getClients = async (): Promise<Client[]> => {
+export const getClients = async (branchId?: string | number): Promise<Client[]> => {
     try {
-        const response = await customAxios.get('/clients');
+        const params: any = {};
+        if (branchId !== undefined && branchId !== null) {
+            params.branch_id = branchId;
+        }
+        const response = await customAxios.get('/clients', { params });
         return response.data;
     } catch (error) {
         console.error('Error fetching clients:', error);
