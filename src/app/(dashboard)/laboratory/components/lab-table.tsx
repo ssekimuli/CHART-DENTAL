@@ -21,7 +21,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Mail, MessageCircle, Loader2, Send, Smartphone, Package, FileText } from "lucide-react";
+import { MoreHorizontal, Mail, MessageCircle, Loader2, Send, Smartphone, Package, FileText, Edit2 } from "lucide-react";
 import { sendLabOrder, updateLabOrderStatus } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
@@ -31,7 +31,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 
-export function LabTable({ data, onDataChange }: { data: LaboratoryOrder[]; onDataChange?: (updatedData: LaboratoryOrder[]) => void }) {
+export function LabTable({ data, onDataChange, onEdit }: { data: LaboratoryOrder[]; onDataChange?: (updatedData: LaboratoryOrder[]) => void; onEdit?: (order: LaboratoryOrder) => void }) {
     const [orders, setOrders] = useState<LaboratoryOrder[]>(data);
 
     const getStatusColor = (status: "Draft" | "Received" | "In Production" | "Ready for Delivery" | "Delivered" | "Cancelled") => {
@@ -52,6 +52,12 @@ export function LabTable({ data, onDataChange }: { data: LaboratoryOrder[]; onDa
     };
 
     const handleStatusChange = (updatedOrder: LaboratoryOrder) => {
+        const updatedOrders = orders.map(o => o.id === updatedOrder.id ? updatedOrder : o);
+        setOrders(updatedOrders);
+        onDataChange?.(updatedOrders);
+    };
+
+    const handleOrderUpdate = (updatedOrder: LaboratoryOrder) => {
         const updatedOrders = orders.map(o => o.id === updatedOrder.id ? updatedOrder : o);
         setOrders(updatedOrders);
         onDataChange?.(updatedOrders);
@@ -119,7 +125,7 @@ export function LabTable({ data, onDataChange }: { data: LaboratoryOrder[]; onDa
                 </div>
               </TableCell>
               <TableCell className="text-right">
-                  <LabOrderActions order={order} onStatusChange={handleStatusChange} />
+                  <LabOrderActions order={order} onStatusChange={handleStatusChange} onEdit={onEdit} onUpdate={handleOrderUpdate} />
               </TableCell>
             </TableRow>
           ))}
@@ -139,7 +145,7 @@ export function LabTable({ data, onDataChange }: { data: LaboratoryOrder[]; onDa
   );
 }
 
-function LabOrderActions({ order, onStatusChange }: { order: LaboratoryOrder; onStatusChange?: (updatedOrder: LaboratoryOrder) => void }) {
+function LabOrderActions({ order, onStatusChange, onEdit, onUpdate }: { order: LaboratoryOrder; onStatusChange?: (updatedOrder: LaboratoryOrder) => void; onEdit?: (order: LaboratoryOrder) => void; onUpdate?: (updatedOrder: LaboratoryOrder) => void }) {
     const { toast } = useToast();
     const router = useRouter();
     const [isSending, setIsSending] = useState(false);
@@ -270,6 +276,13 @@ function LabOrderActions({ order, onStatusChange }: { order: LaboratoryOrder; on
                     <DropdownMenuSeparator />
                   </>
                 )}
+                <DropdownMenuItem
+                  onClick={() => onEdit?.(order)}
+                  className="cursor-pointer"
+                >
+                    <Edit2 className="mr-2 h-4 w-4 text-slate-600 dark:text-slate-400" />
+                    Edit Order
+                </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => setIsStatusDialogOpen(true)}
                   className="cursor-pointer"

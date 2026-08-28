@@ -211,3 +211,19 @@ export const getActivePriceForService = async (serviceId: number): Promise<LabSe
     throw error;
   }
 };
+
+// ===== LAB ORDERS =====
+
+export const updateLabOrder = async (
+  id: number,
+  data: any
+): Promise<any> => {
+  console.log('API CALL: updateLabOrder', { id, data });
+  try {
+    const response = await customAxios.put(`/management/lab-orders/${id}`, data);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating lab order:', error);
+    throw error;
+  }
+};

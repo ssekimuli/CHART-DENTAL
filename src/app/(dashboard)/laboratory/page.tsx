@@ -26,6 +26,7 @@ import { LabServiceForm } from "./components/lab-service-form";
 import { LabServicePriceForm } from "./components/lab-service-price-form";
 import { LabPricesFilter } from "./components/lab-prices-filter";
 import { LabTable } from "./components/lab-table";
+import { LabOrderEditForm } from "./components/lab-order-edit-form";
 
 // Import API functions
 import {
@@ -57,6 +58,11 @@ export default function LaboratoryPage() {
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [ordersPage, setOrdersPage] = useState(1);
   const [ordersSearch, setOrdersSearch] = useState("");
+  const [selectedOrder, setSelectedOrder] = useState<LaboratoryOrder | null>(null);
+  const [isEditFormOpen, setIsEditFormOpen] = useState(false);
+  const [clients, setClients] = useState<any[]>([]);
+  const [doctors, setDoctors] = useState<any[]>([]);
+  const [clientsLoading, setClientsLoading] = useState(false);
 
   // Lab Services state
   const [services, setServices] = useState<LabService[]>([]);
@@ -91,7 +97,7 @@ export default function LaboratoryPage() {
     }
   }, [router]);
 
-  // Fetch Lab Orders
+  // Fetch Lab Orders and related data
   useEffect(() => {
     if (activeSection !== "orders") return;
 
@@ -113,7 +119,24 @@ export default function LaboratoryPage() {
       }
     };
 
+    const fetchClientsAndDoctors = async () => {
+      setClientsLoading(true);
+      try {
+        const [clientsData, doctorsData] = await Promise.all([
+          getClients(selectedBranch),
+          getEmployees(selectedBranch),
+        ]);
+        setClients(clientsData);
+        setDoctors(doctorsData);
+      } catch (error) {
+        console.error("Failed to fetch clients/doctors:", error);
+      } finally {
+        setClientsLoading(false);
+      }
+    };
+
     fetchOrders();
+    fetchClientsAndDoctors();
   }, [selectedBranch, activeSection, ordersPage, ordersSearch, toast]);
 
   // Fetch Lab Services
@@ -265,6 +288,21 @@ export default function LaboratoryPage() {
     }
   };
 
+  // Order handlers
+  const handleEditOrder = (order: LaboratoryOrder) => {
+    setSelectedOrder(order);
+    setIsEditFormOpen(true);
+  };
+
+  const handleOrderUpdate = (updatedOrder: LaboratoryOrder) => {
+    const updatedOrders = labOrders.map((o) =>
+      o.id === updatedOrder.id ? updatedOrder : o
+    );
+    setLabOrders(updatedOrders as any);
+    setIsEditFormOpen(false);
+    setSelectedOrder(null);
+  };
+
   return (
     <>
       <Card>
@@ -301,7 +339,7 @@ export default function LaboratoryPage() {
                 </div>
               ) : (
                 <>
-                  <LabTable data={labOrders} />
+                  <LabTable data={labOrders} onEdit={handleEditOrder} />
                   <PaginationControl
                     currentPage={ordersPage}
                     lastPage={labOrders.meta?.last_page || 1}
@@ -460,6 +498,21 @@ export default function LaboratoryPage() {
         onSubmit={selectedPrice ? handleUpdatePrice : handleCreatePrice}
         isLoading={pricesLoading}
       />
+
+      {/* Lab Order Edit Form Modal */}
+      {selectedOrder && (
+        <LabOrderEditForm
+          order={selectedOrder}
+          clients={clients}
+          doctors={doctors}
+          isOpen={isEditFormOpen}
+          onClose={() => {
+            setIsEditFormOpen(false);
+            setSelectedOrder(null);
+          }}
+          onUpdate={handleOrderUpdate}
+        />
+      )}
     </>
   );
 }
