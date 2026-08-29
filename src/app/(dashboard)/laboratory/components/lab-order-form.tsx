@@ -57,7 +57,7 @@ const formSchema = z.object({
   cost: z.coerce.number().optional(),
   doctorId: z.string().optional(),
   lab_service_id: z.number().optional().nullable(),
-  applied_price: z.number().optional().nullable(),
+  applied_price: z.coerce.number().optional().nullable(),
 });
 
 type LabOrderFormProps = {
