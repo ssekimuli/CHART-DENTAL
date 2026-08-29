@@ -13,6 +13,7 @@ import { PlusCircle, Search, X, QrCode } from "lucide-react";
 import { QRCodeModal } from "./components/qr-code-modal";
 import { PatientsTable } from "./components/patients-table";
 import { useBranch } from "@/context/branch-context";
+import customAxios from "@/lib/axios";
 import { useState, useMemo, useEffect } from "react";
 import {  hasPermission, hasRole , getCurrentUser } from "@/lib/user";
 import type { Patient, BasePatient, PaginatedArray } from "@/lib/types";
