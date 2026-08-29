@@ -54,7 +54,6 @@ const formSchema = z.object({
   shade: z.string().optional(),
   material: z.string().optional(),
   instructions: z.string().optional(),
-  cost: z.coerce.number().optional(),
   doctorId: z.string().optional(),
   lab_service_id: z.number().optional().nullable(),
   applied_price: z.coerce.number().optional().nullable(),
@@ -112,7 +111,6 @@ export function LabOrderForm({ clients, doctors, onSave, onOpenChange }: LabOrde
       if (price) {
         const parsedPrice = parseFloat(String(price.base_price));
         form.setValue('applied_price', parsedPrice);
-        form.setValue('cost', parsedPrice);
       }
     } catch (error) {
       console.error("Error fetching price:", error);
@@ -416,19 +414,6 @@ export function LabOrderForm({ clients, doctors, onSave, onOpenChange }: LabOrde
                             <FormLabel>Instructions</FormLabel>
                             <FormControl>
                                 <Input placeholder="Special instructions for the lab" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name="cost"
-                        render={({ field }) => (
-                            <FormItem>
-                            <FormLabel>Cost</FormLabel>
-                            <FormControl>
-                                <Input type="number" step="0.01" placeholder="Lab Fee" {...field} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.value)} />
                             </FormControl>
                             <FormMessage />
                             </FormItem>
