@@ -4168,6 +4168,39 @@ export const createExpense = async (data: Omit<Expense, 'id'>): Promise<Expense>
     }
 }
 
+export const updateExpense = async (id: string | number, data: Partial<Omit<Expense, 'id'>>): Promise<Expense> => {
+    console.log('API CALL: updateExpense', { id, data });
+    try {
+        const response = await customAxios.patch(`/management/expenses/${id}`, {
+            date: data.date,
+            category: data.category,
+            description: data.description,
+            amount: data.amount,
+        });
+        const expense = response.data;
+        return {
+            id: expense.id,
+            branchId: String(expense.branch_id),
+            date: expense.date ? expense.date.split('T')[0] : '',
+            category: expense.category,
+            description: expense.description,
+            amount: parseFloat(expense.amount),
+        };
+    } catch (error) {
+        console.error('Error updating expense:', error);
+        throw error;
+    }
+}
+
+export const deleteExpense = async (id: string | number): Promise<void> => {
+    console.log('API CALL: deleteExpense', { id });
+    try {
+        await customAxios.delete(`/management/expenses/${id}`);
+    } catch (error) {
+        console.error('Error deleting expense:', error);
+        throw error;
+    }
+}
 
 // Roles
 export const updateRole = async (roleId: string | number, permissions: Permission[]): Promise<RolePermissions | undefined> => {
