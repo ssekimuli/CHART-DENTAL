@@ -3731,8 +3731,7 @@ export const createLabOrder = async (data: Omit<LaboratoryOrder, 'id'>): Promise
     try {
         const response = await customAxios.post('/management/lab-orders', {
             clientId: data.clientId,
-            patientName: data.patientName,
-            lab: data.lab,
+            doctorName: data.doctorName,
             item: data.item,
             tooth: data.tooth,
             status: data.status,
@@ -3742,8 +3741,7 @@ export const createLabOrder = async (data: Omit<LaboratoryOrder, 'id'>): Promise
             shade: data.shade,
             material: data.material,
             instructions: data.instructions,
-            cost: data.cost,
-            doctorId: data.doctorId,
+            appliedPrice: data.applied_price,
             branchId: data.branchId,
         });
         const order = response.data;
@@ -3751,8 +3749,6 @@ export const createLabOrder = async (data: Omit<LaboratoryOrder, 'id'>): Promise
             id: order.id,
             clientId: String(order.client_id),
             client: order.client,
-            patientName: order.patient_name || '',
-            lab: order.lab,
             item: order.item,
             tooth: order.tooth,
             status: order.status,
@@ -3762,10 +3758,10 @@ export const createLabOrder = async (data: Omit<LaboratoryOrder, 'id'>): Promise
             shade: order.shade,
             material: order.material,
             instructions: order.instructions,
-            cost: order.cost,
-            doctorId: order.doctor_id ? String(order.doctor_id) : undefined,
-            doctor: order.doctor,
+            doctorName: order.doctor_name,
             branchId: String(order.branch_id),
+            lab_service_id: order.lab_service_id,
+            applied_price: order.applied_price ? parseFloat(String(order.applied_price)) : undefined,
         };
     } catch (error) {
         console.error('Error creating lab order:', error);
@@ -3776,10 +3772,8 @@ export const createLabOrder = async (data: Omit<LaboratoryOrder, 'id'>): Promise
 export const updateLabOrder = async (id: number, data: Partial<Omit<LaboratoryOrder, 'id'>>): Promise<LaboratoryOrder> => {
     console.log('API CALL: updateLabOrder', { id, data });
     try {
-        const response = await customAxios.put(`/management/lab-orders/${id}`, {
+        const response = await customAxios.patch(`/management/lab-orders/${id}`, {
             ...(data.clientId && { clientId: data.clientId }),
-            ...(data.patientName && { patientName: data.patientName }),
-            ...(data.lab && { lab: data.lab }),
             ...(data.item && { item: data.item }),
             ...(data.tooth !== undefined && { tooth: data.tooth }),
             ...(data.status && { status: data.status }),
@@ -3789,19 +3783,15 @@ export const updateLabOrder = async (id: number, data: Partial<Omit<LaboratoryOr
             ...(data.shade && { shade: data.shade }),
             ...(data.material && { material: data.material }),
             ...(data.instructions && { instructions: data.instructions }),
-            ...(data.cost !== undefined && { cost: data.cost }),
-            ...(data.doctorId && { doctorId: data.doctorId }),
+            ...(data.doctorName && { doctorName: data.doctorName }),
             ...(data.lab_service_id !== undefined && { labServiceId: data.lab_service_id }),
             ...(data.applied_price !== undefined && { appliedPrice: data.applied_price }),
-            ...(data.invoice_id !== undefined && { invoiceId: data.invoice_id }),
         });
         const order = response.data;
         return {
             id: order.id,
             clientId: String(order.client_id),
             client: order.client,
-            patientName: order.patient_name || '',
-            lab: order.lab,
             item: order.item,
             tooth: order.tooth,
             status: order.status,
@@ -3811,10 +3801,10 @@ export const updateLabOrder = async (id: number, data: Partial<Omit<LaboratoryOr
             shade: order.shade,
             material: order.material,
             instructions: order.instructions,
-            cost: order.cost,
-            doctorId: order.doctor_id ? String(order.doctor_id) : undefined,
-            doctor: order.doctor,
+            doctorName: order.doctor_name,
             branchId: String(order.branch_id),
+            lab_service_id: order.lab_service_id,
+            applied_price: order.applied_price ? parseFloat(String(order.applied_price)) : undefined,
         };
     } catch (error) {
         console.error('Error updating lab order:', error);
