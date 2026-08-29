@@ -3772,8 +3772,9 @@ export const createLabOrder = async (data: Omit<LaboratoryOrder, 'id'>): Promise
 export const updateLabOrder = async (id: number, data: Partial<Omit<LaboratoryOrder, 'id'>>): Promise<LaboratoryOrder> => {
     console.log('API CALL: updateLabOrder', { id, data });
     try {
-        const response = await customAxios.patch(`/management/lab-orders/${id}`, {
+        const response = await customAxios.put(`/management/lab-orders/${id}`, {
             ...(data.clientId && { clientId: data.clientId }),
+            ...(data.doctorName && { doctorName: data.doctorName }),
             ...(data.item && { item: data.item }),
             ...(data.tooth !== undefined && { tooth: data.tooth }),
             ...(data.status && { status: data.status }),
@@ -3783,9 +3784,9 @@ export const updateLabOrder = async (id: number, data: Partial<Omit<LaboratoryOr
             ...(data.shade && { shade: data.shade }),
             ...(data.material && { material: data.material }),
             ...(data.instructions && { instructions: data.instructions }),
-            ...(data.doctorName && { doctorName: data.doctorName }),
             ...(data.lab_service_id !== undefined && { labServiceId: data.lab_service_id }),
             ...(data.applied_price !== undefined && { appliedPrice: data.applied_price }),
+            ...(data.invoiceId && { invoiceId: data.invoiceId }),
         });
         const order = response.data;
         return {
@@ -3805,6 +3806,7 @@ export const updateLabOrder = async (id: number, data: Partial<Omit<LaboratoryOr
             branchId: String(order.branch_id),
             lab_service_id: order.lab_service_id,
             applied_price: order.applied_price ? parseFloat(String(order.applied_price)) : undefined,
+            invoiceId: order.invoice_id,
         };
     } catch (error) {
         console.error('Error updating lab order:', error);
