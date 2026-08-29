@@ -35,14 +35,11 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import { CalendarIcon, Loader2 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
-import { Combobox } from "@/components/ui/combobox";
 import { useBranch } from "@/context/branch-context";
 import { getLabServices, getActivePriceForService, updateLabOrder } from "@/lib/api-lab-prices";
 
 const formSchema = z.object({
   clientId: z.string().optional(),
-  patientName: z.string().optional(),
-  lab: z.string().min(2, "Lab name must be at least 2 characters."),
   item: z.string().min(2, "Item description must be at least 2 characters."),
   tooth: z.coerce.number().optional(),
   status: z.enum(['Draft', 'Received', 'In Production', 'Ready for Delivery', 'Delivered', 'Cancelled']),
@@ -52,8 +49,7 @@ const formSchema = z.object({
   shade: z.string().optional(),
   material: z.string().optional(),
   instructions: z.string().optional(),
-  cost: z.coerce.number().optional(),
-  doctorId: z.string().optional(),
+  doctorName: z.string().optional(),
   lab_service_id: z.number().optional().nullable(),
   applied_price: z.number().optional().nullable(),
 });
@@ -86,8 +82,6 @@ export function LabOrderEditForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
       clientId: String(order.clientId || ""),
-      patientName: order.patientName || "",
-      lab: order.lab,
       item: order.item,
       tooth: order.tooth,
       status: order.status,
@@ -97,8 +91,7 @@ export function LabOrderEditForm({
       shade: order.shade,
       material: order.material,
       instructions: order.instructions,
-      cost: order.cost,
-      doctorId: order.doctorId ? String(order.doctorId) : undefined,
+      doctorName: order.doctorName || "",
       lab_service_id: order.lab_service_id,
       applied_price: order.applied_price,
     },
@@ -123,13 +116,25 @@ export function LabOrderEditForm({
     fetchServices();
   }, [selectedBranch]);
 
+  useEffect(() => {
+    const selectedClientId = form.watch('clientId');
+    const currentDoctorName = form.watch('doctorName');
+
+    if (selectedClientId && !currentDoctorName) {
+      const selectedClient = clients.find(c => String(c.id) === selectedClientId);
+      if (selectedClient) {
+        form.setValue('doctorName', selectedClient.name);
+      }
+    }
+  }, [form.watch('clientId'), clients, form]);
+
   const handleLabServiceSelect = async (serviceId: number) => {
     form.setValue('lab_service_id', serviceId);
     setPriceLoading(true);
     try {
       const price = await getActivePriceForService(serviceId);
       if (price) {
-        form.setValue('applied_price', price.base_price);
+        form.setValue('applied_price', parseFloat(String(price.base_price)));
       }
     } catch (error) {
       console.error("Error fetching price:", error);
@@ -200,33 +205,12 @@ export function LabOrderEditForm({
 
             <FormField
               control={form.control}
-              name="patientName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Patient/Client Name (Optional)</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Leave blank to use client name" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="doctorId"
+              name="doctorName"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Prescribing Doctor (Optional)</FormLabel>
                   <FormControl>
-                    <Combobox
-                      options={doctors.map(d => ({ value: String(d.id), label: d.name }))}
-                      value={field.value}
-                      onChange={field.onChange}
-                      placeholder="Select a doctor"
-                      searchPlaceholder="Search doctors..."
-                      emptyMessage="No doctor found."
-                    />
+                    <Input placeholder="Enter doctor name" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -278,20 +262,6 @@ export function LabOrderEditForm({
                       onChange={e => field.onChange(e.target.value === '' ? null : parseFloat(e.target.value))}
                       disabled={priceLoading}
                     />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="lab"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Laboratory</FormLabel>
-                  <FormControl>
-                    <Input placeholder="e.g., Precision Dental Labs" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -495,20 +465,6 @@ export function LabOrderEditForm({
                       <SelectItem value="Cancelled">Cancelled</SelectItem>
                     </SelectContent>
                   </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="cost"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Cost</FormLabel>
-                  <FormControl>
-                    <Input type="number" step="0.01" placeholder="0.00" {...field} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.value)} />
-                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}

@@ -337,8 +337,6 @@ export type LaboratoryOrder = {
   id: string | number;
   clientId: string | number;
   client?: Client;
-  patientName: string;
-  lab: string;
   item: string;
   tooth?: number;
   status: 'Draft' | 'Received' | 'In Production' | 'Ready for Delivery' | 'Delivered' | 'Cancelled';
@@ -348,11 +346,9 @@ export type LaboratoryOrder = {
   shade?: string;
   material?: string;
   instructions?: string;
-  cost?: number;
   invoiceNumber?: string;
   invoiceId?: string | number;
-  doctorId?: string | number;
-  doctor?: Employee;
+  doctorName?: string;
   branchId: string | number;
   lab_service_id?: number | null;
   applied_price?: number | null;
