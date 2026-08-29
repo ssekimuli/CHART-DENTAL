@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -47,6 +47,24 @@ export function LabServiceForm({
       is_active: service?.is_active ?? true,
     },
   });
+
+  useEffect(() => {
+    if (isOpen) {
+      if (service) {
+        reset({
+          service_name: service.service_name,
+          category: service.category || "",
+          is_active: service.is_active,
+        });
+      } else {
+        reset({
+          service_name: "",
+          category: "",
+          is_active: true,
+        });
+      }
+    }
+  }, [isOpen, service, reset]);
 
   const handleFormSubmit = async (data: LabServiceFormData) => {
     try {
