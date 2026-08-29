@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -10,7 +10,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Download, Loader2 } from "lucide-react";
+import { Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import html2pdf from "html2pdf.js";
 
@@ -30,44 +30,15 @@ export function QRCodeModal({
   baseUrl,
 }: QRCodeModalProps) {
   const { toast } = useToast();
-  const qrCanvasRef = useRef<HTMLCanvasElement>(null);
   const qrContainerRef = useRef<HTMLDivElement>(null);
+  const qrImageRef = useRef<HTMLImageElement>(null);
 
-  useEffect(() => {
-    if (isOpen && qrCanvasRef.current) {
-      generateQRCode();
-    }
-  }, [isOpen]);
+  const cleanBaseUrl = baseUrl.replace(/\/api\/?$/, "");
+  const registrationUrl = patientId
+    ? `${cleanBaseUrl}/self-register?patientId=${patientId}`
+    : `${cleanBaseUrl}/self-register`;
 
-  const generateQRCode = async () => {
-    try {
-      // Dynamic import of QR code library
-      const QRCode = (await import("qrcode")).default;
-
-      const cleanBaseUrl = baseUrl.replace(/\/api\/?$/, "");
-      const registrationUrl = patientId
-        ? `${cleanBaseUrl}/self-register?patientId=${patientId}`
-        : `${cleanBaseUrl}/self-register`;
-
-      // Generate QR code on canvas
-      if (qrCanvasRef.current) {
-        await QRCode.toCanvas(qrCanvasRef.current, registrationUrl, {
-          errorCorrectionLevel: "H",
-          type: "image/png",
-          quality: 0.95,
-          margin: 1,
-          width: 300,
-        });
-      }
-    } catch (error) {
-      console.error("Error generating QR code:", error);
-      toast({
-        title: "Error",
-        description: "Failed to generate QR code",
-        variant: "destructive",
-      });
-    }
-  };
+  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(registrationUrl)}`;
 
   const downloadQRCodePDF = async () => {
     try {
@@ -84,7 +55,7 @@ export function QRCodeModal({
         image: { type: "png", quality: 0.98 },
         html2canvas: { scale: 2 },
         jsPDF: { orientation: "portrait", unit: "mm", format: "a4" },
-      };
+      } as any;
 
       html2pdf().set(opt).from(element).save();
 
@@ -116,13 +87,18 @@ export function QRCodeModal({
 
         <div ref={qrContainerRef} className="flex flex-col items-center justify-center space-y-4 py-6">
           <div className="bg-white p-4 rounded-lg border">
-            <canvas ref={qrCanvasRef} />
+            <img
+              ref={qrImageRef}
+              src={qrCodeUrl}
+              alt="Patient registration QR code"
+              className="w-[300px] h-[300px]"
+            />
           </div>
           <p className="text-sm text-muted-foreground text-center">
             Patients can scan this QR code to register themselves on the portal
           </p>
           <p className="text-xs text-muted-foreground">
-            Registration URL: {baseUrl.replace(/\/api\/?$/, "")}/self-register
+            Registration URL: {registrationUrl}
           </p>
         </div>
 
