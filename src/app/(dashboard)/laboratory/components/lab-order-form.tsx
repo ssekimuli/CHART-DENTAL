@@ -54,19 +54,18 @@ const formSchema = z.object({
   shade: z.string().optional(),
   material: z.string().optional(),
   instructions: z.string().optional(),
-  doctorId: z.string().optional(),
+  doctorName: z.string().optional(),
   lab_service_id: z.number().optional().nullable(),
   applied_price: z.coerce.number().optional().nullable(),
 });
 
 type LabOrderFormProps = {
     clients: Client[];
-    doctors: Employee[];
     onSave: (data: Omit<LaboratoryOrder, 'id' | 'branchId'>) => void;
     onOpenChange: (open: boolean) => void;
 };
 
-export function LabOrderForm({ clients, doctors, onSave, onOpenChange }: LabOrderFormProps) {
+export function LabOrderForm({ clients, onSave, onOpenChange }: LabOrderFormProps) {
   const { toast } = useToast();
   const { selectedBranch } = useBranch();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -173,19 +172,12 @@ export function LabOrderForm({ clients, doctors, onSave, onOpenChange }: LabOrde
                     />
                     <FormField
                         control={form.control}
-                        name="doctorId"
+                        name="doctorName"
                         render={({ field }) => (
                             <FormItem>
                             <FormLabel>Prescribing Doctor (Optional)</FormLabel>
                             <FormControl>
-                                <Combobox
-                                    options={doctors.map(d => ({ value: String(d.id), label: d.name }))}
-                                    value={field.value}
-                                    onChange={field.onChange}
-                                    placeholder="Select a doctor"
-                                    searchPlaceholder="Search doctors..."
-                                    emptyMessage="No doctor found."
-                                />
+                                <Input placeholder="Enter doctor name" {...field} />
                             </FormControl>
                             <FormMessage />
                             </FormItem>
