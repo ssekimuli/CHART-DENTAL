@@ -10,7 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, TrendingDown, TrendingUp, Download, Calendar as CalendarIcon } from "lucide-react";
+import { PlusCircle, TrendingDown, TrendingUp, Download, Calendar as CalendarIcon, Edit2, Trash2, Loader2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Bar,
@@ -23,8 +23,9 @@ import {
 import { ChartTooltip, ChartTooltipContent, ChartContainer } from "@/components/ui/chart";
 
 import { useBranch } from "@/context/branch-context";
-import { getIncomeRecords, getExpenseSummary, createExpense, getFinancialSummary } from "@/lib/api";
+import { getIncomeRecords, getExpenseSummary, createExpense, updateExpense, deleteExpense, getFinancialSummary } from "@/lib/api";
 import type { IncomeRecord, Expense, ExpenseSummary, FinancialSummary } from "@/lib/types";
+import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ExpenseForm } from "./components/expense-form";
@@ -45,12 +46,16 @@ export default function AccountingPage() {
     const router = useRouter();
     const { selectedBranch } = useBranch();
     const { formatCurrency } = useCurrency();
+    const { toast } = useToast();
     const [incomeRecords, setIncomeRecords] = useState<IncomeRecord[]>([]);
     const [expenseSummary, setExpenseSummary] = useState<ExpenseSummary | null>(null);
     const [financialSummary, setFinancialSummary] = useState<FinancialSummary | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
+    const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
+    const [isEditMode, setIsEditMode] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     useEffect(() => {
         if (!hasPermission('accounting:read')) {
@@ -83,8 +88,22 @@ export default function AccountingPage() {
 
 
       const handleSaveExpense = async (data: Omit<Expense, 'id'>) => {
-        const newExpense = await createExpense(data);
-        if (newExpense) {
+        try {
+            if (isEditMode && selectedExpense) {
+                await updateExpense(selectedExpense.id, data);
+                toast({
+                    title: "Success",
+                    description: "Expense updated successfully",
+                });
+            } else {
+                const newExpense = await createExpense(data);
+                if (newExpense) {
+                    toast({
+                        title: "Success",
+                        description: "Expense created successfully",
+                    });
+                }
+            }
             const filters = {
                 branchId: selectedBranch,
                 dateFrom: dateRange?.from?.toISOString(),
@@ -94,8 +113,52 @@ export default function AccountingPage() {
             setExpenseSummary(summaryData);
             const financialData = await getFinancialSummary(filters);
             setFinancialSummary(financialData);
+            setIsFormOpen(false);
+            setIsEditMode(false);
+            setSelectedExpense(null);
+        } catch (error) {
+            toast({
+                title: "Error",
+                description: "Failed to save expense",
+                variant: "destructive",
+            });
         }
-        setIsFormOpen(false);
+      }
+
+      const handleEditExpense = (expense: Expense) => {
+        setSelectedExpense(expense);
+        setIsEditMode(true);
+        setIsFormOpen(true);
+      }
+
+      const handleDeleteExpense = async (expenseId: string | number) => {
+        if (!confirm('Are you sure you want to delete this expense?')) return;
+
+        try {
+            setIsDeleting(true);
+            await deleteExpense(expenseId);
+            toast({
+                title: "Success",
+                description: "Expense deleted successfully",
+            });
+            const filters = {
+                branchId: selectedBranch,
+                dateFrom: dateRange?.from?.toISOString(),
+                dateTo: dateRange?.to?.toISOString(),
+            };
+            const summaryData = await getExpenseSummary(filters);
+            setExpenseSummary(summaryData);
+            const financialData = await getFinancialSummary(filters);
+            setFinancialSummary(financialData);
+        } catch (error) {
+            toast({
+                title: "Error",
+                description: "Failed to delete expense",
+                variant: "destructive",
+            });
+        } finally {
+            setIsDeleting(false);
+        }
       }
 
       const downloadCSV = (data: any[], filename: string) => {
@@ -308,11 +371,12 @@ export default function AccountingPage() {
                                 <TableHead>Category</TableHead>
                                 <TableHead>Description</TableHead>
                                 <TableHead className="text-right">Amount</TableHead>
+                                <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                              {isLoading ? (
-                                <TableRow><TableCell colSpan={4}><Skeleton className="h-24 w-full"/></TableCell></TableRow>
+                                <TableRow><TableCell colSpan={5}><Skeleton className="h-24 w-full"/></TableCell></TableRow>
                             ) : (expenseSummary?.records ?? [])
                             .slice()
                             .sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime())
@@ -322,10 +386,34 @@ export default function AccountingPage() {
                                     <TableCell>{expense.category}</TableCell>
                                     <TableCell>{expense.description}</TableCell>
                                     <TableCell className="text-right">{formatCurrency(expense.amount)}</TableCell>
+                                    <TableCell className="text-right">
+                                        <div className="flex gap-2 justify-end">
+                                            {hasPermission('accounting:update') && (
+                                                <Button
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    onClick={() => handleEditExpense(expense)}
+                                                    disabled={isDeleting}
+                                                >
+                                                    <Edit2 className="h-4 w-4" />
+                                                </Button>
+                                            )}
+                                            {hasPermission('accounting:delete') && (
+                                                <Button
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    onClick={() => handleDeleteExpense(expense.id)}
+                                                    disabled={isDeleting}
+                                                >
+                                                    {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                                                </Button>
+                                            )}
+                                        </div>
+                                    </TableCell>
                                 </TableRow>
                             ))}
                             {(expenseSummary?.records?.length ?? 0) === 0 && !isLoading && (
-                                <TableRow><TableCell colSpan={4} className="text-center h-24">No expense records found.</TableCell></TableRow>
+                                <TableRow><TableCell colSpan={5} className="text-center h-24">No expense records found.</TableCell></TableRow>
                             )}
                         </TableBody>
                     </Table>
@@ -334,9 +422,16 @@ export default function AccountingPage() {
         </TabsContent>
       </Tabs>
       {isFormOpen && (
-        <ExpenseForm 
+        <ExpenseForm
+            expense={isEditMode ? selectedExpense || undefined : undefined}
             onSave={(data) => handleSaveExpense({ ...data, branchId: selectedBranch })}
-            onOpenChange={setIsFormOpen}
+            onOpenChange={(open) => {
+                setIsFormOpen(open);
+                if (!open) {
+                    setIsEditMode(false);
+                    setSelectedExpense(null);
+                }
+            }}
         />
       )}
       </>
