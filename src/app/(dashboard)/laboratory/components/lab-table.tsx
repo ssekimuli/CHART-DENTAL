@@ -72,10 +72,9 @@ export function LabTable({ data, onDataChange, onEdit, onDelete }: { data: Labor
       <Table>
         <TableHeader className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900/50 dark:to-slate-800/50 border-b border-slate-200 dark:border-slate-800">
           <TableRow className="hover:bg-transparent">
-            <TableHead className="font-semibold text-slate-700 dark:text-slate-300">Patient Name</TableHead>
+            <TableHead className="font-semibold text-slate-700 dark:text-slate-300">Client</TableHead>
             <TableHead className="font-semibold text-slate-700 dark:text-slate-300">Contact</TableHead>
             <TableHead className="font-semibold text-slate-700 dark:text-slate-300">Doctor</TableHead>
-            <TableHead className="font-semibold text-slate-700 dark:text-slate-300">Lab</TableHead>
             <TableHead className="font-semibold text-slate-700 dark:text-slate-300">Item</TableHead>
             <TableHead className="font-semibold text-slate-700 dark:text-slate-300">Status</TableHead>
             <TableHead className="font-semibold text-slate-700 dark:text-slate-300 text-right">Timeline</TableHead>
@@ -90,7 +89,7 @@ export function LabTable({ data, onDataChange, onEdit, onDelete }: { data: Labor
             >
               <TableCell className="font-semibold text-slate-900 dark:text-slate-100">
                 <div className="flex items-center gap-2">
-                  <span>{order.patientName || order.client?.name || '-'}</span>
+                  <span>{order.client?.name || '-'}</span>
                   {order.invoiceId && (
                     <Badge variant="outline" className="text-xs gap-1 py-0.5 px-1.5 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800">
                       <FileText className="h-3 w-3" />
@@ -105,8 +104,7 @@ export function LabTable({ data, onDataChange, onEdit, onDelete }: { data: Labor
                   {order.client?.email && <div className="text-slate-500 dark:text-slate-400 truncate text-xs">{order.client.email}</div>}
                 </div>
               </TableCell>
-              <TableCell className="text-slate-700 dark:text-slate-300">{order.doctor?.name || '-'}</TableCell>
-              <TableCell className="text-slate-700 dark:text-slate-300 font-medium">{order.lab}</TableCell>
+              <TableCell className="text-slate-700 dark:text-slate-300">{order.doctorName || '-'}</TableCell>
               <TableCell>
                 <div className="flex items-center gap-2">
                   <div className="text-slate-700 dark:text-slate-300">{order.item}</div>
@@ -251,14 +249,14 @@ function LabOrderActions({ order, onStatusChange, onEdit, onUpdate, onDelete }: 
         try {
             setIsDeleting(true);
             const { deleteLabOrder } = await import('@/lib/api-lab-prices');
-            await deleteLabOrder(order.id);
+            await deleteLabOrder(order.id as number);
 
             toast({
                 title: "Deleted Successfully",
                 description: `Lab order #${order.id} has been deleted.`,
             });
             setIsDeleteDialogOpen(false);
-            onDelete?.(order.id);
+            onDelete?.(order.id as number);
         } catch (error: any) {
             toast({
                 variant: "destructive",
@@ -483,9 +481,8 @@ function LabOrderActions({ order, onStatusChange, onEdit, onUpdate, onDelete }: 
                 </DialogHeader>
                 <div className="py-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
                     <p className="text-sm text-red-800 dark:text-red-300">
-                        <strong>Lab:</strong> {order.lab}<br/>
                         <strong>Item:</strong> {order.item}<br/>
-                        <strong>Patient:</strong> {order.patientName || order.client?.name || '-'}
+                        <strong>Client:</strong> {order.client?.name || '-'}
                     </p>
                 </div>
                 <DialogFooter>
