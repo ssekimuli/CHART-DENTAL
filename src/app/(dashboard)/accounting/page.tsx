@@ -388,26 +388,24 @@ export default function AccountingPage() {
                                     <TableCell className="text-right">{formatCurrency(expense.amount)}</TableCell>
                                     <TableCell className="text-right">
                                         <div className="flex gap-2 justify-end">
-                                            {hasPermission('accounting:update') && (
-                                                <Button
-                                                    size="sm"
-                                                    variant="ghost"
-                                                    onClick={() => handleEditExpense(expense)}
-                                                    disabled={isDeleting}
-                                                >
-                                                    <Edit2 className="h-4 w-4" />
-                                                </Button>
-                                            )}
-                                            {hasPermission('accounting:delete') && (
-                                                <Button
-                                                    size="sm"
-                                                    variant="ghost"
-                                                    onClick={() => handleDeleteExpense(expense.id)}
-                                                    disabled={isDeleting}
-                                                >
-                                                    {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                                                </Button>
-                                            )}
+                                            <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                onClick={() => handleEditExpense(expense)}
+                                                disabled={isDeleting}
+                                                title="Edit expense"
+                                            >
+                                                <Edit2 className="h-4 w-4" />
+                                            </Button>
+                                            <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                onClick={() => handleDeleteExpense(expense.id)}
+                                                disabled={isDeleting}
+                                                title="Delete expense"
+                                            >
+                                                {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                                            </Button>
                                         </div>
                                     </TableCell>
                                 </TableRow>
