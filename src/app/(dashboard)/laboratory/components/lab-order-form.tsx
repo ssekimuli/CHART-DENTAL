@@ -44,7 +44,6 @@ import { getLabServices, getActivePriceForService } from "@/lib/api-lab-prices";
 
 const formSchema = z.object({
   clientId: z.string({ required_error: "Please select a client."}),
-  lab: z.string().min(2, "Lab name must be at least 2 characters."),
   item: z.string().min(2, "Item description must be at least 2 characters."),
   tooth: z.coerce.number().optional(),
   status: z.enum(['Draft', 'Received', 'In Production', 'Ready for Delivery', 'Delivered', 'Cancelled']),
@@ -240,19 +239,6 @@ export function LabOrderForm({ clients, onSave, onOpenChange }: LabOrderFormProp
                                   onChange={e => field.onChange(e.target.value === '' ? null : parseFloat(e.target.value))}
                                   disabled={priceLoading}
                                 />
-                            </FormControl>
-                            <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                     <FormField
-                        control={form.control}
-                        name="lab"
-                        render={({ field }) => (
-                            <FormItem>
-                            <FormLabel>Laboratory</FormLabel>
-                            <FormControl>
-                                <Input placeholder="e.g., Precision Dental Labs" {...field} />
                             </FormControl>
                             <FormMessage />
                             </FormItem>
