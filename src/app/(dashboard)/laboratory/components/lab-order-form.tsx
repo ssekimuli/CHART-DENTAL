@@ -118,6 +118,19 @@ export function LabOrderForm({ clients, onSave, onOpenChange }: LabOrderFormProp
     }
   };
 
+  // Auto-fill doctor name when client is selected
+  useEffect(() => {
+    const subscription = form.watch((data) => {
+      if (data.clientId) {
+        const selectedClient = clients.find(c => String(c.id) === data.clientId);
+        if (selectedClient && !data.doctorName) {
+          form.setValue('doctorName', selectedClient.name);
+        }
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [form, clients]);
+
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
     try {
