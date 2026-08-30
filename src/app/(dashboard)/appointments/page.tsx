@@ -24,6 +24,7 @@ import type { Appointment, Employee, Patient, AppointmentStatus } from "@/lib/ty
 import { Button } from "@/components/ui/button";
 import { MoreHorizontal, PlusCircle, Trash, Pencil, FileText, Send, Share2 } from "lucide-react";
 import { AppointmentForm } from "./components/appointment-form";
+import { BookingQRModal } from "./components/booking-qr-modal";
 import { useBranch } from "@/context/branch-context";
 import {  hasRole , getCurrentUser } from "@/lib/user";
 import {
@@ -73,6 +74,7 @@ export default function AppointmentsPage() {
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | undefined>(undefined);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
+  const [isQRCodeModalOpen, setIsQRCodeModalOpen] = useState(false);
   const [bookingLink, setBookingLink] = useState('');
   
   useEffect(() => {
@@ -295,7 +297,7 @@ export default function AppointmentsPage() {
                       : backendUrl;
                     const link = `${baseUrl}/book-appointment`;
                     setBookingLink(link);
-                    setIsShareDialogOpen(true);
+                    setIsQRCodeModalOpen(true);
                   }}
                   variant="outline"
                 >
@@ -423,36 +425,11 @@ export default function AppointmentsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      <Dialog open={isShareDialogOpen} onOpenChange={setIsShareDialogOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Share Booking Link</DialogTitle>
-            <DialogDescription>
-              Copy and share this link with patients to book appointments
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex flex-col gap-4">
-            <div className="bg-muted p-4 rounded-md">
-              <p className="font-mono text-sm leading-relaxed break-all word-break">
-                {bookingLink}
-              </p>
-            </div>
-            <Button
-              onClick={() => {
-                navigator.clipboard.writeText(bookingLink);
-                toast({
-                  title: "Copied",
-                  description: "Booking link copied to clipboard."
-                });
-                setIsShareDialogOpen(false);
-              }}
-              className="w-full"
-            >
-              Copy Link
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <BookingQRModal
+        isOpen={isQRCodeModalOpen}
+        onClose={() => setIsQRCodeModalOpen(false)}
+        bookingLink={bookingLink}
+      />
     </>
   );
 }
