@@ -1,7 +1,7 @@
 "use client";
 import { useToast } from "@/hooks/use-toast";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -65,6 +65,15 @@ export function ExpenseForm({ expense, onSave, onOpenChange }: ExpenseFormProps)
       amount: expense?.amount,
     },
   });
+
+  useEffect(() => {
+    form.reset({
+      date: expense ? new Date(expense.date) : new Date(),
+      category: (expense?.category && ['Supplies', 'Rent', 'Utilities', 'Marketing', 'Maintenance', 'Other'].includes(expense.category) ? expense.category : 'Other') as any,
+      description: expense?.description ?? "",
+      amount: expense?.amount,
+    });
+  }, [expense, form]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);

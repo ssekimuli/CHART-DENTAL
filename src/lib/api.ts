@@ -1224,9 +1224,13 @@ export const updateLabOrderStatus = async (id: string | number, status: string):
     }
 }
 
-export const getClients = async (): Promise<Client[]> => {
+export const getClients = async (branchId?: string | number): Promise<Client[]> => {
     try {
-        const response = await customAxios.get('/clients');
+        const params: any = {};
+        if (branchId !== undefined && branchId !== null) {
+            params.branch_id = branchId;
+        }
+        const response = await customAxios.get('/clients', { params });
         return response.data;
     } catch (error) {
         console.error('Error fetching clients:', error);
@@ -3727,8 +3731,7 @@ export const createLabOrder = async (data: Omit<LaboratoryOrder, 'id'>): Promise
     try {
         const response = await customAxios.post('/management/lab-orders', {
             clientId: data.clientId,
-            patientName: data.patientName,
-            lab: data.lab,
+            doctorName: data.doctorName,
             item: data.item,
             tooth: data.tooth,
             status: data.status,
@@ -3738,8 +3741,7 @@ export const createLabOrder = async (data: Omit<LaboratoryOrder, 'id'>): Promise
             shade: data.shade,
             material: data.material,
             instructions: data.instructions,
-            cost: data.cost,
-            doctorId: data.doctorId,
+            appliedPrice: data.applied_price,
             branchId: data.branchId,
         });
         const order = response.data;
@@ -3747,8 +3749,6 @@ export const createLabOrder = async (data: Omit<LaboratoryOrder, 'id'>): Promise
             id: order.id,
             clientId: String(order.client_id),
             client: order.client,
-            patientName: order.patient_name || '',
-            lab: order.lab,
             item: order.item,
             tooth: order.tooth,
             status: order.status,
@@ -3758,13 +3758,58 @@ export const createLabOrder = async (data: Omit<LaboratoryOrder, 'id'>): Promise
             shade: order.shade,
             material: order.material,
             instructions: order.instructions,
-            cost: order.cost,
-            doctorId: order.doctor_id ? String(order.doctor_id) : undefined,
-            doctor: order.doctor,
+            doctorName: order.doctor_name,
             branchId: String(order.branch_id),
+            lab_service_id: order.lab_service_id,
+            applied_price: order.applied_price ? parseFloat(String(order.applied_price)) : undefined,
         };
     } catch (error) {
         console.error('Error creating lab order:', error);
+        throw error;
+    }
+}
+
+export const updateLabOrder = async (id: number, data: Partial<Omit<LaboratoryOrder, 'id'>>): Promise<LaboratoryOrder> => {
+    console.log('API CALL: updateLabOrder', { id, data });
+    try {
+        const response = await customAxios.put(`/management/lab-orders/${id}`, {
+            ...(data.clientId && { clientId: data.clientId }),
+            ...(data.doctorName && { doctorName: data.doctorName }),
+            ...(data.item && { item: data.item }),
+            ...(data.tooth !== undefined && { tooth: data.tooth }),
+            ...(data.status && { status: data.status }),
+            ...(data.sentDate && { sentDate: data.sentDate }),
+            ...(data.dueDate && { dueDate: data.dueDate }),
+            ...(data.receivedDate && { receivedDate: data.receivedDate }),
+            ...(data.shade && { shade: data.shade }),
+            ...(data.material && { material: data.material }),
+            ...(data.instructions && { instructions: data.instructions }),
+            ...(data.lab_service_id !== undefined && { labServiceId: data.lab_service_id }),
+            ...(data.applied_price !== undefined && { appliedPrice: data.applied_price }),
+            ...(data.invoiceId && { invoiceId: data.invoiceId }),
+        });
+        const order = response.data;
+        return {
+            id: order.id,
+            clientId: String(order.client_id),
+            client: order.client,
+            item: order.item,
+            tooth: order.tooth,
+            status: order.status,
+            sentDate: order.sent_date ? order.sent_date.split('T')[0] : '',
+            dueDate: order.due_date ? order.due_date.split('T')[0] : '',
+            receivedDate: order.received_date ? order.received_date.split('T')[0] : undefined,
+            shade: order.shade,
+            material: order.material,
+            instructions: order.instructions,
+            doctorName: order.doctor_name,
+            branchId: String(order.branch_id),
+            lab_service_id: order.lab_service_id,
+            applied_price: order.applied_price ? parseFloat(String(order.applied_price)) : undefined,
+            invoiceId: order.invoice_id,
+        };
+    } catch (error) {
+        console.error('Error updating lab order:', error);
         throw error;
     }
 }
@@ -4115,6 +4160,39 @@ export const createExpense = async (data: Omit<Expense, 'id'>): Promise<Expense>
     }
 }
 
+export const updateExpense = async (id: string | number, data: Partial<Omit<Expense, 'id'>>): Promise<Expense> => {
+    console.log('API CALL: updateExpense', { id, data });
+    try {
+        const response = await customAxios.patch(`/management/expenses/${id}`, {
+            date: data.date,
+            category: data.category,
+            description: data.description,
+            amount: data.amount,
+        });
+        const expense = response.data;
+        return {
+            id: expense.id,
+            branchId: String(expense.branch_id),
+            date: expense.date ? expense.date.split('T')[0] : '',
+            category: expense.category,
+            description: expense.description,
+            amount: parseFloat(expense.amount),
+        };
+    } catch (error) {
+        console.error('Error updating expense:', error);
+        throw error;
+    }
+}
+
+export const deleteExpense = async (id: string | number): Promise<void> => {
+    console.log('API CALL: deleteExpense', { id });
+    try {
+        await customAxios.delete(`/management/expenses/${id}`);
+    } catch (error) {
+        console.error('Error deleting expense:', error);
+        throw error;
+    }
+}
 
 // Roles
 export const updateRole = async (roleId: string | number, permissions: Permission[]): Promise<RolePermissions | undefined> => {
