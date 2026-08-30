@@ -52,7 +52,7 @@ const formSchema = z.object({
   material: z.string().optional(),
   instructions: z.string().optional(),
   doctorName: z.string().optional(),
-  lab_service_id: z.number().optional().nullable(),
+  lab_service_id: z.number({ required_error: "Lab service is required." }),
   applied_price: z.number().optional().nullable(),
 });
 
@@ -224,7 +224,7 @@ export function LabOrderEditForm({
               name="lab_service_id"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Lab Service (Optional)</FormLabel>
+                  <FormLabel>Lab Service *</FormLabel>
                   <FormControl>
                     <Select
                       value={field.value?.toString() || ""}
