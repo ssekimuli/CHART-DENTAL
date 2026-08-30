@@ -337,8 +337,6 @@ export type LaboratoryOrder = {
   id: string | number;
   clientId: string | number;
   client?: Client;
-  patientName: string;
-  lab: string;
   item: string;
   tooth?: number;
   status: 'Draft' | 'Received' | 'In Production' | 'Ready for Delivery' | 'Delivered' | 'Cancelled';
@@ -348,12 +346,34 @@ export type LaboratoryOrder = {
   shade?: string;
   material?: string;
   instructions?: string;
-  cost?: number;
   invoiceNumber?: string;
   invoiceId?: string | number;
-  doctorId?: string | number;
-  doctor?: Employee;
+  doctorName?: string;
   branchId: string | number;
+  lab_service_id?: number | null;
+  applied_price?: number | null;
+};
+
+export type LabService = {
+  id: number;
+  service_name: string;
+  category?: string;
+  is_active: boolean;
+  current_price?: number;
+  branch_id: number;
+  prices?: LabServicePrice[];
+  created_at: string;
+  updated_at: string;
+};
+
+export type LabServicePrice = {
+  id: number;
+  lab_service_id: number;
+  lab: string;
+  base_price: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
 };
 
 export type BasePatient = Omit<Patient, 'id' | 'dentalRecords' | 'treatmentPlans' | 'imaging' | 'periodontalRecords' | 'occlusalRecords' | 'softTissueRecords' | 'orthodonticRecords'>;

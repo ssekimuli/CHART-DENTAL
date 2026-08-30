@@ -1,7 +1,7 @@
 "use client";
 import { useToast } from "@/hooks/use-toast";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -32,18 +32,18 @@ import {
     SelectTrigger,
     SelectValue,
   } from "@/components/ui/select";
-import type { LaboratoryOrder, Client, Employee } from "@/lib/types";
+import type { LaboratoryOrder, Client, Employee, LabService } from "@/lib/types";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { CalendarIcon, Loader2 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Combobox } from "@/components/ui/combobox";
+import { useBranch } from "@/context/branch-context";
+import { getLabServices, getActivePriceForService } from "@/lib/api-lab-prices";
 
 
 const formSchema = z.object({
   clientId: z.string({ required_error: "Please select a client."}),
-  patientName: z.string().optional(),
-  lab: z.string().min(2, "Lab name must be at least 2 characters."),
   item: z.string().min(2, "Item description must be at least 2 characters."),
   tooth: z.coerce.number().optional(),
   status: z.enum(['Draft', 'Received', 'In Production', 'Ready for Delivery', 'Delivered', 'Cancelled']),
@@ -53,28 +53,83 @@ const formSchema = z.object({
   shade: z.string().optional(),
   material: z.string().optional(),
   instructions: z.string().optional(),
-  cost: z.coerce.number().optional(),
-  doctorId: z.string().optional(),
+  doctorName: z.string().optional(),
+  lab_service_id: z.number({ required_error: "Lab service is required." }),
+  applied_price: z.coerce.number().optional().nullable(),
 });
 
 type LabOrderFormProps = {
     clients: Client[];
-    doctors: Employee[];
-    onSave: (data: Omit<LaboratoryOrder, 'id' | 'patientName' | 'branchId'>) => void;
+    onSave: (data: Omit<LaboratoryOrder, 'id' | 'branchId'>) => void;
     onOpenChange: (open: boolean) => void;
 };
 
-export function LabOrderForm({ clients, doctors, onSave, onOpenChange }: LabOrderFormProps) {
+export function LabOrderForm({ clients, onSave, onOpenChange }: LabOrderFormProps) {
   const { toast } = useToast();
+  const { selectedBranch, availableBranches } = useBranch();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [labServices, setLabServices] = useState<LabService[]>([]);
+  const [servicesLoading, setServicesLoading] = useState(false);
+  const [priceLoading, setPriceLoading] = useState(false);
+
+  const branchCurrency = availableBranches.find(b => String(b.id) === String(selectedBranch))?.currency || 'USD';
+
+  useEffect(() => {
+    const fetchServices = async () => {
+      setServicesLoading(true);
+      try {
+        const data = await getLabServices(selectedBranch);
+        if (Array.isArray(data)) {
+          setLabServices(data);
+        } else {
+          setLabServices(data || []);
+        }
+      } catch (error) {
+        console.error("Error fetching lab services:", error);
+      } finally {
+        setServicesLoading(false);
+      }
+    };
+    fetchServices();
+  }, [selectedBranch]);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
         sentDate: new Date(),
         status: 'Draft',
+        applied_price: null,
     },
   });
+
+  const handleLabServiceSelect = async (serviceId: number) => {
+    form.setValue('lab_service_id', serviceId);
+    setPriceLoading(true);
+    try {
+      const price = await getActivePriceForService(serviceId, selectedBranch);
+      if (price) {
+        const parsedPrice = parseFloat(String(price.base_price));
+        form.setValue('applied_price', parsedPrice);
+      }
+    } catch (error) {
+      console.error("Error fetching price:", error);
+    } finally {
+      setPriceLoading(false);
+    }
+  };
+
+  // Auto-fill doctor name when client is selected
+  useEffect(() => {
+    const subscription = form.watch((data) => {
+      if (data.clientId) {
+        const selectedClient = clients.find(c => String(c.id) === data.clientId);
+        if (selectedClient && !data.doctorName) {
+          form.setValue('doctorName', selectedClient.name);
+        }
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [form, clients]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
@@ -84,7 +139,7 @@ export function LabOrderForm({ clients, doctors, onSave, onOpenChange }: LabOrde
             sentDate: format(values.sentDate, "yyyy-MM-dd"),
             dueDate: format(values.dueDate, "yyyy-MM-dd"),
             receivedDate: values.receivedDate ? format(values.receivedDate, "yyyy-MM-dd") : undefined,
-        });
+        } as any);
     } catch (error: any) {
         console.error(error);
         toast({
@@ -130,12 +185,12 @@ export function LabOrderForm({ clients, doctors, onSave, onOpenChange }: LabOrde
                     />
                     <FormField
                         control={form.control}
-                        name="patientName"
+                        name="doctorName"
                         render={({ field }) => (
                             <FormItem>
-                            <FormLabel>Patient/Client Name (Optional)</FormLabel>
+                            <FormLabel>Prescribing Doctor (Optional)</FormLabel>
                             <FormControl>
-                                <Input placeholder="Leave blank to use client name" {...field} />
+                                <Input placeholder="Enter doctor name" {...field} />
                             </FormControl>
                             <FormMessage />
                             </FormItem>
@@ -143,32 +198,48 @@ export function LabOrderForm({ clients, doctors, onSave, onOpenChange }: LabOrde
                     />
                     <FormField
                         control={form.control}
-                        name="doctorId"
+                        name="lab_service_id"
                         render={({ field }) => (
                             <FormItem>
-                            <FormLabel>Prescribing Doctor (Optional)</FormLabel>
+                            <FormLabel>Lab Service *</FormLabel>
                             <FormControl>
-                                <Combobox
-                                    options={doctors.map(d => ({ value: String(d.id), label: d.name }))}
-                                    value={field.value}
-                                    onChange={field.onChange}
-                                    placeholder="Select a doctor"
-                                    searchPlaceholder="Search doctors..."
-                                    emptyMessage="No doctor found."
-                                />
+                                <Select
+                                  value={field.value?.toString() || ""}
+                                  onValueChange={(val) => handleLabServiceSelect(parseInt(val))}
+                                  disabled={servicesLoading || priceLoading}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select a service to auto-populate price" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {labServices.map((service) => (
+                                            <SelectItem key={service.id} value={service.id.toString()}>
+                                                {service.service_name} {service.category && `(${service.category})`}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                             </FormControl>
                             <FormMessage />
                             </FormItem>
                         )}
                     />
-                     <FormField
+                    <FormField
                         control={form.control}
-                        name="lab"
+                        name="applied_price"
                         render={({ field }) => (
                             <FormItem>
-                            <FormLabel>Laboratory</FormLabel>
+                            <FormLabel>Price ({branchCurrency})</FormLabel>
                             <FormControl>
-                                <Input placeholder="e.g., Precision Dental Labs" {...field} />
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  placeholder="Auto-filled from service or enter manually"
+                                  {...field}
+                                  value={field.value || ""}
+                                  onChange={e => field.onChange(e.target.value === '' ? null : parseFloat(e.target.value))}
+                                  disabled={priceLoading}
+                                />
                             </FormControl>
                             <FormMessage />
                             </FormItem>
@@ -335,19 +406,6 @@ export function LabOrderForm({ clients, doctors, onSave, onOpenChange }: LabOrde
                             <FormLabel>Instructions</FormLabel>
                             <FormControl>
                                 <Input placeholder="Special instructions for the lab" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name="cost"
-                        render={({ field }) => (
-                            <FormItem>
-                            <FormLabel>Cost</FormLabel>
-                            <FormControl>
-                                <Input type="number" step="0.01" placeholder="Lab Fee" {...field} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.value)} />
                             </FormControl>
                             <FormMessage />
                             </FormItem>
