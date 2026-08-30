@@ -4788,3 +4788,26 @@ export const qb = {
         }).then(r => r.data);
     },
 };
+
+export const gusto = {
+    async getConnectUrl(): Promise<{ auth_url: string }> {
+        return customAxios.post('/gusto/connect').then(r => r.data);
+    },
+
+    async getStatus(): Promise<any> {
+        return customAxios.get('/gusto/status').then(r => r.data);
+    },
+
+    async disconnect(): Promise<{ message: string }> {
+        return customAxios.post('/gusto/disconnect').then(r => r.data);
+    },
+
+    async getSyncStatus(id: number, entityType?: string): Promise<any> {
+        const params = entityType ? { entity_type: entityType } : {};
+        return customAxios.get(`/gusto/sync/status/${id}`, { params }).then(r => r.data);
+    },
+
+    async getSyncLogs(params?: { entity_type?: string; status?: string; page?: number }): Promise<any> {
+        return customAxios.get('/gusto/sync-logs', { params }).then(r => r.data);
+    },
+};

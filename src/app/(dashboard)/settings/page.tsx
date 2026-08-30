@@ -33,6 +33,7 @@ import { DataImporter } from "@/components/dashboard/data-importer";
 import { TreatmentsCatalog } from "./components/treatments-catalog";
 import { BranchSettingsTab } from "./components/branch-settings-tab";
 import { QuickbooksIntegrationTab } from "./components/quickbooks-integration-tab";
+import { GustoIntegrationTab } from "./components/gusto-integration-tab";
 
 const permissionGroups = {
     Dashboard: ['dashboard:read'],
@@ -248,7 +249,7 @@ export default function SettingsPage() {
 
   return (
     <Tabs defaultValue="profile">
-      <TabsList className="grid w-full grid-cols-7">
+      <TabsList className="grid w-full grid-cols-8">
         <TabsTrigger value="profile">Profile</TabsTrigger>
         <TabsTrigger value="practice">Practice</TabsTrigger>
         <TabsTrigger value="business">Business</TabsTrigger>
@@ -256,6 +257,7 @@ export default function SettingsPage() {
         <TabsTrigger value="notifications">Notifications</TabsTrigger>
         <TabsTrigger value="roles">Roles &amp; Permissions</TabsTrigger>
         <TabsTrigger value="treatments">Treatments</TabsTrigger>
+        <TabsTrigger value="gusto">Gusto</TabsTrigger>
       </TabsList>
       
       <TabsContent value="profile">
@@ -547,6 +549,9 @@ export default function SettingsPage() {
             </div>
           </CardContent>
         </Card>
+      </TabsContent>
+      <TabsContent value="gusto">
+        <GustoIntegrationTab />
       </TabsContent>
     </Tabs>
   );
