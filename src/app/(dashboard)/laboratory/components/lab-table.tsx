@@ -21,7 +21,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Mail, MessageCircle, Loader2, Send, Smartphone, Package, FileText } from "lucide-react";
+import { MoreHorizontal, Mail, MessageCircle, Loader2, Send, Smartphone, Package, FileText, Edit2, Trash2 } from "lucide-react";
 import { sendLabOrder, updateLabOrderStatus } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
@@ -31,7 +31,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 
-export function LabTable({ data, onDataChange }: { data: LaboratoryOrder[]; onDataChange?: (updatedData: LaboratoryOrder[]) => void }) {
+export function LabTable({ data, onDataChange, onEdit, onDelete }: { data: LaboratoryOrder[]; onDataChange?: (updatedData: LaboratoryOrder[]) => void; onEdit?: (order: LaboratoryOrder) => void; onDelete?: (orderId: number) => void }) {
     const [orders, setOrders] = useState<LaboratoryOrder[]>(data);
 
     const getStatusColor = (status: "Draft" | "Received" | "In Production" | "Ready for Delivery" | "Delivered" | "Cancelled") => {
@@ -57,6 +57,12 @@ export function LabTable({ data, onDataChange }: { data: LaboratoryOrder[]; onDa
         onDataChange?.(updatedOrders);
     };
 
+    const handleOrderUpdate = (updatedOrder: LaboratoryOrder) => {
+        const updatedOrders = orders.map(o => o.id === updatedOrder.id ? updatedOrder : o);
+        setOrders(updatedOrders);
+        onDataChange?.(updatedOrders);
+    };
+
     React.useEffect(() => {
         setOrders(data);
     }, [data]);
@@ -66,10 +72,9 @@ export function LabTable({ data, onDataChange }: { data: LaboratoryOrder[]; onDa
       <Table>
         <TableHeader className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900/50 dark:to-slate-800/50 border-b border-slate-200 dark:border-slate-800">
           <TableRow className="hover:bg-transparent">
-            <TableHead className="font-semibold text-slate-700 dark:text-slate-300">Patient Name</TableHead>
+            <TableHead className="font-semibold text-slate-700 dark:text-slate-300">Client</TableHead>
             <TableHead className="font-semibold text-slate-700 dark:text-slate-300">Contact</TableHead>
             <TableHead className="font-semibold text-slate-700 dark:text-slate-300">Doctor</TableHead>
-            <TableHead className="font-semibold text-slate-700 dark:text-slate-300">Lab</TableHead>
             <TableHead className="font-semibold text-slate-700 dark:text-slate-300">Item</TableHead>
             <TableHead className="font-semibold text-slate-700 dark:text-slate-300">Status</TableHead>
             <TableHead className="font-semibold text-slate-700 dark:text-slate-300 text-right">Timeline</TableHead>
@@ -84,7 +89,7 @@ export function LabTable({ data, onDataChange }: { data: LaboratoryOrder[]; onDa
             >
               <TableCell className="font-semibold text-slate-900 dark:text-slate-100">
                 <div className="flex items-center gap-2">
-                  <span>{order.patientName || order.client?.name || '-'}</span>
+                  <span>{order.client?.name || '-'}</span>
                   {order.invoiceId && (
                     <Badge variant="outline" className="text-xs gap-1 py-0.5 px-1.5 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800">
                       <FileText className="h-3 w-3" />
@@ -99,8 +104,7 @@ export function LabTable({ data, onDataChange }: { data: LaboratoryOrder[]; onDa
                   {order.client?.email && <div className="text-slate-500 dark:text-slate-400 truncate text-xs">{order.client.email}</div>}
                 </div>
               </TableCell>
-              <TableCell className="text-slate-700 dark:text-slate-300">{order.doctor?.name || '-'}</TableCell>
-              <TableCell className="text-slate-700 dark:text-slate-300 font-medium">{order.lab}</TableCell>
+              <TableCell className="text-slate-700 dark:text-slate-300">{order.doctorName || '-'}</TableCell>
               <TableCell>
                 <div className="flex items-center gap-2">
                   <div className="text-slate-700 dark:text-slate-300">{order.item}</div>
@@ -119,7 +123,7 @@ export function LabTable({ data, onDataChange }: { data: LaboratoryOrder[]; onDa
                 </div>
               </TableCell>
               <TableCell className="text-right">
-                  <LabOrderActions order={order} onStatusChange={handleStatusChange} />
+                  <LabOrderActions order={order} onStatusChange={handleStatusChange} onEdit={onEdit} onUpdate={handleOrderUpdate} onDelete={onDelete} />
               </TableCell>
             </TableRow>
           ))}
@@ -139,13 +143,15 @@ export function LabTable({ data, onDataChange }: { data: LaboratoryOrder[]; onDa
   );
 }
 
-function LabOrderActions({ order, onStatusChange }: { order: LaboratoryOrder; onStatusChange?: (updatedOrder: LaboratoryOrder) => void }) {
+function LabOrderActions({ order, onStatusChange, onEdit, onUpdate, onDelete }: { order: LaboratoryOrder; onStatusChange?: (updatedOrder: LaboratoryOrder) => void; onEdit?: (order: LaboratoryOrder) => void; onUpdate?: (updatedOrder: LaboratoryOrder) => void; onDelete?: (orderId: number) => void }) {
     const { toast } = useToast();
     const router = useRouter();
     const [isSending, setIsSending] = useState(false);
     const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
     const [isCustomDialogOpen, setIsCustomDialogOpen] = useState(false);
     const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [selectedStatus, setSelectedStatus] = useState<string>(order.status);
     const [customChannel, setCustomChannel] = useState<'email' | 'whatsapp' | 'sms'>('email');
     const [customMessage, setCustomMessage] = useState("");
@@ -239,6 +245,29 @@ function LabOrderActions({ order, onStatusChange }: { order: LaboratoryOrder; on
         }
     };
 
+    const handleDelete = async () => {
+        try {
+            setIsDeleting(true);
+            const { deleteLabOrder } = await import('@/lib/api-lab-prices');
+            await deleteLabOrder(order.id as number);
+
+            toast({
+                title: "Deleted Successfully",
+                description: `Lab order #${order.id} has been deleted.`,
+            });
+            setIsDeleteDialogOpen(false);
+            onDelete?.(order.id as number);
+        } catch (error: any) {
+            toast({
+                variant: "destructive",
+                title: "Failed to delete",
+                description: error?.response?.data?.error || "An unexpected error occurred",
+            });
+        } finally {
+            setIsDeleting(false);
+        }
+    };
+
     return (
         <>
         <DropdownMenu>
@@ -271,6 +300,13 @@ function LabOrderActions({ order, onStatusChange }: { order: LaboratoryOrder; on
                   </>
                 )}
                 <DropdownMenuItem
+                  onClick={() => onEdit?.(order)}
+                  className="cursor-pointer"
+                >
+                    <Edit2 className="mr-2 h-4 w-4 text-slate-600 dark:text-slate-400" />
+                    Edit Order
+                </DropdownMenuItem>
+                <DropdownMenuItem
                   onClick={() => setIsStatusDialogOpen(true)}
                   className="cursor-pointer"
                 >
@@ -302,6 +338,13 @@ function LabOrderActions({ order, onStatusChange }: { order: LaboratoryOrder; on
                   className="cursor-pointer"
                 >
                     <Send className="mr-2 h-4 w-4 text-slate-600" /> Custom Message
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => setIsDeleteDialogOpen(true)}
+                  className="cursor-pointer text-red-600 dark:text-red-400"
+                >
+                    <Trash2 className="mr-2 h-4 w-4" /> Delete Order
                 </DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>
@@ -423,6 +466,36 @@ function LabOrderActions({ order, onStatusChange }: { order: LaboratoryOrder; on
                     >
                         {isUpdatingStatus && <Loader2 className="h-4 w-4 animate-spin" />}
                         Update Status
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
+        <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+            <DialogContent className="sm:max-w-[400px]">
+                <DialogHeader>
+                    <DialogTitle className="text-xl text-red-600 dark:text-red-400">Delete Lab Order</DialogTitle>
+                    <DialogDescription>
+                        Are you sure you want to delete lab order #{order.id}? This action cannot be undone.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="py-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+                    <p className="text-sm text-red-800 dark:text-red-300">
+                        <strong>Item:</strong> {order.item}<br/>
+                        <strong>Client:</strong> {order.client?.name || '-'}
+                    </p>
+                </div>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)} disabled={isDeleting}>
+                        Cancel
+                    </Button>
+                    <Button
+                      onClick={handleDelete}
+                      disabled={isDeleting}
+                      className="gap-2 bg-red-600 hover:bg-red-700"
+                    >
+                        {isDeleting && <Loader2 className="h-4 w-4 animate-spin" />}
+                        Delete Order
                     </Button>
                 </DialogFooter>
             </DialogContent>
