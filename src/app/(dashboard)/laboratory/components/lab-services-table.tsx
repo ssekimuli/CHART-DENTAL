@@ -22,6 +22,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useState } from "react";
+import { useCurrency } from "@/hooks/use-currency";
 
 interface LabServicesTableProps {
   services: LabService[];
@@ -37,6 +38,7 @@ export function LabServicesTable({
   isLoading = false,
 }: LabServicesTableProps) {
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const { formatCurrency } = useCurrency();
 
   const handleDeleteConfirm = () => {
     if (deleteId) {
@@ -78,7 +80,7 @@ export function LabServicesTable({
                   </TableCell>
                   <TableCell>
                     {service.current_price ? (
-                      <span className="font-semibold">${parseFloat(String(service.current_price)).toFixed(2)}</span>
+                      <span className="font-semibold">{formatCurrency(service.current_price)}</span>
                     ) : (
                       <span className="text-muted-foreground">No price set</span>
                     )}
