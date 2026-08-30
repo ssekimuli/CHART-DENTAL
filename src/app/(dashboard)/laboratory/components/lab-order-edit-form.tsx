@@ -35,8 +35,10 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import { CalendarIcon, Loader2 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
+import { Combobox } from "@/components/ui/combobox";
 import { useBranch } from "@/context/branch-context";
-import { getLabServices, getActivePriceForService, updateLabOrder } from "@/lib/api-lab-prices";
+import { getLabServices, getActivePriceForService } from "@/lib/api-lab-prices";
+import { updateLabOrder } from "@/lib/api";
 
 const formSchema = z.object({
   clientId: z.string().optional(),
@@ -50,7 +52,7 @@ const formSchema = z.object({
   material: z.string().optional(),
   instructions: z.string().optional(),
   doctorName: z.string().optional(),
-  lab_service_id: z.number().optional().nullable(),
+  lab_service_id: z.number({ required_error: "Lab service is required." }),
   applied_price: z.number().optional().nullable(),
 });
 
@@ -72,11 +74,13 @@ export function LabOrderEditForm({
   onUpdate,
 }: LabOrderEditFormProps) {
   const { toast } = useToast();
-  const { selectedBranch } = useBranch();
+  const { selectedBranch, availableBranches } = useBranch();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [labServices, setLabServices] = useState<LabService[]>([]);
   const [servicesLoading, setServicesLoading] = useState(false);
   const [priceLoading, setPriceLoading] = useState(false);
+
+  const branchCurrency = availableBranches.find(b => String(b.id) === String(selectedBranch))?.currency || 'USD';
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -115,6 +119,24 @@ export function LabOrderEditForm({
     };
     fetchServices();
   }, [selectedBranch]);
+
+  useEffect(() => {
+    form.reset({
+      clientId: String(order.clientId || ""),
+      item: order.item,
+      tooth: order.tooth,
+      status: order.status,
+      sentDate: new Date(order.sentDate),
+      dueDate: new Date(order.dueDate),
+      receivedDate: order.receivedDate ? new Date(order.receivedDate) : undefined,
+      shade: order.shade,
+      material: order.material,
+      instructions: order.instructions,
+      doctorName: order.doctorName || "",
+      lab_service_id: order.lab_service_id,
+      applied_price: order.applied_price,
+    });
+  }, [order, isOpen, form]);
 
   useEffect(() => {
     const selectedClientId = form.watch('clientId');
@@ -222,7 +244,7 @@ export function LabOrderEditForm({
               name="lab_service_id"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Lab Service (Optional)</FormLabel>
+                  <FormLabel>Lab Service *</FormLabel>
                   <FormControl>
                     <Select
                       value={field.value?.toString() || ""}
@@ -251,7 +273,7 @@ export function LabOrderEditForm({
               name="applied_price"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Price</FormLabel>
+                  <FormLabel>Price ({branchCurrency})</FormLabel>
                   <FormControl>
                     <Input
                       type="number"

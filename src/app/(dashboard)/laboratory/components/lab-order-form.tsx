@@ -54,7 +54,7 @@ const formSchema = z.object({
   material: z.string().optional(),
   instructions: z.string().optional(),
   doctorName: z.string().optional(),
-  lab_service_id: z.number().optional().nullable(),
+  lab_service_id: z.number({ required_error: "Lab service is required." }),
   applied_price: z.coerce.number().optional().nullable(),
 });
 
@@ -66,11 +66,13 @@ type LabOrderFormProps = {
 
 export function LabOrderForm({ clients, onSave, onOpenChange }: LabOrderFormProps) {
   const { toast } = useToast();
-  const { selectedBranch } = useBranch();
+  const { selectedBranch, availableBranches } = useBranch();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [labServices, setLabServices] = useState<LabService[]>([]);
   const [servicesLoading, setServicesLoading] = useState(false);
   const [priceLoading, setPriceLoading] = useState(false);
+
+  const branchCurrency = availableBranches.find(b => String(b.id) === String(selectedBranch))?.currency || 'USD';
 
   useEffect(() => {
     const fetchServices = async () => {
@@ -96,7 +98,6 @@ export function LabOrderForm({ clients, onSave, onOpenChange }: LabOrderFormProp
     defaultValues: {
         sentDate: new Date(),
         status: 'Draft',
-        lab_service_id: null,
         applied_price: null,
     },
   });
@@ -200,7 +201,7 @@ export function LabOrderForm({ clients, onSave, onOpenChange }: LabOrderFormProp
                         name="lab_service_id"
                         render={({ field }) => (
                             <FormItem>
-                            <FormLabel>Lab Service (Optional)</FormLabel>
+                            <FormLabel>Lab Service *</FormLabel>
                             <FormControl>
                                 <Select
                                   value={field.value?.toString() || ""}
@@ -228,7 +229,7 @@ export function LabOrderForm({ clients, onSave, onOpenChange }: LabOrderFormProp
                         name="applied_price"
                         render={({ field }) => (
                             <FormItem>
-                            <FormLabel>Price</FormLabel>
+                            <FormLabel>Price ({branchCurrency})</FormLabel>
                             <FormControl>
                                 <Input
                                   type="number"
