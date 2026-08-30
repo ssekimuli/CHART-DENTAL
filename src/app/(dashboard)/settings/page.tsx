@@ -32,6 +32,7 @@ import { useBranch } from "@/context/branch-context";
 import { DataImporter } from "@/components/dashboard/data-importer";
 import { TreatmentsCatalog } from "./components/treatments-catalog";
 import { BranchSettingsTab } from "./components/branch-settings-tab";
+import { QuickbooksIntegrationTab } from "./components/quickbooks-integration-tab";
 
 const permissionGroups = {
     Dashboard: ['dashboard:read'],
@@ -247,10 +248,11 @@ export default function SettingsPage() {
 
   return (
     <Tabs defaultValue="profile">
-      <TabsList className="grid w-full grid-cols-6">
+      <TabsList className="grid w-full grid-cols-7">
         <TabsTrigger value="profile">Profile</TabsTrigger>
         <TabsTrigger value="practice">Practice</TabsTrigger>
         <TabsTrigger value="business">Business</TabsTrigger>
+        <TabsTrigger value="integrations">Integrations</TabsTrigger>
         <TabsTrigger value="notifications">Notifications</TabsTrigger>
         <TabsTrigger value="roles">Roles &amp; Permissions</TabsTrigger>
         <TabsTrigger value="treatments">Treatments</TabsTrigger>
@@ -359,6 +361,10 @@ export default function SettingsPage() {
             <Button onClick={handleSavePractice}>Save Changes</Button>
           </CardFooter>
         </Card>
+      </TabsContent>
+
+      <TabsContent value="integrations">
+        <QuickbooksIntegrationTab />
       </TabsContent>
 
       <TabsContent value="notifications">

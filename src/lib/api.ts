@@ -4715,3 +4715,76 @@ export const updatePatientAvatar = async (patientId: string | number, file: File
     });
     return response.data;
 };
+
+// --- QUICKBOOKS INTEGRATION ---
+
+export interface QbConnectionStatus {
+    connected: boolean;
+    realm_id?: string;
+    last_sync?: string;
+    is_token_expired?: boolean;
+    is_token_expiring_soon?: boolean;
+}
+
+export interface QbSyncLog {
+    id: number;
+    entity_type: string;
+    status: 'success' | 'failed' | 'pending';
+    qb_id?: string;
+    error_message?: string;
+    synced_at?: string;
+    created_at: string;
+}
+
+export const qb = {
+    async getConnectUrl(): Promise<{ auth_url: string }> {
+        return customAxios.post('/qb/connect').then(r => r.data);
+    },
+
+    async getStatus(): Promise<QbConnectionStatus> {
+        return customAxios.get('/qb/status').then(r => r.data);
+    },
+
+    async disconnect(): Promise<{ message: string }> {
+        return customAxios.post('/qb/disconnect').then(r => r.data);
+    },
+
+    async syncPatient(patientId: number): Promise<{ message: string; patient_id: number }> {
+        return customAxios.post(`/qb/sync/patient/${patientId}`).then(r => r.data);
+    },
+
+    async syncInvoice(invoiceId: number): Promise<{ message: string; invoice_id: number }> {
+        return customAxios.post(`/qb/sync/invoice/${invoiceId}`).then(r => r.data);
+    },
+
+    async syncPayment(paymentId: number): Promise<{ message: string; payment_id: number }> {
+        return customAxios.post(`/qb/sync/payment/${paymentId}`).then(r => r.data);
+    },
+
+    async getSyncStatus(syncLogId: number): Promise<QbSyncLog> {
+        return customAxios.get(`/qb/sync/status/${syncLogId}`).then(r => r.data);
+    },
+
+    async getSyncLogs(params?: { entity_type?: string; status?: string; page?: number }): Promise<any> {
+        return customAxios.get('/qb/sync-logs', { params }).then(r => r.data);
+    },
+
+    async getInvoices(status?: 'synced' | 'pending' | 'failed'): Promise<any> {
+        return customAxios.get('/qb/invoices', { params: { status } }).then(r => r.data);
+    },
+
+    async vaultCard(qbJsToken: string, customerId: number): Promise<{ success: boolean; vault_token: string; message: string }> {
+        return customAxios.post('/qb/payment/vault-card', {
+            qb_js_token: qbJsToken,
+            customer_id: customerId,
+        }).then(r => r.data);
+    },
+
+    async chargeCard(invoiceId: number, vaultToken: string, amount: number): Promise<{ success: boolean; payment_id: number; charge_id: string; message: string }> {
+        return customAxios.post('/qb/payment/charge', {
+            invoice_id: invoiceId,
+            vault_token: vaultToken,
+            amount,
+        }).then(r => r.data);
+    },
+};
