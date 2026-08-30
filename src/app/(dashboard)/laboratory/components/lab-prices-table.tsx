@@ -22,6 +22,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useState } from "react";
+import { useCurrency } from "@/hooks/use-currency";
 
 interface LabPricesTableProps {
   prices: LabServicePrice[];
@@ -39,6 +40,7 @@ export function LabPricesTable({
   isLoading = false,
 }: LabPricesTableProps) {
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const { formatCurrency } = useCurrency();
 
   const handleDeleteConfirm = () => {
     if (deleteId) {
@@ -86,7 +88,7 @@ export function LabPricesTable({
                       )}
                     </TableCell>
                     <TableCell>
-                      <span className="font-semibold text-lg">${parseFloat(String(price.base_price)).toFixed(2)}</span>
+                      <span className="font-semibold text-lg">{formatCurrency(price.base_price)}</span>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
