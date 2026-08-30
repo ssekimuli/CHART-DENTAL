@@ -119,6 +119,24 @@ export function LabOrderEditForm({
   }, [selectedBranch]);
 
   useEffect(() => {
+    form.reset({
+      clientId: String(order.clientId || ""),
+      item: order.item,
+      tooth: order.tooth,
+      status: order.status,
+      sentDate: new Date(order.sentDate),
+      dueDate: new Date(order.dueDate),
+      receivedDate: order.receivedDate ? new Date(order.receivedDate) : undefined,
+      shade: order.shade,
+      material: order.material,
+      instructions: order.instructions,
+      doctorName: order.doctorName || "",
+      lab_service_id: order.lab_service_id,
+      applied_price: order.applied_price,
+    });
+  }, [order, isOpen, form]);
+
+  useEffect(() => {
     const selectedClientId = form.watch('clientId');
     const currentDoctorName = form.watch('doctorName');
 
