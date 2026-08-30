@@ -49,15 +49,20 @@ export function BookingQRModal({
 
         // Create a new container with the data URL image
         const downloadElement = document.createElement("div");
-        downloadElement.style.padding = "20px";
+        downloadElement.style.padding = "40px 20px";
         downloadElement.style.textAlign = "center";
         downloadElement.style.backgroundColor = "white";
+        downloadElement.style.display = "flex";
+        downloadElement.style.flexDirection = "column";
+        downloadElement.style.alignItems = "center";
+        downloadElement.style.justifyContent = "center";
 
         const imageEl = document.createElement("img");
         imageEl.src = imageDataUrl;
         imageEl.style.width = "300px";
         imageEl.style.height = "300px";
-        imageEl.style.marginBottom = "20px";
+        imageEl.style.marginBottom = "30px";
+        imageEl.style.display = "block";
 
         const textEl = document.createElement("div");
         textEl.innerHTML = `
