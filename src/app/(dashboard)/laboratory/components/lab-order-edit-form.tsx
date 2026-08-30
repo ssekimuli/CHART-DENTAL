@@ -35,8 +35,10 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import { CalendarIcon, Loader2 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
+import { Combobox } from "@/components/ui/combobox";
 import { useBranch } from "@/context/branch-context";
-import { getLabServices, getActivePriceForService, updateLabOrder } from "@/lib/api-lab-prices";
+import { getLabServices, getActivePriceForService } from "@/lib/api-lab-prices";
+import { updateLabOrder } from "@/lib/api";
 
 const formSchema = z.object({
   clientId: z.string().optional(),
