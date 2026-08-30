@@ -77,8 +77,7 @@ export function QRCodeModal({
         const textEl = document.createElement("div");
         textEl.innerHTML = `
           <h2 style="font-size: 18px; margin-bottom: 10px; font-weight: bold;">Patient Registration QR Code</h2>
-          <p style="font-size: 12px; color: #666; margin-bottom: 10px;">Scan to register</p>
-          <p style="font-size: 10px; color: #999;">${registrationUrl}</p>
+          <p style="font-size: 12px; color: #666;">Scan to register</p>
         `;
 
         downloadElement.appendChild(imageEl);
