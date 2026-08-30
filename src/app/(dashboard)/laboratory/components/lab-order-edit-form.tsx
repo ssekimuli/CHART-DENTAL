@@ -74,11 +74,13 @@ export function LabOrderEditForm({
   onUpdate,
 }: LabOrderEditFormProps) {
   const { toast } = useToast();
-  const { selectedBranch } = useBranch();
+  const { selectedBranch, availableBranches } = useBranch();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [labServices, setLabServices] = useState<LabService[]>([]);
   const [servicesLoading, setServicesLoading] = useState(false);
   const [priceLoading, setPriceLoading] = useState(false);
+
+  const branchCurrency = availableBranches.find(b => String(b.id) === String(selectedBranch))?.currency || 'USD';
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -271,7 +273,7 @@ export function LabOrderEditForm({
               name="applied_price"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Price</FormLabel>
+                  <FormLabel>Price ({branchCurrency})</FormLabel>
                   <FormControl>
                     <Input
                       type="number"
