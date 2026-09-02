@@ -1,6 +1,7 @@
-
 "use client";
+import { useToast } from "@/hooks/use-toast";
 
+import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -33,7 +34,7 @@ import {
 import type { LeaveRequest, LeaveType, Employee } from "@/lib/types";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Loader2 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Combobox } from "@/components/ui/combobox";
 import { Textarea } from "@/components/ui/textarea";
@@ -54,6 +55,9 @@ type LeaveRequestFormProps = {
 };
 
 export function LeaveRequestForm({ employees, onSave, onOpenChange }: LeaveRequestFormProps) {
+  const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -62,16 +66,28 @@ export function LeaveRequestForm({ employees, onSave, onOpenChange }: LeaveReque
     }
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    setIsSubmitting(true);
+    try {
     const employee = employees.find(e => e.id === values.employeeId);
     if (!employee) return;
     
-    onSave({
+        await onSave({
         ...values,
         branchId: employee.branchId,
         startDate: format(values.startDate, "yyyy-MM-dd"),
         endDate: format(values.endDate, "yyyy-MM-dd"),
     });
+      } catch (error: any) {
+        console.error(error);
+        toast({
+            title: "Error",
+            description: error.message || "An unexpected error occurred.",
+            variant: "destructive",
+        });
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   const leaveTypes: LeaveType[] = ['Annual', 'Sick', 'Unpaid', 'Maternity'];
@@ -207,7 +223,10 @@ export function LeaveRequestForm({ employees, onSave, onOpenChange }: LeaveReque
 
                      <DialogFooter>
                         <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-                        <Button type="submit">Submit Request</Button>
+                        <Button type="submit"  disabled={isSubmitting}>
+        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        Submit Request
+      </Button>
                     </DialogFooter>
                 </form>
             </Form>

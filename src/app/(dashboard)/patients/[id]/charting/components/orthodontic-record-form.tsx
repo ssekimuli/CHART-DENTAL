@@ -1,5 +1,7 @@
 "use client";
+import { useToast } from "@/hooks/use-toast";
 
+import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -25,7 +27,7 @@ import {
 import type { OrthodonticRecord } from "@/lib/types";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Loader2 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -54,6 +56,9 @@ type OrthodonticRecordFormProps = {
 };
 
 export function OrthodonticRecordForm({ record, onSave, onCancel }: OrthodonticRecordFormProps) {
+  const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -74,13 +79,25 @@ export function OrthodonticRecordForm({ record, onSave, onCancel }: OrthodonticR
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    onSave({
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    setIsSubmitting(true);
+    try {
+    await onSave({
       ...values,
       date: format(values.date, "yyyy-MM-dd"),
       bracketChanges: values.bracketChanges?.split(',').map(s => s.trim()).filter(Boolean),
       brokenBrackets: values.brokenBrackets?.split(',').map(s => s.trim()).filter(Boolean),
     });
+      } catch (error: any) {
+        console.error(error);
+        toast({
+            title: "Error",
+            description: error.message || "An unexpected error occurred.",
+            variant: "destructive",
+        });
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -391,7 +408,10 @@ export function OrthodonticRecordForm({ record, onSave, onCancel }: OrthodonticR
             >
               Cancel
             </Button>
-            <Button type="submit">Save Record</Button>
+            <Button type="submit"  disabled={isSubmitting}>
+        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        Save Record
+      </Button>
           </div>
         </form>
       </Form>

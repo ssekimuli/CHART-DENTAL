@@ -31,7 +31,6 @@ export const getCurrencyCode = (): string => {
 export const setCurrencyCode = (code: string) => {
     if (typeof window !== "undefined") {
         localStorage.setItem("currency_preference", code);
-        // Trigger a custom event to notify all components to re-render
         window.dispatchEvent(new Event("currencyChange"));
     }
 };

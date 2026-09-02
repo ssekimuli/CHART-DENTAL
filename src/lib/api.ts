@@ -13,14 +13,17 @@ import {
     leaveRequests as allLeaveRequests,
     staffAdvances as allStaffAdvances,
     expenses as allExpenses,
-    roles as mockRoles
+    roles as mockRoles,
+    businesses as mockBusinesses
 } from '@/lib/data';
-import type { PaginatedArray, Patient, Appointment, Invoice, ChartData, PracticeTrendPoint, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, BasePatient, InvoiceTreatment, OtherCharge, SystemTreatment, PaymentMethod, PaymentTransaction, AttendanceRecord, LeaveRequest, StaffAdvance, StaffAdvanceStatus, Expense, ExpenseCategory, ExpenseSummary, IncomeRecord, RolePermissions, Permission, DentalRecord, PeriodontalRecord, OcclusalRecord, SoftTissueRecord, OrthodonticRecord, Treatment, DentalCondition, PatientImage, FinancialSummary, CurrentUser, ProfileData, AppointmentStatus, DashboardSummary, EmployeeRole, ReportsOverview, Medicine, MedicineUnit, Prescription, PrescriptionItem, InvoiceMedicine, EndodonticRecord } from '@/lib/types';
+import type { Business, PaginatedArray, Patient, Appointment, Invoice, ChartData, PracticeTrendPoint, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, BasePatient, InvoiceTreatment, OtherCharge, SystemTreatment, PaymentMethod, PaymentTransaction, AttendanceRecord, LeaveRequest, StaffAdvance, StaffAdvanceStatus, Expense, ExpenseCategory, ExpenseSummary, IncomeRecord, RolePermissions, Permission, DentalRecord, PeriodontalRecord, OcclusalRecord, SoftTissueRecord, OrthodonticRecord, Treatment, DentalCondition, PatientImage, FinancialSummary, CurrentUser, ProfileData, AppointmentStatus, DashboardSummary, EmployeeRole, ReportsOverview, Medicine, MedicineUnit, Prescription, PrescriptionItem, InvoiceMedicine, EndodonticRecord, RestorativeRecord, Client } from '@/lib/types';
 import { format, parse } from "date-fns";
 import { speak } from '@/ai/flows/speak';
 import { clearCurrentUser, setCurrentUser } from './user';
-import customAxios from './axios';
+import { getCustomAxios } from './api-utils';
 import axios from 'axios';
+
+const customAxios = getCustomAxios();
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -29,38 +32,46 @@ let branchesCache: Branch[] | null = null;
 let treatmentsCache: SystemTreatment[] | null = null;
 let rolesCache: RolePermissions[] | null = null;
 let rolesListCache: any[] | null = null;
+let businessesCache: Business[] | null = null;
 
 
 // --- READ OPERATIONS ---
 
 export const login = async (email: string, password?: string): Promise<CurrentUser | null> => {
-    console.log('API CALL: login', { email });
+    
     
     try {
         const response = await customAxios.post('/login', { email, password });
         const { user, token } = response.data;
         setCurrentUser(user, token);
         return user;
+
     } catch (error) {
         if (axios.isAxiosError(error)) {
             console.error('Login failed:', error.response?.data || error.message || error);
         } else {
             console.error("An unexpected error occurred during login:", error);
         }
+
         clearCurrentUser();
+
         return null;
     }
 }
 
 export const logout = async (): Promise<void> => {
+
     console.log('API CALL: logout');
+    
     try {
         await customAxios.post('/logout');
     } catch (error) {
         if (axios.isAxiosError(error)) {
             console.error('Logout failed:', error.response?.data);
         } else {
+
             console.error('An unexpected error occurred during logout:', error);
+
         }
         // We still clear the local session even if server logout fails
     }
@@ -121,9 +132,11 @@ export const resendEmployeePassword = async (id: string | number): Promise<{ suc
 };
 
 export const resetPassword = async (identifier: string, password?: string): Promise<{ success: boolean; message: string }> => {
+    
     console.log('API CALL: resetPassword', { identifier });
+    
     try {
-        const response = await customAxios.post('/reset-password', { identifier, password });
+        const response = await customAxios.post('/user-reset-password', { identifier, password });
         return {
             success: true,
             message: response.data.message || 'Password reset successfully.',
@@ -184,7 +197,31 @@ export const getProfileData = async (): Promise<ProfileData | null> => {
     }
 }
 
+export const getBusinesses = async (): Promise<Business[]> => {
+    console.log('API CALL: getBusinesses');
+    try {
+        const response = await customAxios.get('/businesses');
+        businessesCache = response.data.map((business: any) => ({ ...business, id: String(business.id) }));
+        return businessesCache || [];
+    } catch (error) {
+        console.error("Failed to fetch businesses:", error);
+        return [];
+    }
+}
 
+export const addBusiness = async (data: Omit<Business, 'id'>): Promise<Business> => {
+    console.log('API CALL: addBusiness', data);
+    try {
+        const response = await customAxios.post('/businesses', data);
+        const newBusiness = { ...response.data, id: String(response.data.id) };
+        if (!businessesCache) businessesCache = [];
+        businessesCache.push(newBusiness);
+        return newBusiness;
+    } catch (error) {
+        console.error("Failed to add business:", error);
+        throw error;
+    }
+}
 export const getBranches = async (): Promise<Branch[]> => {
     if (branchesCache) return branchesCache;
     console.log('API CALL: getBranches');
@@ -214,8 +251,31 @@ export const getCurrencies = async (): Promise<any[]> => {
     }
 }
 
-const mapPeriodontalRecords = (records: any[]): PeriodontalRecord => {
-    return (records || []).map((record: any) => ({
+const parseJsonArraySafe = (data: any): any[] => {
+    if (typeof data === 'string') {
+        try {
+            const parsed = JSON.parse(data);
+            return Array.isArray(parsed) ? parsed : [];
+        } catch {
+            return [];
+        }
+    }
+    return Array.isArray(data) ? data : [];
+};
+
+const parseJsonSafe = (data: any, fallback: any = null): any => {
+    if (typeof data === 'string') {
+        try {
+            return JSON.parse(data);
+        } catch {
+            return fallback;
+        }
+    }
+    return data || fallback;
+};
+
+const mapPeriodontalRecords = (records: any[] | string): PeriodontalRecord => {
+    return parseJsonArraySafe(records).map((record: any) => ({
         toothId: Number(record.tooth_id || record.toothId),
         pockets: record.pockets || {},
         recession: record.recession !== undefined && record.recession !== null ? Number(record.recession) : undefined,
@@ -225,8 +285,8 @@ const mapPeriodontalRecords = (records: any[]): PeriodontalRecord => {
     }));
 };
 
-const mapEndodonticRecords = (records: any[]): EndodonticRecord[] => {
-    return (records || []).map((record: any) => ({
+const mapEndodonticRecords = (records: any[] | string): EndodonticRecord[] => {
+    return parseJsonArraySafe(records).map((record: any) => ({
         id: String(record.id),
         date: record.date || record.created_at?.split('T')[0] || new Date().toISOString().split('T')[0],
         toothId: Number(record.tooth_id),
@@ -248,8 +308,7 @@ type GetPatientsFilters = {
 };
 
 export const mapOrthodonticRecords = (records: any): OrthodonticRecord[] => {
-    if (!records || !Array.isArray(records)) return [];
-    return records.map((record: any) => ({
+    return parseJsonArraySafe(records).map((record: any) => ({
         id: record.id,
         appliance: record.appliance,
         applianceLocation: record.appliance_location || record.applianceLocation,
@@ -327,12 +386,19 @@ export const getPatients = async (filters?: string | number | GetPatientsFilters
             treatmentPlans: patient.treatment_plans || [],
             imaging: patient.images || patient.imaging || [], // Backend returns 'images', not 'imaging'
             periodontalRecords: mapPeriodontalRecords(patient.periodontal_records),
-            occlusalRecords: typeof patient.occlusal_records === 'string'
-                ? JSON.parse(patient.occlusal_records)
-                : (patient.occlusal_records || { overbite: 0, overjet: 0, crossbite: 'None', openbite: 'None', malocclusion: 'Class I' }),
+            occlusalRecords: parseJsonSafe(patient.occlusal_records, { overbite: 0, overjet: 0, crossbite: 'None', openbite: 'None', malocclusion: 'Class I' }),
             softTissueRecords: patient.soft_tissue_records || [],
             orthodonticRecords: mapOrthodonticRecords(patient.orthodontic_records),
             endodonticRecords: mapEndodonticRecords(patient.endodontic_records || patient.endodonticRecords),
+            restorativeRecords: (patient.restorative_records || patient.restorativeRecords || []).map((record: any) => ({
+                id: String(record.id),
+                toothId: Number(record.tooth_id || record.toothId),
+                surface: record.surface,
+                material: record.material,
+                notes: record.notes || '',
+                createdAt: record.created_at || record.createdAt,
+                updatedAt: record.updated_at || record.updatedAt,
+            })),
         }));
 
         if (response.data && response.data.meta) {
@@ -435,13 +501,14 @@ export const getPatientById = async (id: string | number): Promise<Patient | und
             status: patient.status,
             history: patient.history || '',
             branchId: String(patient.branch_id),
-            dentalRecords: (patient.dental_records || []).map((record: any) => ({
+            dentalRecords: parseJsonArraySafe(patient.dental_records).map((record: any) => ({
                 toothId: record.tooth_id,
                 condition: record.condition,
                 notes: record.notes || '',
             })),
-            treatmentPlans: (patient.treatment_plans || []).map((plan: any) => ({
+             treatmentPlans: parseJsonArraySafe(patient.treatment_plans).map((plan: any) => ({
                 id: String(plan.id),
+                procedureId: plan.procedure_id || plan.procedureId || String(plan.id),
                 procedure: plan.procedure,
                 tooth: plan.tooth,
                 status: plan.status,
@@ -451,12 +518,19 @@ export const getPatientById = async (id: string | number): Promise<Patient | und
             })),
             imaging: patient.images || patient.imaging || [], // Backend returns 'images', not 'imaging'
             periodontalRecords: mapPeriodontalRecords(patient.periodontal_records),
-            occlusalRecords: typeof patient.occlusal_records === 'string'
-                ? JSON.parse(patient.occlusal_records)
-                : (patient.occlusal_records || { overbite: 0, overjet: 0, crossbite: 'None', openbite: 'None', malocclusion: 'Class I' }),
-            softTissueRecords: patient.soft_tissue_records || [],
+            occlusalRecords: parseJsonSafe(patient.occlusal_records, { overbite: 0, overjet: 0, crossbite: 'None', openbite: 'None', malocclusion: 'Class I' }),
+            softTissueRecords: parseJsonArraySafe(patient.soft_tissue_records),
             orthodonticRecords: mapOrthodonticRecords(patient.orthodontic_records),
             endodonticRecords: mapEndodonticRecords(patient.endodontic_records || patient.endodonticRecords),
+            restorativeRecords: parseJsonArraySafe(patient.restorative_records || patient.restorativeRecords).map((record: any) => ({
+                id: String(record.id),
+                toothId: Number(record.tooth_id || record.toothId),
+                surface: record.surface,
+                material: record.material,
+                notes: record.notes || '',
+                createdAt: record.created_at || record.createdAt,
+                updatedAt: record.updated_at || record.updatedAt,
+            })),
         };
     } catch (error) {
         if (axios.isAxiosError(error)) {
@@ -487,6 +561,19 @@ export const getPatientInvoices = async (patientId: string | number): Promise<In
             issueDate: inv.issue_date,
             dueDate: inv.due_date,
             branchId: inv.branch_id,
+            otherCharges: (inv.other_charges || inv.otherCharges || []).map((charge: any) => ({
+                description: charge.description,
+                amount: Number(charge.amount) || 0
+            })),
+            treatments: (inv.treatments || []).map((t: any) => ({
+                procedureId: t.procedure_id || t.id || '',
+                procedure: t.procedure || '',
+                cost: Number(t.cost) || 0,
+                tooth: t.tooth,
+                insuranceAmount: Number(t.insurance_amount || 0),
+                patientAmount: Number(t.patient_amount || 0)
+            })),
+            medicines: inv.medicines || [],
         }));
     } catch (error) {
         console.error('Failed to fetch patient invoices:', error);
@@ -743,14 +830,37 @@ export const getInvoices = async (filters?: {
             // ✅ FIX FIELD NAMES (VERY IMPORTANT)
             patientName: inv.patient_name,
             patientId: inv.patient_id ?? inv.patientId,
+            patient: inv.patient,
             issueDate: inv.issue_date,
             branchId: inv.branch_id,
+            discount: Number(inv.discount || 0),
+            tax: Number(inv.tax || 0),
+            insuranceCoverage: Number(inv.insurance_coverage || 0),
+            patientResponsibility: Number(inv.patient_responsibility || 0),
+            insuranceResponsibility: Number(inv.insurance_responsibility || 0),
+            patientPaidAmount: Number(inv.patient_paid_amount || 0),
+            insurancePaidAmount: Number(inv.insurance_paid_amount || 0),
+            patientBalance: Number(inv.patient_balance || 0),
+            insuranceBalance: Number(inv.insurance_balance || 0),
             branch: inv.branch ? {
                 id: inv.branch.id,
                 name: inv.branch.name,
                 currency: inv.branch.currency || 'USD',
                 address: inv.branch.address || ''
             } : undefined,
+            otherCharges: (inv.other_charges || inv.otherCharges || []).map((charge: any) => ({
+                description: charge.description,
+                amount: Number(charge.amount) || 0
+            })),
+            treatments: (inv.treatments || []).map((t: any) => ({
+                procedureId: t.procedure_id || t.id || '',
+                procedure: t.procedure || '',
+                cost: Number(t.cost) || 0,
+                tooth: t.tooth,
+                insuranceAmount: Number(t.insurance_amount || 0),
+                patientAmount: Number(t.patient_amount || 0)
+            })),
+            medicines: inv.medicines || [],
         }));
 
         console.log('Fetched invoices from API:', invoices);
@@ -819,9 +929,19 @@ export const getInvoiceById = async (id: string | number): Promise<Invoice | und
             // Map field names from API to your component expectations
             patientName: invoiceData.patient_name || invoiceData.patientName || 'Unknown',
             patientId: invoiceData.patient_id ?? invoiceData.patientId ?? '',
+            patient: invoiceData.patient,
             issueDate: invoiceData.issue_date || invoiceData.issueDate || new Date().toISOString(),
             dueDate: invoiceData.due_date || invoiceData.dueDate || new Date().toISOString(),
             paymentMethod: invoiceData.payment_method || invoiceData.paymentMethod || null,
+            discount: Number(invoiceData.discount || 0),
+            tax: Number(invoiceData.tax || 0),
+            insuranceCoverage: Number(invoiceData.insurance_coverage || 0),
+            patientResponsibility: Number(invoiceData.patient_responsibility || 0),
+            insuranceResponsibility: Number(invoiceData.insurance_responsibility || 0),
+            patientPaidAmount: Number(invoiceData.patient_paid_amount || 0),
+            insurancePaidAmount: Number(invoiceData.insurance_paid_amount || 0),
+            patientBalance: Number(invoiceData.patient_balance || 0),
+            insuranceBalance: Number(invoiceData.insurance_balance || 0),
             branchId: invoiceData.branch_id || invoiceData.branchId,
             branch: invoiceData.branch ? {
                 id: invoiceData.branch.id,
@@ -843,7 +963,9 @@ export const getInvoiceById = async (id: string | number): Promise<Invoice | und
                 procedureId: t.procedure_id || t.id || '',
                 procedure: t.procedure || '',
                 cost: Number(t.cost) || 0,
-                tooth: t.tooth
+                tooth: t.tooth,
+                insuranceAmount: Number(t.insurance_amount || 0),
+                patientAmount: Number(t.patient_amount || 0)
             })),
             // Keep original fields for reference (optional)
             patient_name: invoiceData.patient_name,
@@ -1011,8 +1133,23 @@ export const getInventory = async (branchId?: string | number, page?: number, pe
     }
 }
 
-export const getLabOrders = async (branchId?: string | number, page?: number, perPage?: number): Promise<PaginatedArray<LaboratoryOrder>> => {
-    console.log('API CALL: getLabOrders', { branchId, page, perPage });
+export const getLabOrders = async (
+    branchId?: string | number,
+    page?: number,
+    perPage?: number,
+    filters?: {
+        search?: string;
+        status?: string;
+        client_id?: string | number;
+        doctor_id?: string | number;
+        sent_date_from?: string;
+        sent_date_to?: string;
+        due_date_from?: string;
+        due_date_to?: string;
+        sort_by?: string;
+        sort_order?: 'asc' | 'desc';
+    }
+): Promise<PaginatedArray<LaboratoryOrder>> => {
     try {
         const params: any = {};
         if (branchId !== undefined && branchId !== null) {
@@ -1021,13 +1158,28 @@ export const getLabOrders = async (branchId?: string | number, page?: number, pe
         if (page) params.page = page;
         if (perPage) params.per_page = perPage;
 
+        // Add filter parameters
+        if (filters) {
+            if (filters.search) params.search = filters.search;
+            if (filters.status) params.status = filters.status;
+            if (filters.client_id) params.client_id = filters.client_id;
+            if (filters.doctor_id) params.doctor_id = filters.doctor_id;
+            if (filters.sent_date_from) params.sent_date_from = filters.sent_date_from;
+            if (filters.sent_date_to) params.sent_date_to = filters.sent_date_to;
+            if (filters.due_date_from) params.due_date_from = filters.due_date_from;
+            if (filters.due_date_to) params.due_date_to = filters.due_date_to;
+            if (filters.sort_by) params.sort_by = filters.sort_by;
+            if (filters.sort_order) params.sort_order = filters.sort_order;
+        }
+
         const response = await customAxios.get('/management/lab-orders', { params });
         const rawOrders = Array.isArray(response.data) ? response.data : (response.data.data || []);
-        
+
         const orders: PaginatedArray<LaboratoryOrder> = rawOrders.map((order: any) => ({
             id: order.id,
-            patientId: String(order.patient_id),
-            patientName: order.patient_name || (order.patient ? `${order.patient.first_name} ${order.patient.last_name}` : ''),
+            clientId: String(order.client_id),
+            client: order.client,
+            patientName: order.patient_name || '',
             lab: order.lab,
             item: order.item,
             tooth: order.tooth,
@@ -1035,6 +1187,8 @@ export const getLabOrders = async (branchId?: string | number, page?: number, pe
             sentDate: order.sent_date ? order.sent_date.split('T')[0] : '',
             dueDate: order.due_date ? order.due_date.split('T')[0] : '',
             branchId: String(order.branch_id),
+            doctor: order.doctor,
+            cost: order.cost,
         }));
 
         if (response.data && response.data.meta) {
@@ -1045,6 +1199,72 @@ export const getLabOrders = async (branchId?: string | number, page?: number, pe
         console.error('Error fetching lab orders:', error);
         const emptyArray: PaginatedArray<LaboratoryOrder> = [];
         return emptyArray;
+    }
+}
+
+export const updateLabOrderStatus = async (id: string | number, status: string): Promise<LaboratoryOrder> => {
+    try {
+        const response = await customAxios.patch(`/management/lab-orders/${id}/status`, { status });
+        return {
+            id: response.data.id,
+            clientId: String(response.data.client_id),
+            client: response.data.client,
+            patientName: response.data.patient_name || '',
+            lab: response.data.lab,
+            item: response.data.item,
+            tooth: response.data.tooth,
+            status: response.data.status,
+            sentDate: response.data.sent_date ? response.data.sent_date.split('T')[0] : '',
+            dueDate: response.data.due_date ? response.data.due_date.split('T')[0] : '',
+            branchId: String(response.data.branch_id),
+        };
+    } catch (error) {
+        console.error('Error updating lab order status:', error);
+        throw error;
+    }
+}
+
+export const getClients = async (branchId?: string | number): Promise<Client[]> => {
+    try {
+        const params: any = {};
+        if (branchId !== undefined && branchId !== null) {
+            params.branch_id = branchId;
+        }
+        const response = await customAxios.get('/clients', { params });
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching clients:', error);
+        return [];
+    }
+}
+
+export const createClient = async (data: Omit<
+    Client, 'id'>): Promise<Client> => {
+    try {
+        const response = await customAxios.post('/clients', data);
+        return response.data;
+    } catch (error) {
+        console.error('Error creating client:', error);
+        throw error;
+    }
+}
+
+export const updateClient = async (id: string | number, data: Partial<Client>): Promise<Client> => {
+    try {
+        const response = await customAxios.put(`/clients/${id}`, data);
+        return response.data;
+    } catch (error) {
+        console.error('Error updating client:', error);
+        throw error;
+    }
+}
+
+export const deleteClient = async (id: string | number): Promise<void> => {
+    try {
+        await customAxios.delete(`/clients/${id}`);
+    } catch (error) {
+        console.error('Error deleting client:', error);
+        throw error;
     }
 }
 
@@ -1373,14 +1593,16 @@ export const getRolesList = async (): Promise<{id: string, name: string}[]> => {
 }
 
 
-export const getFinancialSummary = async (branchId: string | number): Promise<FinancialSummary> => {
-    console.log('API CALL: getFinancialSummary', { branchId });
+export const getFinancialSummary = async (filters?: { branchId?: string | number; dateFrom?: string; dateTo?: string }): Promise<FinancialSummary> => {
+    console.log('API CALL: getFinancialSummary', { filters });
 
     try {
         const params: Record<string, string | number> = {};
-        if (branchId !== undefined && branchId !== null) {
-            params.branch_id = branchId;
+        if (filters?.branchId !== undefined && filters?.branchId !== null) {
+            params.branch_id = filters.branchId;
         }
+        if (filters?.dateFrom) params.date_from = filters.dateFrom;
+        if (filters?.dateTo) params.date_to = filters.dateTo;
 
         const response = await customAxios.get('/financial-summary', { params });
         let data: any = response.data;
@@ -1397,11 +1619,20 @@ export const getFinancialSummary = async (branchId: string | number): Promise<Fi
             }))
             : [];
 
+        // Parse income by category
+        const incomeByCategory: Record<string, number> = {};
+        if (data.income_by_category) {
+            for (const [category, amount] of Object.entries(data.income_by_category)) {
+                incomeByCategory[category] = Number(amount) || 0;
+            }
+        }
+
         return {
             branchId: data.branch_id,
             from: data.from,
             to: data.to,
             totalIncome: Number(data.total_income) || 0,
+            incomeByCategory,
             totalExpenses: Number(data.total_expenses) || 0,
             netProfit: Number(data.net_profit) || 0,
             monthlyFinancials,
@@ -1416,9 +1647,10 @@ export const getFinancialSummary = async (branchId: string | number): Promise<Fi
         // Fallback to mocked summary if the real API call fails.
         await delay(300);
 
-        const branchInvoices = allInvoices.filter(i => String(i.branchId) === String(branchId));
-        const branchPayrolls = mockPayrolls.filter(p => String(p.branchId) === String(branchId));
-        const branchExpenses = allExpenses.filter(e => String(e.branchId) === String(branchId));
+        const branchId = filters?.branchId;
+        const branchInvoices = branchId ? allInvoices.filter(i => String(i.branchId) === String(branchId)) : allInvoices;
+        const branchPayrolls = branchId ? mockPayrolls.filter(p => String(p.branchId) === String(branchId)) : mockPayrolls;
+        const branchExpenses = branchId ? allExpenses.filter(e => String(e.branchId) === String(branchId)) : allExpenses;
 
         const paidInvoices = branchInvoices.filter(i => i.status === 'Paid');
         const totalIncome = paidInvoices.reduce((sum, i) => sum + i.amount, 0);
@@ -1626,14 +1858,16 @@ export const getExpenses = async (filters?: string | number | {
     }
 };
 
-export const getExpenseSummary = async (branchId?: string | number): Promise<ExpenseSummary | null> => {
-    console.log('API CALL: getExpenseSummary', { branchId });
+export const getExpenseSummary = async (filters?: { branchId?: string | number; dateFrom?: string; dateTo?: string }): Promise<ExpenseSummary | null> => {
+    console.log('API CALL: getExpenseSummary', { filters });
 
     try {
         const params: Record<string, string | number> = {};
-        if (branchId !== undefined && branchId !== null) {
-            params.branch_id = branchId;
+        if (filters?.branchId !== undefined && filters?.branchId !== null) {
+            params.branch_id = filters.branchId;
         }
+        if (filters?.dateFrom) params.date_from = filters.dateFrom;
+        if (filters?.dateTo) params.date_to = filters.dateTo;
 
         const response = await customAxios.get('/expense-records', { params });
         let data: any = response.data;
@@ -1697,30 +1931,20 @@ export const getExpenseSummary = async (branchId?: string | number): Promise<Exp
     }
 };
 
-export const getIncomeRecords = async (filters?: { branchId?: string | number; dateFrom?: string; dateTo?: string; search?: string }): Promise<IncomeRecord[]> => {
-    console.log('API CALL: getIncomeRecords', { filters }); 
+export const getIncomeRecords = async (filters?: { branchId?: string | number; dateFrom?: string; dateTo?: string; search?: string }) => {
+    console.log('API CALL: getIncomeRecords', { filters });
     try {
         const params: any = {};
         if (filters?.branchId) params.branch_id = filters.branchId;
         if (filters?.dateFrom) params.date_from = filters.dateFrom;
         if (filters?.dateTo) params.date_to = filters.dateTo;
         if (filters?.search) params.search = filters.search;
-        
+
         const response = await customAxios.get('/income-records', { params });
+        const data = response.data;
 
-        let incomeData = response.data;
-        if (incomeData?.data && Array.isArray(incomeData.data)) {
-            incomeData = incomeData.data;
-        }
-        if (incomeData?.records && Array.isArray(incomeData.records)) {
-            incomeData = incomeData.records;
-        }
-        if (!Array.isArray(incomeData)) {
-            console.error('Unexpected response format:', incomeData);
-            return [];
-        }
-
-        return incomeData.map((item: any) => ({
+        // Map the records to IncomeRecord format
+        const records = (data.records || []).map((item: any) => ({
             id: item.id,
             branchId: item.branch_id || item.branchId || item.branch?.id,
             date: item.issue_date ? String(item.issue_date).split('T')[0] : item.date || item.invoice_date || '',
@@ -1728,10 +1952,25 @@ export const getIncomeRecords = async (filters?: { branchId?: string | number; d
             amount: Number(item.paid_amount || item.amount || item.total) || 0,
             status: item.status || item.payment_status || 'Paid',
             invoiceNumber: item.invoice_number || item.invoiceNo || item.number || '',
+            category: item.category || 'other',
         }));
+
+        return {
+            branch: data.branch,
+            total: data.total,
+            summary: data.summary || {},
+            by_category: data.by_category || {},
+            records,
+        };
     } catch (error) {
         console.error('Error fetching income records:', error);
-        return [];
+        return {
+            branch: null,
+            total: '0.00',
+            summary: {},
+            by_category: {},
+            records: [],
+        };
     }
 };
 
@@ -1886,9 +2125,7 @@ export const createPatient = async (data: BasePatient & { branchId: string | num
             treatmentPlans: newPatient.treatment_plans || [],
             imaging: newPatient.images || newPatient.imaging || [], // Backend returns 'images', not 'imaging'
             periodontalRecords: mapPeriodontalRecords(newPatient.periodontal_records),
-            occlusalRecords: typeof newPatient.occlusal_records === 'string'
-                ? JSON.parse(newPatient.occlusal_records)
-                : (newPatient.occlusal_records || { overbite: 0, overjet: 0, crossbite: 'None', openbite: 'None', malocclusion: 'Class I' }),
+            occlusalRecords: parseJsonSafe(newPatient.occlusal_records, { overbite: 0, overjet: 0, crossbite: 'None', openbite: 'None', malocclusion: 'Class I' }),
             softTissueRecords: newPatient.soft_tissue_records || [],
             orthodonticRecords: mapOrthodonticRecords(newPatient.orthodontic_records),
             endodonticRecords: mapEndodonticRecords(newPatient.endodontic_records || newPatient.endodonticRecords),
@@ -1931,9 +2168,7 @@ export const updateNextVisit = async (id: string | number, date: string | null):
             treatmentPlans: updatedPatient.treatment_plans || updatedPatient.treatmentPlans || [],
             imaging: updatedPatient.patient_images || updatedPatient.imaging || [],
             periodontalRecords: mapPeriodontalRecords(updatedPatient.periodontal_records),
-            occlusalRecords: typeof updatedPatient.occlusal_records === 'string'
-                ? JSON.parse(updatedPatient.occlusal_records)
-                : (updatedPatient.occlusal_records || { overbite: 0, overjet: 0, crossbite: 'None', openbite: 'None', malocclusion: 'Class I' }),
+            occlusalRecords: parseJsonSafe(updatedPatient.occlusal_records, { overbite: 0, overjet: 0, crossbite: 'None', openbite: 'None', malocclusion: 'Class I' }),
             softTissueRecords: updatedPatient.soft_tissue_records || [],
             orthodonticRecords: mapOrthodonticRecords(updatedPatient.orthodontic_records),
             endodonticRecords: mapEndodonticRecords(updatedPatient.endodontic_records || updatedPatient.endodonticRecords),
@@ -2000,12 +2235,19 @@ export const updatePatient = async (id: string | number, data: Partial<Patient>)
             treatmentPlans: updatedPatient.treatment_plans || [],
             imaging: updatedPatient.images || updatedPatient.imaging || [],
             periodontalRecords: mapPeriodontalRecords(updatedPatient.periodontal_records),
-            occlusalRecords: typeof updatedPatient.occlusal_records === 'string'
-                ? JSON.parse(updatedPatient.occlusal_records)
-                : (updatedPatient.occlusal_records || { overbite: 0, overjet: 0, crossbite: 'None', openbite: 'None', malocclusion: 'Class I' }),
+            occlusalRecords: parseJsonSafe(updatedPatient.occlusal_records, { overbite: 0, overjet: 0, crossbite: 'None', openbite: 'None', malocclusion: 'Class I' }),
             softTissueRecords: updatedPatient.soft_tissue_records || [],
             orthodonticRecords: mapOrthodonticRecords(updatedPatient.orthodontic_records),
             endodonticRecords: mapEndodonticRecords(updatedPatient.endodontic_records || updatedPatient.endodonticRecords),
+            restorativeRecords: parseJsonArraySafe(updatedPatient.restorative_records || updatedPatient.restorativeRecords).map((record: any) => ({
+                id: String(record.id),
+                toothId: Number(record.tooth_id || record.toothId),
+                surface: record.surface,
+                material: record.material,
+                notes: record.notes || '',
+                createdAt: record.created_at || record.createdAt,
+                updatedAt: record.updated_at || record.updatedAt,
+            })),
         };
 
         // Update local cache
@@ -2021,13 +2263,25 @@ export const updatePatient = async (id: string | number, data: Partial<Patient>)
             if (error.response?.status === 404) {
                 throw new Error("Patient not found");
             }
-            throw new Error(error.response?.data?.message || "Failed to update patient");
+            const errorMessage = error.response?.data?.message || error.message || "Failed to update patient";
+            throw new Error(errorMessage);
         } else {
             console.error("An unexpected error occurred during patient update:", error);
-            throw error;
+            const errorMessage = error instanceof Error ? error.message : "Failed to update patient";
+            throw new Error(errorMessage);
         }
     }
 }
+
+export const getPatientImages = async (patientId: string | number, filters?: { category?: string; search?: string }): Promise<PatientImage[]> => {
+    try {
+        const response = await customAxios.get(`/patients/${patientId}/images`, { params: filters });
+        return response.data.data || [];
+    } catch (error) {
+        console.error('Failed to fetch patient images:', error);
+        return [];
+    }
+};
 
 export const deletePatient = async (id: string | number): Promise<{ success: boolean }> => {
     console.log('API CALL: deletePatient', { id });
@@ -2056,12 +2310,43 @@ export const deletePatient = async (id: string | number): Promise<{ success: boo
     }
 }
 
-export const addImageToPatient = async (patientId: string | number, image: Omit<PatientImage, 'date'>): Promise<Patient | undefined> => {
-    console.log('API CALL: addImageToPatient', { patientId, image });
+export const sendPatientDocuments = async (patientId: string | number, documentIds: number[], channel: string, recipient: string, customMessage: string = ''): Promise<boolean> => {
     try {
-        const response = await customAxios.post(`/patients/${patientId}/images`, {
-            url: image.url,
-            description: image.description,
+        await customAxios.post(`/patients/${patientId}/images/send`, {
+            document_ids: documentIds,
+            channel: channel,
+            recipient: recipient,
+            custom_message: customMessage
+        });
+        return true;
+    } catch (error) {
+        console.error('Error sending patient documents:', error);
+        return false;
+    }
+};
+
+export const sendPeriodontalResult = async (patientId: string | number, channel: string, recipient: string, customMessage: string, data: any): Promise<boolean> => {
+    try {
+        await customAxios.post(`/patients/${patientId}/periodontal/send`, {
+            channel,
+            recipient,
+            custom_message: customMessage,
+            data
+        });
+        return true;
+    } catch (error) {
+        console.error('Error sending periodontal result:', error);
+        return false;
+    }
+};
+
+export const addImageToPatient = async (patientId: string | number, imageFormData: FormData): Promise<Patient | undefined> => {
+    console.log('API CALL: addImageToPatient', { patientId });
+    try {
+        const response = await customAxios.post(`/patients/${patientId}/images`, imageFormData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
         });
         const updatedPatient = response.data;
 
@@ -2088,6 +2373,7 @@ export const addImageToPatient = async (patientId: string | number, image: Omit<
             })),
             treatmentPlans: (updatedPatient.treatment_plans || []).map((plan: any) => ({
                 id: String(plan.id),
+                procedureId: plan.procedure_id || plan.procedureId || String(plan.id),
                 procedure: plan.procedure,
                 tooth: plan.tooth,
                 status: plan.status,
@@ -2097,9 +2383,7 @@ export const addImageToPatient = async (patientId: string | number, image: Omit<
             })),
             imaging: updatedPatient.images || updatedPatient.imaging || [], // Backend returns 'images', not 'imaging'
             periodontalRecords: mapPeriodontalRecords(updatedPatient.periodontal_records),
-            occlusalRecords: typeof updatedPatient.occlusal_records === 'string'
-                ? JSON.parse(updatedPatient.occlusal_records)
-                : (updatedPatient.occlusal_records || { overbite: 0, overjet: 0, crossbite: 'None', openbite: 'None', malocclusion: 'Class I' }),
+            occlusalRecords: parseJsonSafe(updatedPatient.occlusal_records, { overbite: 0, overjet: 0, crossbite: 'None', openbite: 'None', malocclusion: 'Class I' }),
             softTissueRecords: updatedPatient.soft_tissue_records || [],
             orthodonticRecords: mapOrthodonticRecords(updatedPatient.orthodontic_records),
             endodonticRecords: mapEndodonticRecords(updatedPatient.endodontic_records || updatedPatient.endodonticRecords),
@@ -2145,6 +2429,7 @@ export const saveDentalRecord = async (patientId: string | number, record: Denta
         tooth_id: record.toothId,
         condition: record.condition,
         notes: record.notes || undefined,
+        bridge_group_id: record.bridgeGroupId || undefined,
     };
 
     try {
@@ -2157,6 +2442,7 @@ export const saveDentalRecord = async (patientId: string | number, record: Denta
             condition: savedRecord.condition,
             notes: savedRecord.notes || '',
             id: savedRecord.id,
+            bridgeGroupId: savedRecord.bridge_group_id || savedRecord.bridgeGroupId,
             createdAt: savedRecord.created_at || savedRecord.createdAt,
             updatedAt: savedRecord.updated_at || savedRecord.updatedAt,
         };
@@ -2267,7 +2553,12 @@ export const savePeriodontalRecord = async (patientId: string | number, records:
                 recession: record.recession ?? 0,
                 mobility: record.mobility || '0',
                 furcation: record.furcation || null,
-                conditions: record.conditions,
+                conditions: {
+                    bleeding: record.conditions?.bleeding || false,
+                    suppuration: record.conditions?.suppuration || false,
+                    plaque: record.conditions?.plaque || false,
+                    calculus: record.conditions?.calculus || false
+                },
             }))
         };
 
@@ -2743,6 +3034,60 @@ export const deleteEndodonticRecord = async (
     }
 };
 
+export const saveRestorativeRecord = async (
+    patientId: string | number, 
+    record: Omit<RestorativeRecord, 'id' | 'createdAt' | 'updatedAt'> & { procedureCost?: number, materialCost?: number, otherCharges?: number }
+): Promise<Patient | undefined> => {
+    try {
+        const requestBody = {
+            tooth_id: record.toothId,
+            surface: record.surface,
+            material: record.material,
+            notes: record.notes,
+            procedure_cost: record.procedureCost,
+            material_cost: record.materialCost,
+            other_charges: record.otherCharges,
+        };
+        await customAxios.post(`/patients/${patientId}/restorative-records`, requestBody);
+        return getPatientById(patientId);
+    } catch (error) {
+        console.error('Error saving restorative record:', error);
+        return undefined;
+    }
+};
+
+export const updateRestorativeRecord = async (
+    patientId: string | number, 
+    record: RestorativeRecord
+): Promise<Patient | undefined> => {
+    try {
+        const requestBody = {
+            tooth_id: record.toothId,
+            surface: record.surface,
+            material: record.material,
+            notes: record.notes,
+        };
+        await customAxios.put(`/patients/${patientId}/restorative-records/${record.id}`, requestBody);
+        return getPatientById(patientId);
+    } catch (error) {
+        console.error('Error updating restorative record:', error);
+        return undefined;
+    }
+};
+
+export const deleteRestorativeRecord = async (
+    patientId: string | number, 
+    recordId: string | number
+): Promise<Patient | undefined> => {
+    try {
+        await customAxios.delete(`/patients/${patientId}/restorative-records/${recordId}`);
+        return getPatientById(patientId);
+    } catch (error) {
+        console.error('Error deleting restorative record:', error);
+        return undefined;
+    }
+};
+
 
 
 export const updateAppointment = async (id: string | number, data: Partial<Appointment>): Promise<Appointment | undefined> => {
@@ -2834,13 +3179,20 @@ export const createNewInvoice = async (data: Omit<Invoice, 'id' | 'amount' | 'pa
         // ✅ Calculate totals
         const treatmentsTotal = data.treatments.reduce((sum, t) => sum + (Number(t.cost) || 0), 0);
         const otherChargesTotal = (data.otherCharges || []).reduce((sum, charge) => sum + (Number(charge.amount) || 0), 0);
-        const amount = treatmentsTotal + otherChargesTotal;
+        const subtotal = treatmentsTotal + otherChargesTotal;
+        const discountAmount = data.discount ? (data.discount <= 100 ? (subtotal * data.discount / 100) : data.discount) : 0;
+        const subtotalAfterDiscount = subtotal - discountAmount;
+        const taxAmount = data.tax ? (subtotalAfterDiscount * data.tax / 100) : 0;
+        const amount = subtotalAfterDiscount + taxAmount;
 
         // ✅ Prepare payload for API
         const payload = {
             patient_id: data.patientId,
             patient_name: data.patientName,
             amount: amount,
+            discount: data.discount || 0,
+            tax: data.tax || 0,
+            insurance_coverage: data.insuranceCoverage || 0,
             issue_date: data.issueDate,
             due_date: data.dueDate,
             status: data.status || 'Pending',
@@ -2864,6 +3216,12 @@ export const createNewInvoice = async (data: Omit<Invoice, 'id' | 'amount' | 'pa
             other_charges: (data.otherCharges || []).map(charge => ({
                 description: charge.description,
                 amount: Number(charge.amount) || 0
+            })),
+            medicines: (data.medicines || []).map(med => ({
+                medicine_id: med.medicine_id,
+                medicine_unit_id: med.medicine_unit_id,
+                quantity: med.quantity,
+                price: Number(med.price) || 0
             })),
             notes: data.notes || '',
             payment_method: data.paymentMethod || null,
@@ -2905,6 +3263,9 @@ export const createNewInvoice = async (data: Omit<Invoice, 'id' | 'amount' | 'pa
             transactions: invoiceData.transactions || [],
             paymentMethod: invoiceData.payment_method || invoiceData.paymentMethod || data.paymentMethod,
             notes: invoiceData.notes || data.notes || '',
+            discount: Number(invoiceData.discount || data.discount || 0),
+            tax: Number(invoiceData.tax || data.tax || 0),
+            insuranceCoverage: Number(invoiceData.insurance_coverage || data.insuranceCoverage || 0),
         };
 
         console.log('Created invoice:', invoice);
@@ -2931,7 +3292,11 @@ export const updateInvoice = async (id: string | number, data: InvoiceUpdateData
         
         const otherCharges = data.otherCharges || [];
         const otherChargesTotal = otherCharges.reduce((sum, charge) => sum + (Number(charge.amount) || 0), 0);
-        const amount = treatmentsTotal + otherChargesTotal;
+        const subtotal = treatmentsTotal + otherChargesTotal;
+        const discountAmount = data.discount ? (data.discount <= 100 ? (subtotal * data.discount / 100) : data.discount) : 0;
+        const subtotalAfterDiscount = subtotal - discountAmount;
+        const taxAmount = data.tax ? (subtotalAfterDiscount * data.tax / 100) : 0;
+        const amount = subtotalAfterDiscount + taxAmount;
 
         // ✅ Prepare payload for API
         const payload: any = {};
@@ -2944,6 +3309,9 @@ export const updateInvoice = async (id: string | number, data: InvoiceUpdateData
         if (data.branchId !== undefined) payload.branch_id = data.branchId;
         if (data.paymentMethod !== undefined) payload.payment_method = data.paymentMethod;
         if (data.notes !== undefined) payload.notes = data.notes;
+        if (data.discount !== undefined) payload.discount = data.discount;
+        if (data.tax !== undefined) payload.tax = data.tax;
+        if (data.insuranceCoverage !== undefined) payload.insurance_coverage = data.insuranceCoverage;
         
         // Handle treatments
         if (data.treatments !== undefined) {
@@ -3014,6 +3382,9 @@ export const updateInvoice = async (id: string | number, data: InvoiceUpdateData
             transactions: invoiceData.transactions || [],
             paymentMethod: invoiceData.payment_method || invoiceData.paymentMethod || data.paymentMethod,
             notes: invoiceData.notes || data.notes || '',
+            discount: Number(invoiceData.discount || data.discount || 0),
+            tax: Number(invoiceData.tax || data.tax || 0),
+            insuranceCoverage: Number(invoiceData.insurance_coverage || data.insuranceCoverage || 0),
         };
 
         console.log('Updated invoice:', invoice);
@@ -3365,34 +3736,94 @@ export const createInventoryItem = async (data: Omit<InventoryItem, 'id' | 'stat
 }
 
 // Lab Orders
+export const sendLabOrder = async (id: string | number, channel: 'email' | 'whatsapp' | 'sms', customMessage?: string): Promise<any> => {
+    return (await customAxios.post(`/management/lab-orders/${id}/send`, { channel, customMessage })).data;
+};
+
 export const createLabOrder = async (data: Omit<LaboratoryOrder, 'id'>): Promise<LaboratoryOrder> => {
     console.log('API CALL: createLabOrder', { data });
     try {
         const response = await customAxios.post('/management/lab-orders', {
-            patientId: data.patientId,
-            lab: data.lab,
+            clientId: data.clientId,
+            doctorName: data.doctorName,
             item: data.item,
             tooth: data.tooth,
             status: data.status,
             sentDate: data.sentDate,
             dueDate: data.dueDate,
+            receivedDate: data.receivedDate,
+            shade: data.shade,
+            material: data.material,
+            instructions: data.instructions,
+            appliedPrice: data.applied_price,
             branchId: data.branchId,
         });
         const order = response.data;
         return {
             id: order.id,
-            patientId: String(order.patient_id),
-            patientName: order.patient_name || '',
-            lab: order.lab,
+            clientId: String(order.client_id),
+            client: order.client,
             item: order.item,
             tooth: order.tooth,
             status: order.status,
             sentDate: order.sent_date ? order.sent_date.split('T')[0] : '',
             dueDate: order.due_date ? order.due_date.split('T')[0] : '',
+            receivedDate: order.received_date ? order.received_date.split('T')[0] : undefined,
+            shade: order.shade,
+            material: order.material,
+            instructions: order.instructions,
+            doctorName: order.doctor_name,
             branchId: String(order.branch_id),
+            lab_service_id: order.lab_service_id,
+            applied_price: order.applied_price ? parseFloat(String(order.applied_price)) : undefined,
         };
     } catch (error) {
         console.error('Error creating lab order:', error);
+        throw error;
+    }
+}
+
+export const updateLabOrder = async (id: number, data: Partial<Omit<LaboratoryOrder, 'id'>>): Promise<LaboratoryOrder> => {
+    console.log('API CALL: updateLabOrder', { id, data });
+    try {
+        const response = await customAxios.put(`/management/lab-orders/${id}`, {
+            ...(data.clientId && { clientId: data.clientId }),
+            ...(data.doctorName && { doctorName: data.doctorName }),
+            ...(data.item && { item: data.item }),
+            ...(data.tooth !== undefined && { tooth: data.tooth }),
+            ...(data.status && { status: data.status }),
+            ...(data.sentDate && { sentDate: data.sentDate }),
+            ...(data.dueDate && { dueDate: data.dueDate }),
+            ...(data.receivedDate && { receivedDate: data.receivedDate }),
+            ...(data.shade && { shade: data.shade }),
+            ...(data.material && { material: data.material }),
+            ...(data.instructions && { instructions: data.instructions }),
+            ...(data.lab_service_id !== undefined && { labServiceId: data.lab_service_id }),
+            ...(data.applied_price !== undefined && { appliedPrice: data.applied_price }),
+            ...(data.invoiceId && { invoiceId: data.invoiceId }),
+        });
+        const order = response.data;
+        return {
+            id: order.id,
+            clientId: String(order.client_id),
+            client: order.client,
+            item: order.item,
+            tooth: order.tooth,
+            status: order.status,
+            sentDate: order.sent_date ? order.sent_date.split('T')[0] : '',
+            dueDate: order.due_date ? order.due_date.split('T')[0] : '',
+            receivedDate: order.received_date ? order.received_date.split('T')[0] : undefined,
+            shade: order.shade,
+            material: order.material,
+            instructions: order.instructions,
+            doctorName: order.doctor_name,
+            branchId: String(order.branch_id),
+            lab_service_id: order.lab_service_id,
+            applied_price: order.applied_price ? parseFloat(String(order.applied_price)) : undefined,
+            invoiceId: order.invoice_id,
+        };
+    } catch (error) {
+        console.error('Error updating lab order:', error);
         throw error;
     }
 }
@@ -3743,6 +4174,39 @@ export const createExpense = async (data: Omit<Expense, 'id'>): Promise<Expense>
     }
 }
 
+export const updateExpense = async (id: string | number, data: Partial<Omit<Expense, 'id'>>): Promise<Expense> => {
+    console.log('API CALL: updateExpense', { id, data });
+    try {
+        const response = await customAxios.patch(`/management/expenses/${id}`, {
+            date: data.date,
+            category: data.category,
+            description: data.description,
+            amount: data.amount,
+        });
+        const expense = response.data;
+        return {
+            id: expense.id,
+            branchId: String(expense.branch_id),
+            date: expense.date ? expense.date.split('T')[0] : '',
+            category: expense.category,
+            description: expense.description,
+            amount: parseFloat(expense.amount),
+        };
+    } catch (error) {
+        console.error('Error updating expense:', error);
+        throw error;
+    }
+}
+
+export const deleteExpense = async (id: string | number): Promise<void> => {
+    console.log('API CALL: deleteExpense', { id });
+    try {
+        await customAxios.delete(`/management/expenses/${id}`);
+    } catch (error) {
+        console.error('Error deleting expense:', error);
+        throw error;
+    }
+}
 
 // Roles
 export const updateRole = async (roleId: string | number, permissions: Permission[]): Promise<RolePermissions | undefined> => {
@@ -4052,6 +4516,34 @@ export const updatePrescriptionStatus = async (
     return response.data;
 };
 
+export const updatePrescription = async (
+    id: string | number,
+    prescriptionData: Partial<Prescription> & {
+        items?: Array<{
+            medicine_id: string | number;
+            medicine_unit_id: string | number;
+            dosage: string;
+            quantity: number;
+            price: number;
+        }>
+    }
+): Promise<Prescription> => {
+    console.log('API CALL: updatePrescription', { id, prescriptionData });
+    const response = await customAxios.put(`/pharmacy/prescriptions/${id}`, prescriptionData);
+    return response.data;
+};
+
+export const deletePrescription = async (id: string | number): Promise<boolean> => {
+    console.log('API CALL: deletePrescription', { id });
+    try {
+        await customAxios.delete(`/pharmacy/prescriptions/${id}`);
+        return true;
+    } catch (error) {
+        console.error('Error deleting prescription:', error);
+        return false;
+    }
+};
+
 export const getPatientPrescriptions = async (patientId: string | number): Promise<Prescription[]> => {
     console.log('API CALL: getPatientPrescriptions', { patientId });
     try {
@@ -4083,4 +4575,157 @@ export const getPatientsList = async (): Promise<any[]> => {
         console.error('Error fetching patients list:', error);
         return [];
     }
+};
+
+// Branch Settings
+export const getBranchSettings = async (branchId: string | number) => {
+  try {
+    const response = await customAxios.get('/settings/branch', {
+      headers: { 'X-Branch-ID': branchId }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching branch settings:', error);
+    throw error;
+  }
+};
+
+export const updateBranchSettings = async (branchId: string | number, payload: any) => {
+  try {
+    const response = await customAxios.post('/settings/branch', { branch_id: branchId, ...payload }, {
+      headers: { 'X-Branch-ID': branchId }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error updating branch settings:', error);
+    throw error;
+  }
+};
+
+export const topUpBranchCredits = async (
+  branchId: string | number, 
+  type: 'sms' | 'whatsapp', 
+  amount: number, 
+  phone?: string, 
+  provider?: string,
+  onPending?: () => void
+) => {
+  try {
+    const category = type === 'sms' ? 'top_up_sms' : 'top_up_whatsapp';
+    
+    // 1. Initiate Top Up
+    const initResponse = await customAxios.post('/top-up-sms', {
+      provider: provider || 'iotec',
+      phone: phone,
+      amount: amount,
+      category: category
+    });
+
+    const initData = initResponse.data?.data?.data;
+    const reference = initData?.reference;
+    if (!reference) {
+      throw new Error("Failed to get transaction reference");
+    }
+
+    if (provider === 'card') {
+      return {
+        requiresAction: true,
+        clientSecret: initData.client_secret,
+        publishableKey: initData.stripe_publishable_key,
+        reference: reference
+      };
+    }
+
+    if (provider === 'iotec') {
+        onPending?.();
+    }
+
+    // 2. Poll for transaction status (for non-card like iotec)
+    let status = 'pending';
+    let attempts = 0;
+    while (status === 'pending' && attempts < 20) {
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      attempts++;
+      
+      try {
+        let verifyResponse;
+        try {
+            verifyResponse = await customAxios.post('/verify-transaction', { reference });
+        } catch (err: any) {
+            // fallback to GET if POST is not allowed
+            if (err.response?.status === 405 || err.response?.status === 404) {
+                verifyResponse = await customAxios.get(`/verify-transaction`, { params: { reference } });
+            } else {
+                throw err;
+            }
+        }
+        status = verifyResponse.data?.data?.status?.toLowerCase() || verifyResponse.data?.status?.toLowerCase() || 'pending';
+      } catch (e) {
+        console.warn("Polling error:", e);
+      }
+    }
+
+    if (status !== 'success' && status !== 'successful' && status !== 'completed') {
+      throw new Error(`Transaction failed or timed out. Status: ${status}`);
+    }
+
+    // 3. Update Balance
+    const response = await customAxios.post('/update-top-up-balance', { type, amount, phone, provider, reference }, {
+      headers: { 'X-Branch-ID': branchId }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error topping up credits:', error);
+    throw error;
+  }
+};
+
+export const verifyAndUpdateTopUp = async (
+  branchId: string | number,
+  type: 'sms' | 'whatsapp',
+  amount: number,
+  phone: string | undefined,
+  provider: string,
+  reference: string
+) => {
+    let status = 'pending';
+    let verifyResponse;
+    try {
+        verifyResponse = await customAxios.post('/verify-transaction', { reference });
+    } catch (err: any) {
+        if (err.response?.status === 405 || err.response?.status === 404) {
+            verifyResponse = await customAxios.get(`/verify-transaction`, { params: { reference } });
+        } else {
+            throw err;
+        }
+    }
+    status = verifyResponse.data?.data?.status?.toLowerCase() || verifyResponse.data?.status?.toLowerCase() || 'pending';
+    
+    if (status !== 'success' && status !== 'successful' && status !== 'completed') {
+      throw new Error(`Transaction failed. Status: ${status}`);
+    }
+
+    const response = await customAxios.post('/update-top-up-balance', { type, amount, phone, provider, reference }, {
+      headers: { 'X-Branch-ID': branchId }
+    });
+    return response.data;
+};
+
+
+export const getActivityLogs = async (params: { page?: number; per_page?: number; action?: string; branch_id?: string | number; search?: string } = {}) => {
+  try {
+    const { data } = await customAxios.get('/activity-logs', { params });
+    return data;
+  } catch (error) {
+    console.error('Error fetching activity logs:', error);
+    throw error;
+  }
+};
+export const updatePatientAvatar = async (patientId: string | number, file: File): Promise<{ avatar: string }> => {
+    const formData = new FormData();
+    formData.append('avatar', file);
+    const response = await customAxios.post(`/patients/${patientId}/avatar`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
 };

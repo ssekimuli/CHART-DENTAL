@@ -8,12 +8,14 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { useConfirm } from "@/hooks/use-confirm";
 import { Edit2, Plus, Trash2, Search } from "lucide-react";
 import { getTreatments, createSystemTreatment, updateSystemTreatment, deleteSystemTreatment } from "@/lib/api";
 import type { SystemTreatment } from "@/lib/types";
 
 export function TreatmentsCatalog({ currencyCode }: { currencyCode: string }) {
     const { toast } = useToast();
+    const { confirm, ConfirmDialog } = useConfirm();
     const [treatments, setTreatments] = useState<SystemTreatment[]>([]);
     const [search, setSearch] = useState("");
     const [categoryFilter, setCategoryFilter] = useState("All");
@@ -47,6 +49,7 @@ export function TreatmentsCatalog({ currencyCode }: { currencyCode: string }) {
     const handleAdd = async () => {
         try {
             await createSystemTreatment({
+                treatment_code: currentTreatment.treatment_code || "",
                 procedure: currentTreatment.procedure || "",
                 cost: currentTreatment.cost || 0,
                 category: currentTreatment.category || "Other"
@@ -73,8 +76,7 @@ export function TreatmentsCatalog({ currencyCode }: { currencyCode: string }) {
         }
     };
 
-    const handleDelete = async (id: string | number) => {
-        if (!confirm("Are you sure you want to delete this treatment?")) return;
+    const executeDelete = async (id: string | number) => {
         try {
             await deleteSystemTreatment(id);
             toast({ title: "Deleted", description: "Treatment removed." });
@@ -82,6 +84,13 @@ export function TreatmentsCatalog({ currencyCode }: { currencyCode: string }) {
         } catch (e) {
             toast({ title: "Error", description: "Failed to delete treatment.", variant: "destructive" });
         }
+    };
+
+    const handleDelete = (id: string | number) => {
+        confirm({
+            description: "Are you sure you want to delete this treatment?",
+            onConfirm: () => executeDelete(id)
+        });
     };
 
     const categories = ["Preventive", "Restorative", "Cosmetic", "Surgical", "Other"];
@@ -121,6 +130,10 @@ export function TreatmentsCatalog({ currencyCode }: { currencyCode: string }) {
                         </DialogHeader>
                         <div className="grid gap-4 py-4">
                             <div className="grid gap-2">
+                                <Label>Treatment Code</Label>
+                                <Input value={currentTreatment.treatment_code || ''} onChange={e => setCurrentTreatment({...currentTreatment, treatment_code: e.target.value})} placeholder="e.g. D0120" />
+                            </div>
+                            <div className="grid gap-2">
                                 <Label>Procedure Name</Label>
                                 <Input value={currentTreatment.procedure || ''} onChange={e => setCurrentTreatment({...currentTreatment, procedure: e.target.value})} />
                             </div>
@@ -154,6 +167,7 @@ export function TreatmentsCatalog({ currencyCode }: { currencyCode: string }) {
                 <Table>
                     <TableHeader>
                         <TableRow>
+                            <TableHead>Code</TableHead>
                             <TableHead>Procedure</TableHead>
                             <TableHead>Category</TableHead>
                             <TableHead className="text-right">Cost</TableHead>
@@ -168,6 +182,7 @@ export function TreatmentsCatalog({ currencyCode }: { currencyCode: string }) {
                         ) : (
                             treatments.map((t) => (
                                 <TableRow key={t.id}>
+                                    <TableCell>{t.treatment_code || '-'}</TableCell>
                                     <TableCell className="font-medium">{t.procedure}</TableCell>
                                     <TableCell>{t.category}</TableCell>
                                     <TableCell className="text-right">{new Intl.NumberFormat('en-US', { style: 'currency', currency: currencyCode }).format(t.cost)}</TableCell>
@@ -194,6 +209,10 @@ export function TreatmentsCatalog({ currencyCode }: { currencyCode: string }) {
                         <DialogTitle>Edit Treatment</DialogTitle>
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
+                        <div className="grid gap-2">
+                            <Label>Treatment Code</Label>
+                            <Input value={currentTreatment.treatment_code || ''} onChange={e => setCurrentTreatment({...currentTreatment, treatment_code: e.target.value})} placeholder="e.g. D0120" />
+                        </div>
                         <div className="grid gap-2">
                             <Label>Procedure Name</Label>
                             <Input value={currentTreatment.procedure || ''} onChange={e => setCurrentTreatment({...currentTreatment, procedure: e.target.value})} />
@@ -222,6 +241,7 @@ export function TreatmentsCatalog({ currencyCode }: { currencyCode: string }) {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+            <ConfirmDialog />
         </div>
     );
 }

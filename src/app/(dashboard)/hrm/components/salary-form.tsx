@@ -1,6 +1,8 @@
-
 "use client";
+import { useToast } from "@/hooks/use-toast";
 
+import { useState } from "react";
+import { Loader2 } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -37,6 +39,9 @@ type SalaryFormProps = {
 };
 
 export function SalaryForm({ employee, onSave, onOpenChange }: SalaryFormProps) {
+  const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -44,8 +49,20 @@ export function SalaryForm({ employee, onSave, onOpenChange }: SalaryFormProps) 
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    onSave(String(employee.id), values.salary);
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    setIsSubmitting(true);
+    try {
+        await onSave(String(employee.id), values.salary);
+      } catch (error: any) {
+        console.error(error);
+        toast({
+            title: "Error",
+            description: error.message || "An unexpected error occurred.",
+            variant: "destructive",
+        });
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -74,7 +91,10 @@ export function SalaryForm({ employee, onSave, onOpenChange }: SalaryFormProps) 
                     />
                      <DialogFooter>
                         <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-                        <Button type="submit">Save Changes</Button>
+                        <Button type="submit"  disabled={isSubmitting}>
+        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        Save Changes
+      </Button>
                     </DialogFooter>
                 </form>
             </Form>

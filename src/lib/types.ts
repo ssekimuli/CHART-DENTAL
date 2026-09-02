@@ -8,6 +8,13 @@ export type PaginatedArray<T> = T[] & {
     };
 };
 
+export type Business = {
+    id: string | number;
+    name: string;
+    details?: string;
+    createdAt?: string;
+};
+
 export type ExpenseCategory = 'Supplies' | 'Rent' | 'Utilities' | 'Salaries' | 'Marketing' | 'Maintenance' | 'Other' | 'Payroll';
 
 export type Expense = {
@@ -40,6 +47,7 @@ export type Patient = {
   avatar?: string;
   email: string;
   phone?: string;
+  nationality?: string;
   address?: string;
   gender?: 'Male' | 'Female' | 'Other';
   dateOfBirth: string;
@@ -56,21 +64,35 @@ export type Patient = {
   softTissueRecords: SoftTissueRecord[];
   orthodonticRecords: OrthodonticRecord[];
   endodonticRecords?: EndodonticRecord[];
+  restorativeRecords?: RestorativeRecord[];
 };
 
 export type PatientImage = {
+  id?: string | number;
   url: string;
   description: string;
   date: string;
+  category?: 'Image' | 'X-Ray' | 'Other Doc';
 };
 
-export type DentalCondition = 'Healthy' | 'Caries' | 'Filling' | 'Crown' | 'Missing' | 'Fracture';
+export type DentalCondition = 'Healthy' | 'Caries' | 'Filling' | 'Crown' | 'Missing' | 'Fracture' | 'Implant' | 'Bridge';
 
 export type DentalRecord = {
   id?: string | number;
   toothId: number;
   condition: DentalCondition;
   notes: string;
+  bridgeGroupId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export type RestorativeRecord = {
+  id?: string | number;
+  toothId: number;
+  surface: string;
+  material: string;
+  notes?: string;
   createdAt?: string;
   updatedAt?: string;
 };
@@ -93,6 +115,8 @@ export type InvoiceTreatment = {
   procedure: string;
   cost: number;
   tooth?: number;
+  insuranceAmount?: number;
+  patientAmount?: number;
 };
 
 
@@ -145,7 +169,7 @@ export type OtherCharge = {
   amount: number;
 };
 
-export type PaymentMethod = 'Cash' | 'Credit Card' | 'Insurance' | 'Bank Transfer';
+export type PaymentMethod = 'Cash' | 'Credit Card' | 'Insurance' | 'Bank Transfer' | 'Refund';
 
 export type PaymentTransaction = {
   id: string | number;
@@ -154,10 +178,32 @@ export type PaymentTransaction = {
   method: PaymentMethod;
 };
 
+export type LabOrderDetails = {
+  id: string | number;
+  client_id: string | number;
+  client_name: string;
+  patient_name: string;
+  lab: string;
+  item: string;
+  tooth: string | number;
+  status: string;
+  sent_date: string;
+  due_date: string;
+  received_date: string | null;
+  shade: string;
+  material: string;
+  instructions: string;
+  cost: string | number;
+  doctor_id: string | number;
+  doctor_name: string;
+};
+
 export type Invoice = {
   id: string | number;
   patientName: string;
   patientId: string | number;
+  patient?: any;
+  receiptNumber?: string;
   amount: number;
   paidAmount: number;
   status: 'Paid' | 'Pending' | 'Overdue';
@@ -170,6 +216,16 @@ export type Invoice = {
   transactions?: PaymentTransaction[];
   branch?: Branch;
   medicines?: InvoiceMedicine[];
+  discount?: number;
+  tax?: number;
+  insuranceCoverage?: number;
+  patientResponsibility?: number;
+  insuranceResponsibility?: number;
+  patientPaidAmount?: number;
+  insurancePaidAmount?: number;
+  patientBalance?: number;
+  insuranceBalance?: number;
+  lab_order_details?: LabOrderDetails | null;
 };
 
 export type ChartData = {
@@ -194,6 +250,7 @@ export type Employee = {
   name: string;
   avatar: string;
   email: string;
+  phone?: string;
   role: EmployeeRole;
   status: 'Active' | 'On Leave' | 'Blocked';
   salary: number;
@@ -233,6 +290,24 @@ export type IncomeRecord = {
   amount: number;
   status: 'Paid' | 'Pending' | 'Overdue';
   invoiceNumber: string;
+  category?: string;
+};
+
+export type IncomeCategorySummary = {
+  count: number;
+  total: number;
+};
+
+export type IncomeRecordsResponse = {
+  branch?: { id: string | number; name: string } | null;
+  total: string;
+  summary: Record<string, IncomeCategorySummary>;
+  by_category: Record<string, {
+    records: any[];
+    count: number;
+    total: string;
+  }>;
+  records: IncomeRecord[];
 };
 
 export type AttendanceStatus = 'Present' | 'Absent' | 'On Leave';
@@ -254,6 +329,15 @@ export type Branch = {
   name: string;
   address: string;
   currency?: string;
+  contactNumber?: string;
+};
+
+export type Client = {
+    id: string | number;
+    name: string;
+    email?: string;
+    phone?: string;
+    address?: string;
 };
 
 export type InventoryItem = {
@@ -269,15 +353,45 @@ export type InventoryItem = {
 
 export type LaboratoryOrder = {
   id: string | number;
-  patientId: string | number;
-  patientName: string;
-  lab: string;
+  clientId: string | number;
+  client?: Client;
   item: string;
   tooth?: number;
-  status: 'Sent' | 'Received' | 'Completed' | 'Cancelled';
+  status: 'Draft' | 'Received' | 'In Production' | 'Ready for Delivery' | 'Delivered' | 'Cancelled';
   sentDate: string;
   dueDate: string;
+  receivedDate?: string;
+  shade?: string;
+  material?: string;
+  instructions?: string;
+  invoiceNumber?: string;
+  invoiceId?: string | number;
+  doctorName?: string;
   branchId: string | number;
+  lab_service_id?: number | null;
+  applied_price?: number | null;
+};
+
+export type LabService = {
+  id: number;
+  service_name: string;
+  category?: string;
+  is_active: boolean;
+  current_price?: number;
+  branch_id: number;
+  prices?: LabServicePrice[];
+  created_at: string;
+  updated_at: string;
+};
+
+export type LabServicePrice = {
+  id: number;
+  lab_service_id: number;
+  lab: string;
+  base_price: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
 };
 
 export type BasePatient = Omit<Patient, 'id' | 'dentalRecords' | 'treatmentPlans' | 'imaging' | 'periodontalRecords' | 'occlusalRecords' | 'softTissueRecords' | 'orthodonticRecords'>;
@@ -352,6 +466,7 @@ export type OrthodonticRecord = {
 
 export type SystemTreatment = {
     id: string | number;
+    treatment_code?: string;
     procedure: string;
     cost: number;
     category?: string;
@@ -422,6 +537,7 @@ export type FinancialSummary = {
     from?: string;
     to?: string;
     totalIncome: number;
+    incomeByCategory?: Record<string, number | string>;
     totalExpenses: number;
     netProfit: number;
     monthlyFinancials: { month: string; income: number; expense: number; netProfit: number }[];

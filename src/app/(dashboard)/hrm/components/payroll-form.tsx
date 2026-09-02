@@ -1,6 +1,7 @@
-
 "use client";
+import { useToast } from "@/hooks/use-toast";
 
+import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -27,7 +28,7 @@ import {
 import type { Payroll, Employee } from "@/lib/types";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Loader2 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Combobox } from "@/components/ui/combobox";
 
@@ -47,6 +48,9 @@ type PayrollFormProps = {
 };
 
 export function PayrollForm({ payroll, employees, onSave, onOpenChange }: PayrollFormProps) {
+  const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -57,11 +61,13 @@ export function PayrollForm({ payroll, employees, onSave, onOpenChange }: Payrol
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    setIsSubmitting(true);
+    try {
     const payDate = values.payDate;
     const periodStart = subDays(payDate, 14);
     
-    onSave({
+        await onSave({
         employeeId: values.employeeId,
         grossPay: values.grossPay,
         deductions: values.deductions,
@@ -70,6 +76,16 @@ export function PayrollForm({ payroll, employees, onSave, onOpenChange }: Payrol
         payPeriod: payroll?.payPeriod || `${format(periodStart, "yyyy-MM-dd")} to ${format(payDate, "yyyy-MM-dd")}`,
         status: payroll?.status || 'Pending',
     });
+      } catch (error: any) {
+        console.error(error);
+        toast({
+            title: "Error",
+            description: error.message || "An unexpected error occurred.",
+            variant: "destructive",
+        });
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   const isEditing = !!payroll;
@@ -176,7 +192,10 @@ export function PayrollForm({ payroll, employees, onSave, onOpenChange }: Payrol
 
                      <DialogFooter>
                         <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-                        <Button type="submit">{isEditing ? "Save Changes" : "Process Payroll"}</Button>
+                        <Button type="submit"  disabled={isSubmitting}>
+        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        {isEditing ? "Save Changes" : "Process Payroll"}
+      </Button>
                     </DialogFooter>
                 </form>
             </Form>

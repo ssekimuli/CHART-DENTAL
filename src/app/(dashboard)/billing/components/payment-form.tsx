@@ -1,10 +1,11 @@
-
 "use client";
+import { useToast } from "@/hooks/use-toast";
 
+import { Loader2 } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import React from "react";
+import React, { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -36,8 +37,8 @@ import type { Invoice, PaymentMethod } from "@/lib/types";
 
 
 const formSchema = z.object({
-  paymentAmount: z.coerce.number().positive("Payment amount must be positive."),
-  paymentMethod: z.enum(['Cash', 'Credit Card', 'Insurance', 'Bank Transfer']),
+  paymentAmount: z.coerce.number(),
+  paymentMethod: z.enum(['Cash', 'Credit Card', 'Insurance', 'Bank Transfer', 'Refund']),
 });
 
 type PaymentFormProps = {
@@ -47,6 +48,9 @@ type PaymentFormProps = {
 };
 
 export function PaymentForm({ invoice, onSave, onOpenChange }: PaymentFormProps) {
+  const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const { formatCurrency } = useCurrency();
   const balance = Number(invoice.amount) - Number(invoice.paidAmount);
 
@@ -58,11 +62,23 @@ export function PaymentForm({ invoice, onSave, onOpenChange }: PaymentFormProps)
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    onSave(String(invoice.id), values.paymentAmount, values.paymentMethod);
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    setIsSubmitting(true);
+    try {
+        await onSave(String(invoice.id), values.paymentAmount, values.paymentMethod);
+      } catch (error: any) {
+        console.error(error);
+        toast({
+            title: "Error",
+            description: error.message || "An unexpected error occurred.",
+            variant: "destructive",
+        });
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
-  const paymentMethods: PaymentMethod[] = ['Cash', 'Credit Card', 'Insurance', 'Bank Transfer'];
+  const paymentMethods: PaymentMethod[] = ['Cash', 'Credit Card', 'Insurance', 'Bank Transfer', 'Refund'];
 
   return (
     <Dialog open={true} onOpenChange={onOpenChange}>
@@ -112,7 +128,10 @@ export function PaymentForm({ invoice, onSave, onOpenChange }: PaymentFormProps)
                     />
                     <DialogFooter>
                         <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-                        <Button type="submit">Submit Payment</Button>
+                        <Button type="submit"  disabled={isSubmitting}>
+        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        Submit Payment
+      </Button>
                     </DialogFooter>
                 </form>
             </Form>

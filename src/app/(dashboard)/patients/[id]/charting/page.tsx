@@ -24,21 +24,30 @@ import {
 } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DentalChart } from "../components/dental-chart";
+import dynamic from "next/dynamic";
+import { Skeleton } from "@/components/ui/skeleton";
+
+const ChartLoader = () => <Skeleton className="w-full h-[400px] rounded-lg" />;
+
+const DentalChart = dynamic(() => import("../components/dental-chart").then(mod => mod.DentalChart), { ssr: false, loading: ChartLoader });
+const PeriodontalChart = dynamic(() => import("./components/periodontal-chart").then(mod => mod.PeriodontalChart), { ssr: false, loading: ChartLoader });
+const OcclusalChart = dynamic(() => import("./components/occlusal-chart").then(mod => mod.OcclusalChart), { ssr: false, loading: ChartLoader });
+const SoftTissueChart = dynamic(() => import("./components/soft-tissue-chart").then(mod => mod.SoftTissueChart), { ssr: false, loading: ChartLoader });
+const OrthodonticChart = dynamic(() => import("./components/orthodontic-chart").then(mod => mod.OrthodonticChart), { ssr: false, loading: ChartLoader });
+const EndodonticChart = dynamic(() => import("./components/endodontic-chart").then(mod => mod.EndodonticChart), { ssr: false, loading: ChartLoader });
+
+const TreatmentPlanForm = dynamic(() => import("../components/treatment-plan-form").then(mod => mod.TreatmentPlanForm), { ssr: false });
+const RestorativeRecordForm = dynamic(() => import("./components/restorative-record-form").then(mod => mod.RestorativeRecordForm), { ssr: false });
+const PrescriptionForm = dynamic(() => import("../components/prescription-form").then(mod => mod.PrescriptionForm), { ssr: false });
+const ConditionLogger = dynamic(() => import("../components/condition-logger").then(mod => mod.ConditionLogger), { ssr: false });
 import { useState, useEffect, use } from "react";
-import type { Patient, DentalRecord, Treatment, PeriodontalRecord, OcclusalRecord, OrthodonticRecord, SoftTissueRecord, DentalCondition, EndodonticRecord } from "@/lib/types";
+import type { Patient, DentalRecord, Treatment, PeriodontalRecord, OcclusalRecord, OrthodonticRecord, SoftTissueRecord, DentalCondition, EndodonticRecord, RestorativeRecord } from "@/lib/types";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Loader2 } from "lucide-react";
-import { PeriodontalChart } from "./components/periodontal-chart";
-import { OcclusalChart } from "./components/occlusal-chart";
-import { SoftTissueChart } from "./components/soft-tissue-chart";
-import { TreatmentPlanForm } from "../components/treatment-plan-form";
-import { OrthodonticChart } from "./components/orthodontic-chart";
-import { EndodonticChart } from "./components/endodontic-chart";
-import { ConditionLogger } from "../components/condition-logger";
-import { getPatientById, addTreatment, updateTreatment, saveDentalRecord, savePeriodontalRecord, saveOcclusalRecord, saveOrthodonticRecord, updateOrthodonticRecord, deleteOrthodonticRecord, saveSoftTissueRecord, updateSoftTissueRecord, deleteSoftTissueRecord, saveEndodonticRecord, updateEndodonticRecord, deleteEndodonticRecord } from "@/lib/api";
+import { ArrowLeft, Loader2, Pill, Upload } from "lucide-react";
+import { getPatientById, addTreatment, updateTreatment, saveDentalRecord, savePeriodontalRecord, saveOcclusalRecord, saveOrthodonticRecord, updateOrthodonticRecord, deleteOrthodonticRecord, saveSoftTissueRecord, updateSoftTissueRecord, deleteSoftTissueRecord, saveEndodonticRecord, updateEndodonticRecord, deleteEndodonticRecord, saveRestorativeRecord, updateRestorativeRecord, deleteRestorativeRecord } from "@/lib/api";
 import { getCurrentUser, hasRole, hasPermission } from "@/lib/user";
 import { getPatientFullName } from "@/lib/utils";
+import { useCurrency } from "@/hooks/use-currency";
 
 export default function PatientChartingPage({
   params,
@@ -49,6 +58,7 @@ export default function PatientChartingPage({
   const router = useRouter();
   const [patient, setPatient] = useState<Patient | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(true);
+  const { formatCurrency } = useCurrency();
   const [systemTreatments, setSystemTreatments] = useState<SystemTreatment[]>([]);
   const canUpdatePatient = hasPermission('patients:update');
   const [selectedTreatment, setSelectedTreatment] = useState<Treatment | undefined>(undefined);
@@ -74,6 +84,16 @@ export default function PatientChartingPage({
   const [isConditionLoggerOpen, setIsConditionLoggerOpen] = useState(false);
   const [selectedToothForCondition, setSelectedToothForCondition] = useState<number | undefined>(undefined);
 
+  const [isRestorativeFormOpen, setIsRestorativeFormOpen] = useState(false);
+  const [selectedToothForRestorative, setSelectedToothForRestorative] = useState<number | undefined>(undefined);
+  const [selectedSurfaceForRestorative, setSelectedSurfaceForRestorative] = useState<string | undefined>(undefined);
+  const [isPrescriptionFormOpen, setIsPrescriptionFormOpen] = useState(false);
+
+  const handleOpenRestorativeForm = (toothId: number, surface?: string) => {
+    setSelectedToothForRestorative(toothId);
+    setSelectedSurfaceForRestorative(surface);
+    setIsRestorativeFormOpen(true);
+  };
 
   useEffect(() => {
     const user = getCurrentUser();
@@ -251,7 +271,7 @@ export default function PatientChartingPage({
   const handleDeleteSoftTissueRecord = async (recordId: string | number) => {
     if (!patient) return;
     const updatedPatient = await deleteSoftTissueRecord(patient.id, recordId);
-     if (updatedPatient) {
+    if (updatedPatient) {
         setPatient(updatedPatient);
     }
   }
@@ -275,6 +295,30 @@ export default function PatientChartingPage({
   const handleDeleteEndoRecord = async (recordId: string | number) => {
     if (!patient) return;
     const updatedPatient = await deleteEndodonticRecord(patient.id, recordId);
+    if (updatedPatient) {
+        setPatient(updatedPatient);
+    }
+  }
+
+  const handleSaveRestorativeRecord = async (record: Omit<RestorativeRecord, 'id' | 'createdAt' | 'updatedAt'> & { procedureCost?: number, materialCost?: number, otherCharges?: number }) => {
+    if (!patient) return;
+    const updatedPatient = await saveRestorativeRecord(patient.id, record);
+    if (updatedPatient) {
+        setPatient(updatedPatient);
+    }
+  }
+
+  const handleUpdateRestorativeRecord = async (record: RestorativeRecord) => {
+    if (!patient) return;
+    const updatedPatient = await updateRestorativeRecord(patient.id, record);
+    if (updatedPatient) {
+        setPatient(updatedPatient);
+    }
+  }
+
+  const handleDeleteRestorativeRecord = async (recordId: string | number) => {
+    if (!patient) return;
+    const updatedPatient = await deleteRestorativeRecord(patient.id, recordId);
      if (updatedPatient) {
         setPatient(updatedPatient);
     }
@@ -295,6 +339,44 @@ export default function PatientChartingPage({
     setIsConditionLoggerOpen(true);
   }
 
+  const handleQuickLogCondition = async (toothId: number, condition: DentalCondition) => {
+    handleSaveDentalRecord({
+        toothId,
+        condition,
+        notes: ''
+    });
+  }
+
+  const handleConfirmBridge = async (toothIds: number[], bridgeGroupId: string) => {
+    if (!patient) return;
+    const savedRecords: DentalRecord[] = [];
+
+    for (const toothId of toothIds) {
+      const savedRecord = await saveDentalRecord(patient.id, {
+        toothId,
+        condition: 'Bridge',
+        notes: '',
+        bridgeGroupId
+      });
+      if (savedRecord) {
+        savedRecords.push(savedRecord);
+      }
+    }
+
+    if (savedRecords.length > 0) {
+      const newRecords = [...patient.dentalRecords];
+      for (const savedRecord of savedRecords) {
+        const recordIndex = newRecords.findIndex(r => r.toothId === savedRecord.toothId);
+        if (recordIndex > -1) {
+          newRecords[recordIndex] = savedRecord;
+        } else {
+          newRecords.push(savedRecord);
+        }
+      }
+      setPatient({ ...patient, dentalRecords: newRecords });
+    }
+  }
+
 
   return (
     <div className="flex flex-col gap-6">
@@ -307,12 +389,20 @@ export default function PatientChartingPage({
             <AvatarImage src={patient.avatar} />
             <AvatarFallback>{patient.first_name.charAt(0)}</AvatarFallback>
         </Avatar>
-        <h1 className="flex-1 shrink-0 whitespace-nowrap text-xl font-semibold tracking-tight sm:grow-0">
+        <h1 className="shrink-0 whitespace-nowrap text-xl font-semibold tracking-tight">
           {getPatientFullName(patient)} - Charting
         </h1>
+        <Button size="sm" onClick={() => setIsPrescriptionFormOpen(true)} className="ml-2">
+          <Pill className="mr-2 h-4 w-4" />
+          Give prescription
+        </Button>
+        <Button size="sm" onClick={() => router.push(`/patients/${patient.id}`)} className="ml-2 bg-emerald-600 hover:bg-emerald-700 text-white">
+          <Upload className="mr-2 h-4 w-4" />
+          Upload documents
+        </Button>
       </div>
       <Tabs defaultValue="odontogram">
-        <TabsList className="grid w-full grid-cols-7">
+        <TabsList className="grid w-full grid-cols-8">
           <TabsTrigger value="odontogram">Odontogram</TabsTrigger>
           <TabsTrigger value="periodontal">Periodontal</TabsTrigger>
           <TabsTrigger value="occlusal">Occlusal</TabsTrigger>
@@ -331,11 +421,15 @@ export default function PatientChartingPage({
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <DentalChart 
+                    <DentalChart
                         initialRecords={patient.dentalRecords}
                         treatmentPlans={patient.treatmentPlans}
+                        restorativeRecords={patient.restorativeRecords || []}
                         onAddTreatment={handleOpenTreatmentForm}
                         onLogCondition={handleOpenConditionLogger}
+                        onQuickLogCondition={handleQuickLogCondition}
+                        onAddRestorativeRecord={handleOpenRestorativeForm}
+                        onConfirmBridge={handleConfirmBridge}
                     />
                 </CardContent>
             </Card>
@@ -344,6 +438,7 @@ export default function PatientChartingPage({
             <PeriodontalChart 
                 initialRecords={patient.periodontalRecords} 
                 dentalRecords={patient.dentalRecords}
+                patient={patient}
                 onSave={handleSavePeriodontalRecord} 
             />
         </TabsContent>
@@ -374,6 +469,7 @@ export default function PatientChartingPage({
               onDelete={handleDeleteEndoRecord}
             />
         </TabsContent>
+
         <TabsContent value="treatment">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
@@ -413,7 +509,7 @@ export default function PatientChartingPage({
                             <Badge variant="outline">{plan.status}</Badge>
                           </TableCell>
                           <TableCell>
-                            ${Number(plan.cost).toFixed(2)}
+                            {formatCurrency(Number(plan.cost))}
                           </TableCell>
                           {canUpdatePatient && (
                               <TableCell className="text-right">
@@ -466,6 +562,24 @@ export default function PatientChartingPage({
             currentRecord={patient.dentalRecords.find(r => r.toothId === selectedToothForCondition)}
             onSave={(toothId, condition, notes) => handleSaveDentalRecord({ toothId, condition, notes })}
             onOpenChange={setIsConditionLoggerOpen}
+        />
+      )}
+      <RestorativeRecordForm
+         open={isRestorativeFormOpen}
+         onOpenChange={setIsRestorativeFormOpen}
+         initialData={{ toothId: selectedToothForRestorative || 1, surface: selectedSurfaceForRestorative || 'Whole Tooth', material: '' } as RestorativeRecord}
+         onSave={handleSaveRestorativeRecord}
+         onUpdate={handleUpdateRestorativeRecord}
+      />
+      {isPrescriptionFormOpen && (
+        <PrescriptionForm
+          patientId={patient.id}
+          patientName={getPatientFullName(patient)}
+          branchId={patient.branch_id || getCurrentUser()?.branchId || 1}
+          onOpenChange={setIsPrescriptionFormOpen}
+          onSave={() => {
+            setIsPrescriptionFormOpen(false);
+          }}
         />
       )}
     </div>

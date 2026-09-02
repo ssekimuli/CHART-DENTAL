@@ -1,6 +1,7 @@
 
 "use client";
 
+import { getApiUrl } from "@/lib/api-utils";
 import {
   Card,
   CardContent,
@@ -21,8 +22,9 @@ import { Calendar } from "@/components/ui/calendar";
 import { useState, useMemo, useEffect } from "react";
 import type { Appointment, Employee, Patient, AppointmentStatus } from "@/lib/types";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, PlusCircle, Trash, Pencil, FileText, Send } from "lucide-react";
+import { MoreHorizontal, PlusCircle, Trash, Pencil, FileText, Send, Share2 } from "lucide-react";
 import { AppointmentForm } from "./components/appointment-form";
+import { BookingQRModal } from "./components/booking-qr-modal";
 import { useBranch } from "@/context/branch-context";
 import {  hasRole , getCurrentUser } from "@/lib/user";
 import {
@@ -43,6 +45,13 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
   } from "@/components/ui/alert-dialog";
+  import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+  } from "@/components/ui/dialog";
   import { getAppointments, getPatientList, getDoctors, createAppointment, updateAppointment, deleteAppointment } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter } from "next/navigation";
@@ -50,10 +59,12 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { DayContent, DayContentProps } from "react-day-picker";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useToast } from "@/hooks/use-toast";
 
 export default function AppointmentsPage() {
   const router = useRouter();
   const { selectedBranch } = useBranch();
+  const { toast } = useToast();
   const [allAppointments, setAllAppointments] = useState<Appointment[]>([]);
   const [allPatients, setAllPatients] = useState<Patient[]>([]);
   const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
@@ -62,6 +73,9 @@ export default function AppointmentsPage() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | undefined>(undefined);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
+  const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
+  const [isQRCodeModalOpen, setIsQRCodeModalOpen] = useState(false);
+  const [bookingLink, setBookingLink] = useState('');
   
   useEffect(() => {
     const fetchData = async () => {
@@ -136,29 +150,35 @@ export default function AppointmentsPage() {
   }
 
   const handleSaveAppointment = async (data: Omit<Appointment, 'id' | 'branchId'>) => {
-    if (selectedAppointment) {
-        // Update
-        const updated = await updateAppointment(selectedAppointment.id, data);
-        if (updated) {
-          setAllAppointments(prev => prev.map(a => a.id === updated.id ? updated : a));
-        }
-    } else {
-        // Create
-        const payload = {
-          patient_name: data.patientName,
-          patient_id: data.patientId,
-          doctor_name: data.doctorName,
-          doctor_id: data.doctorId,
-          treatment: data.treatment,
-          date: data.date,
-          time: data.time,
-          branch_id: Number(selectedBranch || getCurrentUser()?.branchId),
-        };
+    try {
+        if (selectedAppointment) {
+            // Update
+            const updated = await updateAppointment(selectedAppointment.id, data);
+            if (updated) {
+              setAllAppointments(prev => prev.map(a => a.id === updated.id ? updated : a));
+              toast({ title: "Success", description: "Appointment updated successfully." });
+            }
+        } else {
+            // Create
+            const payload = {
+              patient_name: data.patientName,
+              patient_id: data.patientId,
+              doctor_name: data.doctorName,
+              doctor_id: data.doctorId,
+              treatment: data.treatment,
+              date: data.date,
+              time: data.time,
+              branch_id: Number(selectedBranch || getCurrentUser()?.branchId),
+            };
 
-        const newAppointment = await createAppointment(payload);
-        if (newAppointment) {
-          setAllAppointments(prev => [...prev, newAppointment]);
+            const newAppointment = await createAppointment(payload);
+            if (newAppointment) {
+              setAllAppointments(prev => [...prev, newAppointment]);
+              toast({ title: "Success", description: "Appointment created successfully." });
+            }
         }
+    } catch (e: any) {
+        toast({ title: "Error", description: e.message || "Failed to save appointment.", variant: "destructive" });
     }
     handleCloseForm();
   };
@@ -268,10 +288,27 @@ export default function AppointmentsPage() {
                   {selectedDate ? `Showing appointments for ${format(selectedDate, 'PPP')}` : 'Select a date to view appointments.'}
                 </CardDescription>
               </div>
-              <Button onClick={() => handleOpenForm()}>
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Create Appointment
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => {
+                    const backendUrl = getApiUrl();
+                    const baseUrl = backendUrl.endsWith('/api')
+                      ? backendUrl.slice(0, -4)
+                      : backendUrl;
+                    const link = `${baseUrl}/book-appointment`;
+                    setBookingLink(link);
+                    setIsQRCodeModalOpen(true);
+                  }}
+                  variant="outline"
+                >
+                  <Share2 className="mr-2 h-4 w-4" />
+                  Share Booking Link
+                </Button>
+                <Button onClick={() => handleOpenForm()}>
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  Create Appointment
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               {isLoading ? (
@@ -295,7 +332,11 @@ export default function AppointmentsPage() {
                 </TableHeader>
                 <TableBody>
                   {appointmentsForDate.map((appointment) => (
-                    <TableRow key={appointment.id}>
+                    <TableRow 
+                      key={appointment.id}
+                      onDoubleClick={() => handleGoToChart(appointment.patientId)}
+                      className="cursor-pointer hover:bg-muted/50"
+                    >
                        <TableCell>
                         <div className="font-bold">{appointment.tokenNumber}</div>
                       </TableCell>
@@ -384,6 +425,11 @@ export default function AppointmentsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <BookingQRModal
+        isOpen={isQRCodeModalOpen}
+        onClose={() => setIsQRCodeModalOpen(false)}
+        bookingLink={bookingLink}
+      />
     </>
   );
 }

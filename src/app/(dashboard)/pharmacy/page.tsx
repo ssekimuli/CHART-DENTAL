@@ -30,10 +30,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { PlusCircle, Search, Pill, FileText, ShoppingBag, Eye, Trash2, Edit } from "lucide-react";
+import { PlusCircle, Search, Pill, FileText, ShoppingBag, Eye, Trash2, Edit, Loader2 } from "lucide-react";
+import { useConfirm } from "@/hooks/use-confirm";
 import { useBranch } from "@/context/branch-context";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PaginationControl } from "@/components/ui/pagination-control";
+import { Combobox } from "@/components/ui/combobox";
 import { toast } from "@/hooks/use-toast";
 import { useCurrency } from "@/hooks/use-currency";
 import { 
@@ -51,6 +53,7 @@ import type { Medicine, MedicineUnit, Prescription, Employee } from "@/lib/types
 
 export default function PharmacyPage() {
   const { selectedBranch } = useBranch();
+  const { confirm, ConfirmDialog } = useConfirm();
   const { formatCurrency } = useCurrency();
   const [activeTab, setActiveTab] = useState("inventory");
 
@@ -75,6 +78,8 @@ export default function PharmacyPage() {
   const [isMedModalOpen, setIsMedModalOpen] = useState(false);
   const [isRxModalOpen, setIsRxModalOpen] = useState(false);
   const [isViewRxOpen, setIsViewRxOpen] = useState(false);
+  const [isSubmittingMed, setIsSubmittingMed] = useState(false);
+  const [isSubmittingRx, setIsSubmittingRx] = useState(false);
   const [selectedRx, setSelectedRx] = useState<Prescription | null>(null);
   const [editingMedicine, setEditingMedicine] = useState<Medicine | null>(null);
 
@@ -157,6 +162,7 @@ export default function PharmacyPage() {
   // Save Medicine (Create or Update)
   const handleSaveMedicine = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmittingMed(true);
     try {
       if (editingMedicine) {
         await updateMedicine(editingMedicine.id, {
@@ -182,6 +188,8 @@ export default function PharmacyPage() {
       fetchInventory();
     } catch (err) {
       toast({ variant: "destructive", title: "Error", description: "Failed to save medicine." });
+    } finally {
+      setIsSubmittingMed(false);
     }
   };
 
@@ -197,9 +205,7 @@ export default function PharmacyPage() {
     setIsMedModalOpen(true);
   };
 
-  // Delete Medicine
-  const handleDeleteMedicine = async (id: number) => {
-    if (confirm("Are you sure you want to delete this medicine?")) {
+  const executeDeleteMedicine = async (id: number) => {
       try {
         await deleteMedicine(id);
         toast({ title: "Deleted", description: "Medicine deleted successfully." });
@@ -207,7 +213,14 @@ export default function PharmacyPage() {
       } catch (err) {
         toast({ variant: "destructive", title: "Error", description: "Failed to delete medicine." });
       }
-    }
+  };
+
+  const handleDeleteMedicine = (id: number) => {
+    confirm({
+      title: "Delete Medicine",
+      description: "Are you sure you want to delete this medicine? This action cannot be undone.",
+      onConfirm: () => executeDeleteMedicine(id)
+    });
   };
 
   // Add Prescription Item Row
@@ -222,7 +235,7 @@ export default function PharmacyPage() {
   const removeRxItemRow = (index: number) => {
     setRxForm(prev => ({
       ...prev,
-      items: prev.items.filter((_, i) => i !== index)
+      items: rxForm.items.filter((_, i) => i !== index)
     }));
   };
 
@@ -256,9 +269,10 @@ export default function PharmacyPage() {
   // Save Prescription
   const handleSaveRx = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmittingRx(true);
     try {
       const payload = {
-        patient_id: Number(rxForm.patient_id),
+        patient_id: rxForm.patient_id ? Number(rxForm.patient_id) : 0,
         doctor_id: rxForm.doctor_id ? Number(rxForm.doctor_id) : undefined,
         prescription_date: rxForm.prescription_date,
         notes: rxForm.notes,
@@ -288,6 +302,8 @@ export default function PharmacyPage() {
       fetchInventory(); // Stock level changed
     } catch (err) {
       toast({ variant: "destructive", title: "Error", description: "Failed to save prescription." });
+    } finally {
+      setIsSubmittingRx(false);
     }
   };
 
@@ -350,7 +366,7 @@ export default function PharmacyPage() {
                 <CardTitle>Medicine Stock</CardTitle>
                 <CardDescription>Browse through available medicines, their unit packages, and prices.</CardDescription>
               </div>
-              <div className="relative w-full md:w-72">
+                <div className="relative w-full md:w-72">
                 <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Search medicine..."
@@ -469,7 +485,7 @@ export default function PharmacyPage() {
                       {prescriptions.map((rx) => (
                         <TableRow key={rx.id} className="hover:bg-muted/10 transition-colors">
                           <TableCell>{new Date(rx.prescription_date).toLocaleDateString()}</TableCell>
-                          <TableCell className="font-semibold">{rx.patient_name}</TableCell>
+                          <TableCell className="font-semibold">{rx.patient_name || 'N/A'}</TableCell>
                           <TableCell>{rx.doctor_name || "N/A"}</TableCell>
                           <TableCell>
                             <Badge 
@@ -618,8 +634,11 @@ export default function PharmacyPage() {
             </div>
 
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsMedModalOpen(false)}>Cancel</Button>
-              <Button type="submit">Save Medicine</Button>
+              <Button type="button" variant="outline" onClick={() => setIsMedModalOpen(false)} disabled={isSubmittingMed}>Cancel</Button>
+              <Button type="submit" disabled={isSubmittingMed}>
+                {isSubmittingMed && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Save Medicine
+              </Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -636,32 +655,25 @@ export default function PharmacyPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="rx-patient">Patient</Label>
-                <select
-                  id="rx-patient"
-                  required
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                <Combobox
+                  options={patients.map(p => ({ value: String(p.id), label: `${p.first_name} ${p.last_name} (${p.email})` }))}
                   value={rxForm.patient_id}
-                  onChange={(e) => setRxForm(prev => ({ ...prev, patient_id: e.target.value }))}
-                >
-                  <option value="">Select Patient...</option>
-                  {patients.map(p => (
-                    <option key={p.id} value={p.id}>{p.first_name} {p.last_name} ({p.email})</option>
-                  ))}
-                </select>
+                  onChange={(val) => setRxForm(prev => ({ ...prev, patient_id: val }))}
+                  placeholder="Select Patient..."
+                  searchPlaceholder="Search patients..."
+                  emptyMessage="No patient found."
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="rx-doctor">Doctor</Label>
-                <select
-                  id="rx-doctor"
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                <Combobox
+                  options={doctors.map(d => ({ value: String(d.id), label: `${d.name} (${d.role})` }))}
                   value={rxForm.doctor_id}
-                  onChange={(e) => setRxForm(prev => ({ ...prev, doctor_id: e.target.value }))}
-                >
-                  <option value="">Select Doctor...</option>
-                  {doctors.map(d => (
-                    <option key={d.id} value={d.id}>{d.name} ({d.role})</option>
-                  ))}
-                </select>
+                  onChange={(val) => setRxForm(prev => ({ ...prev, doctor_id: val }))}
+                  placeholder="Select Doctor..."
+                  searchPlaceholder="Search doctors..."
+                  emptyMessage="No doctor found."
+                />
               </div>
             </div>
 
@@ -768,8 +780,11 @@ export default function PharmacyPage() {
             </div>
 
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsRxModalOpen(false)}>Cancel</Button>
-              <Button type="submit">Issue Prescription</Button>
+              <Button type="button" variant="outline" onClick={() => setIsRxModalOpen(false)} disabled={isSubmittingRx}>Cancel</Button>
+              <Button type="submit" disabled={isSubmittingRx}>
+                {isSubmittingRx && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Issue Prescription
+              </Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -786,7 +801,7 @@ export default function PharmacyPage() {
               <div className="grid grid-cols-2 gap-4 border-b border-border/10 pb-4">
                 <div>
                   <div className="text-xs text-muted-foreground">Patient</div>
-                  <div className="font-semibold">{selectedRx.patient_name}</div>
+                  <div className="font-semibold">{selectedRx.patient_name || "N/A"}</div>
                 </div>
                 <div>
                   <div className="text-xs text-muted-foreground">Doctor</div>
@@ -862,6 +877,7 @@ export default function PharmacyPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <ConfirmDialog />
     </div>
   );
 }

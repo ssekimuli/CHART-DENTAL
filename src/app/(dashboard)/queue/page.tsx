@@ -322,6 +322,7 @@ export default function QueuePage() {
                                             key={appointment.id} 
                                             draggable={canUpdateAppointments}
                                             onDragStart={(e) => handleDragStart(e, appointment)}
+                                            onDoubleClick={() => router.push(`/patients/${appointment.patientId}/charting`)}
                                             className={`relative flex flex-col bg-white border border-[#A3D8E1]/30 hover:border-[#008B89]/50 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 cursor-grab active:cursor-grabbing border-t-4 ${column.themeColor}`}
                                          >
                                             <div className="p-3.5 space-y-2.5">

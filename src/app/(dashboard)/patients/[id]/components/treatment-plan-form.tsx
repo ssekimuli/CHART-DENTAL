@@ -1,7 +1,7 @@
-
-
 "use client";
+import { useToast } from "@/hooks/use-toast";
 
+import { Loader2 } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -42,7 +42,7 @@ const formSchema = z.object({
   tooth: z.coerce.number().optional(),
   status: z.enum(['Proposed', 'In Progress', 'Completed', 'Cancelled']),
   cost: z.coerce.number().positive({ message: "Cost must be a positive number."}),
-  condition: z.enum(['Healthy', 'Caries', 'Filling', 'Crown', 'Missing', 'Fracture']).optional(),
+  condition: z.enum(['Healthy', 'Caries', 'Filling', 'Crown', 'Missing', 'Fracture', 'Implant', 'Bridge']).optional(),
 });
 
 type TreatmentPlanFormProps = {
@@ -54,8 +54,13 @@ type TreatmentPlanFormProps = {
 };
 
 export function TreatmentPlanForm({ treatment, onSave, onOpenChange, toothId, currentCondition }: TreatmentPlanFormProps) {
+  const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const [systemTreatments, setSystemTreatments] = useState<SystemTreatment[]>([]);
-  
+  const [initialProcedureId, setInitialProcedureId] = useState<string>("");
+  const isEditing = !!treatment;
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -64,7 +69,7 @@ export function TreatmentPlanForm({ treatment, onSave, onOpenChange, toothId, cu
       status: treatment?.status ?? 'Proposed',
       tooth: treatment?.tooth ?? toothId ?? undefined,
       cost: treatment?.cost ?? 0,
-      condition: currentCondition,
+      condition: (currentCondition && ['Healthy', 'Caries', 'Filling', 'Crown', 'Missing', 'Fracture', 'Implant', 'Bridge'].includes(currentCondition)) ? currentCondition as any : undefined,
     },
   });
 
@@ -76,30 +81,53 @@ export function TreatmentPlanForm({ treatment, onSave, onOpenChange, toothId, cu
     fetchTreatments();
   }, [])
 
-  // When editing, if we have a treatment but procedureId is empty, try to match it by name
+  // When editing, match treatment to system treatments by name and ID
   // after system treatments load.
   useEffect(() => {
       if (treatment && systemTreatments.length > 0) {
-          let pId = treatment.procedureId;
-          if (!pId) {
-              const matched = systemTreatments.find(st => st.procedure === treatment.procedure);
-              if (matched) {
-                  pId = String(matched.id);
-                  form.setValue('procedureId', pId);
-              }
+          let pId = "";
+
+          // Try exact match by procedure name first
+          let matchedByName = systemTreatments.find(st => st.procedure === treatment.procedure);
+
+          // If no exact match, try partial match (e.g., treatment name contains system procedure name)
+          if (!matchedByName && treatment.procedure) {
+              matchedByName = systemTreatments.find(st =>
+                  treatment.procedure.includes(st.procedure) || st.procedure.includes(treatment.procedure)
+              );
           }
+
+          if (matchedByName) {
+              pId = String(matchedByName.id);
+              form.setValue('procedureId', pId);
+          } else if (treatment.procedureId) {
+              // Fall back to treatment's procedureId if no match found
+              pId = String(treatment.procedureId);
+              form.setValue('procedureId', pId);
+          }
+
+          setInitialProcedureId(pId);
           // Set other values to ensure form is fully populated
           form.setValue('procedure', treatment.procedure);
           form.setValue('status', treatment.status);
           if (treatment.tooth) form.setValue('tooth', treatment.tooth);
           form.setValue('cost', treatment.cost);
-          if (currentCondition) form.setValue('condition', currentCondition);
+          if (currentCondition && ['Healthy', 'Caries', 'Filling', 'Crown', 'Missing', 'Fracture', 'Implant', 'Bridge'].includes(currentCondition)) {
+            form.setValue('condition', currentCondition as any);
+          }
       }
   }, [treatment, systemTreatments, form, currentCondition]);
   
   const selectedProcedureId = form.watch("procedureId");
   useEffect(() => {
-    if (selectedProcedureId) {
+    // Auto-populate cost and procedure only when procedure ID is changed by user (not on initial load)
+    // For new treatments (!isEditing), auto-populate on any change
+    // For editing treatments, only auto-populate if procedure was changed from initial value
+    const procedureHasChanged = selectedProcedureId && (
+      !isEditing || (initialProcedureId && String(selectedProcedureId) !== String(initialProcedureId))
+    );
+
+    if (procedureHasChanged) {
       const matchingTreatment = systemTreatments.find(
         t => String(t.id) === String(selectedProcedureId)
       );
@@ -108,22 +136,37 @@ export function TreatmentPlanForm({ treatment, onSave, onOpenChange, toothId, cu
         form.setValue('procedure', matchingTreatment.procedure);
       }
     }
-  }, [selectedProcedureId, systemTreatments, form])
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    const selectedSystemTreatment = systemTreatments.find(t => String(t.id) === String(values.procedureId));
-    
-    // When editing, it's okay if we can't find the system treatment (user may not have changed procedure)
-    // Fall back to the existing treatment prop's procedure name
-    const procedureName = selectedSystemTreatment?.procedure ?? treatment?.procedure ?? values.procedure ?? '';
-    if (!procedureName) return;
+  }, [selectedProcedureId, systemTreatments, form, isEditing, initialProcedureId])
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    setIsSubmitting(true);
+    try {
+      const selectedSystemTreatment = systemTreatments.find(t => String(t.id) === String(values.procedureId));
 
-    onSave({
+      const procedureName = selectedSystemTreatment?.procedure ?? treatment?.procedure ?? values.procedure ?? '';
+      if (!procedureName) {
+        toast({
+          title: "Error",
+          description: "Procedure name is required.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      onSave({
         ...values,
         procedure: procedureName,
-    }, values.condition);
+      }, values.condition);
+    } catch (error: any) {
+      console.error(error);
+      toast({
+        title: "Error",
+        description: error.message || "An unexpected error occurred.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   }
-
-  const isEditing = !!treatment;
 
   return (
     <Dialog open={true} onOpenChange={onOpenChange}>
@@ -144,10 +187,10 @@ export function TreatmentPlanForm({ treatment, onSave, onOpenChange, toothId, cu
                           <FormLabel>Procedure</FormLabel>
                           <FormControl>
                             <Combobox
-                                options={systemTreatments.map(t => ({ 
-                                    value: t.id, 
-                                    label: `${t.procedure} ($${t.cost})`,
-                                    category: t.category 
+                                options={systemTreatments.map(t => ({
+                                    value: t.id,
+                                    label: t.procedure,
+                                    category: t.category
                                 }))}
                                 value={field.value}
                                 onChange={(value) => {
@@ -242,7 +285,10 @@ export function TreatmentPlanForm({ treatment, onSave, onOpenChange, toothId, cu
                     </div>
                      <DialogFooter>
                         <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-                        <Button type="submit">{isEditing ? 'Save Changes' : 'Add Treatment'}</Button>
+                        <Button type="submit"  disabled={isSubmitting}>
+        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        {isEditing ? 'Save Changes' : 'Add Treatment'}
+      </Button>
                     </DialogFooter>
                 </form>
             </Form>

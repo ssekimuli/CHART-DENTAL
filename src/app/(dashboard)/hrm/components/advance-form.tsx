@@ -1,6 +1,8 @@
-
 "use client";
+import { useToast } from "@/hooks/use-toast";
 
+import { useState } from "react";
+import { Loader2 } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -42,19 +44,34 @@ type AdvanceFormProps = {
 };
 
 export function AdvanceForm({ employees, onSave, onOpenChange }: AdvanceFormProps) {
+  const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    setIsSubmitting(true);
+    try {
     const employee = employees.find(e => e.id === values.employeeId);
     if (!employee) return;
     
-    onSave({
+        await onSave({
         ...values,
         branchId: employee.branchId,
         date: format(new Date(), "yyyy-MM-dd"),
     });
+      } catch (error: any) {
+        console.error(error);
+        toast({
+            title: "Error",
+            description: error.message || "An unexpected error occurred.",
+            variant: "destructive",
+        });
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -124,7 +141,10 @@ export function AdvanceForm({ employees, onSave, onOpenChange }: AdvanceFormProp
 
                      <DialogFooter>
                         <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-                        <Button type="submit">Submit Request</Button>
+                        <Button type="submit"  disabled={isSubmitting}>
+        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        Submit Request
+      </Button>
                     </DialogFooter>
                 </form>
             </Form>

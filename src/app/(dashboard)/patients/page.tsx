@@ -9,9 +9,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { PlusCircle, Search, X } from "lucide-react";
+import { PlusCircle, Search, X, QrCode } from "lucide-react";
+import { QRCodeModal } from "./components/qr-code-modal";
 import { PatientsTable } from "./components/patients-table";
 import { useBranch } from "@/context/branch-context";
+import customAxios from "@/lib/axios";
 import { useState, useMemo, useEffect } from "react";
 import {  hasPermission, hasRole , getCurrentUser } from "@/lib/user";
 import type { Patient, BasePatient, PaginatedArray } from "@/lib/types";
@@ -41,6 +43,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getPatientFullName } from "@/lib/utils";
 import { PaginationControl } from "@/components/ui/pagination-control";
+import { toast } from "@/hooks/use-toast";
 
 export default function PatientsPage() {
   const router = useRouter();
@@ -50,6 +53,8 @@ export default function PatientsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedPatient, setSelectedPatient] = useState<Patient | undefined>(undefined);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
+  const [isQRCodeModalOpen, setIsQRCodeModalOpen] = useState(false);
+  const [baseUrl, setBaseUrl] = useState("");
 
   // Filter states
   const [searchQuery, setSearchQuery] = useState("");
@@ -57,6 +62,13 @@ export default function PatientsPage() {
   const [genderFilter, setGenderFilter] = useState<"all" | "Male" | "Female" | "Other">("all");
   const [page, setPage] = useState(1);
   const [refreshKey, setRefreshKey] = useState(0);
+
+  // Get base URL from axios
+  useEffect(() => {
+    if (customAxios.defaults.baseURL) {
+      setBaseUrl(customAxios.defaults.baseURL);
+    }
+  }, []);
 
   // Reset to page 1 on filter/search change
   useEffect(() => {
@@ -136,26 +148,33 @@ export default function PatientsPage() {
   }
 
   const handleSavePatient = async (data: BasePatient) => {
-    if (selectedPatient) {
-        // Update
-        const updated = await updatePatient(selectedPatient.id, data);
-        if (updated) {
-            setPatientsData(prev => {
-                const updatedList = prev.map(p => p.id === updated.id ? updated : p) as PaginatedArray<Patient>;
-                updatedList.meta = prev.meta;
-                return updatedList;
-            });
+    try {
+        if (selectedPatient) {
+            // Update
+            const updated = await updatePatient(selectedPatient.id, data);
+            if (updated) {
+                setPatientsData(prev => {
+                    const updatedList = prev.map(p => p.id === updated.id ? updated : p) as PaginatedArray<Patient>;
+                    updatedList.meta = prev.meta;
+                    return updatedList;
+                });
+                toast({ title: "Success", description: "Patient updated successfully." });
+            }
+        } else {
+            // Create
+            const newPatient = await createPatient({ ...data, branchId: selectedBranch });
+            if (newPatient) {
+                setPatientsData(prev => {
+                    const updatedList = [newPatient, ...prev] as PaginatedArray<Patient>;
+                    updatedList.meta = prev.meta;
+                    return updatedList;
+                });
+                toast({ title: "Success", description: "Patient created successfully." });
+            }
         }
-    } else {
-        // Create
-        const newPatient = await createPatient({ ...data, branchId: selectedBranch });
-        if (newPatient) {
-            setPatientsData(prev => {
-                const updatedList = [newPatient, ...prev] as PaginatedArray<Patient>;
-                updatedList.meta = prev.meta;
-                return updatedList;
-            });
-        }
+    } catch (e: any) {
+        const errorMessage = e?.message || "Failed to save patient.";
+        toast({ title: "Error", description: errorMessage, variant: "destructive" });
     }
     handleCloseForm();
   }
@@ -195,17 +214,25 @@ export default function PatientsPage() {
           </CardDescription>
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setIsQRCodeModalOpen(true)}
+            title="Generate patient registration QR code"
+          >
+            <QrCode className="mr-2 h-4 w-4" />
+            Registration QR
+          </Button>
           {hasPermission('patients:create') && (
             <>
-              <DataImporter 
-                type="patients" 
-                triggerText="Import Patients" 
+              <DataImporter
+                type="patients"
+                triggerText="Import Patients"
                 onImportSuccess={() => {
                   setPage(1);
                   setRefreshKey(prev => prev + 1);
-                }} 
+                }}
               />
-              <Button onClick={() => handleOpenForm()}>
+              <Button onClick={() => router.push("/patients/new")}>
                 <PlusCircle className="mr-2 h-4 w-4" />
                 Add Patient
               </Button>
@@ -362,6 +389,11 @@ export default function PatientsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <QRCodeModal
+        isOpen={isQRCodeModalOpen}
+        onClose={() => setIsQRCodeModalOpen(false)}
+        baseUrl={baseUrl}
+      />
     </>
   );
 }

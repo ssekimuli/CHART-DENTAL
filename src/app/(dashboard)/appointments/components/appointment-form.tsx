@@ -1,6 +1,7 @@
 
 
 "use client";
+import { useToast } from "@/hooks/use-toast";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -37,7 +38,7 @@ import {
 import type { Appointment, Employee, Patient, AppointmentStatus, SystemTreatment } from "@/lib/types";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn, getPatientFullName } from "@/lib/utils";
-import { CalendarIcon, RefreshCw } from "lucide-react";
+import { CalendarIcon, RefreshCw, Loader2 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Combobox } from "@/components/ui/combobox";
 import { getTreatments, getPatients } from "@/lib/api";
@@ -108,6 +109,9 @@ const generateToken = (patientName: string, doctorName: string) => {
 }
 
 export function AppointmentForm({ appointment, patients: initialPatients, doctors, appointments, onSave, onOpenChange }: AppointmentFormProps) {
+  const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const [treatments, setTreatments] = useState<SystemTreatment[]>([]);
   const [patients, setPatients] = useState<Patient[]>(initialPatients || []);
   const toNumberId = (value: string | number | undefined) =>
@@ -156,19 +160,31 @@ export function AppointmentForm({ appointment, patients: initialPatients, doctor
   }, [selectedDoctorId, selectedDate, appointments, appointment]);
 
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    setIsSubmitting(true);
+    try {
     const patient = patients.find(p => String(p.id) === String(values.patientId));
     if (!patient) return;
     const doctor = doctors.find(d => String(d.id) === String(values.doctorId));
     if (!doctor) return;
 
 
-    onSave({
+        await onSave({
         ...values,
         patientName: getPatientFullName(patient),
         doctorName: doctor.name,
         date: format(values.date, "yyyy-MM-dd"),
     });
+      } catch (error: any) {
+        console.error(error);
+        toast({
+            title: "Error",
+            description: error.message || "An unexpected error occurred.",
+            variant: "destructive",
+        });
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   const handleGenerateToken = () => {
@@ -394,7 +410,10 @@ export function AppointmentForm({ appointment, patients: initialPatients, doctor
 
                      <DialogFooter className="sticky bottom-0 bg-background pt-4 -mx-6 px-6 pb-6 border-t">
                         <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-                        <Button type="submit">Save Appointment</Button>
+                        <Button type="submit"  disabled={isSubmitting}>
+        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        Save Appointment
+      </Button>
                     </DialogFooter>
                 </form>
             </Form>

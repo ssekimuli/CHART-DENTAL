@@ -1,6 +1,8 @@
-
 "use client";
+import { useToast } from "@/hooks/use-toast";
 
+import { useState } from "react";
+import { Loader2 } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -39,6 +41,9 @@ type ItemFormProps = {
 };
 
 export function ItemForm({ onSave, onOpenChange }: ItemFormProps) {
+  const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -47,8 +52,20 @@ export function ItemForm({ onSave, onOpenChange }: ItemFormProps) {
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    onSave(values);
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    setIsSubmitting(true);
+    try {
+        await onSave(values);
+      } catch (error: any) {
+        console.error(error);
+        toast({
+            title: "Error",
+            description: error.message || "An unexpected error occurred.",
+            variant: "destructive",
+        });
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -131,7 +148,10 @@ export function ItemForm({ onSave, onOpenChange }: ItemFormProps) {
                     />
                      <DialogFooter>
                         <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-                        <Button type="submit">Save Item</Button>
+                        <Button type="submit"  disabled={isSubmitting}>
+        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        Save Item
+      </Button>
                     </DialogFooter>
                 </form>
             </Form>

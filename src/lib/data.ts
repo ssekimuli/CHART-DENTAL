@@ -1,5 +1,9 @@
 
-import type { Patient, Appointment, Invoice, ChartData, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, SystemTreatment, PaymentMethod, PaymentTransaction, AttendanceRecord, LeaveRequest, StaffAdvance, Expense, RolePermissions } from "@/lib/types";
+import type { Business, Patient, Appointment, Invoice, ChartData, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, SystemTreatment, PaymentMethod, PaymentTransaction, AttendanceRecord, LeaveRequest, StaffAdvance, Expense, RolePermissions } from "@/lib/types";
+
+export let businesses: Business[] = [
+    { id: '1', name: 'Default Business', details: 'Main headquarters', createdAt: new Date().toISOString() }
+];
 
 export const branches: Branch[] = [
  

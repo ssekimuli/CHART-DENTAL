@@ -1,6 +1,7 @@
-
 "use client";
+import { useToast } from "@/hooks/use-toast";
 
+import { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -34,7 +35,7 @@ import {
 import type { Expense, ExpenseCategory } from "@/lib/types";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Loader2 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -52,6 +53,9 @@ type ExpenseFormProps = {
 };
 
 export function ExpenseForm({ expense, onSave, onOpenChange }: ExpenseFormProps) {
+  const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -62,11 +66,32 @@ export function ExpenseForm({ expense, onSave, onOpenChange }: ExpenseFormProps)
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    onSave({
+  useEffect(() => {
+    form.reset({
+      date: expense ? new Date(expense.date) : new Date(),
+      category: (expense?.category && ['Supplies', 'Rent', 'Utilities', 'Marketing', 'Maintenance', 'Other'].includes(expense.category) ? expense.category : 'Other') as any,
+      description: expense?.description ?? "",
+      amount: expense?.amount,
+    });
+  }, [expense, form]);
+
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    setIsSubmitting(true);
+    try {
+        await onSave({
       ...values,
       date: format(values.date, "yyyy-MM-dd"),
     });
+      } catch (error: any) {
+        console.error(error);
+        toast({
+            title: "Error",
+            description: error.message || "An unexpected error occurred.",
+            variant: "destructive",
+        });
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   const categories: ExpenseCategory[] = ['Supplies', 'Rent', 'Utilities', 'Salaries', 'Marketing', 'Maintenance', 'Other'];
@@ -172,7 +197,10 @@ export function ExpenseForm({ expense, onSave, onOpenChange }: ExpenseFormProps)
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
-              <Button type="submit">{expense ? "Save Changes" : "Add Expense"}</Button>
+              <Button type="submit"  disabled={isSubmitting}>
+        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        {expense ? "Save Changes" : "Add Expense"}
+      </Button>
             </DialogFooter>
           </form>
         </Form>

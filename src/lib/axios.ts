@@ -1,9 +1,10 @@
 import axios from 'axios';
 import { getAuthToken, clearCurrentUser } from './user';
 import { toast } from '@/hooks/use-toast';
+import { API_CONFIG } from '@/config';
 
 const customAxios = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_BACKEND_URL ||'https://victoriousdentalapi.poslycloud.com/api',
+  baseURL: API_CONFIG.baseURL,
 
   headers: {
     'Content-Type': 'application/json',
@@ -11,7 +12,6 @@ const customAxios = axios.create({
   },
 });
 
-// Add a request interceptor to include the auth token
 customAxios.interceptors.request.use(
   (config) => {
     const token = getAuthToken();
@@ -30,12 +30,11 @@ customAxios.interceptors.response.use(
     return response;
   },
   (error) => {
-    // Handle unauthenticated responses
 
     if (axios.isAxiosError(error) && error.response) {
       const { status, data } = error.response;
 
-      // Check for 401 status or "Unauthenticated" message
+      // Check for 401 status or "Unauthenticated"
 
       if (status === 401 || data?.message === "Unauthenticated.") {
         // Clear user session
@@ -49,9 +48,9 @@ customAxios.interceptors.response.use(
         });
 
         // Redirect to login page
-        if (typeof window !== 'undefined') {
-          window.location.href = '/login';
-        }
+        // if (typeof window !== 'undefined') {
+        //   window.location.href = '/login';
+        // }
 
         return Promise.reject(error);
       }

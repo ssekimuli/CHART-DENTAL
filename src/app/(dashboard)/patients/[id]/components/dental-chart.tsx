@@ -5,7 +5,14 @@ import React, { useState, useMemo } from "react";
 import type { DentalRecord, DentalCondition, Treatment } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { FilePen, Plus } from "lucide-react";
+import { FilePen, Plus, Heart, AlertCircle, Droplets, Crown, Trash2, AlertTriangle, Zap, Link2 } from "lucide-react";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
 import {
   Dialog,
   DialogContent,
@@ -13,8 +20,6 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Odontogram } from "react-odontogram";
-import "react-odontogram/style.css";
 
 
 const upperRightQuadrant = [18, 17, 16, 15, 14, 13, 12, 11];
@@ -22,190 +27,282 @@ const upperLeftQuadrant = [21, 22, 23, 24, 25, 26, 27, 28];
 const lowerLeftQuadrant = [31, 32, 33, 34, 35, 36, 37, 38];
 const lowerRightQuadrant = [48, 47, 46, 45, 44, 43, 42, 41];
 
-const conditionInfo: { condition: DentalCondition; color: string; twColor: string }[] = [
-    { condition: 'Healthy', color: '#FFFFFF', twColor: 'bg-white' },
-    { condition: 'Caries', color: '#FBBF24', twColor: 'bg-yellow-400' },
-    { condition: 'Filling', color: '#60A5FA', twColor: 'bg-blue-400' },
-    { condition: 'Crown', color: '#A78BFA', twColor: 'bg-purple-400' },
-    { condition: 'Missing', color: '#6B7280', twColor: 'bg-gray-500' },
-    { condition: 'Fracture', color: '#EF4444', twColor: 'bg-red-500' },
+const conditionInfo: { condition: DentalCondition; color: string; twColor: string; icon: React.ReactNode; description: string }[] = [
+    { condition: 'Healthy', color: 'transparent', twColor: 'bg-transparent border border-gray-400 border-dashed', icon: <Heart size={16} />, description: 'Healthy tooth' },
+    { condition: 'Caries', color: '#EA580C', twColor: 'bg-orange-600', icon: <AlertCircle size={16} />, description: 'Tooth decay/cavity' },
+    { condition: 'Filling', color: '#0284C7', twColor: 'bg-sky-600', icon: <Droplets size={16} />, description: 'Filled restoration' },
+    { condition: 'Crown', color: '#9333EA', twColor: 'bg-purple-600', icon: <Crown size={16} />, description: 'Crown restoration' },
+    { condition: 'Missing', color: '#334155', twColor: 'bg-slate-700', icon: <Trash2 size={16} />, description: 'Missing tooth' },
+    { condition: 'Fracture', color: '#DC2626', twColor: 'bg-red-600', icon: <AlertTriangle size={16} />, description: 'Broken tooth' },
+    { condition: 'Implant', color: '#9CA3AF', twColor: 'bg-gray-400', icon: <Zap size={16} />, description: 'Dental implant' },
+    { condition: 'Bridge', color: '#F59E0B', twColor: 'bg-amber-500', icon: <Link2 size={16} />, description: 'Bridge prosthetic' },
 ];
 
 type DentalChartProps = {
   initialRecords: DentalRecord[];
   treatmentPlans: Treatment[];
+  restorativeRecords?: RestorativeRecord[];
   onAddTreatment: (toothId: number) => void;
   onLogCondition: (toothId: number) => void;
+  onQuickLogCondition?: (toothId: number, condition: DentalCondition) => void;
+  onAddRestorativeRecord?: (toothId: number, surface?: string) => void;
+  onConfirmBridge?: (toothIds: number[], bridgeGroupId: string) => void;
 };
 
-export function DentalChart({ initialRecords, treatmentPlans, onAddTreatment, onLogCondition }: DentalChartProps) {
-  const [selectedTooth, setSelectedTooth] = useState<number | null>(null);
+import { Odontogram } from "../charting/components/odontogram";
+import type { RestorativeRecord } from "@/lib/types";
 
-  // react-odontogram renders the lower jaw with quadrant 3 (30s) on the left and quadrant 4 (40s) on the right.
-  // In a standard practitioner's view, quadrant 4 should be on the left and quadrant 3 on the right.
-  // We map the FDI numbers transparently to correct this visual anomaly.
-  const mapFdiToOdontogram = (fdi: number) => {
-    if (fdi >= 31 && fdi <= 38) return fdi + 10;
-    if (fdi >= 41 && fdi <= 48) return fdi - 10;
-    return fdi;
-  };
+export function DentalChart({ initialRecords, treatmentPlans, restorativeRecords = [], onAddTreatment, onLogCondition, onQuickLogCondition, onAddRestorativeRecord, onConfirmBridge }: DentalChartProps) {
+  const [selectedToothData, setSelectedToothData] = useState<{id: number, surface?: string} | null>(null);
+  const [bridgeTeethSelection, setBridgeTeethSelection] = useState<number[]>([]);
+  const [showBridgeModal, setShowBridgeModal] = useState(false);
 
-  const mapOdontogramToFdi = (fdi: number) => {
-    return mapFdiToOdontogram(fdi); // it is symmetric
-  };
+  const selectedTooth = selectedToothData?.id || null;
 
-  // Group conditions for react-odontogram
-  const teethConditions = useMemo(() => {
-    const conditionsMap: Record<string, string[]> = {
-      Caries: [],
-      Filling: [],
-      Crown: [],
-      Missing: [],
-      Fracture: [],
+  // Keyboard shortcuts for condition selection
+  React.useEffect(() => {
+    if (!selectedTooth) return;
+
+    const handleKeyPress = (e: KeyboardEvent) => {
+      const key = parseInt(e.key);
+      if (key >= 1 && key <= 8) {
+        e.preventDefault();
+        const selectedCondition = conditionInfo[key - 1];
+        if (selectedCondition && selectedCondition.condition !== 'Bridge') {
+          if (onQuickLogCondition) onQuickLogCondition(selectedTooth, selectedCondition.condition);
+          setSelectedToothData(null);
+        }
+      }
+      // Bridge shortcut
+      if (e.key === 'b' || e.key === 'B') {
+        e.preventDefault();
+        setBridgeTeethSelection([selectedTooth]);
+        setShowBridgeModal(true);
+      }
     };
-    
-    const treatmentMap: string[] = []; // Teeth with treatments but no specific condition style
 
-    initialRecords.forEach((record) => {
-      if (record.condition !== 'Healthy' && conditionsMap[record.condition]) {
-        conditionsMap[record.condition].push(`teeth-${mapFdiToOdontogram(record.toothId)}`);
-      }
-    });
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [selectedTooth, onQuickLogCondition]);
+  const allTeeth = [18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28, 38, 37, 36, 35, 34, 33, 32, 31, 41, 42, 43, 44, 45, 46, 47, 48];
 
-    treatmentPlans.forEach((plan) => {
-      if (plan.tooth && (plan.status === 'Proposed' || plan.status === 'In Progress')) {
-          const toothIdStr = `teeth-${mapFdiToOdontogram(plan.tooth)}`;
-          // Only add to treatment map if it doesn't already have a strong condition color, 
-          // or we can just make a dedicated "Treatment" condition group that has a blue outline.
-          // react-odontogram layers conditions by array order.
-          treatmentMap.push(toothIdStr);
-      }
-    });
-
-    const groups = [];
-    
-    if (conditionsMap.Caries.length > 0) groups.push({ label: 'Caries', teeth: conditionsMap.Caries, fillColor: '#FBBF24', outlineColor: '#B45309' });
-    if (conditionsMap.Filling.length > 0) groups.push({ label: 'Filling', teeth: conditionsMap.Filling, fillColor: '#60A5FA', outlineColor: '#1D4ED8' });
-    if (conditionsMap.Crown.length > 0) groups.push({ label: 'Crown', teeth: conditionsMap.Crown, fillColor: '#A78BFA', outlineColor: '#6D28D9' });
-    if (conditionsMap.Missing.length > 0) groups.push({ label: 'Missing', teeth: conditionsMap.Missing, fillColor: '#6B7280', outlineColor: '#374151' });
-    if (conditionsMap.Fracture.length > 0) groups.push({ label: 'Fracture', teeth: conditionsMap.Fracture, fillColor: '#EF4444', outlineColor: '#B91C1C' });
-
-    // Treatments (blue outline)
-    if (treatmentMap.length > 0) {
-        groups.push({
-            label: 'Treatment Plan',
-            teeth: treatmentMap,
-            fillColor: 'transparent',
-            outlineColor: '#3B82F6', // Blue outline for treatments
-        });
+  const toggleBridgeTooth = (toothId: number) => {
+    if (bridgeTeethSelection.includes(toothId)) {
+      setBridgeTeethSelection(bridgeTeethSelection.filter(id => id !== toothId));
+    } else {
+      setBridgeTeethSelection([...bridgeTeethSelection, toothId].sort((a, b) => a - b));
     }
-
-    return groups;
-  }, [initialRecords, treatmentPlans]);
+  };
 
   return (
     <div className="flex flex-col gap-6">
+      <div className="flex flex-wrap justify-center gap-x-6 gap-y-3 bg-slate-900/30 p-4 rounded-lg">
+        <div className="flex items-center gap-2 group cursor-help" title="Treatment planned procedures">
+            <div className="h-4 w-4 rounded-full border-2 border-blue-500 bg-transparent"></div>
+            <span className="text-sm text-muted-foreground">Treatment Plan</span>
+        </div>
+        {conditionInfo.map(({ condition, twColor, icon, description }) => (
+          <div key={condition} className="flex items-center gap-2 group cursor-help hover:bg-slate-800/50 px-2 py-1 rounded transition-colors" title={description}>
+            <div className={cn('h-4 w-4 rounded-full border', twColor, {'border-gray-400': condition === 'Healthy'})}></div>
+            <span className="text-xs sm:text-sm text-muted-foreground flex items-center gap-1">
+              {icon}
+              {condition}
+            </span>
+          </div>
+        ))}
+      </div>
+      
       <div className="rounded-lg bg-muted/10 p-6 border overflow-x-auto flex justify-center items-center min-h-[450px]">
-        <div className="w-full max-w-[900px] min-w-[800px] scale-105 origin-center py-4 flex flex-col relative">
-          
-          {/* Top Row Numbers */}
-          <div className="flex w-full justify-between text-xs font-semibold text-muted-foreground mb-2 px-1">
-            {[...upperRightQuadrant, ...upperLeftQuadrant].map(num => (
-              <div key={`top-${num}`} className="flex-1 text-center">
-                {num}
-              </div>
-            ))}
-          </div>
-
-          <Odontogram 
-            singleSelect 
-            layout="square"
-            teethConditions={teethConditions}
-            tooltip={{
-              content: (tooth: any) => {
-                if (!tooth) return null;
-                const fdi = parseInt(tooth.notations.fdi, 10);
-                return `Tooth #${mapOdontogramToFdi(fdi)}`;
-              }
-            }}
-            onChange={(teeth: any) => {
-              if (teeth && teeth.length > 0) {
-                const fdi = parseInt(teeth[0].notations.fdi, 10);
-                setSelectedTooth(mapOdontogramToFdi(fdi));
-              }
-            }}
+        <div className="w-full scale-100 origin-center py-4 flex flex-col relative">
+          <Odontogram
+            records={restorativeRecords}
+            dentalRecords={initialRecords}
+            treatmentPlans={treatmentPlans}
+            onToothClick={(toothId, surface) => setSelectedToothData({ id: toothId, surface })}
           />
-
-          {/* Bottom Row Numbers */}
-          <div className="flex w-full justify-between text-xs font-semibold text-muted-foreground mt-2 px-1">
-            {[...lowerRightQuadrant, ...lowerLeftQuadrant].map(num => (
-              <div key={`bottom-${num}`} className="flex-1 text-center">
-                {num}
-              </div>
-            ))}
-          </div>
-          
         </div>
       </div>
 
-      <Dialog open={selectedTooth !== null} onOpenChange={(open) => !open && setSelectedTooth(null)}>
-        <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
+      <Sheet open={selectedTooth !== null} onOpenChange={(open) => !open && setSelectedToothData(null)}>
+        <SheetContent side="right" className="sm:max-w-md w-full overflow-hidden flex flex-col p-4 sm:p-6">
+            <SheetHeader className="mb-4 shrink-0">
+                <SheetTitle className="flex items-center gap-2">
                     <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary font-bold text-sm">
                         {selectedTooth}
                     </span>
                     Tooth #{selectedTooth}
-                </DialogTitle>
-                <DialogDescription>
-                    Select an action to perform on this tooth.
-                </DialogDescription>
-            </DialogHeader>
-            <div className="flex flex-col sm:flex-row gap-3 mt-4">
-                <Button 
-                    variant="outline" 
-                    className="flex-1"
+                </SheetTitle>
+                <SheetDescription>
+                    Quickly log a condition, treatment, or restorative procedure for this tooth.
+                    {selectedToothData?.surface && <span className="block mt-1 font-medium text-primary">Selected View: {selectedToothData.surface}</span>}
+                </SheetDescription>
+            </SheetHeader>
+            <div className="flex flex-col gap-4 overflow-y-auto flex-1 pr-2">
+              <div>
+                <h4 className="text-xs sm:text-sm font-medium mb-2">Select Condition</h4>
+                <p className="text-xs text-muted-foreground mb-2">Click or press 1-8</p>
+              </div>
+              <div className="grid grid-cols-2 gap-1 sm:gap-2">
+                  {conditionInfo.map(({ condition, twColor, icon, description }, idx) => (
+                     <Button
+                          key={condition}
+                          variant="outline"
+                          size="sm"
+                          className={cn("justify-start h-auto py-1.5 sm:py-2 flex-col items-start text-xs sm:text-sm", condition === 'Bridge' && 'opacity-50')}
+                          onClick={() => {
+                              if (condition !== 'Bridge') {
+                                if (selectedTooth && onQuickLogCondition) onQuickLogCondition(selectedTooth, condition);
+                                setSelectedToothData(null);
+                              }
+                          }}
+                          disabled={condition === 'Bridge'}
+                          title={`${description} (Press ${idx + 1})`}
+                      >
+                          <div className="flex items-center gap-1.5 w-full">
+                            <div className={cn('h-2.5 w-2.5 sm:h-3 sm:w-3 rounded-full border', twColor, {'border-gray-400': condition === 'Healthy'})}></div>
+                            <span className="flex-1 text-left text-xs">{condition}</span>
+                            <span className="text-xs text-muted-foreground hidden sm:inline">{icon}</span>
+                          </div>
+                          <span className="text-xs text-muted-foreground mt-0.5 w-full text-left line-clamp-1">{description}</span>
+                      </Button>
+                  ))}
+              </div>
+              <div className="space-y-2">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="w-full bg-fuchsia-500 hover:bg-fuchsia-600 text-white text-xs sm:text-sm h-8 sm:h-9"
+                  onClick={() => {
+                    setBridgeTeethSelection([selectedTooth!]);
+                    setShowBridgeModal(true);
+                  }}
+                  title="Press B to quickly mark as bridge"
+                >
+                  🌉 Bridge
+                </Button>
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full text-xs sm:text-sm h-8"
                     onClick={() => {
                         if (selectedTooth) onLogCondition(selectedTooth);
-                        setSelectedTooth(null);
+                        setSelectedToothData(null);
                     }}
                 >
-                    <FilePen className="mr-2 h-4 w-4" /> Log Condition
+                    <FilePen className="mr-1 h-3 w-3" /> Note
                 </Button>
-                <Button 
-                    variant="secondary"
-                    className="flex-1"
-                    onClick={() => {
-                            window.location.href = `/patients/${window.location.pathname.split('/')[2]}/charting/tooth/${selectedTooth}`;
-                    }}
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="w-full text-xs sm:text-sm h-8"
+                  onClick={() => {
+                      if (selectedTooth && onAddRestorativeRecord) onAddRestorativeRecord(selectedTooth, selectedToothData?.surface);
+                      setSelectedToothData(null);
+                  }}
                 >
-                    <FilePen className="mr-2 h-4 w-4" /> View History
+                  <Plus className="mr-1 h-3 w-3" /> Restoration
                 </Button>
-                <Button 
-                    className="flex-1"
-                    onClick={() => {
-                        if (selectedTooth) onAddTreatment(selectedTooth);
-                        setSelectedTooth(null);
-                    }}
+                <Button
+                  size="sm"
+                  className="w-full text-xs sm:text-sm h-8"
+                  onClick={() => {
+                      if (selectedTooth) onAddTreatment(selectedTooth);
+                      setSelectedToothData(null);
+                  }}
                 >
-                    <Plus className="mr-2 h-4 w-4" /> Add Treatment
+                  <Plus className="mr-1 h-3 w-3" /> Treatment
                 </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full text-xs sm:text-sm h-8"
+                  onClick={() => {
+                      window.location.href = `/patients/${window.location.pathname.split('/')[2]}/charting/tooth/${selectedTooth}`;
+                  }}
+                >
+                  <FilePen className="mr-1 h-3 w-3" /> History
+                </Button>
+              </div>
+
+              <div className="bg-slate-900/50 p-2 rounded text-xs shrink-0">
+                <h4 className="font-semibold mb-1 text-slate-400">⌨️ Shortcuts</h4>
+                <div className="text-muted-foreground space-y-0.5 text-xs">
+                  <div className="flex justify-between"><span>1-8</span><span>Condition</span></div>
+                  <div className="flex justify-between"><span>B</span><span>Bridge</span></div>
+                </div>
+              </div>
             </div>
+        </SheetContent>
+      </Sheet>
+
+      <Dialog open={showBridgeModal} onOpenChange={setShowBridgeModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Select Bridge Teeth</DialogTitle>
+            <DialogDescription>
+              Tooth #{selectedTooth} + Select other teeth for this bridge
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex flex-col gap-4">
+            <div className="bg-slate-100 dark:bg-slate-900 p-3 rounded">
+              <p className="text-sm font-medium mb-2">Selected Teeth</p>
+              <p className="text-lg font-semibold text-fuchsia-600">
+                {selectedTooth} {bridgeTeethSelection.length > 0 && `+ ${bridgeTeethSelection.join(', ')}`}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-sm font-medium mb-2">Select Other Teeth</p>
+              <div className="grid grid-cols-4 gap-2 max-h-[250px] overflow-y-auto p-3 border rounded bg-slate-50 dark:bg-slate-950">
+                {allTeeth.filter(tooth => tooth !== selectedTooth).map(tooth => (
+                  <label
+                    key={tooth}
+                    className="flex items-center gap-2 cursor-pointer p-2 hover:bg-slate-200 dark:hover:bg-slate-800 rounded text-sm font-medium"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={bridgeTeethSelection.includes(tooth)}
+                      onChange={() => toggleBridgeTooth(tooth)}
+                      className="w-4 h-4"
+                    />
+                    <span>{tooth}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => {
+                  setBridgeTeethSelection([]);
+                  setShowBridgeModal(false);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="flex-1 bg-fuchsia-600 hover:bg-fuchsia-700 text-white"
+                disabled={bridgeTeethSelection.length === 0}
+                onClick={() => {
+                  const allBridgeTeeth = [selectedTooth, ...bridgeTeethSelection].sort((a, b) => a - b);
+                  const bridgeGroupId = `bridge-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+                  if (onConfirmBridge) {
+                    onConfirmBridge(allBridgeTeeth, bridgeGroupId);
+                  }
+                  setBridgeTeethSelection([]);
+                  setShowBridgeModal(false);
+                  setSelectedToothData(null);
+                }}
+              >
+                ✓ Save Bridge
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
-
-      <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 mt-4">
-        <div className="flex items-center gap-2">
-            <div className="h-4 w-4 rounded-full border-2 border-blue-500 bg-transparent"></div>
-            <span className="text-sm text-muted-foreground">Treatment Plan</span>
-        </div>
-        {conditionInfo.map(({ condition, twColor }) => (
-          <div key={condition} className="flex items-center gap-2">
-            <div className={cn('h-4 w-4 rounded-full border', twColor, {'border-gray-400': condition === 'Healthy'})}></div>
-            <span className="text-sm text-muted-foreground">{condition}</span>
-          </div>
-        ))}
-      </div>
     </div>
   );
 }

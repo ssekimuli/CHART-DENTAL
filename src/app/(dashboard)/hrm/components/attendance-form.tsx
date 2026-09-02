@@ -1,6 +1,7 @@
-
 "use client";
+import { useToast } from "@/hooks/use-toast";
 
+import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -34,7 +35,7 @@ import {
 import type { AttendanceRecord, AttendanceStatus, Employee } from "@/lib/types";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Loader2 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Combobox } from "@/components/ui/combobox";
 
@@ -55,6 +56,9 @@ type AttendanceFormProps = {
 };
 
 export function AttendanceForm({ employees, onSave, onOpenChange, selectedDate }: AttendanceFormProps) {
+  const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -62,11 +66,13 @@ export function AttendanceForm({ employees, onSave, onOpenChange, selectedDate }
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    setIsSubmitting(true);
+    try {
     const employee = employees.find(e => e.id === values.employeeId);
     if (!employee) return;
     
-    onSave({
+        await onSave({
         employeeId: values.employeeId,
         date: format(values.date, "yyyy-MM-dd"),
         status: values.status,
@@ -74,6 +80,16 @@ export function AttendanceForm({ employees, onSave, onOpenChange, selectedDate }
         checkOut: values.checkOut,
         branchId: employee.branchId,
     });
+      } catch (error: any) {
+        console.error(error);
+        toast({
+            title: "Error",
+            description: error.message || "An unexpected error occurred.",
+            variant: "destructive",
+        });
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   const statuses: AttendanceStatus[] = ['Present', 'Absent', 'On Leave'];
@@ -207,7 +223,10 @@ export function AttendanceForm({ employees, onSave, onOpenChange, selectedDate }
 
                      <DialogFooter>
                         <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-                        <Button type="submit">Save Attendance</Button>
+                        <Button type="submit"  disabled={isSubmitting}>
+        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        Save Attendance
+      </Button>
                     </DialogFooter>
                 </form>
             </Form>

@@ -1,6 +1,7 @@
 
 
 "use client";
+import { useToast } from "@/hooks/use-toast";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -36,7 +37,7 @@ import {
 import type { Employee, EmployeeRole, Branch } from "@/lib/types";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Loader2 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { getBranches, getRolesList } from "@/lib/api";
 import { useBranch } from "@/context/branch-context";
@@ -45,6 +46,7 @@ import { useBranch } from "@/context/branch-context";
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
   email: z.string().email("Please enter a valid email."),
+  phone: z.string().min(7, "Please enter a valid phone number.").optional().or(z.literal('')),
   role: z.string({ required_error: "Role is required."}),
   status: z.enum(['Active', 'On Leave', 'Blocked']),
   salary: z.coerce.number().positive("Salary must be a positive number.").optional(),
@@ -64,6 +66,9 @@ type EmployeeFormProps = {
 };
 
 export function EmployeeForm({ employee, onSave, onOpenChange }: EmployeeFormProps) {
+  const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const [roles, setRoles] = useState<{id: string, name: string}[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
   const { selectedBranch } = useBranch();
@@ -73,6 +78,7 @@ export function EmployeeForm({ employee, onSave, onOpenChange }: EmployeeFormPro
     defaultValues: {
         name: employee?.name ?? "",
         email: employee?.email ?? "",
+        phone: employee?.phone ?? "",
         role: employee?.role,
         status: employee?.status ?? 'Active',
         salary: Number(employee?.salary),
@@ -97,6 +103,7 @@ export function EmployeeForm({ employee, onSave, onOpenChange }: EmployeeFormPro
       form.reset({
         name: employee.name ?? "",
         email: employee.email ?? "",
+        phone: employee.phone ?? "",
         role: roleId,
         status: employee.status ?? 'Active',
         salary: Number(employee.salary),
@@ -142,14 +149,26 @@ export function EmployeeForm({ employee, onSave, onOpenChange }: EmployeeFormPro
   }
 
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    onSave({
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    setIsSubmitting(true);
+    try {
+        await onSave({
         ...values,
         role: values.role as EmployeeRole,
         salary: values.salary ?? 0,
         hire_date: format(values.hire_date, "yyyy-MM-dd"),
         avatar: values.avatar || `https://picsum.photos/seed/emp${Math.random()}/200/200`,
     });
+      } catch (error: any) {
+        console.error(error);
+        toast({
+            title: "Error",
+            description: error.message || "An unexpected error occurred.",
+            variant: "destructive",
+        });
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
 
@@ -186,6 +205,21 @@ export function EmployeeForm({ employee, onSave, onOpenChange }: EmployeeFormPro
                                 <FormLabel>Email</FormLabel>
                                 <FormControl>
                                     <Input placeholder="e.g., john.doe@example.com" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                            control={form.control}
+                            name="phone"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Phone</FormLabel>
+                                <FormControl>
+                                    <Input placeholder="e.g., +1 (555) 123-4567" {...field} />
                                 </FormControl>
                                 <FormMessage />
                                 </FormItem>
@@ -354,7 +388,10 @@ export function EmployeeForm({ employee, onSave, onOpenChange }: EmployeeFormPro
                     </div>
                      <DialogFooter>
                         <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-                        <Button type="submit">{employee ? "Save Changes" : "Save Employee"}</Button>
+                        <Button type="submit"  disabled={isSubmitting}>
+        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        {employee ? "Save Changes" : "Save Employee"}
+      </Button>
                     </DialogFooter>
                 </form>
             </Form>
