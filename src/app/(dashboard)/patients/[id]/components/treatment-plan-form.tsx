@@ -35,7 +35,6 @@ import {
 import type { Treatment, DentalCondition, SystemTreatment } from "@/lib/types";
 import { Combobox } from "@/components/ui/combobox";
 import { getTreatments } from "@/lib/api";
-import { useCurrency } from "@/hooks/use-currency";
 
 const formSchema = z.object({
   procedureId: z.preprocess((value) => String(value), z.string().min(1, "Procedure is required.")),
@@ -59,8 +58,9 @@ export function TreatmentPlanForm({ treatment, onSave, onOpenChange, toothId, cu
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [systemTreatments, setSystemTreatments] = useState<SystemTreatment[]>([]);
-  const { formatCurrency } = useCurrency();
-  
+  const [initialProcedureId, setInitialProcedureId] = useState<string>("");
+  const isEditing = !!treatment;
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -81,18 +81,32 @@ export function TreatmentPlanForm({ treatment, onSave, onOpenChange, toothId, cu
     fetchTreatments();
   }, [])
 
-  // When editing, if we have a treatment but procedureId is empty, try to match it by name
+  // When editing, match treatment to system treatments by name and ID
   // after system treatments load.
   useEffect(() => {
       if (treatment && systemTreatments.length > 0) {
-          let pId = treatment.procedureId;
-          if (!pId) {
-              const matched = systemTreatments.find(st => st.procedure === treatment.procedure);
-              if (matched) {
-                  pId = String(matched.id);
-                  form.setValue('procedureId', pId);
-              }
+          let pId = "";
+
+          // Try exact match by procedure name first
+          let matchedByName = systemTreatments.find(st => st.procedure === treatment.procedure);
+
+          // If no exact match, try partial match (e.g., treatment name contains system procedure name)
+          if (!matchedByName && treatment.procedure) {
+              matchedByName = systemTreatments.find(st =>
+                  treatment.procedure.includes(st.procedure) || st.procedure.includes(treatment.procedure)
+              );
           }
+
+          if (matchedByName) {
+              pId = String(matchedByName.id);
+              form.setValue('procedureId', pId);
+          } else if (treatment.procedureId) {
+              // Fall back to treatment's procedureId if no match found
+              pId = String(treatment.procedureId);
+              form.setValue('procedureId', pId);
+          }
+
+          setInitialProcedureId(pId);
           // Set other values to ensure form is fully populated
           form.setValue('procedure', treatment.procedure);
           form.setValue('status', treatment.status);
@@ -106,7 +120,14 @@ export function TreatmentPlanForm({ treatment, onSave, onOpenChange, toothId, cu
   
   const selectedProcedureId = form.watch("procedureId");
   useEffect(() => {
-    if (selectedProcedureId) {
+    // Auto-populate cost and procedure only when procedure ID is changed by user (not on initial load)
+    // For new treatments (!isEditing), auto-populate on any change
+    // For editing treatments, only auto-populate if procedure was changed from initial value
+    const procedureHasChanged = selectedProcedureId && (
+      !isEditing || (initialProcedureId && String(selectedProcedureId) !== String(initialProcedureId))
+    );
+
+    if (procedureHasChanged) {
       const matchingTreatment = systemTreatments.find(
         t => String(t.id) === String(selectedProcedureId)
       );
@@ -115,7 +136,7 @@ export function TreatmentPlanForm({ treatment, onSave, onOpenChange, toothId, cu
         form.setValue('procedure', matchingTreatment.procedure);
       }
     }
-  }, [selectedProcedureId, systemTreatments, form])
+  }, [selectedProcedureId, systemTreatments, form, isEditing, initialProcedureId])
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
     try {
@@ -147,8 +168,6 @@ export function TreatmentPlanForm({ treatment, onSave, onOpenChange, toothId, cu
     }
   }
 
-  const isEditing = !!treatment;
-
   return (
     <Dialog open={true} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-[600px]">
@@ -168,10 +187,10 @@ export function TreatmentPlanForm({ treatment, onSave, onOpenChange, toothId, cu
                           <FormLabel>Procedure</FormLabel>
                           <FormControl>
                             <Combobox
-                                options={systemTreatments.map(t => ({ 
-                                    value: t.id, 
-                                    label: `${t.procedure} (${formatCurrency(t.cost)})`,
-                                    category: t.category 
+                                options={systemTreatments.map(t => ({
+                                    value: t.id,
+                                    label: t.procedure,
+                                    category: t.category
                                 }))}
                                 value={field.value}
                                 onChange={(value) => {
