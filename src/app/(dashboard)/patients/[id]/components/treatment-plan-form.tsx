@@ -87,13 +87,21 @@ export function TreatmentPlanForm({ treatment, onSave, onOpenChange, toothId, cu
       if (treatment && systemTreatments.length > 0) {
           let pId = "";
 
-          // Try to match by procedure name first (most reliable)
-          const matchedByName = systemTreatments.find(st => st.procedure === treatment.procedure);
+          // Try exact match by procedure name first
+          let matchedByName = systemTreatments.find(st => st.procedure === treatment.procedure);
+
+          // If no exact match, try partial match (e.g., treatment name contains system procedure name)
+          if (!matchedByName && treatment.procedure) {
+              matchedByName = systemTreatments.find(st =>
+                  treatment.procedure.includes(st.procedure) || st.procedure.includes(treatment.procedure)
+              );
+          }
+
           if (matchedByName) {
               pId = String(matchedByName.id);
               form.setValue('procedureId', pId);
           } else if (treatment.procedureId) {
-              // Fall back to treatment's procedureId if name match fails
+              // Fall back to treatment's procedureId if no match found
               pId = String(treatment.procedureId);
               form.setValue('procedureId', pId);
           }
