@@ -537,6 +537,7 @@ export type FinancialSummary = {
     from?: string;
     to?: string;
     totalIncome: number;
+    incomeByCategory?: Record<string, number | string>;
     totalExpenses: number;
     netProfit: number;
     monthlyFinancials: { month: string; income: number; expense: number; netProfit: number }[];

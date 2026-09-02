@@ -1619,11 +1619,20 @@ export const getFinancialSummary = async (filters?: { branchId?: string | number
             }))
             : [];
 
+        // Parse income by category
+        const incomeByCategory: Record<string, number> = {};
+        if (data.income_by_category) {
+            for (const [category, amount] of Object.entries(data.income_by_category)) {
+                incomeByCategory[category] = Number(amount) || 0;
+            }
+        }
+
         return {
             branchId: data.branch_id,
             from: data.from,
             to: data.to,
             totalIncome: Number(data.total_income) || 0,
+            incomeByCategory,
             totalExpenses: Number(data.total_expenses) || 0,
             netProfit: Number(data.net_profit) || 0,
             monthlyFinancials,

@@ -259,6 +259,29 @@ export default function AccountingPage() {
                         </CardContent>
                     </Card>
                 </div>
+
+                {/* Income by Category Cards */}
+                {financialSummary && financialSummary.incomeByCategory && Object.keys(financialSummary.incomeByCategory).length > 0 && !isLoading && (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Income by Category</CardTitle>
+                            <CardDescription>Revenue breakdown by income category</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="grid gap-4 md:grid-cols-4">
+                                {Object.entries(financialSummary.incomeByCategory).map(([category, amount]) => (
+                                    <div key={category} className="rounded-lg border bg-muted p-4">
+                                        <p className="text-xs uppercase text-muted-foreground capitalize">
+                                            {category.replace('-', ' ')}
+                                        </p>
+                                        <p className="mt-2 text-lg font-semibold">{formatCurrency(Number(amount))}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
+
                  <Card>
                     <CardHeader>
                         <CardTitle>Financial Summary</CardTitle>
