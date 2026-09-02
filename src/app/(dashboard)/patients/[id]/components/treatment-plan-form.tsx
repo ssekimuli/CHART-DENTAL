@@ -84,23 +84,18 @@ export function TreatmentPlanForm({ treatment, onSave, onOpenChange, toothId, cu
   useEffect(() => {
       if (treatment && systemTreatments.length > 0) {
           let pId = treatment.procedureId;
-          let cost = treatment.cost;
           if (!pId) {
               const matched = systemTreatments.find(st => st.procedure === treatment.procedure);
               if (matched) {
                   pId = String(matched.id);
                   form.setValue('procedureId', pId);
-                  // Use system treatment cost if treatment cost is not set or is 0
-                  if (!cost || cost === 0) {
-                    cost = matched.cost;
-                  }
               }
           }
           // Set other values to ensure form is fully populated
           form.setValue('procedure', treatment.procedure);
           form.setValue('status', treatment.status);
           if (treatment.tooth) form.setValue('tooth', treatment.tooth);
-          form.setValue('cost', cost);
+          form.setValue('cost', treatment.cost);
           if (currentCondition && ['Healthy', 'Caries', 'Filling', 'Crown', 'Missing', 'Fracture', 'Implant', 'Bridge'].includes(currentCondition)) {
             form.setValue('condition', currentCondition as any);
           }
