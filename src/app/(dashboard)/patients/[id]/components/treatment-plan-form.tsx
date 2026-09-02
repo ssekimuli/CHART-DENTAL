@@ -58,7 +58,8 @@ export function TreatmentPlanForm({ treatment, onSave, onOpenChange, toothId, cu
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [systemTreatments, setSystemTreatments] = useState<SystemTreatment[]>([]);
-  
+  const isEditing = !!treatment;
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -145,8 +146,6 @@ export function TreatmentPlanForm({ treatment, onSave, onOpenChange, toothId, cu
       setIsSubmitting(false);
     }
   }
-
-  const isEditing = !!treatment;
 
   return (
     <Dialog open={true} onOpenChange={onOpenChange}>
