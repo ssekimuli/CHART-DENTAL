@@ -3,6 +3,7 @@
 import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import React from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import {
@@ -209,7 +210,6 @@ export function RestorativeRecordForm({
   onSave,
   onUpdate,
 }: RestorativeRecordFormProps) {
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [systemTreatments, setSystemTreatments] = useState<SystemTreatment[]>([]);
   const currencyConfig = getCurrencyConfig();
@@ -227,6 +227,20 @@ export function RestorativeRecordForm({
       fetchTreatments();
     }
   }, [open]);
+
+  // Build combobox options from system treatments if available, otherwise use procedureGroups
+  const buildComboboxOptions = () => {
+    if (systemTreatments.length > 0) {
+      return systemTreatments.map(treatment => ({
+        label: treatment.procedure,
+        value: treatment.procedure,
+        category: treatment.category || 'Other',
+      }));
+    }
+    return comboboxOptions;
+  };
+
+  const memoizedComboboxOptions = React.useMemo(() => buildComboboxOptions(), [systemTreatments]);
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -281,7 +295,7 @@ export function RestorativeRecordForm({
         ...values,
       });
     } else {
-      await onSave(values);
+      onSave(values);
     }
     onOpenChange(false);
   };
@@ -348,7 +362,7 @@ export function RestorativeRecordForm({
                   <FormLabel>Procedure</FormLabel>
                   <FormControl>
                     <Combobox
-                      options={comboboxOptions}
+                      options={memoizedComboboxOptions}
                       value={field.value}
                       onChange={field.onChange}
                       placeholder="Select clinical procedure..."
@@ -431,10 +445,9 @@ export function RestorativeRecordForm({
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
-              <Button type="submit"  disabled={isSubmitting}>
-        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-        Save
-      </Button>
+              <Button type="submit">
+                Save
+              </Button>
             </div>
           </form>
         </Form>
