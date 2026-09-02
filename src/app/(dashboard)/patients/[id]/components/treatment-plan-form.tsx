@@ -167,20 +167,26 @@ export function TreatmentPlanForm({ treatment, onSave, onOpenChange, toothId, cu
                         <FormItem>
                           <FormLabel>Procedure</FormLabel>
                           <FormControl>
-                            <Combobox
-                                options={systemTreatments.map(t => ({ 
-                                    value: t.id, 
-                                    label: `${t.procedure} (${formatCurrency(t.cost)})`,
-                                    category: t.category 
-                                }))}
-                                value={field.value}
-                                onChange={(value) => {
-                                  field.onChange(value);
-                                }}
-                                placeholder="Select a procedure"
-                                searchPlaceholder="Search procedures..."
-                                emptyMessage="No procedure found."
-                            />
+                            {isEditing ? (
+                              <div className="flex items-center h-10 px-3 rounded-md border border-input bg-muted text-muted-foreground">
+                                {systemTreatments.find(t => String(t.id) === String(field.value))?.procedure || 'Unknown procedure'}
+                              </div>
+                            ) : (
+                              <Combobox
+                                  options={systemTreatments.map(t => ({
+                                      value: t.id,
+                                      label: t.procedure,
+                                      category: t.category
+                                  }))}
+                                  value={field.value}
+                                  onChange={(value) => {
+                                    field.onChange(value);
+                                  }}
+                                  placeholder="Select a procedure"
+                                  searchPlaceholder="Search procedures..."
+                                  emptyMessage="No procedure found."
+                              />
+                            )}
                           </FormControl>
                           <FormMessage />
                         </FormItem>
