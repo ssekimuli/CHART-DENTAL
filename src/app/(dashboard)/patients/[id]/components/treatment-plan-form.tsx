@@ -104,7 +104,8 @@ export function TreatmentPlanForm({ treatment, onSave, onOpenChange, toothId, cu
   
   const selectedProcedureId = form.watch("procedureId");
   useEffect(() => {
-    if (selectedProcedureId) {
+    // Only auto-populate cost when creating a new treatment, not when editing
+    if (selectedProcedureId && !isEditing) {
       const matchingTreatment = systemTreatments.find(
         t => String(t.id) === String(selectedProcedureId)
       );
@@ -113,7 +114,7 @@ export function TreatmentPlanForm({ treatment, onSave, onOpenChange, toothId, cu
         form.setValue('procedure', matchingTreatment.procedure);
       }
     }
-  }, [selectedProcedureId, systemTreatments, form])
+  }, [selectedProcedureId, systemTreatments, form, isEditing])
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
     try {
