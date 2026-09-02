@@ -228,80 +228,132 @@ export default function AccountingPage() {
       </div>
         <TabsContent value="overview" className="mt-4">
             <div className="flex flex-col gap-6">
-                <div className="grid gap-4 md:grid-cols-3">
+                {/* Hero: Net Profit Card */}
+                <Card className="border-2 border-emerald-500/50 bg-gradient-to-br from-emerald-50/50 to-transparent dark:from-emerald-950/20">
+                    <CardHeader className="pb-3">
+                        <CardTitle className="text-sm font-medium text-muted-foreground">Net Profit</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        {isLoading || !financialSummary ? (
+                            <Skeleton className="h-12 w-1/2" />
+                        ) : (
+                            <>
+                                <div className={`text-4xl font-bold tracking-tight ${financialSummary.netProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                                    {formatCurrency(financialSummary.netProfit)}
+                                </div>
+                                <p className="text-sm text-muted-foreground mt-2">
+                                    {formatCurrency(financialSummary.totalIncome)} income − {formatCurrency(financialSummary.totalExpenses)} expenses
+                                </p>
+                            </>
+                        )}
+                    </CardContent>
+                </Card>
+
+                {/* Income and Expenses Side by Side */}
+                <div className="grid gap-4 md:grid-cols-2">
                     <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Income</CardTitle>
-                        <TrendingUp className="h-4 w-4 text-green-500" />
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                            <CardTitle className="text-sm font-medium">Total Income</CardTitle>
+                            <TrendingUp className="h-4 w-4 text-emerald-500" />
                         </CardHeader>
                         <CardContent>
-                        {isLoading || !financialSummary ? <Skeleton className="h-8 w-3/4" /> : <div className="text-2xl font-bold">{formatCurrency(financialSummary.totalIncome)}</div>}
-                        <p className="text-xs text-muted-foreground">From paid invoices</p>
+                            {isLoading || !financialSummary ? <Skeleton className="h-8 w-3/4" /> : <div className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">{formatCurrency(financialSummary.totalIncome)}</div>}
+                            <p className="text-xs text-muted-foreground mt-2">From paid invoices</p>
                         </CardContent>
                     </Card>
                     <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
-                        <TrendingDown className="h-4 w-4 text-red-500" />
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                            <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
+                            <TrendingDown className="h-4 w-4 text-red-500" />
                         </CardHeader>
                         <CardContent>
-                        {isLoading || !financialSummary ? <Skeleton className="h-8 w-3/4" /> : <div className="text-2xl font-bold">{formatCurrency(financialSummary.totalExpenses)}</div>}
-                        <p className="text-xs text-muted-foreground">Includes payroll and other costs</p>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Net Profit</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                        {isLoading || !financialSummary ? <Skeleton className="h-8 w-3/4" /> : <div className={`text-2xl font-bold ${financialSummary.netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>{formatCurrency(financialSummary.netProfit)}</div>}
-                        <p className="text-xs text-muted-foreground">Total income minus total expenses</p>
+                            {isLoading || !financialSummary ? <Skeleton className="h-8 w-3/4" /> : <div className="text-3xl font-bold text-red-600 dark:text-red-400">{formatCurrency(financialSummary.totalExpenses)}</div>}
+                            <p className="text-xs text-muted-foreground mt-2">Payroll and operational costs</p>
                         </CardContent>
                     </Card>
                 </div>
 
-                {/* Income by Category Cards */}
-                {financialSummary && financialSummary.incomeByCategory && Object.keys(financialSummary.incomeByCategory).length > 0 && !isLoading && (
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Income by Category</CardTitle>
-                            <CardDescription>Revenue breakdown by income category</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="grid gap-4 md:grid-cols-4">
-                                {Object.entries(financialSummary.incomeByCategory).map(([category, amount]) => (
-                                    <div key={category} className="rounded-lg border bg-muted p-4">
-                                        <p className="text-xs uppercase text-muted-foreground capitalize">
-                                            {category.replace('-', ' ')}
-                                        </p>
-                                        <p className="mt-2 text-lg font-semibold">{formatCurrency(Number(amount))}</p>
-                                    </div>
-                                ))}
-                            </div>
-                        </CardContent>
-                    </Card>
-                )}
+                {/* Income and Expense Breakdown Side by Side */}
+                <div className="grid gap-4 md:grid-cols-2">
+                    {/* Income by Category */}
+                    {financialSummary && financialSummary.incomeByCategory && Object.keys(financialSummary.incomeByCategory).length > 0 && !isLoading && (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="text-base">Income Breakdown</CardTitle>
+                                <CardDescription>By category</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="space-y-3">
+                                    {Object.entries(financialSummary.incomeByCategory).map(([category, amount], idx) => {
+                                        const borderClasses = [
+                                            'border-l-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/20',
+                                            'border-l-blue-500 bg-blue-50/50 dark:bg-blue-950/20',
+                                            'border-l-violet-500 bg-violet-50/50 dark:bg-violet-950/20',
+                                            'border-l-cyan-500 bg-cyan-50/50 dark:bg-cyan-950/20',
+                                            'border-l-teal-500 bg-teal-50/50 dark:bg-teal-950/20',
+                                            'border-l-green-500 bg-green-50/50 dark:bg-green-950/20',
+                                        ];
+                                        const classes = borderClasses[idx % borderClasses.length];
+                                        return (
+                                            <div key={category} className={`flex items-center justify-between p-3 rounded-lg border border-l-4 ${classes}`}>
+                                                <p className="text-sm font-medium capitalize">
+                                                    {category.replace('-', ' ')}
+                                                </p>
+                                                <p className="text-sm font-semibold">{formatCurrency(Number(amount))}</p>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
 
-                 <Card>
+                    {/* Expense by Category */}
+                    {expenseSummary && !isLoading && (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="text-base">Expense Breakdown</CardTitle>
+                                <CardDescription>By category</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="space-y-3">
+                                    <div className="flex items-center justify-between p-3 rounded-lg border border-l-4 border-l-red-500 bg-red-50/50 dark:bg-red-950/20">
+                                        <p className="text-sm font-medium">Payroll</p>
+                                        <p className="text-sm font-semibold">{formatCurrency(expenseSummary.totalPayroll)}</p>
+                                    </div>
+                                    <div className="flex items-center justify-between p-3 rounded-lg border border-l-4 border-l-orange-500 bg-orange-50/50 dark:bg-orange-950/20">
+                                        <p className="text-sm font-medium">Operational</p>
+                                        <p className="text-sm font-semibold">{formatCurrency(expenseSummary.totalOperationalExpenses)}</p>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
+                </div>
+
+                {/* Chart */}
+                <Card>
                     <CardHeader>
-                        <CardTitle>Financial Summary</CardTitle>
-                        <CardDescription>Income vs. Expenses for the last 6 months.</CardDescription>
+                        <CardTitle>Financial Trend</CardTitle>
+                        <CardDescription>6-month income and expense comparison</CardDescription>
                     </CardHeader>
                     <CardContent>
-                    {isLoading || !financialSummary ? <Skeleton className="h-[350px] w-full" /> : (
-                        <ChartContainer config={chartConfig} className="h-[350px] w-full">
-                            <BarChart data={financialSummary.monthlyFinancials}>
-                                <CartesianGrid vertical={false} />
-                                <XAxis dataKey="month" tickLine={false} tickMargin={10} axisLine={false} />
-                                <YAxis />
-                                <ChartTooltip content={<ChartTooltipContent />} />
-                                <Bar dataKey="income" fill="var(--color-income)" radius={4} />
-                                <Bar dataKey="expense" fill="var(--color-expense)" radius={4} />
-                            </BarChart>
-                        </ChartContainer>
-                    )}
+                        {isLoading || !financialSummary ? (
+                            <Skeleton className="h-[400px] w-full" />
+                        ) : (
+                            <ChartContainer config={chartConfig} className="h-[400px] w-full">
+                                <BarChart data={financialSummary.monthlyFinancials}>
+                                    <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                                    <XAxis dataKey="month" tickLine={false} tickMargin={10} axisLine={false} />
+                                    <YAxis />
+                                    <ChartTooltip content={<ChartTooltipContent />} />
+                                    <Bar dataKey="income" fill="var(--color-income)" radius={[8, 8, 0, 0]} />
+                                    <Bar dataKey="expense" fill="var(--color-expense)" radius={[8, 8, 0, 0]} />
+                                </BarChart>
+                            </ChartContainer>
+                        )}
                     </CardContent>
-                 </Card>
+                </Card>
             </div>
         </TabsContent>
         <TabsContent value="income" className="mt-4">
