@@ -1922,30 +1922,20 @@ export const getExpenseSummary = async (filters?: { branchId?: string | number; 
     }
 };
 
-export const getIncomeRecords = async (filters?: { branchId?: string | number; dateFrom?: string; dateTo?: string; search?: string }): Promise<IncomeRecord[]> => {
-    console.log('API CALL: getIncomeRecords', { filters }); 
+export const getIncomeRecords = async (filters?: { branchId?: string | number; dateFrom?: string; dateTo?: string; search?: string }) => {
+    console.log('API CALL: getIncomeRecords', { filters });
     try {
         const params: any = {};
         if (filters?.branchId) params.branch_id = filters.branchId;
         if (filters?.dateFrom) params.date_from = filters.dateFrom;
         if (filters?.dateTo) params.date_to = filters.dateTo;
         if (filters?.search) params.search = filters.search;
-        
+
         const response = await customAxios.get('/income-records', { params });
+        const data = response.data;
 
-        let incomeData = response.data;
-        if (incomeData?.data && Array.isArray(incomeData.data)) {
-            incomeData = incomeData.data;
-        }
-        if (incomeData?.records && Array.isArray(incomeData.records)) {
-            incomeData = incomeData.records;
-        }
-        if (!Array.isArray(incomeData)) {
-            console.error('Unexpected response format:', incomeData);
-            return [];
-        }
-
-        return incomeData.map((item: any) => ({
+        // Map the records to IncomeRecord format
+        const records = (data.records || []).map((item: any) => ({
             id: item.id,
             branchId: item.branch_id || item.branchId || item.branch?.id,
             date: item.issue_date ? String(item.issue_date).split('T')[0] : item.date || item.invoice_date || '',
@@ -1953,10 +1943,25 @@ export const getIncomeRecords = async (filters?: { branchId?: string | number; d
             amount: Number(item.paid_amount || item.amount || item.total) || 0,
             status: item.status || item.payment_status || 'Paid',
             invoiceNumber: item.invoice_number || item.invoiceNo || item.number || '',
+            category: item.category || 'other',
         }));
+
+        return {
+            branch: data.branch,
+            total: data.total,
+            summary: data.summary || {},
+            by_category: data.by_category || {},
+            records,
+        };
     } catch (error) {
         console.error('Error fetching income records:', error);
-        return [];
+        return {
+            branch: null,
+            total: '0.00',
+            summary: {},
+            by_category: {},
+            records: [],
+        };
     }
 };
 

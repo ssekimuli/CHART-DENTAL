@@ -16,7 +16,6 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
-  ResponsiveContainer,
   XAxis,
   YAxis,
 } from "recharts";
@@ -24,7 +23,7 @@ import { ChartTooltip, ChartTooltipContent, ChartContainer } from "@/components/
 
 import { useBranch } from "@/context/branch-context";
 import { getIncomeRecords, getExpenseSummary, createExpense, updateExpense, deleteExpense, getFinancialSummary } from "@/lib/api";
-import type { IncomeRecord, Expense, ExpenseSummary, FinancialSummary } from "@/lib/types";
+import type { IncomeRecord, Expense, ExpenseSummary, FinancialSummary, IncomeRecordsResponse } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -47,7 +46,7 @@ export default function AccountingPage() {
     const { selectedBranch } = useBranch();
     const { formatCurrency } = useCurrency();
     const { toast } = useToast();
-    const [incomeRecords, setIncomeRecords] = useState<IncomeRecord[]>([]);
+    const [incomeResponse, setIncomeResponse] = useState<IncomeRecordsResponse | null>(null);
     const [expenseSummary, setExpenseSummary] = useState<ExpenseSummary | null>(null);
     const [financialSummary, setFinancialSummary] = useState<FinancialSummary | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -74,7 +73,7 @@ export default function AccountingPage() {
             getExpenseSummary(filters),
             getFinancialSummary(filters),
           ]);
-          setIncomeRecords(incomeRecordsData);
+          setIncomeResponse(incomeRecordsData);
           setExpenseSummary(expenseSummaryData);
           setFinancialSummary(summaryData);
           setIsLoading(false);
@@ -83,8 +82,8 @@ export default function AccountingPage() {
       }, [selectedBranch, dateRange, router]);
 
     const paidIncomeRecords = useMemo(() => {
-        return incomeRecords.filter(record => record.status === 'Paid');
-    }, [incomeRecords]);
+        return incomeResponse?.records?.filter((record: IncomeRecord) => record.status === 'Paid') || [];
+    }, [incomeResponse]);
 
 
       const handleSaveExpense = async (data: Omit<Expense, 'id'>) => {
@@ -283,45 +282,81 @@ export default function AccountingPage() {
             </div>
         </TabsContent>
         <TabsContent value="income" className="mt-4">
-             <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
-                    <div>
-                        <CardTitle>Income Records</CardTitle>
-                        <CardDescription>All paid invoices for the selected branch.</CardDescription>
+            <div className="flex flex-col gap-6">
+                {/* Category Summary Cards */}
+                {incomeResponse && Object.keys(incomeResponse.summary).length > 0 && !isLoading && (
+                    <div className="grid gap-4 md:grid-cols-4">
+                        {Object.entries(incomeResponse.summary).map(([category, data]: [string, any]) => (
+                            <Card key={category}>
+                                <CardHeader className="pb-3">
+                                    <CardTitle className="text-sm font-medium capitalize">
+                                        {category.replace('-', ' ')}
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-2xl font-bold">{formatCurrency(data.total)}</div>
+                                    <p className="text-xs text-muted-foreground">{data.count} invoice{data.count !== 1 ? 's' : ''}</p>
+                                </CardContent>
+                            </Card>
+                        ))}
                     </div>
-                    <Button variant="outline" onClick={() => downloadCSV(paidIncomeRecords, 'income_records.csv')}>
-                        <Download className="mr-2 h-4 w-4"/>
-                        Export CSV
-                    </Button>
-                </CardHeader>
-                <CardContent>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Invoice ID</TableHead>
-                                <TableHead>Patient</TableHead>
-                                <TableHead>Issue Date</TableHead>
-                                <TableHead className="text-right">Amount</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {isLoading ? (
-                                <TableRow><TableCell colSpan={4}><Skeleton className="h-24 w-full"/></TableCell></TableRow>
-                            ) : paidIncomeRecords.map(record => (
-                                <TableRow key={record.id}>
-                                    <TableCell className="font-mono">{record.id}</TableCell>
-                                    <TableCell>{record.patientName}</TableCell>
-                                    <TableCell>{record.date}</TableCell>
-                                    <TableCell className="text-right">{formatCurrency(record.amount)}</TableCell>
+                )}
+
+                {/* Total Income Card */}
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between">
+                        <div>
+                            <CardTitle>Total Income by Category</CardTitle>
+                            <CardDescription>{incomeResponse?.total ? formatCurrency(parseFloat(incomeResponse.total)) : 'No data'}</CardDescription>
+                        </div>
+                    </CardHeader>
+                </Card>
+
+                {/* Income Records Table */}
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between">
+                        <div>
+                            <CardTitle>Income Records</CardTitle>
+                            <CardDescription>All paid invoices for the selected branch.</CardDescription>
+                        </div>
+                        <Button variant="outline" onClick={() => downloadCSV(paidIncomeRecords, 'income_records.csv')}>
+                            <Download className="mr-2 h-4 w-4"/>
+                            Export CSV
+                        </Button>
+                    </CardHeader>
+                    <CardContent>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Invoice ID</TableHead>
+                                    <TableHead>Patient</TableHead>
+                                    <TableHead>Category</TableHead>
+                                    <TableHead>Issue Date</TableHead>
+                                    <TableHead className="text-right">Amount</TableHead>
                                 </TableRow>
-                            ))}
-                             {paidIncomeRecords.length === 0 && !isLoading && (
-                                <TableRow><TableCell colSpan={4} className="text-center h-24">No income records found.</TableCell></TableRow>
-                            )}
-                        </TableBody>
-                    </Table>
-                </CardContent>
-             </Card>
+                            </TableHeader>
+                            <TableBody>
+                                {isLoading ? (
+                                    <TableRow><TableCell colSpan={5}><Skeleton className="h-24 w-full"/></TableCell></TableRow>
+                                ) : paidIncomeRecords.map((record: IncomeRecord) => (
+                                    <TableRow key={record.id}>
+                                        <TableCell className="font-mono">{record.id}</TableCell>
+                                        <TableCell>{record.patientName}</TableCell>
+                                        <TableCell>
+                                            <span className="capitalize">{(record.category || 'other').replace('-', ' ')}</span>
+                                        </TableCell>
+                                        <TableCell>{record.date}</TableCell>
+                                        <TableCell className="text-right">{formatCurrency(record.amount)}</TableCell>
+                                    </TableRow>
+                                ))}
+                                {paidIncomeRecords.length === 0 && !isLoading && (
+                                    <TableRow><TableCell colSpan={5} className="text-center h-24">No income records found.</TableCell></TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </CardContent>
+                </Card>
+            </div>
         </TabsContent>
          <TabsContent value="expenses" className="mt-4">
             <Card>

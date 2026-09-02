@@ -290,6 +290,24 @@ export type IncomeRecord = {
   amount: number;
   status: 'Paid' | 'Pending' | 'Overdue';
   invoiceNumber: string;
+  category?: string;
+};
+
+export type IncomeCategorySummary = {
+  count: number;
+  total: number;
+};
+
+export type IncomeRecordsResponse = {
+  branch?: { id: string | number; name: string } | null;
+  total: string;
+  summary: Record<string, IncomeCategorySummary>;
+  by_category: Record<string, {
+    records: any[];
+    count: number;
+    total: string;
+  }>;
+  records: IncomeRecord[];
 };
 
 export type AttendanceStatus = 'Present' | 'Absent' | 'On Leave';
