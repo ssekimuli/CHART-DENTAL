@@ -35,6 +35,7 @@ import { Combobox } from "@/components/ui/combobox";
 import type { RestorativeRecord, SystemTreatment } from "@/lib/types";
 import { getTreatments } from "@/lib/api";
 import { getCurrencyConfig } from "@/lib/currency";
+import { useCurrency } from "@/hooks/use-currency";
 
 const formSchema = z.object({
   toothId: z.number().min(1, "Tooth ID is required").max(48, "Invalid tooth ID"),
@@ -210,6 +211,7 @@ export function RestorativeRecordForm({
   onSave,
   onUpdate,
 }: RestorativeRecordFormProps) {
+  const { formatCurrency } = useCurrency();
 
   const [systemTreatments, setSystemTreatments] = useState<SystemTreatment[]>([]);
   const currencyConfig = getCurrencyConfig();
@@ -232,7 +234,7 @@ export function RestorativeRecordForm({
   const buildComboboxOptions = () => {
     if (systemTreatments.length > 0) {
       return systemTreatments.map(treatment => ({
-        label: treatment.procedure,
+        label: `${treatment.procedure} (${formatCurrency(treatment.cost)})`,
         value: treatment.procedure,
         category: treatment.category || 'Other',
       }));
@@ -240,7 +242,7 @@ export function RestorativeRecordForm({
     return comboboxOptions;
   };
 
-  const memoizedComboboxOptions = React.useMemo(() => buildComboboxOptions(), [systemTreatments]);
+  const memoizedComboboxOptions = React.useMemo(() => buildComboboxOptions(), [systemTreatments, formatCurrency]);
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
