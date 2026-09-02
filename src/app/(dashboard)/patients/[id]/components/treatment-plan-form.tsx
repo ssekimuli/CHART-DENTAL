@@ -35,7 +35,6 @@ import {
 import type { Treatment, DentalCondition, SystemTreatment } from "@/lib/types";
 import { Combobox } from "@/components/ui/combobox";
 import { getTreatments } from "@/lib/api";
-import { useCurrency } from "@/hooks/use-currency";
 
 const formSchema = z.object({
   procedureId: z.preprocess((value) => String(value), z.string().min(1, "Procedure is required.")),
@@ -59,7 +58,6 @@ export function TreatmentPlanForm({ treatment, onSave, onOpenChange, toothId, cu
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [systemTreatments, setSystemTreatments] = useState<SystemTreatment[]>([]);
-  const { formatCurrency } = useCurrency();
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -86,18 +84,23 @@ export function TreatmentPlanForm({ treatment, onSave, onOpenChange, toothId, cu
   useEffect(() => {
       if (treatment && systemTreatments.length > 0) {
           let pId = treatment.procedureId;
+          let cost = treatment.cost;
           if (!pId) {
               const matched = systemTreatments.find(st => st.procedure === treatment.procedure);
               if (matched) {
                   pId = String(matched.id);
                   form.setValue('procedureId', pId);
+                  // Use system treatment cost if treatment cost is not set or is 0
+                  if (!cost || cost === 0) {
+                    cost = matched.cost;
+                  }
               }
           }
           // Set other values to ensure form is fully populated
           form.setValue('procedure', treatment.procedure);
           form.setValue('status', treatment.status);
           if (treatment.tooth) form.setValue('tooth', treatment.tooth);
-          form.setValue('cost', treatment.cost);
+          form.setValue('cost', cost);
           if (currentCondition && ['Healthy', 'Caries', 'Filling', 'Crown', 'Missing', 'Fracture', 'Implant', 'Bridge'].includes(currentCondition)) {
             form.setValue('condition', currentCondition as any);
           }
@@ -163,34 +166,37 @@ export function TreatmentPlanForm({ treatment, onSave, onOpenChange, toothId, cu
                     <FormField
                       control={form.control}
                       name="procedureId"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Procedure</FormLabel>
-                          <FormControl>
-                            {isEditing ? (
-                              <div className="flex items-center h-10 px-3 rounded-md border border-input bg-muted text-muted-foreground">
-                                {systemTreatments.find(t => String(t.id) === String(field.value))?.procedure || 'Unknown procedure'}
-                              </div>
-                            ) : (
-                              <Combobox
-                                  options={systemTreatments.map(t => ({
-                                      value: t.id,
-                                      label: t.procedure,
-                                      category: t.category
-                                  }))}
-                                  value={field.value}
-                                  onChange={(value) => {
-                                    field.onChange(value);
-                                  }}
-                                  placeholder="Select a procedure"
-                                  searchPlaceholder="Search procedures..."
-                                  emptyMessage="No procedure found."
-                              />
-                            )}
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
+                      render={({ field }) => {
+                        const procedureName = isEditing ? treatment?.procedure : systemTreatments.find(t => String(t.id) === String(field.value))?.procedure;
+                        return (
+                          <FormItem>
+                            <FormLabel>Procedure</FormLabel>
+                            <FormControl>
+                              {isEditing ? (
+                                <div className="flex items-center h-10 px-3 rounded-md border border-input bg-muted text-muted-foreground">
+                                  {procedureName || 'Unknown procedure'}
+                                </div>
+                              ) : (
+                                <Combobox
+                                    options={systemTreatments.map(t => ({
+                                        value: t.id,
+                                        label: t.procedure,
+                                        category: t.category
+                                    }))}
+                                    value={field.value}
+                                    onChange={(value) => {
+                                      field.onChange(value);
+                                    }}
+                                    placeholder="Select a procedure"
+                                    searchPlaceholder="Search procedures..."
+                                    emptyMessage="No procedure found."
+                                />
+                              )}
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        );
+                      }}
                     />
                     {!isEditing && toothId && (
                        <FormField
