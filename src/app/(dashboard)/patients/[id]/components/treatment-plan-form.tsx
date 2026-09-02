@@ -105,8 +105,8 @@ export function TreatmentPlanForm({ treatment, onSave, onOpenChange, toothId, cu
   
   const selectedProcedureId = form.watch("procedureId");
   useEffect(() => {
-    // Only auto-populate cost when creating a new treatment, not when editing
-    if (selectedProcedureId && !isEditing) {
+    // Auto-populate cost and procedure when procedure ID changes
+    if (selectedProcedureId) {
       const matchingTreatment = systemTreatments.find(
         t => String(t.id) === String(selectedProcedureId)
       );
@@ -115,7 +115,7 @@ export function TreatmentPlanForm({ treatment, onSave, onOpenChange, toothId, cu
         form.setValue('procedure', matchingTreatment.procedure);
       }
     }
-  }, [selectedProcedureId, systemTreatments, form, isEditing])
+  }, [selectedProcedureId, systemTreatments, form])
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
     try {
@@ -161,37 +161,28 @@ export function TreatmentPlanForm({ treatment, onSave, onOpenChange, toothId, cu
                     <FormField
                       control={form.control}
                       name="procedureId"
-                      render={({ field }) => {
-                        const procedureName = isEditing ? treatment?.procedure : systemTreatments.find(t => String(t.id) === String(field.value))?.procedure;
-                        return (
-                          <FormItem>
-                            <FormLabel>Procedure</FormLabel>
-                            <FormControl>
-                              {isEditing ? (
-                                <div className="flex items-center h-10 px-3 rounded-md border border-input bg-muted text-muted-foreground">
-                                  {procedureName || 'Unknown procedure'}
-                                </div>
-                              ) : (
-                                <Combobox
-                                    options={systemTreatments.map(t => ({
-                                        value: t.id,
-                                        label: t.procedure,
-                                        category: t.category
-                                    }))}
-                                    value={field.value}
-                                    onChange={(value) => {
-                                      field.onChange(value);
-                                    }}
-                                    placeholder="Select a procedure"
-                                    searchPlaceholder="Search procedures..."
-                                    emptyMessage="No procedure found."
-                                />
-                              )}
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        );
-                      }}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Procedure</FormLabel>
+                          <FormControl>
+                            <Combobox
+                                options={systemTreatments.map(t => ({
+                                    value: t.id,
+                                    label: t.procedure,
+                                    category: t.category
+                                }))}
+                                value={field.value}
+                                onChange={(value) => {
+                                  field.onChange(value);
+                                }}
+                                placeholder="Select a procedure"
+                                searchPlaceholder="Search procedures..."
+                                emptyMessage="No procedure found."
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
                     />
                     {!isEditing && toothId && (
                        <FormField
