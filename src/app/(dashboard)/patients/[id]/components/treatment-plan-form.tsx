@@ -58,6 +58,7 @@ export function TreatmentPlanForm({ treatment, onSave, onOpenChange, toothId, cu
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [systemTreatments, setSystemTreatments] = useState<SystemTreatment[]>([]);
+  const [initialProcedureId, setInitialProcedureId] = useState<string>("");
   const isEditing = !!treatment;
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -92,6 +93,7 @@ export function TreatmentPlanForm({ treatment, onSave, onOpenChange, toothId, cu
                   form.setValue('procedureId', pId);
               }
           }
+          setInitialProcedureId(pId);
           // Set other values to ensure form is fully populated
           form.setValue('procedure', treatment.procedure);
           form.setValue('status', treatment.status);
@@ -105,8 +107,14 @@ export function TreatmentPlanForm({ treatment, onSave, onOpenChange, toothId, cu
   
   const selectedProcedureId = form.watch("procedureId");
   useEffect(() => {
-    // Auto-populate cost and procedure when procedure ID changes
-    if (selectedProcedureId) {
+    // Auto-populate cost and procedure only when procedure ID is changed by user (not on initial load)
+    // For new treatments (!isEditing), auto-populate on any change
+    // For editing treatments, only auto-populate if procedure was changed from initial value
+    const procedureHasChanged = selectedProcedureId && (
+      !isEditing || (initialProcedureId && String(selectedProcedureId) !== String(initialProcedureId))
+    );
+
+    if (procedureHasChanged) {
       const matchingTreatment = systemTreatments.find(
         t => String(t.id) === String(selectedProcedureId)
       );
@@ -115,7 +123,7 @@ export function TreatmentPlanForm({ treatment, onSave, onOpenChange, toothId, cu
         form.setValue('procedure', matchingTreatment.procedure);
       }
     }
-  }, [selectedProcedureId, systemTreatments, form])
+  }, [selectedProcedureId, systemTreatments, form, isEditing, initialProcedureId])
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
     try {
