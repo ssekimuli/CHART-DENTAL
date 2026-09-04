@@ -210,6 +210,7 @@ export type Invoice = {
   issueDate: string;
   dueDate: string;
   branchId: string | number;
+  category?: string;
   treatments: InvoiceTreatment[];
   otherCharges?: OtherCharge[];
   paymentMethod?: PaymentMethod;
