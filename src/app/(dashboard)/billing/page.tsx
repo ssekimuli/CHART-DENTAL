@@ -173,6 +173,9 @@ export default function BillingPage() {
   // Get unique categories from invoices
   const categories = useMemo(() => {
     const uniqueCategories = new Set<string>();
+    // Add Lab Income as a default category
+    uniqueCategories.add('Lab Income');
+
     allInvoices.forEach(invoice => {
       if (invoice.category) {
         uniqueCategories.add(invoice.category);
@@ -564,11 +567,14 @@ export default function BillingPage() {
                     <TabsTrigger value="all">
                       All ({allInvoices.length})
                     </TabsTrigger>
-                    {categories.map(category => (
-                      <TabsTrigger key={category} value={category}>
-                        {category} ({allInvoices.filter(inv => inv.category === category).length})
-                      </TabsTrigger>
-                    ))}
+                    {categories.map(category => {
+                      const categoryCount = allInvoices.filter(inv => inv.category === category).length;
+                      return (
+                        <TabsTrigger key={category} value={category} disabled={categoryCount === 0}>
+                          {category} ({categoryCount})
+                        </TabsTrigger>
+                      );
+                    })}
                   </TabsList>
                 </Tabs>
               </div>
