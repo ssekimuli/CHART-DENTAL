@@ -170,18 +170,20 @@ export default function BillingPage() {
     return allPatients.filter(p => p.branchId === getCurrentUser()?.branchId);
   }, [selectedBranch, allPatients]);
 
-  // Get unique categories from invoices
-  const categories = useMemo(() => {
-    const uniqueCategories = new Set<string>();
-    // Add Lab Income as a default category
-    uniqueCategories.add('Lab Income');
+  // Predefined invoice categories (matching backend)
+  const INVOICE_CATEGORIES = ['lab-income', 'pharmacy-income', 'procedure-income', 'other'] as const;
 
-    allInvoices.forEach(invoice => {
-      if (invoice.category) {
-        uniqueCategories.add(invoice.category);
-      }
+  // Get category display names and counts
+  const categories = useMemo(() => {
+    return INVOICE_CATEGORIES.map(category => {
+      const count = allInvoices.filter(inv => {
+        if (category === 'other') {
+          return !inv.category || inv.category === '' || inv.category === 'other';
+        }
+        return inv.category === category;
+      }).length;
+      return { key: category, count };
     });
-    return Array.from(uniqueCategories).sort();
   }, [allInvoices]);
 
   // Filter invoices by selected category
@@ -189,8 +191,19 @@ export default function BillingPage() {
     if (!selectedCategory) {
       return allInvoices;
     }
+    if (selectedCategory === 'other') {
+      return allInvoices.filter(invoice => !invoice.category || invoice.category === '' || invoice.category === 'other');
+    }
     return allInvoices.filter(invoice => invoice.category === selectedCategory);
   }, [allInvoices, selectedCategory]);
+
+  // Format category name for display
+  const formatCategoryName = (category: string) => {
+    return category
+      .split('-')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
 
   const totalPages = allInvoices.meta?.last_page || 1;
 
@@ -567,14 +580,11 @@ export default function BillingPage() {
                     <TabsTrigger value="all">
                       All ({allInvoices.length})
                     </TabsTrigger>
-                    {categories.map(category => {
-                      const categoryCount = allInvoices.filter(inv => inv.category === category).length;
-                      return (
-                        <TabsTrigger key={category} value={category} disabled={categoryCount === 0}>
-                          {category} ({categoryCount})
-                        </TabsTrigger>
-                      );
-                    })}
+                    {categories.map(cat => (
+                      <TabsTrigger key={cat.key} value={cat.key}>
+                        {formatCategoryName(cat.key)} ({cat.count})
+                      </TabsTrigger>
+                    ))}
                   </TabsList>
                 </Tabs>
               </div>
