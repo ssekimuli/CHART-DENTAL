@@ -18,7 +18,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { Business, RolePermissions, Permission, EmployeeRole, SystemTreatment } from "@/lib/types";
-import { getRoles, updateRole, updateBranch, getProfileData, updateEmployee, getTreatments, getCurrencies, getBusinesses, addBusiness } from "@/lib/api";
+import { getRoles, updateRole, updateBranch, getProfileData, updateEmployee, getTreatments, getCurrencies, getBusinesses, addBusiness, clearRolesCache } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -257,7 +257,8 @@ export default function SettingsPage() {
 
     const handleRefreshRoles = async () => {
         try {
-            const rolesData = await getRoles();
+            clearRolesCache();
+            const rolesData = await getRoles(true);
             setRoles(rolesData);
             if (selectedRole) {
                 const updated = rolesData.find(r => r.id === selectedRole.id);

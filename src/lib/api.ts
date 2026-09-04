@@ -1559,9 +1559,9 @@ export const getStaffAdvances = async (filters?: number | string | GetStaffAdvan
 }
 
 
-export const getRoles = async (): Promise<RolePermissions[]> => {
-    if (rolesCache) return rolesCache;
-    console.log('API CALL: getRoles');
+export const getRoles = async (forceRefresh = false): Promise<RolePermissions[]> => {
+    if (rolesCache && !forceRefresh) return rolesCache;
+    console.log('API CALL: getRoles', { forceRefresh });
     try {
         const response = await customAxios.get('/settings/roles');
         rolesCache = response.data.data;
@@ -1575,6 +1575,11 @@ export const getRoles = async (): Promise<RolePermissions[]> => {
         // Fallback to mock data on error
         return JSON.parse(JSON.stringify(mockRoles));
     }
+}
+
+export const clearRolesCache = () => {
+    rolesCache = null;
+    rolesListCache = null;
 }
 
 export const getRolesList = async (): Promise<{id: string, name: string}[]> => {
