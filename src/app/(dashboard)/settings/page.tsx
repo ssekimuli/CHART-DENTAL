@@ -18,7 +18,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { Business, RolePermissions, Permission, EmployeeRole, SystemTreatment } from "@/lib/types";
-import { getRoles, updateRole, updateBranch, getProfileData, updateEmployee, getTreatments, getCurrencies, getBusinesses, addBusiness } from "@/lib/api";
+import { getRoles, updateRole, updateBranch, getProfileData, updateEmployee, getTreatments, getCurrencies, getBusinesses, addBusiness, clearRolesCache } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -38,11 +38,12 @@ const permissionGroups = {
     Queue: ['queue:read'],
     Patients: ['patients:read', 'patients:create', 'patients:update', 'patients:delete'],
     Charting: ['charting:read', 'charting:update'],
+    Periodontal: ['periodontal:read', 'periodontal:update'],
     Appointments: ['appointments:read', 'appointments:create', 'appointments:update', 'appointments:delete'],
     Billing: ['billing:read', 'billing:create', 'billing:update', 'billing:delete'],
     Accounting: ['accounting:read', 'accounting:create'],
     Inventory: ['inventory:read', 'inventory:create', 'inventory:update'],
-    Laboratory: ['laboratory:read', 'laboratory:create', 'laboratory:update'],
+    Laboratory: ['laboratory:read', 'laboratory:create', 'laboratory:update', 'laboratory:delete'],
     HRM: ['hrm:read', 'hrm:create', 'hrm:update', 'hrm:delete'],
     Branches: ['branches:read', 'branches:create'],
     Reports: ['reports:read'],
@@ -233,14 +234,48 @@ export default function SettingsPage() {
 
     const handleSaveChanges = async () => {
         if (selectedRole) {
-            const updated = await updateRole(selectedRole.id, selectedRole.permissions);
-            if (updated) {
-                setRoles(roles.map(r => r.id === updated.id ? updated : r));
+            try {
+                const updated = await updateRole(selectedRole.id, selectedRole.permissions);
+                if (updated) {
+                    setRoles(roles.map(r => r.id === updated.id ? updated : r));
+                    setSelectedRole(updated);
+                    toast({
+                        title: 'Permissions Updated',
+                        description: `Permissions for ${selectedRole.name} have been saved successfully.`,
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to update role:', error);
                 toast({
-                    title: 'Permissions Updated',
-                    description: `Permissions for ${selectedRole.name} have been saved.`,
+                    title: 'Update Failed',
+                    description: 'Failed to save permissions. Please try again.',
+                    variant: 'destructive',
                 });
             }
+        }
+    }
+
+    const handleRefreshRoles = async () => {
+        try {
+            clearRolesCache();
+            const rolesData = await getRoles(true);
+            setRoles(rolesData);
+            if (selectedRole) {
+                const updated = rolesData.find(r => r.id === selectedRole.id);
+                if (updated) {
+                    setSelectedRole(updated);
+                }
+            }
+            toast({
+                title: 'Refreshed',
+                description: 'Roles and permissions have been refreshed from the server.',
+            });
+        } catch (error) {
+            toast({
+                title: 'Refresh Failed',
+                description: 'Failed to refresh roles.',
+                variant: 'destructive',
+            });
         }
     }
 
@@ -450,7 +485,10 @@ export default function SettingsPage() {
                  )}
             </div>
           </CardContent>
-          <CardFooter className="justify-end">
+          <CardFooter className="justify-between">
+            <Button variant="outline" onClick={handleRefreshRoles} disabled={isLoading}>
+              Refresh Roles
+            </Button>
             <Button onClick={handleSaveChanges} disabled={isLoading || !selectedRole}>Save Changes</Button>
           </CardFooter>
         </Card>

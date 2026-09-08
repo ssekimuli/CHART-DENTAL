@@ -45,6 +45,7 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
   } from "@/components/ui/alert-dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { createNewInvoice, deleteInvoice, getInvoices, getPatientList, processPayment, updateInvoice, updatePatient, getInvoiceById } from "@/lib/api";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -109,6 +110,7 @@ export default function BillingPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [pageInput, setPageInput] = useState("1");
+  const [selectedCategory, setSelectedCategory] = useState<string | undefined>(undefined);
 
   // Memoize date range to prevent unnecessary re-renders
   const dateRangeString = useMemo(() => {
@@ -168,11 +170,44 @@ export default function BillingPage() {
     return allPatients.filter(p => p.branchId === getCurrentUser()?.branchId);
   }, [selectedBranch, allPatients]);
 
-  const filteredInvoices = allInvoices;
-  
+  // Predefined invoice categories (matching backend)
+  const INVOICE_CATEGORIES = ['lab-income', 'pharmacy-income', 'procedure-income', 'other'] as const;
+
+  // Get category display names and counts
+  const categories = useMemo(() => {
+    return INVOICE_CATEGORIES.map(category => {
+      const count = allInvoices.filter(inv => {
+        if (category === 'other') {
+          return !inv.category || inv.category === '' || inv.category === 'other';
+        }
+        return inv.category === category;
+      }).length;
+      return { key: category, count };
+    });
+  }, [allInvoices]);
+
+  // Filter invoices by selected category
+  const filteredInvoices = useMemo(() => {
+    if (!selectedCategory) {
+      return allInvoices;
+    }
+    if (selectedCategory === 'other') {
+      return allInvoices.filter(invoice => !invoice.category || invoice.category === '' || invoice.category === 'other');
+    }
+    return allInvoices.filter(invoice => invoice.category === selectedCategory);
+  }, [allInvoices, selectedCategory]);
+
+  // Format category name for display
+  const formatCategoryName = (category: string) => {
+    return category
+      .split('-')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
+
   const totalPages = allInvoices.meta?.last_page || 1;
-  
-  const paginatedInvoices = allInvoices;
+
+  const paginatedInvoices = filteredInvoices;
 
   useEffect(() => {
     setCurrentPage(1);
@@ -534,7 +569,27 @@ export default function BillingPage() {
               <Skeleton className="h-12 w-full" />
             </div>
           ) : (
-          <Table>
+          <>
+            {categories.length > 0 && (
+              <div className="mb-6">
+                <Tabs value={selectedCategory || "all"} onValueChange={(value) => {
+                  setSelectedCategory(value === "all" ? undefined : value);
+                  setCurrentPage(1);
+                }} className="w-full">
+                  <TabsList className="grid w-full gap-2" style={{gridTemplateColumns: `repeat(auto-fit, minmax(150px, 1fr))`}}>
+                    <TabsTrigger value="all">
+                      All ({allInvoices.length})
+                    </TabsTrigger>
+                    {categories.map(cat => (
+                      <TabsTrigger key={cat.key} value={cat.key}>
+                        {formatCategoryName(cat.key)} ({cat.count})
+                      </TabsTrigger>
+                    ))}
+                  </TabsList>
+                </Tabs>
+              </div>
+            )}
+            <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Invoice ID</TableHead>
@@ -795,7 +850,8 @@ export default function BillingPage() {
                  </TableRow>
               )}
             </TableBody>
-          </Table>
+            </Table>
+            </>
           )}
         </CardContent>
          <CardFooter className="flex items-center justify-between">

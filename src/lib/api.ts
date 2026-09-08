@@ -1179,16 +1179,21 @@ export const getLabOrders = async (
             id: order.id,
             clientId: String(order.client_id),
             client: order.client,
-            patientName: order.patient_name || '',
-            lab: order.lab,
             item: order.item,
             tooth: order.tooth,
             status: order.status,
             sentDate: order.sent_date ? order.sent_date.split('T')[0] : '',
             dueDate: order.due_date ? order.due_date.split('T')[0] : '',
+            receivedDate: order.received_date ? order.received_date.split('T')[0] : undefined,
             branchId: String(order.branch_id),
-            doctor: order.doctor,
-            cost: order.cost,
+            doctorName: order.doctor_name || '',
+            invoiceId: order.invoice_id,
+            shade: order.shade,
+            material: order.material,
+            instructions: order.instructions,
+            invoiceNumber: order.invoice_number,
+            lab_service_id: order.lab_service_id,
+            applied_price: order.applied_price,
         }));
 
         if (response.data && response.data.meta) {
@@ -1554,9 +1559,9 @@ export const getStaffAdvances = async (filters?: number | string | GetStaffAdvan
 }
 
 
-export const getRoles = async (): Promise<RolePermissions[]> => {
-    if (rolesCache) return rolesCache;
-    console.log('API CALL: getRoles');
+export const getRoles = async (forceRefresh = false): Promise<RolePermissions[]> => {
+    if (rolesCache && !forceRefresh) return rolesCache;
+    console.log('API CALL: getRoles', { forceRefresh });
     try {
         const response = await customAxios.get('/settings/roles');
         rolesCache = response.data.data;
@@ -1570,6 +1575,11 @@ export const getRoles = async (): Promise<RolePermissions[]> => {
         // Fallback to mock data on error
         return JSON.parse(JSON.stringify(mockRoles));
     }
+}
+
+export const clearRolesCache = () => {
+    rolesCache = null;
+    rolesListCache = null;
 }
 
 export const getRolesList = async (): Promise<{id: string, name: string}[]> => {
