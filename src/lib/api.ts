@@ -3120,7 +3120,7 @@ export const deleteEndodonticRecord = async (
 
 export const saveRestorativeRecord = async (
     patientId: string | number,
-    record: Omit<RestorativeRecord, 'id' | 'createdAt' | 'updatedAt'> & { procedureCost?: number, materialCost?: number, otherCharges?: number }
+    record: Omit<RestorativeRecord, 'id' | 'createdAt' | 'updatedAt'> & { procedureCost?: number, materialCost?: number, otherCharges?: number, perMaterialCosts?: Record<string, number> }
 ): Promise<Patient | undefined> => {
     try {
         console.log('API CALL: saveRestorativeRecord', { patientId, record });
@@ -3131,26 +3131,34 @@ export const saveRestorativeRecord = async (
             : [record.material];
 
         if (materials.length > 1) {
-            // Fetch system treatments to look up the correct cost per material
-            let systemTreatmentList: Array<{ procedure: string; cost: number | string }> = [];
-            try {
-                const res = await customAxios.get('/treatments');
-                systemTreatmentList = res.data.data || res.data || [];
-            } catch {
-                // Ignore — will fall back to even split
-            }
-
-            // Build batch records, using each material's individual system cost where available
             const totalProcedureCost = record.procedureCost || 0;
             const evenSplit = materials.length > 0 ? totalProcedureCost / materials.length : 0;
 
+            // Use perMaterialCosts passed directly from the form (preferred — no re-fetch needed)
+            // Only fall back to fetching /treatments if perMaterialCosts wasn't provided
+            let systemTreatmentList: Array<{ procedure: string; cost: number | string }> = [];
+            if (!record.perMaterialCosts) {
+                try {
+                    const res = await customAxios.get('/treatments');
+                    systemTreatmentList = res.data.data || res.data || [];
+                } catch {
+                    // Ignore — will fall back to even split
+                }
+            }
+
             const records = materials.map(mat => {
-                const match = systemTreatmentList.find(
-                    t => t.procedure.toLowerCase() === mat.toLowerCase()
-                );
-                const procedureCost = match
-                    ? parseFloat(Number(match.cost).toFixed(2))
-                    : parseFloat(evenSplit.toFixed(2));
+                let procedureCost: number;
+                if (record.perMaterialCosts && record.perMaterialCosts[mat] !== undefined) {
+                    // ✅ Use exact cost from the form's already-loaded system treatments
+                    procedureCost = parseFloat(record.perMaterialCosts[mat].toFixed(2));
+                } else {
+                    const match = systemTreatmentList.find(
+                        t => t.procedure.toLowerCase() === mat.toLowerCase()
+                    );
+                    procedureCost = match
+                        ? parseFloat(Number(match.cost).toFixed(2))
+                        : parseFloat(evenSplit.toFixed(2));
+                }
 
                 return {
                     tooth_id: record.toothId,

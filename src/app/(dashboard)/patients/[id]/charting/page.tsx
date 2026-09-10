@@ -321,7 +321,7 @@ export default function PatientChartingPage({
     }
   }
 
-  const handleSaveRestorativeRecord = async (record: Omit<RestorativeRecord, 'id' | 'createdAt' | 'updatedAt'> & { procedureCost?: number, materialCost?: number, otherCharges?: number }) => {
+  const handleSaveRestorativeRecord = async (record: Omit<RestorativeRecord, 'id' | 'createdAt' | 'updatedAt'> & { procedureCost?: number, materialCost?: number, otherCharges?: number, perMaterialCosts?: Record<string, number> }) => {
     if (!patient) return;
     const updatedPatient = await saveRestorativeRecord(patient.id, record);
     if (updatedPatient) {

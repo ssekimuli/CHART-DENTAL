@@ -54,7 +54,7 @@ type RestorativeRecordFormProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   initialData?: RestorativeRecord;
-  onSave: (record: Omit<RestorativeRecord, "id" | "createdAt" | "updatedAt"> & { procedureCost?: number, materialCost?: number, otherCharges?: number }) => void;
+  onSave: (record: Omit<RestorativeRecord, "id" | "createdAt" | "updatedAt"> & { procedureCost?: number, materialCost?: number, otherCharges?: number, perMaterialCosts?: Record<string, number> }) => void;
   onUpdate: (record: RestorativeRecord) => void;
 };
 
@@ -297,6 +297,7 @@ export function RestorativeRecordForm({
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     // Join multiple procedures into a comma-separated string for the record
     const combinedMaterial = values.materials.join(", ");
+
     if (initialData && initialData.id) {
       onUpdate({
         ...initialData,
@@ -304,7 +305,19 @@ export function RestorativeRecordForm({
         material: combinedMaterial,
       });
     } else {
-      onSave({ ...values, material: combinedMaterial });
+      // Build per-material cost map from already-loaded systemTreatments
+      // This avoids re-fetching costs inside the API layer
+      const perMaterialCosts: Record<string, number> = {};
+      values.materials.forEach(mat => {
+        const match = systemTreatments.find(t => t.procedure.toLowerCase() === mat.toLowerCase());
+        if (match) perMaterialCosts[mat] = Number(match.cost);
+      });
+
+      onSave({
+        ...values,
+        material: combinedMaterial,
+        perMaterialCosts: Object.keys(perMaterialCosts).length > 0 ? perMaterialCosts : undefined,
+      });
     }
     onOpenChange(false);
   };
