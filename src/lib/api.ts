@@ -2106,6 +2106,7 @@ export const createPatient = async (data: BasePatient & { branchId: string | num
         address: data.address || undefined,
         gender: data.gender || undefined,
         date_of_birth: data.dateOfBirth,
+        age: data.age !== undefined ? data.age : undefined,
         last_visit: data.lastVisit || undefined,
         next_visit: data.nextVisit || undefined,
         status: data.status,
@@ -2212,6 +2213,7 @@ export const updatePatient = async (id: string | number, data: Partial<Patient>)
     if (data.address !== undefined) requestBody.address = data.address;
     if (data.gender !== undefined) requestBody.gender = data.gender;
     if (data.dateOfBirth !== undefined) requestBody.date_of_birth = data.dateOfBirth;
+    if (data.age !== undefined) requestBody.age = data.age;
     if (data.lastVisit !== undefined) requestBody.last_visit = data.lastVisit;
     if (data.nextVisit !== undefined) requestBody.next_visit = data.nextVisit;
     if (data.status !== undefined) requestBody.status = data.status;

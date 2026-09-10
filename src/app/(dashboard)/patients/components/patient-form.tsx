@@ -147,6 +147,7 @@ export function PatientForm({ patient, onSave, onOpenChange, asModal = true }: P
             gender: values.gender,
             status: values.status,
             dateOfBirth: dateOfBirthFormatted,
+            age: values.useAge ? parseInt(values.dateOfBirth) : undefined,
             lastVisit: values.lastVisit ? format(values.lastVisit, "yyyy-MM-dd") : undefined,
             nextVisit: values.nextVisit ? format(values.nextVisit, "yyyy-MM-dd") : undefined,
             history: values.history,
