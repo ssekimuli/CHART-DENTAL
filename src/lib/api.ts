@@ -3128,17 +3128,38 @@ export const saveRestorativeRecord = async (
             : [record.material];
 
         if (materials.length > 1) {
-            // Use batch endpoint — distribute costs evenly across procedures
-            const perCost = materials.length > 0 ? (record.procedureCost || 0) / materials.length : 0;
-            const records = materials.map(mat => ({
-                tooth_id: record.toothId,
-                surface: record.surface,
-                material: mat,
-                notes: record.notes,
-                procedure_cost: parseFloat(perCost.toFixed(2)),
-                material_cost: record.materialCost,
-                other_charges: record.otherCharges,
-            }));
+            // Fetch system treatments to look up the correct cost per material
+            let systemTreatmentList: Array<{ procedure: string; cost: number | string }> = [];
+            try {
+                const res = await customAxios.get('/treatments');
+                systemTreatmentList = res.data.data || res.data || [];
+            } catch {
+                // Ignore — will fall back to even split
+            }
+
+            // Build batch records, using each material's individual system cost where available
+            const totalProcedureCost = record.procedureCost || 0;
+            const evenSplit = materials.length > 0 ? totalProcedureCost / materials.length : 0;
+
+            const records = materials.map(mat => {
+                const match = systemTreatmentList.find(
+                    t => t.procedure.toLowerCase() === mat.toLowerCase()
+                );
+                const procedureCost = match
+                    ? parseFloat(Number(match.cost).toFixed(2))
+                    : parseFloat(evenSplit.toFixed(2));
+
+                return {
+                    tooth_id: record.toothId,
+                    surface: record.surface,
+                    material: mat,
+                    notes: record.notes,
+                    procedure_cost: procedureCost,
+                    material_cost: record.materialCost,
+                    other_charges: record.otherCharges,
+                };
+            });
+
             await customAxios.post(`/patients/${patientId}/restorative-records/batch`, { records });
         } else {
             // Single record — use existing endpoint
