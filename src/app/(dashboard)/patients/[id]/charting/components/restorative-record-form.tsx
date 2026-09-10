@@ -2,10 +2,11 @@
 
 import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import React from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+
 import {
   Dialog,
   DialogContent,
@@ -31,7 +32,8 @@ import {
     SelectTrigger,
     SelectValue,
   } from "@/components/ui/select";
-import { Combobox } from "@/components/ui/combobox";
+import { MultiCombobox } from "@/components/ui/multi-combobox";
+
 import type { RestorativeRecord, SystemTreatment } from "@/lib/types";
 import { getTreatments } from "@/lib/api";
 import { getCurrencyConfig } from "@/lib/currency";
@@ -40,7 +42,7 @@ import { useCurrency } from "@/hooks/use-currency";
 const formSchema = z.object({
   toothId: z.number().min(1, "Tooth ID is required").max(48, "Invalid tooth ID"),
   surface: z.string().min(1, "Surface is required"),
-  material: z.string().min(1, "Material is required"),
+  materials: z.array(z.string()).min(1, "At least one procedure is required"),
   notes: z.string().optional(),
   cost: z.coerce.number().min(0, "Cost must be a positive number").optional(),
   procedureCost: z.coerce.number().min(0, "Cost must be a positive number").optional(),
@@ -248,7 +250,7 @@ export function RestorativeRecordForm({
     defaultValues: {
       toothId: initialData?.toothId || 1,
       surface: initialData?.surface || "Whole Tooth",
-      material: initialData?.material || "",
+      materials: initialData?.material ? [initialData.material] : [],
       notes: initialData?.notes || "",
       cost: undefined,
       procedureCost: undefined,
@@ -262,14 +264,14 @@ export function RestorativeRecordForm({
       form.reset({
         toothId: initialData.toothId,
         surface: initialData.surface || "Whole Tooth",
-        material: initialData.material,
+        materials: initialData.material ? [initialData.material] : [],
         notes: initialData.notes || "",
       });
     } else {
       form.reset({
-        toothId: 1, // Will be overridden dynamically when opening
+        toothId: 1,
         surface: "Whole Tooth",
-        material: "",
+        materials: [],
         notes: "",
         cost: undefined,
         procedureCost: undefined,
@@ -279,25 +281,30 @@ export function RestorativeRecordForm({
     }
   }, [initialData, form, open]);
 
-  const selectedMaterial = form.watch("material");
+  const selectedMaterials = form.watch("materials");
 
+  // Auto-sum procedure costs when selection changes
   useEffect(() => {
-    if (selectedMaterial && systemTreatments.length > 0) {
-      const match = systemTreatments.find(t => t.procedure.toLowerCase() === selectedMaterial.toLowerCase());
-      if (match && !initialData?.id) {
-        form.setValue("procedureCost", Number(match.cost));
-      }
+    if (selectedMaterials.length > 0 && systemTreatments.length > 0 && !initialData?.id) {
+      const total = selectedMaterials.reduce((sum, mat) => {
+        const match = systemTreatments.find(t => t.procedure.toLowerCase() === mat.toLowerCase());
+        return sum + (match ? Number(match.cost) : 0);
+      }, 0);
+      if (total > 0) form.setValue("procedureCost", total);
     }
-  }, [selectedMaterial, systemTreatments, form, initialData?.id]);
+  }, [selectedMaterials, systemTreatments, form, initialData?.id]);
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    // Join multiple procedures into a comma-separated string for the record
+    const combinedMaterial = values.materials.join(", ");
     if (initialData && initialData.id) {
       onUpdate({
         ...initialData,
         ...values,
+        material: combinedMaterial,
       });
     } else {
-      onSave(values);
+      onSave({ ...values, material: combinedMaterial });
     }
     onOpenChange(false);
   };
@@ -356,26 +363,28 @@ export function RestorativeRecordForm({
               )}
             />
 
-            <FormField
+
+            <Controller
               control={form.control}
-              name="material"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Procedure</FormLabel>
-                  <FormControl>
-                    <Combobox
-                      options={memoizedComboboxOptions}
-                      value={field.value}
-                      onChange={field.onChange}
-                      placeholder="Select clinical procedure..."
-                      searchPlaceholder="Search procedures..."
-                      emptyMessage="No procedures found."
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
+              name="materials"
+              render={({ field, fieldState }) => (
+                <div className="space-y-1">
+                  <FormLabel>Procedures</FormLabel>
+                  <MultiCombobox
+                    options={memoizedComboboxOptions}
+                    values={field.value}
+                    onChange={field.onChange}
+                    placeholder="Select one or more procedures..."
+                    searchPlaceholder="Search procedures..."
+                    emptyMessage="No procedures found."
+                  />
+                  {fieldState.error && (
+                    <p className="text-sm font-medium text-destructive">{fieldState.error.message}</p>
+                  )}
+                </div>
               )}
             />
+
 
             <FormField
               control={form.control}
