@@ -3134,6 +3134,11 @@ export const saveRestorativeRecord = async (
             const totalProcedureCost = record.procedureCost || 0;
             const evenSplit = materials.length > 0 ? totalProcedureCost / materials.length : 0;
 
+            // DEBUG: show what we received
+            console.log('BATCH DEBUG — split materials:', materials);
+            console.log('BATCH DEBUG — perMaterialCosts received:', record.perMaterialCosts);
+            console.log('BATCH DEBUG — totalProcedureCost:', totalProcedureCost, '| evenSplit:', evenSplit);
+
             // Use perMaterialCosts passed directly from the form (preferred — no re-fetch needed)
             // Only fall back to fetching /treatments if perMaterialCosts wasn't provided
             let systemTreatmentList: Array<{ procedure: string; cost: number | string }> = [];
@@ -3141,6 +3146,7 @@ export const saveRestorativeRecord = async (
                 try {
                     const res = await customAxios.get('/treatments');
                     systemTreatmentList = res.data.data || res.data || [];
+                    console.log('BATCH DEBUG — fetched systemTreatmentList:', systemTreatmentList.map(t => ({ procedure: t.procedure, cost: t.cost })));
                 } catch {
                     // Ignore — will fall back to even split
                 }
@@ -3148,17 +3154,24 @@ export const saveRestorativeRecord = async (
 
             const records = materials.map(mat => {
                 let procedureCost: number;
+                let source: string;
                 if (record.perMaterialCosts && record.perMaterialCosts[mat] !== undefined) {
                     // ✅ Use exact cost from the form's already-loaded system treatments
                     procedureCost = parseFloat(record.perMaterialCosts[mat].toFixed(2));
+                    source = 'perMaterialCosts';
                 } else {
                     const match = systemTreatmentList.find(
                         t => t.procedure.toLowerCase() === mat.toLowerCase()
                     );
-                    procedureCost = match
-                        ? parseFloat(Number(match.cost).toFixed(2))
-                        : parseFloat(evenSplit.toFixed(2));
+                    if (match) {
+                        procedureCost = parseFloat(Number(match.cost).toFixed(2));
+                        source = 'systemTreatmentList match';
+                    } else {
+                        procedureCost = parseFloat(evenSplit.toFixed(2));
+                        source = 'even split fallback';
+                    }
                 }
+                console.log(`BATCH DEBUG — mat: "${mat}" | key in perMaterialCosts: ${record.perMaterialCosts?.[mat]} | resolved cost: ${procedureCost} | source: ${source}`);
 
                 return {
                     tooth_id: record.toothId,
