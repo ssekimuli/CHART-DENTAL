@@ -2781,7 +2781,77 @@ export const getOrthodonticRecords = async (patientId: string | number): Promise
     }
 };
 
+/**
+ * Add multiple treatment plan items in a single batch request.
+ * Falls back to sequential single-item calls if the batch endpoint fails.
+ */
+export const addTreatmentsBatch = async (
+    patientId: string | number,
+    treatments: Array<{ data: Omit<Treatment, 'id' | 'date'>; condition?: DentalCondition }>
+): Promise<Treatment[]> => {
+    const today = new Date().toISOString().split('T')[0];
+
+    const batchPayload = {
+        treatments: treatments.map(({ data, condition }) => ({
+            procedure_id: data.procedureId,
+            procedure: data.procedure,
+            tooth: data.tooth || null,
+            status: (data.status === 'In Progress' || data.status === 'Cancelled') ? 'Proposed' : data.status,
+            cost: data.cost,
+            date: today,
+            condition: condition || null,
+            notes: data.procedure || null,
+        })),
+    };
+
+    try {
+        const response = await customAxios.post(`/patients/${patientId}/treatments/batch`, batchPayload);
+        const responseData = response.data.data || response.data;
+        const treatmentPlans: any[] = responseData.treatment_plans || responseData.treatmentPlans || [];
+
+        // Update local cache
+        const patientIndex = allPatients.findIndex(p => String(p.id) === String(patientId));
+
+        const saved: Treatment[] = treatments.map((t, i) => {
+            const backendItem = treatmentPlans[i];
+            const fe: Treatment = {
+                id: backendItem?.id || `t${Date.now()}${i}`,
+                procedureId: t.data.procedureId,
+                procedure: backendItem?.procedure || t.data.procedure,
+                tooth: backendItem?.tooth || t.data.tooth,
+                status: backendItem?.status || t.data.status,
+                cost: backendItem?.cost || t.data.cost,
+                date: backendItem?.date || today,
+            };
+
+            if (patientIndex > -1) {
+                const patient = allPatients[patientIndex];
+                patient.treatmentPlans.unshift(fe);
+                if (t.condition && t.data.tooth) {
+                    const newRecord: DentalRecord = { toothId: t.data.tooth, condition: t.condition, notes: t.data.procedure || '' };
+                    const recIdx = patient.dentalRecords.findIndex(r => r.toothId === t.data.tooth);
+                    if (recIdx > -1) patient.dentalRecords[recIdx] = newRecord;
+                    else patient.dentalRecords.push(newRecord);
+                }
+            }
+            return fe;
+        });
+
+        return saved;
+    } catch (err) {
+        // Fallback: sequential single calls
+        console.warn('Batch treatment endpoint failed, falling back to sequential calls', err);
+        const results: Treatment[] = [];
+        for (const t of treatments) {
+            const r = await addTreatment(patientId, t.data, t.condition);
+            results.push(r);
+        }
+        return results;
+    }
+};
+
 export const addTreatment = async (patientId: string | number, treatmentData: Omit<Treatment, 'id' | 'date'>, condition?: DentalCondition): Promise<Treatment> => {
+
     console.log('API CALL: addTreatment', { patientId, treatmentData, condition });
 
     const today = new Date().toISOString().split('T')[0];
@@ -3048,26 +3118,50 @@ export const deleteEndodonticRecord = async (
 };
 
 export const saveRestorativeRecord = async (
-    patientId: string | number, 
+    patientId: string | number,
     record: Omit<RestorativeRecord, 'id' | 'createdAt' | 'updatedAt'> & { procedureCost?: number, materialCost?: number, otherCharges?: number }
 ): Promise<Patient | undefined> => {
     try {
-        const requestBody = {
-            tooth_id: record.toothId,
-            surface: record.surface,
-            material: record.material,
-            notes: record.notes,
-            procedure_cost: record.procedureCost,
-            material_cost: record.materialCost,
-            other_charges: record.otherCharges,
-        };
-        await customAxios.post(`/patients/${patientId}/restorative-records`, requestBody);
+        // Split comma-separated materials into individual records
+        const materials = record.material
+            ? record.material.split(',').map(m => m.trim()).filter(Boolean)
+            : [record.material];
+
+        if (materials.length > 1) {
+            // Use batch endpoint — distribute costs evenly across procedures
+            const perCost = materials.length > 0 ? (record.procedureCost || 0) / materials.length : 0;
+            const records = materials.map(mat => ({
+                tooth_id: record.toothId,
+                surface: record.surface,
+                material: mat,
+                notes: record.notes,
+                procedure_cost: parseFloat(perCost.toFixed(2)),
+                material_cost: record.materialCost,
+                other_charges: record.otherCharges,
+            }));
+            await customAxios.post(`/patients/${patientId}/restorative-records/batch`, { records });
+        } else {
+            // Single record — use existing endpoint
+            const requestBody = {
+                tooth_id: record.toothId,
+                surface: record.surface,
+                material: materials[0] || record.material,
+                notes: record.notes,
+                procedure_cost: record.procedureCost,
+                material_cost: record.materialCost,
+                other_charges: record.otherCharges,
+            };
+            await customAxios.post(`/patients/${patientId}/restorative-records`, requestBody);
+        }
+
         return getPatientById(patientId);
     } catch (error) {
         console.error('Error saving restorative record:', error);
         return undefined;
     }
 };
+
+
 
 export const updateRestorativeRecord = async (
     patientId: string | number, 

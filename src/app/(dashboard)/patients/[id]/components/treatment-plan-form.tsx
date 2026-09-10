@@ -47,12 +47,13 @@ const formSchema = z.object({
 type TreatmentPlanFormProps = {
     treatment?: Treatment;
     onSave: (data: Omit<Treatment, 'id' | 'date'>, condition?: DentalCondition) => void;
+    onSaveBatch?: (items: Array<{ data: Omit<Treatment, 'id' | 'date'>; condition?: DentalCondition }>) => void;
     onOpenChange: (open: boolean) => void;
     toothId?: number;
     currentCondition?: DentalCondition;
 };
 
-export function TreatmentPlanForm({ treatment, onSave, onOpenChange, toothId, currentCondition }: TreatmentPlanFormProps) {
+export function TreatmentPlanForm({ treatment, onSave, onSaveBatch, onOpenChange, toothId, currentCondition }: TreatmentPlanFormProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [systemTreatments, setSystemTreatments] = useState<SystemTreatment[]>([]);
@@ -122,31 +123,43 @@ export function TreatmentPlanForm({ treatment, onSave, onOpenChange, toothId, cu
         return;
       }
 
-      // Submit one treatment entry per selected procedure
-      for (const pid of values.procedureIds) {
-        const selectedSystemTreatment = systemTreatments.find(t => String(t.id) === String(pid));
+      if (isEditing) {
+        // Single update
+        const selectedSystemTreatment = systemTreatments.find(t => String(t.id) === String(values.procedureIds[0]));
         const procedureName = selectedSystemTreatment?.procedure ?? treatment?.procedure ?? '';
-        if (!procedureName) continue;
-
-        onSave({
-          procedureId: pid,
-          procedure: procedureName,
-          tooth: values.tooth,
-          status: values.status,
-          cost: selectedSystemTreatment ? Number(selectedSystemTreatment.cost) : values.cost / values.procedureIds.length,
-        }, values.condition);
+        onSave({ procedureId: values.procedureIds[0], procedure: procedureName, tooth: values.tooth, status: values.status, cost: values.cost }, values.condition);
+      } else if (onSaveBatch) {
+        // Batch — one network call for all selected procedures
+        const items = values.procedureIds.map(pid => {
+          const st = systemTreatments.find(t => String(t.id) === String(pid));
+          return {
+            data: {
+              procedureId: pid,
+              procedure: st?.procedure ?? '',
+              tooth: values.tooth,
+              status: values.status,
+              cost: st ? Number(st.cost) : values.cost / values.procedureIds.length,
+            },
+            condition: values.condition as DentalCondition | undefined,
+          };
+        }).filter(item => item.data.procedure);
+        onSaveBatch(items);
+      } else {
+        // Fallback: loop via onSave
+        for (const pid of values.procedureIds) {
+          const st = systemTreatments.find(t => String(t.id) === String(pid));
+          if (!st) continue;
+          onSave({ procedureId: pid, procedure: st.procedure, tooth: values.tooth, status: values.status, cost: Number(st.cost) }, values.condition);
+        }
       }
     } catch (error: any) {
       console.error(error);
-      toast({
-        title: "Error",
-        description: error.message || "An unexpected error occurred.",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: error.message || "An unexpected error occurred.", variant: "destructive" });
     } finally {
       setIsSubmitting(false);
     }
   }
+
 
   const comboboxOptions = systemTreatments.map(t => ({
     value: String(t.id),

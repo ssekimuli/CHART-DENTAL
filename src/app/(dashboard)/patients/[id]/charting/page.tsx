@@ -44,7 +44,7 @@ import { useState, useEffect, use } from "react";
 import type { Patient, DentalRecord, Treatment, PeriodontalRecord, OcclusalRecord, OrthodonticRecord, SoftTissueRecord, DentalCondition, EndodonticRecord, RestorativeRecord } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Loader2, Pill, Upload } from "lucide-react";
-import { getPatientById, addTreatment, updateTreatment, saveDentalRecord, savePeriodontalRecord, saveOcclusalRecord, saveOrthodonticRecord, updateOrthodonticRecord, deleteOrthodonticRecord, saveSoftTissueRecord, updateSoftTissueRecord, deleteSoftTissueRecord, saveEndodonticRecord, updateEndodonticRecord, deleteEndodonticRecord, saveRestorativeRecord, updateRestorativeRecord, deleteRestorativeRecord } from "@/lib/api";
+import { getPatientById, addTreatment, addTreatmentsBatch, updateTreatment, saveDentalRecord, savePeriodontalRecord, saveOcclusalRecord, saveOrthodonticRecord, updateOrthodonticRecord, deleteOrthodonticRecord, saveSoftTissueRecord, updateSoftTissueRecord, deleteSoftTissueRecord, saveEndodonticRecord, updateEndodonticRecord, deleteEndodonticRecord, saveRestorativeRecord, updateRestorativeRecord, deleteRestorativeRecord } from "@/lib/api";
 import { getCurrentUser, hasRole, hasPermission } from "@/lib/user";
 import { getPatientFullName } from "@/lib/utils";
 import { useCurrency } from "@/hooks/use-currency";
@@ -146,7 +146,7 @@ export default function PatientChartingPage({
     if (!patient) return;
     
     if (selectedTreatment) {
-        // It's an update
+        // It's an update — single treatment
         const updatedTreatmentObj = {
             ...selectedTreatment,
             ...treatmentData,
@@ -157,28 +157,20 @@ export default function PatientChartingPage({
             setPatient(updatedPatient);
         }
     } else {
-        // It's a new treatment
+        // It's a new treatment — use single addTreatment (batch is called from handleSaveTreatments)
         const savedTreatment = await addTreatment(patient.id, treatmentData, condition);
         if (savedTreatment) {
-            // Update the patient's treatment plans and dental records
             const updatedDentalRecords = [...patient.dentalRecords];
-
-            // If a tooth is specified and condition is provided, update the dental record
             if (treatmentData.tooth && condition) {
                 const recordIndex = updatedDentalRecords.findIndex(r => r.toothId === treatmentData.tooth);
                 const newRecord: DentalRecord = {
-                toothId: treatmentData.tooth,
-                condition: condition,
-                notes: savedTreatment.procedure || ''
+                    toothId: treatmentData.tooth,
+                    condition: condition,
+                    notes: savedTreatment.procedure || ''
                 };
-
-                if (recordIndex > -1) {
-                updatedDentalRecords[recordIndex] = newRecord;
-                } else {
-                updatedDentalRecords.push(newRecord);
-                }
+                if (recordIndex > -1) updatedDentalRecords[recordIndex] = newRecord;
+                else updatedDentalRecords.push(newRecord);
             }
-
             setPatient({
                 ...patient,
                 treatmentPlans: [savedTreatment, ...patient.treatmentPlans],
@@ -191,6 +183,35 @@ export default function PatientChartingPage({
     setSelectedToothForTreatment(undefined);
     setSelectedTreatment(undefined);
   }
+
+  // Batch handler — called by TreatmentPlanForm when multiple procedures are selected
+  const handleSaveTreatments = async (
+    items: Array<{ data: Omit<Treatment, 'id' | 'date'>; condition?: DentalCondition }>
+  ) => {
+    if (!patient) return;
+    const savedList = await addTreatmentsBatch(patient.id, items);
+    if (savedList.length > 0) {
+        const updatedDentalRecords = [...patient.dentalRecords];
+        items.forEach((item, i) => {
+            if (item.condition && item.data.tooth) {
+                const idx = updatedDentalRecords.findIndex(r => r.toothId === item.data.tooth);
+                const rec: DentalRecord = { toothId: item.data.tooth!, condition: item.condition, notes: savedList[i]?.procedure || '' };
+                if (idx > -1) updatedDentalRecords[idx] = rec;
+                else updatedDentalRecords.push(rec);
+            }
+        });
+        setPatient({
+            ...patient,
+            treatmentPlans: [...savedList.reverse(), ...patient.treatmentPlans],
+            dentalRecords: updatedDentalRecords,
+        });
+    }
+    setIsTreatmentFormOpen(false);
+    setSelectedToothForTreatment(undefined);
+    setSelectedTreatment(undefined);
+  }
+
+
 
   const handleSaveDentalRecord = async (record: DentalRecord) => {
     if (!patient) return;
