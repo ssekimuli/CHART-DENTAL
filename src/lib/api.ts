@@ -379,6 +379,7 @@ export const getPatients = async (filters?: string | number | GetPatientsFilters
             dateOfBirth: patient.date_of_birth ? patient.date_of_birth.split('T')[0] : patient.date_of_birth,
             lastVisit: patient.last_visit ? patient.last_visit.split('T')[0] : patient.last_visit,
             nextVisit: patient.next_visit ? patient.next_visit.split('T')[0] : patient.next_visit,
+            age: patient.age != null ? Number(patient.age) : undefined,
             status: patient.status,
             history: patient.history || '',
             branchId: String(patient.branch_id),

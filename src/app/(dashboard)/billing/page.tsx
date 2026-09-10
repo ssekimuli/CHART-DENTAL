@@ -599,6 +599,7 @@ export default function BillingPage() {
                 <TableHead>Total Bill</TableHead>
                 <TableHead>Ins. Portion</TableHead>
                 <TableHead>Pat. Portion</TableHead>
+                <TableHead>Paid Amount</TableHead>
                 <TableHead>Balance</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -630,6 +631,9 @@ export default function BillingPage() {
                   </TableCell>
                   <TableCell>
                     {formatCurrency(invoice.patientResponsibility ?? invoice.amount)}
+                  </TableCell>
+                  <TableCell className="text-green-600 font-medium">
+                    {formatCurrency(invoice.paidAmount || 0)}
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-col text-sm">
@@ -696,7 +700,7 @@ export default function BillingPage() {
                 </TableRow>
                 {expandedInvoiceId === invoice.id && (
                   <TableRow className="bg-muted/30 hover:bg-muted/30">
-                    <TableCell colSpan={8} className="p-0">
+                    <TableCell colSpan={9} className="p-0">
                       <div className="space-y-4 p-4">
                         {/* Treatments Section */}
                         {invoice.treatments && invoice.treatments.length > 0 && (

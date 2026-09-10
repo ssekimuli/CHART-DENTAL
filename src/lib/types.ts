@@ -51,6 +51,7 @@ export type Patient = {
   address?: string;
   gender?: 'Male' | 'Female' | 'Other';
   dateOfBirth: string;
+  age?: number;
   lastVisit?: string;
   nextVisit?: string;
   status: 'Active' | 'Inactive';
