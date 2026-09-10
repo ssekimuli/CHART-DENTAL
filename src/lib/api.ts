@@ -3750,9 +3750,43 @@ export const sendLabOrder = async (id: string | number, channel: 'email' | 'what
     return (await customAxios.post(`/management/lab-orders/${id}/send`, { channel, customMessage })).data;
 };
 
-export const createLabOrder = async (data: Omit<LaboratoryOrder, 'id'>): Promise<LaboratoryOrder> => {
+export const createLabOrder = async (data: any): Promise<LaboratoryOrder | LaboratoryOrder[]> => {
     console.log('API CALL: createLabOrder', { data });
     try {
+        // Multi-item batch create
+        if (Array.isArray(data.items) && data.items.length > 0) {
+            const response = await customAxios.post('/management/lab-orders/batch', {
+                clientId: data.clientId,
+                doctorName: data.doctorName,
+                status: data.status,
+                sentDate: data.sentDate,
+                dueDate: data.dueDate,
+                receivedDate: data.receivedDate,
+                instructions: data.instructions,
+                branchId: data.branchId,
+                items: data.items,
+            });
+            const orders: any[] = response.data;
+            return orders.map(order => ({
+                id: order.id,
+                clientId: String(order.client_id),
+                client: order.client,
+                item: order.item,
+                tooth: order.tooth,
+                status: order.status,
+                sentDate: order.sent_date ? order.sent_date.split('T')[0] : '',
+                dueDate: order.due_date ? order.due_date.split('T')[0] : '',
+                receivedDate: order.received_date ? order.received_date.split('T')[0] : undefined,
+                shade: order.shade,
+                material: order.material,
+                instructions: order.instructions,
+                doctorName: order.doctor_name,
+                branchId: String(order.branch_id),
+                lab_service_id: order.lab_service_id,
+                applied_price: order.applied_price ? parseFloat(String(order.applied_price)) : undefined,
+            }));
+        }
+        // Single-item create (legacy / edit path)
         const response = await customAxios.post('/management/lab-orders', {
             clientId: data.clientId,
             doctorName: data.doctorName,
