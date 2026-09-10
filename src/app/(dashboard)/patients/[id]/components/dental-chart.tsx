@@ -36,8 +36,8 @@ const conditionInfo: { condition: DentalCondition; color: string; twColor: strin
     { condition: 'Fracture', color: '#DC2626', twColor: 'bg-red-600', icon: <AlertTriangle size={16} />, description: 'Broken tooth' },
     { condition: 'Implant', color: '#9CA3AF', twColor: 'bg-gray-400', icon: <Zap size={16} />, description: 'Dental implant' },
     { condition: 'Bridge', color: '#F59E0B', twColor: 'bg-amber-500', icon: <Link2 size={16} />, description: 'Bridge prosthetic' },
-    { condition: 'Retained', color: '#14B8A6', twColor: 'bg-teal-500', icon: <RotateCcw size={16} />, description: 'Retained tooth' },
-    { condition: 'Malocclusion', color: '#EC4899', twColor: 'bg-pink-500', icon: <Shuffle size={16} />, description: 'Malocclusion' },
+    { condition: 'Retained', color: '#22D3EE', twColor: 'bg-cyan-400', icon: <RotateCcw size={16} />, description: 'Retained tooth' },
+    { condition: 'Malocclusion', color: '#D946EF', twColor: 'bg-fuchsia-500', icon: <Shuffle size={16} />, description: 'Malocclusion' },
 ];
 
 type DentalChartProps = {
