@@ -23,6 +23,10 @@ const conditionColors: Record<DentalCondition, string> = {
   Crown: "fill-purple-400",
   Missing: "fill-gray-500 opacity-50",
   Fracture: "fill-red-500",
+  Implant: "fill-gray-400",
+  Bridge: "fill-amber-400",
+  Retained: "fill-teal-400",
+  Malocclusion: "fill-pink-400",
 };
 
 export function Tooth({ toothId, condition, hasTreatmentPlan, onClick }: ToothProps) {
