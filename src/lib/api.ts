@@ -22,6 +22,7 @@ import { speak } from '@/ai/flows/speak';
 import { clearCurrentUser, setCurrentUser } from './user';
 import { getCustomAxios } from './api-utils';
 import axios from 'axios';
+import { log } from 'console';
 
 const customAxios = getCustomAxios();
 
@@ -3122,6 +3123,8 @@ export const saveRestorativeRecord = async (
     record: Omit<RestorativeRecord, 'id' | 'createdAt' | 'updatedAt'> & { procedureCost?: number, materialCost?: number, otherCharges?: number }
 ): Promise<Patient | undefined> => {
     try {
+        console.log('API CALL: saveRestorativeRecord', { patientId, record });
+
         // Split comma-separated materials into individual records
         const materials = record.material
             ? record.material.split(',').map(m => m.trim()).filter(Boolean)
@@ -3160,6 +3163,7 @@ export const saveRestorativeRecord = async (
                 };
             });
 
+            console.log('API CALL: saveRestorativeRecord → BATCH request body', { records });
             await customAxios.post(`/patients/${patientId}/restorative-records/batch`, { records });
         } else {
             // Single record — use existing endpoint
@@ -3172,6 +3176,7 @@ export const saveRestorativeRecord = async (
                 material_cost: record.materialCost,
                 other_charges: record.otherCharges,
             };
+            console.log('API CALL: saveRestorativeRecord → SINGLE request body', requestBody);
             await customAxios.post(`/patients/${patientId}/restorative-records`, requestBody);
         }
 
