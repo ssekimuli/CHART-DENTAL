@@ -5,7 +5,7 @@ import React, { useState, useMemo } from "react";
 import type { DentalRecord, DentalCondition, Treatment } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { FilePen, Plus, Heart, AlertCircle, Droplets, Crown, Trash2, AlertTriangle, Zap, Link2 } from "lucide-react";
+import { FilePen, Plus, Heart, AlertCircle, Droplets, Crown, Trash2, AlertTriangle, Zap, Link2, RotateCcw, Shuffle } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -36,6 +36,8 @@ const conditionInfo: { condition: DentalCondition; color: string; twColor: strin
     { condition: 'Fracture', color: '#DC2626', twColor: 'bg-red-600', icon: <AlertTriangle size={16} />, description: 'Broken tooth' },
     { condition: 'Implant', color: '#9CA3AF', twColor: 'bg-gray-400', icon: <Zap size={16} />, description: 'Dental implant' },
     { condition: 'Bridge', color: '#F59E0B', twColor: 'bg-amber-500', icon: <Link2 size={16} />, description: 'Bridge prosthetic' },
+    { condition: 'Retained', color: '#22D3EE', twColor: 'bg-cyan-400', icon: <RotateCcw size={16} />, description: 'Retained tooth' },
+    { condition: 'Malocclusion', color: '#D946EF', twColor: 'bg-fuchsia-500', icon: <Shuffle size={16} />, description: 'Malocclusion' },
 ];
 
 type DentalChartProps = {
