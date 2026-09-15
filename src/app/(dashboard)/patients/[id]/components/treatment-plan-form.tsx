@@ -41,8 +41,20 @@ const formSchema = z.object({
   tooth: z.coerce.number().optional(),
   status: z.enum(['Proposed', 'In Progress', 'Completed', 'Cancelled']),
   cost: z.coerce.number().min(0, { message: "Cost must be 0 or more." }),
-  condition: z.enum(['Healthy', 'Caries', 'Filling', 'Crown', 'Missing', 'Fracture', 'Implant', 'Bridge', 'Retained', 'Malocclusion']).optional(),
+  condition: z.enum(['Healthy', 'Caries', 'Filling', 'Crown', 'Missing', 'Fracture', 'Implant', 'Bridge', 'Retained Root', 'Malocclusion']).optional(),
 });
+
+const VALID_CONDITIONS: DentalCondition[] = [
+  'Healthy', 'Caries', 'Filling', 'Crown', 'Missing', 'Fracture', 'Implant', 'Bridge', 'Retained Root', 'Malocclusion'
+];
+
+function normalizeCondition(cond?: DentalCondition | string): DentalCondition | undefined {
+  if (!cond) return undefined;
+  if ((cond as string) === 'Retained' || cond === 'Retained Root') {
+    return 'Retained Root';
+  }
+  return VALID_CONDITIONS.includes(cond as DentalCondition) ? (cond as DentalCondition) : undefined;
+}
 
 type TreatmentPlanFormProps = {
     treatment?: Treatment;
@@ -50,7 +62,7 @@ type TreatmentPlanFormProps = {
     onSaveBatch?: (items: Array<{ data: Omit<Treatment, 'id' | 'date'>; condition?: DentalCondition }>) => void;
     onOpenChange: (open: boolean) => void;
     toothId?: number;
-    currentCondition?: DentalCondition;
+    currentCondition?: DentalCondition | string;
 };
 
 export function TreatmentPlanForm({ treatment, onSave, onSaveBatch, onOpenChange, toothId, currentCondition }: TreatmentPlanFormProps) {
@@ -66,7 +78,7 @@ export function TreatmentPlanForm({ treatment, onSave, onSaveBatch, onOpenChange
       status: treatment?.status ?? 'Proposed',
       tooth: treatment?.tooth ?? toothId ?? undefined,
       cost: treatment?.cost ?? 0,
-      condition: (currentCondition && ['Healthy', 'Caries', 'Filling', 'Crown', 'Missing', 'Fracture', 'Implant', 'Bridge', 'Retained', 'Malocclusion'].includes(currentCondition)) ? currentCondition as any : undefined,
+      condition: normalizeCondition(currentCondition),
     },
   });
 
@@ -97,8 +109,9 @@ export function TreatmentPlanForm({ treatment, onSave, onSaveBatch, onOpenChange
           form.setValue('status', treatment.status);
           if (treatment.tooth) form.setValue('tooth', treatment.tooth);
           form.setValue('cost', treatment.cost);
-          if (currentCondition && ['Healthy', 'Caries', 'Filling', 'Crown', 'Missing', 'Fracture', 'Implant', 'Bridge', 'Retained', 'Malocclusion'].includes(currentCondition)) {
-            form.setValue('condition', currentCondition as any);
+          const norm = normalizeCondition(currentCondition);
+          if (norm) {
+            form.setValue('condition', norm);
           }
       }
   }, [treatment, systemTreatments, form, currentCondition]);
@@ -222,7 +235,7 @@ export function TreatmentPlanForm({ treatment, onSave, onSaveBatch, onOpenChange
                                     <SelectItem value="Missing">Missing</SelectItem>
                                     <SelectItem value="Implant">Implant</SelectItem>
                                     <SelectItem value="Bridge">Bridge</SelectItem>
-                                    <SelectItem value="Retained">Retained</SelectItem>
+                                    <SelectItem value="Retained Root">Retained Root</SelectItem>
                                     <SelectItem value="Malocclusion">Malocclusion</SelectItem>
                                 </SelectContent>
                             </Select>

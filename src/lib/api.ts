@@ -505,7 +505,7 @@ export const getPatientById = async (id: string | number): Promise<Patient | und
             branchId: String(patient.branch_id),
             dentalRecords: parseJsonArraySafe(patient.dental_records).map((record: any) => ({
                 toothId: record.tooth_id,
-                condition: record.condition,
+                condition: record.condition === 'Retained' ? 'Retained Root' : record.condition,
                 notes: record.notes || '',
             })),
              treatmentPlans: parseJsonArraySafe(patient.treatment_plans).map((plan: any) => ({
@@ -2382,7 +2382,7 @@ export const addImageToPatient = async (patientId: string | number, imageFormDat
             branchId: String(updatedPatient.branch_id),
             dentalRecords: (updatedPatient.dental_records || []).map((record: any) => ({
                 toothId: record.tooth_id,
-                condition: record.condition,
+                condition: record.condition === 'Retained' ? 'Retained Root' : record.condition,
                 notes: record.notes || '',
             })),
             treatmentPlans: (updatedPatient.treatment_plans || []).map((plan: any) => ({
@@ -2453,7 +2453,7 @@ export const saveDentalRecord = async (patientId: string | number, record: Denta
         // Map API response back to frontend type
         const feRecord: DentalRecord = {
             toothId: savedRecord.tooth_id || savedRecord.toothId,
-            condition: savedRecord.condition,
+            condition: savedRecord.condition === 'Retained' ? 'Retained Root' : savedRecord.condition,
             notes: savedRecord.notes || '',
             id: savedRecord.id,
             bridgeGroupId: savedRecord.bridge_group_id || savedRecord.bridgeGroupId,

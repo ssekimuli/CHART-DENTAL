@@ -16,7 +16,7 @@ type ToothProps = {
   onClick: () => void;
 };
 
-const conditionColors: Record<DentalCondition, string> = {
+const conditionColors: Record<DentalCondition, string> & { Retained?: string } = {
   Healthy: "fill-white dark:fill-gray-300",
   Caries: "fill-yellow-400",
   Filling: "fill-blue-400",
@@ -25,6 +25,7 @@ const conditionColors: Record<DentalCondition, string> = {
   Fracture: "fill-red-500",
   Implant: "fill-gray-400",
   Bridge: "fill-amber-400",
+  "Retained Root": "fill-cyan-400",
   Retained: "fill-cyan-400",
   Malocclusion: "fill-fuchsia-500",
 };
