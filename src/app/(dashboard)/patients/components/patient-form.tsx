@@ -79,7 +79,7 @@ type PatientFormProps = {
 export function PatientForm({ patient, onSave, onOpenChange, asModal = true }: PatientFormProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [useAge, setUseAge] = useState(false);
+  const [useAge, setUseAge] = useState(true);
 
   const calculateDateOfBirth = (age: number): string => {
     const today = new Date();
@@ -103,7 +103,7 @@ export function PatientForm({ patient, onSave, onOpenChange, asModal = true }: P
         status: patient?.status ?? 'Active',
         history: patient?.history ?? "",
         avatar: patient?.avatar ?? "",
-        useAge: false,
+        useAge: true,
     },
   });
 
@@ -147,6 +147,7 @@ export function PatientForm({ patient, onSave, onOpenChange, asModal = true }: P
             gender: values.gender,
             status: values.status,
             dateOfBirth: dateOfBirthFormatted,
+            age: values.useAge ? parseInt(values.dateOfBirth) : undefined,
             lastVisit: values.lastVisit ? format(values.lastVisit, "yyyy-MM-dd") : undefined,
             nextVisit: values.nextVisit ? format(values.nextVisit, "yyyy-MM-dd") : undefined,
             history: values.history,
