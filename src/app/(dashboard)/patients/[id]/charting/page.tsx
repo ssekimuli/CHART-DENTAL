@@ -624,6 +624,7 @@ export default function PatientChartingPage({
         <TreatmentPlanForm
             treatment={selectedTreatment}
             onSave={handleSaveTreatment}
+            onSaveBatch={handleSaveTreatments}
             onOpenChange={handleCloseTreatmentForm}
             toothId={selectedToothForTreatment}
             currentCondition={patient.dentalRecords.find(r => r.toothId === (selectedToothForTreatment || selectedTreatment?.tooth))?.condition}

@@ -1,11 +1,11 @@
 "use client";
 import { useToast } from "@/hooks/use-toast";
 
-import { Loader2, X } from "lucide-react";
+import { Loader2, Calculator } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -69,7 +69,9 @@ export function TreatmentPlanForm({ treatment, onSave, onSaveBatch, onOpenChange
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [systemTreatments, setSystemTreatments] = useState<SystemTreatment[]>([]);
+  const [itemCosts, setItemCosts] = useState<Record<string, number>>({});
   const isEditing = !!treatment;
+  const lastProcedureIdsRef = useRef<string[]>([]);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -77,7 +79,7 @@ export function TreatmentPlanForm({ treatment, onSave, onSaveBatch, onOpenChange
       procedureIds: treatment?.procedureId ? [String(treatment.procedureId)] : [],
       status: treatment?.status ?? 'Proposed',
       tooth: treatment?.tooth ?? toothId ?? undefined,
-      cost: treatment?.cost ?? 0,
+      cost: treatment?.totalCost ?? treatment?.cost ?? 0,
       condition: normalizeCondition(currentCondition),
     },
   });
@@ -86,9 +88,9 @@ export function TreatmentPlanForm({ treatment, onSave, onSaveBatch, onOpenChange
     const fetchTreatments = async () => {
         const data = await getTreatments();
         setSystemTreatments(data);
-    }
+    };
     fetchTreatments();
-  }, [])
+  }, []);
 
   // When editing, pre-populate procedure selection after system treatments load
   useEffect(() => {
@@ -105,10 +107,14 @@ export function TreatmentPlanForm({ treatment, onSave, onSaveBatch, onOpenChange
           } else if (treatment.procedureId) {
               pId = String(treatment.procedureId);
           }
-          if (pId) form.setValue('procedureIds', [pId]);
+          if (pId) {
+            form.setValue('procedureIds', [pId]);
+            setItemCosts({ [pId]: treatment.cost });
+          }
           form.setValue('status', treatment.status);
           if (treatment.tooth) form.setValue('tooth', treatment.tooth);
-          form.setValue('cost', treatment.cost);
+          const effectiveCost = treatment.totalCost ?? treatment.cost ?? 0;
+          form.setValue('cost', effectiveCost);
           const norm = normalizeCondition(currentCondition);
           if (norm) {
             form.setValue('condition', norm);
@@ -116,17 +122,75 @@ export function TreatmentPlanForm({ treatment, onSave, onSaveBatch, onOpenChange
       }
   }, [treatment, systemTreatments, form, currentCondition]);
 
-  // Auto-compute total cost when selected procedures change
   const selectedProcedureIds = form.watch("procedureIds");
+
+  // Keep itemCosts and total cost in sync when procedures are selected or removed
   useEffect(() => {
-    if (!isEditing && selectedProcedureIds.length > 0 && systemTreatments.length > 0) {
-      const total = selectedProcedureIds.reduce((sum, id) => {
+    if (isEditing || systemTreatments.length === 0) return;
+
+    const prevIds = lastProcedureIdsRef.current;
+    const isSameIds = prevIds.length === selectedProcedureIds.length && prevIds.every((id, idx) => id === selectedProcedureIds[idx]);
+    if (isSameIds) return;
+
+    lastProcedureIdsRef.current = selectedProcedureIds;
+
+    const newItemCosts: Record<string, number> = {};
+    let total = 0;
+
+    selectedProcedureIds.forEach(id => {
+      if (itemCosts[id] !== undefined) {
+        newItemCosts[id] = itemCosts[id];
+        total += itemCosts[id];
+      } else {
         const match = systemTreatments.find(t => String(t.id) === String(id));
-        return sum + (match ? Number(match.cost) : 0);
-      }, 0);
-      form.setValue('cost', total);
+        const defaultCost = match ? Number(match.cost) || 0 : 0;
+        newItemCosts[id] = defaultCost;
+        total += defaultCost;
+      }
+    });
+
+    setItemCosts(newItemCosts);
+    form.setValue('cost', total);
+  }, [selectedProcedureIds, systemTreatments, isEditing, form, itemCosts]);
+
+  // When user directly modifies the Total Cost input
+  const handleTotalCostChange = (newTotal: number) => {
+    form.setValue('cost', newTotal);
+
+    if (selectedProcedureIds.length <= 1) {
+      if (selectedProcedureIds[0]) {
+        setItemCosts({ [selectedProcedureIds[0]]: newTotal });
+      }
+      return;
     }
-  }, [selectedProcedureIds, systemTreatments, isEditing, form]);
+
+    // Proportionally distribute adjusted total across selected procedures
+    const currentSum = selectedProcedureIds.reduce((sum, id) => sum + (itemCosts[id] ?? 0), 0);
+    const updated: Record<string, number> = {};
+    let allocated = 0;
+
+    selectedProcedureIds.forEach((id, idx) => {
+      if (idx === selectedProcedureIds.length - 1) {
+        updated[id] = Math.max(0, Math.round((newTotal - allocated) * 100) / 100);
+      } else {
+        const proportion = currentSum > 0 ? ((itemCosts[id] ?? 0) / currentSum) : (1 / selectedProcedureIds.length);
+        const itemVal = Math.max(0, Math.round(newTotal * proportion * 100) / 100);
+        updated[id] = itemVal;
+        allocated += itemVal;
+      }
+    });
+
+    setItemCosts(updated);
+  };
+
+  // When user modifies an individual procedure cost in the breakdown
+  const handleItemCostChange = (id: string, newCost: number) => {
+    const validCost = Math.max(0, Number(newCost) || 0);
+    const updated = { ...itemCosts, [id]: validCost };
+    setItemCosts(updated);
+    const newTotal = selectedProcedureIds.reduce((sum, pid) => sum + (updated[pid] ?? 0), 0);
+    form.setValue('cost', Math.round(newTotal * 100) / 100);
+  };
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
@@ -136,33 +200,67 @@ export function TreatmentPlanForm({ treatment, onSave, onSaveBatch, onOpenChange
         return;
       }
 
+      const totalCostValue = Number(values.cost);
+
       if (isEditing) {
         // Single update
         const selectedSystemTreatment = systemTreatments.find(t => String(t.id) === String(values.procedureIds[0]));
         const procedureName = selectedSystemTreatment?.procedure ?? treatment?.procedure ?? '';
-        onSave({ procedureId: values.procedureIds[0], procedure: procedureName, tooth: values.tooth, status: values.status, cost: values.cost }, values.condition);
-      } else if (onSaveBatch) {
-        // Batch — one network call for all selected procedures
-        const items = values.procedureIds.map(pid => {
+        onSave({
+          procedureId: values.procedureIds[0],
+          procedure: procedureName,
+          tooth: values.tooth,
+          status: values.status,
+          cost: totalCostValue,
+          totalCost: totalCostValue,
+          total_cost: totalCostValue,
+        }, values.condition);
+      } else if (values.procedureIds.length === 1) {
+        // Single procedure add
+        const pid = values.procedureIds[0];
+        const selectedSystemTreatment = systemTreatments.find(t => String(t.id) === String(pid));
+        const procedureName = selectedSystemTreatment?.procedure ?? '';
+
+        const singleItemData = {
+          procedureId: pid,
+          procedure: procedureName,
+          tooth: values.tooth,
+          status: values.status,
+          cost: totalCostValue,
+          totalCost: totalCostValue,
+          total_cost: totalCostValue,
+        };
+
+        if (onSaveBatch) {
+          onSaveBatch([{ data: singleItemData, condition: values.condition }]);
+        } else {
+          onSave(singleItemData, values.condition);
+        }
+      } else {
+        // Multiple procedures add
+        const items = values.procedureIds.map((pid, idx) => {
           const st = systemTreatments.find(t => String(t.id) === String(pid));
+          const allocatedCost = itemCosts[pid] ?? (totalCostValue / values.procedureIds.length);
           return {
             data: {
               procedureId: pid,
               procedure: st?.procedure ?? '',
               tooth: values.tooth,
               status: values.status,
-              cost: st ? Number(st.cost) : values.cost / values.procedureIds.length,
+              cost: Number(allocatedCost),
+              totalCost: totalCostValue,
+              total_cost: totalCostValue,
             },
             condition: values.condition as DentalCondition | undefined,
           };
         }).filter(item => item.data.procedure);
-        onSaveBatch(items);
-      } else {
-        // Fallback: loop via onSave
-        for (const pid of values.procedureIds) {
-          const st = systemTreatments.find(t => String(t.id) === String(pid));
-          if (!st) continue;
-          onSave({ procedureId: pid, procedure: st.procedure, tooth: values.tooth, status: values.status, cost: Number(st.cost) }, values.condition);
+
+        if (onSaveBatch) {
+          onSaveBatch(items);
+        } else {
+          for (const item of items) {
+            onSave(item.data, item.condition);
+          }
         }
       }
     } catch (error: any) {
@@ -173,7 +271,6 @@ export function TreatmentPlanForm({ treatment, onSave, onSaveBatch, onOpenChange
     }
   }
 
-
   const comboboxOptions = systemTreatments.map(t => ({
     value: String(t.id),
     label: t.procedure,
@@ -182,7 +279,7 @@ export function TreatmentPlanForm({ treatment, onSave, onSaveBatch, onOpenChange
 
   return (
     <Dialog open={true} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="sm:max-w-[650px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
                 <DialogTitle>{isEditing ? 'Edit Treatment' : `Add New Treatment`}</DialogTitle>
                 <DialogDescription>
@@ -212,6 +309,46 @@ export function TreatmentPlanForm({ treatment, onSave, onSaveBatch, onOpenChange
                         </div>
                       )}
                     />
+
+                    {/* Individual Procedure Breakdown if more than 1 procedure is selected */}
+                    {selectedProcedureIds.length > 1 && (
+                      <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                            <Calculator className="h-3.5 w-3.5" />
+                            Procedure Cost Breakdown ({selectedProcedureIds.length} items)
+                          </span>
+                          <span className="text-xs text-muted-foreground">Adjust item or total cost</span>
+                        </div>
+                        <div className="space-y-2 max-h-44 overflow-y-auto pr-1">
+                          {selectedProcedureIds.map(pid => {
+                            const st = systemTreatments.find(t => String(t.id) === String(pid));
+                            return (
+                              <div key={pid} className="flex items-center justify-between gap-3 text-xs bg-background p-2 rounded border">
+                                <div className="min-w-0 flex-1">
+                                  <p className="font-medium truncate">{st?.procedure || `Procedure #${pid}`}</p>
+                                  <p className="text-muted-foreground text-[11px]">
+                                    Catalog: {st?.cost !== undefined ? Number(st.cost).toLocaleString() : '0'}
+                                    {st?.category ? ` • ${st.category}` : ''}
+                                  </p>
+                                </div>
+                                <div className="w-28 shrink-0">
+                                  <Input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    className="h-7 text-xs text-right font-mono"
+                                    value={itemCosts[pid] ?? ''}
+                                    onChange={(e) => handleItemCostChange(pid, parseFloat(e.target.value) || 0)}
+                                    placeholder="0.00"
+                                  />
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
 
                     {!isEditing && toothId && (
                        <FormField
@@ -287,10 +424,22 @@ export function TreatmentPlanForm({ treatment, onSave, onSaveBatch, onOpenChange
                             name="cost"
                             render={({ field }) => (
                                 <FormItem>
-                                <FormLabel>Total Cost {selectedProcedureIds.length > 1 ? `(${selectedProcedureIds.length} procedures)` : ''}</FormLabel>
+                                <FormLabel className="flex items-center justify-between">
+                                  <span>Total Cost {selectedProcedureIds.length > 1 ? `(${selectedProcedureIds.length} procedures)` : ''}</span>
+                                  <span className="text-[10px] text-muted-foreground font-normal">Adjustable</span>
+                                </FormLabel>
                                 <FormControl>
-                                    <Input type="number" placeholder="0.00" {...field} />
+                                    <Input
+                                      type="number"
+                                      min="0"
+                                      step="0.01"
+                                      placeholder="0.00"
+                                      value={field.value ?? ''}
+                                      onChange={(e) => handleTotalCostChange(parseFloat(e.target.value) || 0)}
+                                      onBlur={field.onBlur}
+                                    />
                                 </FormControl>
+                                <p className="text-[11px] text-muted-foreground">Total cost posted with treatment payload</p>
                                 <FormMessage />
                                 </FormItem>
                             )}

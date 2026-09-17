@@ -105,6 +105,8 @@ export type Treatment = {
   tooth?: number;
   status: 'Proposed' | 'In Progress' | 'Completed' | 'Cancelled';
   cost: number;
+  totalCost?: number;
+  total_cost?: number;
   date: string;
   invoiceId?: string | number;
 };
