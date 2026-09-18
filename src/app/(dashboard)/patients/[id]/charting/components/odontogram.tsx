@@ -11,12 +11,13 @@ type OdontogramToothImageProps = {
   records: RestorativeRecord[];
   dentalRecord?: DentalRecord;
   hasTreatment?: boolean;
-  onClick?: (toothId: number, surface?: string) => void;
+  onClick?: (toothId: number, surface?: string, event?: React.MouseEvent) => void;
   isBridgeSelected?: boolean;
+  isSelected?: boolean;
   onBridgeToggle?: (toothId: number) => void;
 };
 
-function OdontogramToothImage({ toothId, records, dentalRecord, hasTreatment, onClick, isBridgeSelected, onBridgeToggle }: OdontogramToothImageProps) {
+function OdontogramToothImage({ toothId, records, dentalRecord, hasTreatment, onClick, isBridgeSelected, isSelected, onBridgeToggle }: OdontogramToothImageProps) {
   const isUpper = toothId <= 28;
   const renderVisualProcedures = (view: "Back" | "Top" | "Front" | "Whole Tooth") => {
     // 1. Render RestorativeRecords (Visual Procedures)
@@ -170,6 +171,8 @@ function OdontogramToothImage({ toothId, records, dentalRecord, hasTreatment, on
         if (dentalRecord.condition === 'Fracture') conditionColor = "#DC2626";
         if (dentalRecord.condition === 'Implant') conditionColor = "#9CA3AF";
         if (dentalRecord.condition === 'Bridge') conditionColor = "#06B6D4";
+        if (dentalRecord.condition === 'Retained Root' || (dentalRecord.condition as string) === 'Retained') conditionColor = "#22D3EE";
+        if (dentalRecord.condition === 'Malocclusion') conditionColor = "#D946EF";
 
         if (dentalRecord.condition === 'Missing') {
           // Draw an X
@@ -210,7 +213,9 @@ function OdontogramToothImage({ toothId, records, dentalRecord, hasTreatment, on
           const rgb = conditionColor === '#EA580C' ? '234, 88, 12' : // Caries
                       conditionColor === '#0284C7' ? '2, 132, 199' : // Filling
                       conditionColor === '#9333EA' ? '147, 51, 234' : // Crown
-                      conditionColor === '#DC2626' ? '220, 38, 38' : '16, 185, 129'; // Fracture / Healthy
+                      conditionColor === '#DC2626' ? '220, 38, 38' : // Fracture
+                      conditionColor === '#22D3EE' ? '34, 211, 238' : // Retained Root
+                      conditionColor === '#D946EF' ? '217, 70, 239' : '16, 185, 129'; // Malocclusion / Healthy
           overlays.push(
             <div
                key={`cond-${dentalRecord.id}`}
@@ -257,9 +262,24 @@ function OdontogramToothImage({ toothId, records, dentalRecord, hasTreatment, on
 
   return (
     <div
-      className={`flex flex-col items-center group w-14 sm:w-16 md:w-20 lg:w-24 ${onClick ? 'cursor-pointer hover:bg-slate-800/50 p-1 rounded-lg transition-colors' : ''} ${isBridgeSelected ? 'bg-fuchsia-500/20 border-2 border-fuchsia-500 rounded-lg' : ''}`}
-      onClick={() => onClick && onClick(toothId)}
+      className={`flex flex-col items-center group relative w-14 sm:w-16 md:w-20 lg:w-24 p-1 rounded-lg transition-all ${
+        onClick ? 'cursor-pointer' : ''
+      } ${
+        isSelected
+          ? 'ring-2 ring-blue-500 bg-blue-500/20 shadow-md shadow-blue-500/20 scale-105'
+          : isBridgeSelected
+          ? 'bg-fuchsia-500/20 border-2 border-fuchsia-500'
+          : onClick
+          ? 'hover:bg-slate-800/50'
+          : ''
+      }`}
+      onClick={(e) => onClick && onClick(toothId, undefined, e)}
     >
+      {isSelected && (
+        <div className="absolute -top-1.5 -right-1.5 z-40 bg-blue-500 text-white rounded-full w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center text-[10px] font-bold shadow">
+          ✓
+        </div>
+      )}
       {isUpper && <span className="text-[10px] sm:text-xs md:text-sm font-bold text-slate-400 group-hover:text-slate-200 transition-colors mb-1">{toothId}</span>}
       
       {/* Upper Arch: Root on Top, Occlusal on Bottom */}
@@ -268,7 +288,7 @@ function OdontogramToothImage({ toothId, records, dentalRecord, hasTreatment, on
             {/* Front View (Facial Root pointing UP) */}
             <div 
                 className="relative w-12 h-14 sm:w-14 sm:h-16 md:w-16 md:h-20 lg:w-20 lg:h-24 transition-transform hover:scale-110 z-0 -mb-2 md:-mb-3"
-                onClick={(e) => { e.stopPropagation(); onClick && onClick(toothId, "F (Facial)"); }}
+                onClick={(e) => { e.stopPropagation(); onClick && onClick(toothId, "F (Facial)", e); }}
             >
                 <Image
                 src={`/teeth/restore/tooth_${toothId}/front.png`}
@@ -283,7 +303,7 @@ function OdontogramToothImage({ toothId, records, dentalRecord, hasTreatment, on
             {/* Top View (Occlusal) */}
             <div 
                 className="relative w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 transition-transform hover:scale-110 z-10"
-                onClick={(e) => { e.stopPropagation(); onClick && onClick(toothId, "O (Occlusal)"); }}
+                onClick={(e) => { e.stopPropagation(); onClick && onClick(toothId, "O (Occlusal)", e); }}
             >
                 {/* Surface Badges */}
                 <div className="absolute inset-0 z-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
@@ -307,7 +327,7 @@ function OdontogramToothImage({ toothId, records, dentalRecord, hasTreatment, on
             {/* Back View (Palatal Root pointing DOWN) */}
             <div 
                 className="relative w-12 h-14 sm:w-14 sm:h-16 md:w-16 md:h-20 lg:w-20 lg:h-24 transition-transform hover:scale-110 z-0 -mt-2 md:-mt-3"
-                onClick={(e) => { e.stopPropagation(); onClick && onClick(toothId, "L (Lingual)"); }}
+                onClick={(e) => { e.stopPropagation(); onClick && onClick(toothId, "L (Lingual)", e); }}
             >
                 <div className="absolute inset-0 drop-shadow-md">
                   <Image
@@ -329,7 +349,7 @@ function OdontogramToothImage({ toothId, records, dentalRecord, hasTreatment, on
             {/* Back View (Lingual Root pointing UP) */}
             <div 
                 className="relative w-12 h-14 sm:w-14 sm:h-16 md:w-16 md:h-20 lg:w-20 lg:h-24 transition-transform hover:scale-110 z-0 -mb-2 md:-mb-3"
-                onClick={(e) => { e.stopPropagation(); onClick && onClick(toothId, "L (Lingual)"); }}
+                onClick={(e) => { e.stopPropagation(); onClick && onClick(toothId, "L (Lingual)", e); }}
             >
                 <Image
                 src={`/teeth/restore/tooth_${toothId}/back.png`}
@@ -344,7 +364,7 @@ function OdontogramToothImage({ toothId, records, dentalRecord, hasTreatment, on
             {/* Top View (Occlusal) */}
             <div 
                 className="relative w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 transition-transform hover:scale-110 z-10"
-                onClick={(e) => { e.stopPropagation(); onClick && onClick(toothId, "O (Occlusal)"); }}
+                onClick={(e) => { e.stopPropagation(); onClick && onClick(toothId, "O (Occlusal)", e); }}
             >
                 {/* Surface Badges */}
                 <div className="absolute inset-0 z-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
@@ -370,7 +390,7 @@ function OdontogramToothImage({ toothId, records, dentalRecord, hasTreatment, on
             {/* Front View (Facial Root pointing DOWN) */}
             <div 
                 className="relative w-12 h-14 sm:w-14 sm:h-16 md:w-16 md:h-20 lg:w-20 lg:h-24 transition-transform hover:scale-110 z-0 -mt-2 md:-mt-3"
-                onClick={(e) => { e.stopPropagation(); onClick && onClick(toothId, "F (Facial)"); }}
+                onClick={(e) => { e.stopPropagation(); onClick && onClick(toothId, "F (Facial)", e); }}
             >
                 <div className="absolute inset-0 drop-shadow-md">
                   <Image
@@ -396,13 +416,15 @@ export function Odontogram({
   dentalRecords = [],
   treatmentPlans = [],
   onToothClick,
+  selectedTeeth = [],
   selectedBridgeTeeth = [],
   onBridgeToothToggle
 }: {
   records?: RestorativeRecord[],
   dentalRecords?: DentalRecord[],
   treatmentPlans?: Treatment[],
-  onToothClick?: (toothId: number, surface?: string) => void,
+  onToothClick?: (toothId: number, surface?: string, event?: React.MouseEvent) => void,
+  selectedTeeth?: number[],
   selectedBridgeTeeth?: number[],
   onBridgeToothToggle?: (toothId: number) => void
 }) {
@@ -429,6 +451,7 @@ export function Odontogram({
     const hasTreatment = treatmentPlans.some(p => p.tooth === id && (p.status === 'Proposed' || p.status === 'In Progress'));
     const toothRecords = records.filter(r => r.toothId == id);
     const isBridgeSelected = selectedBridgeTeeth.includes(id);
+    const isSelected = selectedTeeth.includes(id);
 
     return (
       <TooltipProvider key={id}>
@@ -442,6 +465,7 @@ export function Odontogram({
                 hasTreatment={hasTreatment}
                 onClick={onToothClick}
                 isBridgeSelected={isBridgeSelected}
+                isSelected={isSelected}
                 onBridgeToggle={onBridgeToothToggle}
               />
             </div>

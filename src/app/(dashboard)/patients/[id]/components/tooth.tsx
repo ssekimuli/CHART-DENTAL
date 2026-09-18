@@ -16,13 +16,18 @@ type ToothProps = {
   onClick: () => void;
 };
 
-const conditionColors: Record<DentalCondition, string> = {
+const conditionColors: Record<DentalCondition, string> & { Retained?: string } = {
   Healthy: "fill-white dark:fill-gray-300",
   Caries: "fill-yellow-400",
   Filling: "fill-blue-400",
   Crown: "fill-purple-400",
   Missing: "fill-gray-500 opacity-50",
   Fracture: "fill-red-500",
+  Implant: "fill-gray-400",
+  Bridge: "fill-amber-400",
+  "Retained Root": "fill-cyan-400",
+  Retained: "fill-cyan-400",
+  Malocclusion: "fill-fuchsia-500",
 };
 
 export function Tooth({ toothId, condition, hasTreatmentPlan, onClick }: ToothProps) {

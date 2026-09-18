@@ -51,6 +51,7 @@ export type Patient = {
   address?: string;
   gender?: 'Male' | 'Female' | 'Other';
   dateOfBirth: string;
+  age?: number;
   lastVisit?: string;
   nextVisit?: string;
   status: 'Active' | 'Inactive';
@@ -75,7 +76,7 @@ export type PatientImage = {
   category?: 'Image' | 'X-Ray' | 'Other Doc';
 };
 
-export type DentalCondition = 'Healthy' | 'Caries' | 'Filling' | 'Crown' | 'Missing' | 'Fracture' | 'Implant' | 'Bridge';
+export type DentalCondition = 'Healthy' | 'Caries' | 'Filling' | 'Crown' | 'Missing' | 'Fracture' | 'Implant' | 'Bridge' | 'Retained Root' | 'Malocclusion';
 
 export type DentalRecord = {
   id?: string | number;
@@ -104,6 +105,8 @@ export type Treatment = {
   tooth?: number;
   status: 'Proposed' | 'In Progress' | 'Completed' | 'Cancelled';
   cost: number;
+  totalCost?: number;
+  total_cost?: number;
   date: string;
   invoiceId?: string | number;
 };
@@ -210,6 +213,7 @@ export type Invoice = {
   issueDate: string;
   dueDate: string;
   branchId: string | number;
+  category?: string;
   treatments: InvoiceTreatment[];
   otherCharges?: OtherCharge[];
   paymentMethod?: PaymentMethod;
@@ -243,7 +247,7 @@ export type PracticeTrendPoint = {
   newPatients: number;
 };
 
-export type EmployeeRole = 'Super Admin' | 'Account' | 'HR' | 'Dentist' | 'Hygienist' | 'Receptionist' | 'Assistant';
+export type EmployeeRole = 'Super Admin' | 'Account' | 'HR' | 'Dentist' | 'Hygienist' | 'Receptionist' | 'Assistant' | 'Lab Technician' | 'Lab Manager';
 
 export type Employee = {
   id: string | number;
@@ -510,7 +514,7 @@ export type CurrentUser = {
     avatar: string;
 };
 
-export type Permission = 
+export type Permission =
   | 'dashboard:read'
   | 'queue:read'
   | 'patients:read' | 'patients:create' | 'patients:update' | 'patients:delete'
@@ -519,7 +523,7 @@ export type Permission =
   | 'billing:read' | 'billing:create' | 'billing:update' | 'billing:delete'
   | 'accounting:read' | 'accounting:create'
   | 'inventory:read' | 'inventory:create' | 'inventory:update'
-  | 'laboratory:read' | 'laboratory:create' | 'laboratory:update'
+  | 'laboratory:read' | 'laboratory:create' | 'laboratory:update' | 'laboratory:delete'
   | 'hrm:read' | 'hrm:create' | 'hrm:update' | 'hrm:delete'
   | 'branches:read' | 'branches:create'
   | 'reports:read'
