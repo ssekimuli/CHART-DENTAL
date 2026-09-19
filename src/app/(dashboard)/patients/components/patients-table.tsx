@@ -50,7 +50,6 @@ export function PatientsTable({ data, onView, onEdit, onDelete }: PatientsTableP
             <TableHead>Status</TableHead>
             <TableHead>Last Visit</TableHead>
             <TableHead>Next Visit</TableHead>
-            <TableHead>Date of Birth</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -83,7 +82,6 @@ export function PatientsTable({ data, onView, onEdit, onDelete }: PatientsTableP
               </TableCell>
               <TableCell>{patient.lastVisit || '-'}</TableCell>
               <TableCell>{patient.nextVisit || '-'}</TableCell>
-              <TableCell>{patient.dateOfBirth}</TableCell>
                <TableCell className="text-right">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>

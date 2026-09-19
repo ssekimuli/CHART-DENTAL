@@ -76,7 +76,7 @@ export type PatientImage = {
   category?: 'Image' | 'X-Ray' | 'Other Doc';
 };
 
-export type DentalCondition = 'Healthy' | 'Caries' | 'Filling' | 'Crown' | 'Missing' | 'Fracture' | 'Implant' | 'Bridge' | 'Retained' | 'Malocclusion';
+export type DentalCondition = 'Healthy' | 'Caries' | 'Filling' | 'Crown' | 'Missing' | 'Fracture' | 'Implant' | 'Bridge' | 'Retained Root' | 'Malocclusion' | 'Generalized Calculus';
 
 export type DentalRecord = {
   id?: string | number;
@@ -105,6 +105,8 @@ export type Treatment = {
   tooth?: number;
   status: 'Proposed' | 'In Progress' | 'Completed' | 'Cancelled';
   cost: number;
+  totalCost?: number;
+  total_cost?: number;
   date: string;
   invoiceId?: string | number;
 };

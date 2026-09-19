@@ -505,7 +505,7 @@ export const getPatientById = async (id: string | number): Promise<Patient | und
             branchId: String(patient.branch_id),
             dentalRecords: parseJsonArraySafe(patient.dental_records).map((record: any) => ({
                 toothId: record.tooth_id,
-                condition: record.condition,
+                condition: record.condition === 'Retained' ? 'Retained Root' : record.condition,
                 notes: record.notes || '',
             })),
              treatmentPlans: parseJsonArraySafe(patient.treatment_plans).map((plan: any) => ({
@@ -2382,7 +2382,7 @@ export const addImageToPatient = async (patientId: string | number, imageFormDat
             branchId: String(updatedPatient.branch_id),
             dentalRecords: (updatedPatient.dental_records || []).map((record: any) => ({
                 toothId: record.tooth_id,
-                condition: record.condition,
+                condition: record.condition === 'Retained' ? 'Retained Root' : record.condition,
                 notes: record.notes || '',
             })),
             treatmentPlans: (updatedPatient.treatment_plans || []).map((plan: any) => ({
@@ -2453,7 +2453,7 @@ export const saveDentalRecord = async (patientId: string | number, record: Denta
         // Map API response back to frontend type
         const feRecord: DentalRecord = {
             toothId: savedRecord.tooth_id || savedRecord.toothId,
-            condition: savedRecord.condition,
+            condition: savedRecord.condition === 'Retained' ? 'Retained Root' : savedRecord.condition,
             notes: savedRecord.notes || '',
             id: savedRecord.id,
             bridgeGroupId: savedRecord.bridge_group_id || savedRecord.bridgeGroupId,
@@ -2792,17 +2792,27 @@ export const addTreatmentsBatch = async (
 ): Promise<Treatment[]> => {
     const today = new Date().toISOString().split('T')[0];
 
+    const totalCostSum = treatments.reduce((sum, { data }) => {
+        const itemCost = data.totalCost ?? data.total_cost ?? data.cost ?? 0;
+        return sum + Number(itemCost);
+    }, 0);
+
     const batchPayload = {
-        treatments: treatments.map(({ data, condition }) => ({
-            procedure_id: data.procedureId,
-            procedure: data.procedure,
-            tooth: data.tooth || null,
-            status: (data.status === 'In Progress' || data.status === 'Cancelled') ? 'Proposed' : data.status,
-            cost: data.cost,
-            date: today,
-            condition: condition || null,
-            notes: data.procedure || null,
-        })),
+        total_cost: totalCostSum,
+        treatments: treatments.map(({ data, condition }) => {
+            const itemTotal = data.totalCost ?? data.total_cost ?? data.cost;
+            return {
+                procedure_id: data.procedureId,
+                procedure: data.procedure,
+                tooth: data.tooth || null,
+                status: (data.status === 'In Progress' || data.status === 'Cancelled') ? 'Proposed' : data.status,
+                cost: data.cost,
+                total_cost: itemTotal,
+                date: today,
+                condition: condition || null,
+                notes: data.procedure || null,
+            };
+        }),
     };
 
     try {
@@ -2815,13 +2825,16 @@ export const addTreatmentsBatch = async (
 
         const saved: Treatment[] = treatments.map((t, i) => {
             const backendItem = treatmentPlans[i];
+            const itemTotal = backendItem?.total_cost ?? backendItem?.totalCost ?? t.data.totalCost ?? t.data.total_cost ?? t.data.cost;
             const fe: Treatment = {
                 id: backendItem?.id || `t${Date.now()}${i}`,
                 procedureId: t.data.procedureId,
                 procedure: backendItem?.procedure || t.data.procedure,
                 tooth: backendItem?.tooth || t.data.tooth,
                 status: backendItem?.status || t.data.status,
-                cost: backendItem?.cost || t.data.cost,
+                cost: backendItem?.cost ?? t.data.cost,
+                totalCost: itemTotal,
+                total_cost: itemTotal,
                 date: backendItem?.date || today,
             };
 
@@ -2856,10 +2869,11 @@ export const addTreatment = async (patientId: string | number, treatmentData: Om
     console.log('API CALL: addTreatment', { patientId, treatmentData, condition });
 
     const today = new Date().toISOString().split('T')[0];
+    const totalCost = treatmentData.totalCost ?? treatmentData.total_cost ?? treatmentData.cost;
 
     // Build request body matching backend validation:
     // procedure (required|string), tooth (nullable|integer), status (required|in:Proposed,Completed),
-    // cost (required|numeric), date (required|date)
+    // cost (required|numeric), total_cost (numeric), date (required|date)
     const requestBody: Record<string, any> = {
         procedure_id: treatmentData.procedureId,
         procedure: treatmentData.procedure,
@@ -2868,6 +2882,7 @@ export const addTreatment = async (patientId: string | number, treatmentData: Om
             ? 'Proposed'  // Backend only accepts 'Proposed' or 'Completed'
             : treatmentData.status,
         cost: treatmentData.cost,
+        total_cost: totalCost,
         date: today,
         condition: condition || null,
         notes: treatmentData.procedure || null,
@@ -2889,7 +2904,9 @@ export const addTreatment = async (patientId: string | number, treatmentData: Om
             procedure: savedTreatment?.procedure || treatmentData.procedure,
             tooth: savedTreatment?.tooth || treatmentData.tooth,
             status: savedTreatment?.status || treatmentData.status,
-            cost: savedTreatment?.cost || treatmentData.cost,
+            cost: savedTreatment?.cost ?? treatmentData.cost,
+            totalCost: savedTreatment?.total_cost ?? savedTreatment?.totalCost ?? totalCost,
+            total_cost: savedTreatment?.total_cost ?? savedTreatment?.totalCost ?? totalCost,
             date: savedTreatment?.date || today,
             invoiceId: treatmentData.invoiceId,
         };
@@ -2937,12 +2954,14 @@ export const updateTreatment = async (patientId: string | number, treatment: Tre
     console.log('API CALL: updateTreatment', { patientId, treatment });
     
     try {
+        const totalCost = treatment.totalCost ?? treatment.total_cost ?? treatment.cost;
         const requestBody = {
             procedure_id: treatment.procedureId,
             procedure: treatment.procedure,
             tooth: treatment.tooth || null,
             status: treatment.status,
             cost: treatment.cost,
+            total_cost: totalCost,
             date: treatment.date,
         };
 
