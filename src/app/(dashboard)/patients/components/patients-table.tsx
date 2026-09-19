@@ -45,10 +45,11 @@ export function PatientsTable({ data, onView, onEdit, onDelete }: PatientsTableP
         <TableHeader>
           <TableRow>
             <TableHead>Name</TableHead>
+            <TableHead>Age</TableHead>
             <TableHead>Gender</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Last Visit</TableHead>
-            <TableHead>Date of Birth</TableHead>
+            <TableHead>Next Visit</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -69,6 +70,7 @@ export function PatientsTable({ data, onView, onEdit, onDelete }: PatientsTableP
                   <div className="text-sm text-muted-foreground">{patient.phone}</div>
                 </div>
               </TableCell>
+              <TableCell>{patient.age ?? '-'}</TableCell>
               <TableCell>{patient.gender || '-'}</TableCell>
               <TableCell>
                 <Badge
@@ -78,8 +80,8 @@ export function PatientsTable({ data, onView, onEdit, onDelete }: PatientsTableP
                   {patient.status}
                 </Badge>
               </TableCell>
-              <TableCell>{patient.lastVisit}</TableCell>
-              <TableCell>{patient.dateOfBirth}</TableCell>
+              <TableCell>{patient.lastVisit || '-'}</TableCell>
+              <TableCell>{patient.nextVisit || '-'}</TableCell>
                <TableCell className="text-right">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -116,7 +118,7 @@ export function PatientsTable({ data, onView, onEdit, onDelete }: PatientsTableP
           ))}
           {data.length === 0 && (
             <TableRow>
-                <TableCell colSpan={6} className="h-24 text-center">
+                <TableCell colSpan={8} className="h-24 text-center">
                     No patients found for this branch.
                 </TableCell>
             </TableRow>

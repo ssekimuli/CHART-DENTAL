@@ -713,32 +713,32 @@ export default function PharmacyPage() {
                   <div key={index} className="grid grid-cols-12 gap-2 items-end border-b border-border/10 pb-3 last:border-0 last:pb-0">
                     <div className="col-span-3 space-y-1">
                       <Label className="text-xs">Medicine</Label>
-                      <select
-                        required
-                        className="flex h-9 w-full rounded-md border border-input bg-background px-2 py-1 text-xs ring-offset-background"
+                      <Combobox
+                        options={medicines.map((m) => ({
+                          value: String(m.id),
+                          label: m.name,
+                          category: m.category,
+                        }))}
                         value={item.medicine_id}
-                        onChange={(e) => handleRxItemChange(index, "medicine_id", e.target.value)}
-                      >
-                        <option value="">Select...</option>
-                        {medicines.map(m => (
-                          <option key={m.id} value={m.id}>{m.name}</option>
-                        ))}
-                      </select>
+                        onChange={(val) => handleRxItemChange(index, "medicine_id", val)}
+                        placeholder="Select medicine"
+                        searchPlaceholder="Search medicine..."
+                        emptyMessage="No medicine found."
+                      />
                     </div>
                     <div className="col-span-3 space-y-1">
                       <Label className="text-xs">Unit Size</Label>
-                      <select
-                        required
-                        disabled={!item.medicine_id}
-                        className="flex h-9 w-full rounded-md border border-input bg-background px-2 py-1 text-xs ring-offset-background"
+                      <Combobox
+                        options={(selectedMed?.units ?? []).map((u) => ({
+                          value: String(u.id),
+                          label: `${u.unit_name} (${formatCurrency(u.price)})`,
+                        }))}
                         value={item.medicine_unit_id}
-                        onChange={(e) => handleRxItemChange(index, "medicine_unit_id", e.target.value)}
-                      >
-                        <option value="">Select...</option>
-                        {selectedMed?.units.map(u => (
-                          <option key={u.id} value={u.id}>{u.unit_name} ({formatCurrency(u.price)})</option>
-                        ))}
-                      </select>
+                        onChange={(val) => handleRxItemChange(index, "medicine_unit_id", val)}
+                        placeholder={item.medicine_id ? "Select unit" : "Select medicine first"}
+                        searchPlaceholder="Search unit..."
+                        emptyMessage="No units available."
+                      />
                     </div>
                     <div className="col-span-3 space-y-1">
                       <Label className="text-xs">Dosage Instructions</Label>

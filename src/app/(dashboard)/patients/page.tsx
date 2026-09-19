@@ -120,7 +120,7 @@ export default function PatientsPage() {
       const query = searchQuery.toLowerCase();
       return patientsData.filter(p => {
         const fullName = getPatientFullName(p).toLowerCase();
-        const email = p.email.toLowerCase();
+        const email = p.email?.toLowerCase() || '';
         const phone = p.phone?.toLowerCase() || '';
         return fullName.includes(query) || email.includes(query) || phone.includes(query);
       });
