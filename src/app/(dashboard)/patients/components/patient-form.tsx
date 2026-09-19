@@ -88,6 +88,7 @@ type PatientFormProps = {
 export function PatientForm({ patient, onSave, onOpenChange, asModal = true }: PatientFormProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [nationalityOpen, setNationalityOpen] = useState(false);
   // When editing: use age mode if patient has an explicit age value,
   // use date mode if patient only has a dateOfBirth string.
   const initialUseAge = patient ? (patient.age != null) : true;
@@ -185,8 +186,8 @@ export function PatientForm({ patient, onSave, onOpenChange, asModal = true }: P
 
   const formContent = (
             <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                         <FormField
                             control={form.control}
                             name="first_name"
@@ -311,19 +312,20 @@ export function PatientForm({ patient, onSave, onOpenChange, asModal = true }: P
                             render={({ field }) => (
                                 <FormItem className="flex flex-col">
                                 <FormLabel>Nationality</FormLabel>
-                                <Popover>
+                                <Popover open={nationalityOpen} onOpenChange={setNationalityOpen}>
                                     <PopoverTrigger asChild>
                                     <FormControl>
                                         <Button
                                             variant="outline"
                                             role="combobox"
+                                            aria-expanded={nationalityOpen}
                                             className={cn(
                                                 "justify-between font-normal",
                                                 !field.value && "text-muted-foreground"
                                             )}
                                         >
                                             {field.value
-                                                ? countryList.find(c => c.value === field.value)?.label
+                                                ? (countryList.find(c => c.value === field.value)?.label ?? field.value)
                                                 : "Select nationality"}
                                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                         </Button>
@@ -341,6 +343,7 @@ export function PatientForm({ patient, onSave, onOpenChange, asModal = true }: P
                                                             value={country.label}
                                                             onSelect={() => {
                                                                 field.onChange(country.value);
+                                                                setNationalityOpen(false);
                                                             }}
                                                         >
                                                             <Check
@@ -465,7 +468,7 @@ export function PatientForm({ patient, onSave, onOpenChange, asModal = true }: P
                                 </FormItem>
                             )}
                         />
-                        <div className="md:col-span-3">
+                        <div className="col-span-2 md:col-span-4">
                             <FormField
                                 control={form.control}
                                 name="address"
@@ -491,6 +494,7 @@ export function PatientForm({ patient, onSave, onOpenChange, asModal = true }: P
                                 <Textarea
                                 placeholder="Enter patient history..."
                                 className="resize-none"
+                                rows={2}
                                 {...field}
                                 />
                             </FormControl>
@@ -515,7 +519,7 @@ export function PatientForm({ patient, onSave, onOpenChange, asModal = true }: P
 
   return (
     <Dialog open={true} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[550px]">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
                 <DialogTitle>{patient ? "Edit Patient" : "Add Patient"}</DialogTitle>
                 <DialogDescription>
