@@ -45,7 +45,7 @@ const formSchema = z.object({
 });
 
 const VALID_CONDITIONS: DentalCondition[] = [
-  'Healthy', 'Caries', 'Filling', 'Crown', 'Missing', 'Fracture', 'Implant', 'Bridge', 'Retained Root', 'Malocclusion'
+  'Healthy', 'Caries', 'Filling', 'Crown', 'Missing', 'Fracture', 'Implant', 'Bridge', 'Retained Root', 'Malocclusion', 'Generalized Calculus'
 ];
 
 function normalizeCondition(cond?: DentalCondition | string): DentalCondition | undefined {

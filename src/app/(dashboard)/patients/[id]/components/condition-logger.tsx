@@ -48,6 +48,7 @@ const conditions: DentalCondition[] = [
   "Fracture",
   "Retained Root",
   "Malocclusion",
+  "Generalized Calculus",
 ];
 
 export function ConditionLogger({

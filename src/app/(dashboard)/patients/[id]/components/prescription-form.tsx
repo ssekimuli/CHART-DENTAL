@@ -222,35 +222,33 @@ export function PrescriptionForm({
                   <div key={idx} className="grid grid-cols-12 gap-2 items-end border p-3 rounded-lg bg-muted/40 relative">
                     <div className="col-span-4 space-y-1">
                       <Label className="text-xs">Medicine</Label>
-                      <select
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-xs focus-visible:outline-none"
+                      <Combobox
+                        options={medicines.map((m) => ({
+                          value: String(m.id),
+                          label: m.name,
+                          category: m.category,
+                        }))}
                         value={item.medicine_id}
-                        onChange={(e) => handleRxItemChange(idx, "medicine_id", e.target.value)}
-                      >
-                        <option value="">Select Medicine</option>
-                        {medicines.map((m) => (
-                          <option key={m.id} value={m.id}>
-                            {m.name}
-                          </option>
-                        ))}
-                      </select>
+                        onChange={(val) => handleRxItemChange(idx, "medicine_id", val)}
+                        placeholder="Select medicine"
+                        searchPlaceholder="Search medicine..."
+                        emptyMessage="No medicine found."
+                      />
                     </div>
 
                     <div className="col-span-2 space-y-1">
                       <Label className="text-xs">Unit</Label>
-                      <select
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-xs focus-visible:outline-none"
+                      <Combobox
+                        options={availableUnits.map((u) => ({
+                          value: String(u.id),
+                          label: `${u.unit_name} (${formatCurrency(u.price)})`,
+                        }))}
                         value={item.medicine_unit_id}
-                        disabled={!item.medicine_id}
-                        onChange={(e) => handleRxItemChange(idx, "medicine_unit_id", e.target.value)}
-                      >
-                        <option value="">Select Unit</option>
-                        {availableUnits.map((u) => (
-                          <option key={u.id} value={u.id}>
-                            {u.unit_name} ({formatCurrency(u.price)})
-                          </option>
-                        ))}
-                      </select>
+                        onChange={(val) => handleRxItemChange(idx, "medicine_unit_id", val)}
+                        placeholder={item.medicine_id ? "Select unit" : "Select medicine first"}
+                        searchPlaceholder="Search unit..."
+                        emptyMessage="No units available."
+                      />
                     </div>
 
                     <div className="col-span-2 space-y-1">

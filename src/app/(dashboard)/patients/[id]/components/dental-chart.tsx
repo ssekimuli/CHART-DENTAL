@@ -39,6 +39,7 @@ const conditionInfo: { condition: DentalCondition; color: string; twColor: strin
     { condition: 'Bridge', color: '#F59E0B', twColor: 'bg-amber-500', icon: <Link2 size={16} />, description: 'Bridge prosthetic' },
     { condition: 'Retained Root', color: '#22D3EE', twColor: 'bg-cyan-400', icon: <RotateCcw size={16} />, description: 'Retained root' },
     { condition: 'Malocclusion', color: '#D946EF', twColor: 'bg-fuchsia-500', icon: <Shuffle size={16} />, description: 'Malocclusion' },
+    { condition: 'Generalized Calculus', color: '#92400E', twColor: 'bg-amber-800', icon: <AlertCircle size={16} />, description: 'Generalized calculus build-up' },
 ];
 
 type DentalChartProps = {
