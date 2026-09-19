@@ -59,7 +59,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { deletePatient, getPatientById, updatePatient, addTreatment, updateTreatment, deleteTreatment, addImageToPatient, getTreatments, getPatientInvoices, processPayment, getPatientPrescriptions, deletePrescription, getPatientImages, sendPatientDocuments } from "@/lib/api";
+import { deletePatient, getPatientById, updatePatient, addTreatment, addTreatmentsBatch, updateTreatment, deleteTreatment, addImageToPatient, getTreatments, getPatientInvoices, processPayment, getPatientPrescriptions, deletePrescription, getPatientImages, sendPatientDocuments } from "@/lib/api";
 import { Input } from "@/components/ui/input";
 import { ImageUploadForm } from "./components/image-upload-form";
 import { AvatarUploadModal } from "./components/avatar-upload-modal";
@@ -345,7 +345,7 @@ export default function PatientDetailPage({
                 // Update the patient's treatment plans with the saved treatment
                 setPatient({
                     ...patient,
-                    treatmentPlans: [...patient.treatmentPlans, savedTreatment]
+                    treatmentPlans: [savedTreatment, ...patient.treatmentPlans]
                 });
                 toast({ title: "Success", description: "Treatment added successfully." });
             }
@@ -354,6 +354,23 @@ export default function PatientDetailPage({
         toast({ title: "Error", description: e.message || "Failed to save treatment.", variant: "destructive" });
     }
 
+    handleCloseTreatmentForm();
+  }
+
+  const handleSaveTreatmentsBatch = async (items: Array<{ data: Omit<Treatment, 'id' | 'date'>; condition?: DentalCondition }>) => {
+    if (!patient) return;
+    try {
+      const savedList = await addTreatmentsBatch(patient.id, items);
+      if (savedList && savedList.length > 0) {
+        setPatient({
+          ...patient,
+          treatmentPlans: [...savedList, ...patient.treatmentPlans]
+        });
+        toast({ title: "Success", description: `${savedList.length} treatments added successfully.` });
+      }
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message || "Failed to save treatments.", variant: "destructive" });
+    }
     handleCloseTreatmentForm();
   }
   
@@ -929,6 +946,7 @@ export default function PatientDetailPage({
         <TreatmentPlanForm
             treatment={selectedTreatment}
             onSave={handleSaveTreatment as any}
+            onSaveBatch={handleSaveTreatmentsBatch}
             onOpenChange={handleCloseTreatmentForm}
         />
       )}

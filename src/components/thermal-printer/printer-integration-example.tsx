@@ -202,7 +202,7 @@ export function PrinterIntegrationExample({ bill }: PrinterIntegrationExamplePro
  *   return (
  *     <div className="grid grid-cols-3 gap-4">
  *       <div className="col-span-2">
- *         {/* Bill display/form */}
+ *         {/* Bill display/form * /}
  *       </div>
  *       <div>
  *         <PrinterIntegrationExample bill={billData} />

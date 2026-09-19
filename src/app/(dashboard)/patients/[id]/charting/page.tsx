@@ -44,7 +44,8 @@ import { useState, useEffect, use } from "react";
 import type { Patient, DentalRecord, Treatment, PeriodontalRecord, OcclusalRecord, OrthodonticRecord, SoftTissueRecord, DentalCondition, EndodonticRecord, RestorativeRecord } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Loader2, Pill, Upload } from "lucide-react";
-import { getPatientById, addTreatment, updateTreatment, saveDentalRecord, savePeriodontalRecord, saveOcclusalRecord, saveOrthodonticRecord, updateOrthodonticRecord, deleteOrthodonticRecord, saveSoftTissueRecord, updateSoftTissueRecord, deleteSoftTissueRecord, saveEndodonticRecord, updateEndodonticRecord, deleteEndodonticRecord, saveRestorativeRecord, updateRestorativeRecord, deleteRestorativeRecord } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
+import { getPatientById, addTreatment, addTreatmentsBatch, updateTreatment, saveDentalRecord, savePeriodontalRecord, saveOcclusalRecord, saveOrthodonticRecord, updateOrthodonticRecord, deleteOrthodonticRecord, saveSoftTissueRecord, updateSoftTissueRecord, deleteSoftTissueRecord, saveEndodonticRecord, updateEndodonticRecord, deleteEndodonticRecord, saveRestorativeRecord, updateRestorativeRecord, deleteRestorativeRecord } from "@/lib/api";
 import { getCurrentUser, hasRole, hasPermission } from "@/lib/user";
 import { getPatientFullName } from "@/lib/utils";
 import { useCurrency } from "@/hooks/use-currency";
@@ -56,6 +57,7 @@ export default function PatientChartingPage({
 }) {
   const { id } = use(params);
   const router = useRouter();
+  const { toast } = useToast();
   const [patient, setPatient] = useState<Patient | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(true);
   const { formatCurrency } = useCurrency();
@@ -83,6 +85,7 @@ export default function PatientChartingPage({
 
   const [isConditionLoggerOpen, setIsConditionLoggerOpen] = useState(false);
   const [selectedToothForCondition, setSelectedToothForCondition] = useState<number | undefined>(undefined);
+  const [selectedTeethForCondition, setSelectedTeethForCondition] = useState<number[]>([]);
 
   const [isRestorativeFormOpen, setIsRestorativeFormOpen] = useState(false);
   const [selectedToothForRestorative, setSelectedToothForRestorative] = useState<number | undefined>(undefined);
@@ -146,7 +149,7 @@ export default function PatientChartingPage({
     if (!patient) return;
     
     if (selectedTreatment) {
-        // It's an update
+        // It's an update — single treatment
         const updatedTreatmentObj = {
             ...selectedTreatment,
             ...treatmentData,
@@ -157,28 +160,20 @@ export default function PatientChartingPage({
             setPatient(updatedPatient);
         }
     } else {
-        // It's a new treatment
+        // It's a new treatment — use single addTreatment (batch is called from handleSaveTreatments)
         const savedTreatment = await addTreatment(patient.id, treatmentData, condition);
         if (savedTreatment) {
-            // Update the patient's treatment plans and dental records
             const updatedDentalRecords = [...patient.dentalRecords];
-
-            // If a tooth is specified and condition is provided, update the dental record
             if (treatmentData.tooth && condition) {
                 const recordIndex = updatedDentalRecords.findIndex(r => r.toothId === treatmentData.tooth);
                 const newRecord: DentalRecord = {
-                toothId: treatmentData.tooth,
-                condition: condition,
-                notes: savedTreatment.procedure || ''
+                    toothId: treatmentData.tooth,
+                    condition: condition,
+                    notes: savedTreatment.procedure || ''
                 };
-
-                if (recordIndex > -1) {
-                updatedDentalRecords[recordIndex] = newRecord;
-                } else {
-                updatedDentalRecords.push(newRecord);
-                }
+                if (recordIndex > -1) updatedDentalRecords[recordIndex] = newRecord;
+                else updatedDentalRecords.push(newRecord);
             }
-
             setPatient({
                 ...patient,
                 treatmentPlans: [savedTreatment, ...patient.treatmentPlans],
@@ -191,6 +186,35 @@ export default function PatientChartingPage({
     setSelectedToothForTreatment(undefined);
     setSelectedTreatment(undefined);
   }
+
+  // Batch handler — called by TreatmentPlanForm when multiple procedures are selected
+  const handleSaveTreatments = async (
+    items: Array<{ data: Omit<Treatment, 'id' | 'date'>; condition?: DentalCondition }>
+  ) => {
+    if (!patient) return;
+    const savedList = await addTreatmentsBatch(patient.id, items);
+    if (savedList.length > 0) {
+        const updatedDentalRecords = [...patient.dentalRecords];
+        items.forEach((item, i) => {
+            if (item.condition && item.data.tooth) {
+                const idx = updatedDentalRecords.findIndex(r => r.toothId === item.data.tooth);
+                const rec: DentalRecord = { toothId: item.data.tooth!, condition: item.condition, notes: savedList[i]?.procedure || '' };
+                if (idx > -1) updatedDentalRecords[idx] = rec;
+                else updatedDentalRecords.push(rec);
+            }
+        });
+        setPatient({
+            ...patient,
+            treatmentPlans: [...savedList.reverse(), ...patient.treatmentPlans],
+            dentalRecords: updatedDentalRecords,
+        });
+    }
+    setIsTreatmentFormOpen(false);
+    setSelectedToothForTreatment(undefined);
+    setSelectedTreatment(undefined);
+  }
+
+
 
   const handleSaveDentalRecord = async (record: DentalRecord) => {
     if (!patient) return;
@@ -300,7 +324,7 @@ export default function PatientChartingPage({
     }
   }
 
-  const handleSaveRestorativeRecord = async (record: Omit<RestorativeRecord, 'id' | 'createdAt' | 'updatedAt'> & { procedureCost?: number, materialCost?: number, otherCharges?: number }) => {
+  const handleSaveRestorativeRecord = async (record: Omit<RestorativeRecord, 'id' | 'createdAt' | 'updatedAt'> & { procedureCost?: number, materialCost?: number, otherCharges?: number, perMaterialCosts?: Record<string, number> }) => {
     if (!patient) return;
     const updatedPatient = await saveRestorativeRecord(patient.id, record);
     if (updatedPatient) {
@@ -334,10 +358,58 @@ export default function PatientChartingPage({
     setSelectedToothForTreatment(undefined);
   }
   
-  const handleOpenConditionLogger = (toothId: number) => {
+  const handleOpenConditionLogger = (toothId: number, toothIds?: number[]) => {
     setSelectedToothForCondition(toothId);
+    setSelectedTeethForCondition(toothIds && toothIds.length > 0 ? toothIds : [toothId]);
     setIsConditionLoggerOpen(true);
-  }
+  };
+
+  const handleBatchLogCondition = async (toothIds: number[], condition: DentalCondition, notes: string = '') => {
+    if (!patient || toothIds.length === 0) return;
+
+    try {
+      const results = await Promise.allSettled(
+        toothIds.map((toothId) =>
+          saveDentalRecord(patient.id, {
+            toothId,
+            condition,
+            notes,
+          })
+        )
+      );
+
+      const savedRecords: DentalRecord[] = [];
+      results.forEach((res) => {
+        if (res.status === 'fulfilled' && res.value) {
+          savedRecords.push(res.value);
+        }
+      });
+
+      if (savedRecords.length > 0) {
+        const newRecords = [...patient.dentalRecords];
+        for (const savedRecord of savedRecords) {
+          const recordIndex = newRecords.findIndex((r) => r.toothId === savedRecord.toothId);
+          if (recordIndex > -1) {
+            newRecords[recordIndex] = savedRecord;
+          } else {
+            newRecords.push(savedRecord);
+          }
+        }
+        setPatient({ ...patient, dentalRecords: newRecords });
+        toast({
+          title: "Conditions updated",
+          description: `Set "${condition}" on ${savedRecords.length} ${savedRecords.length === 1 ? 'tooth' : 'teeth'}.`,
+        });
+      }
+    } catch (error: any) {
+      console.error("Failed to batch save dental records:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update conditions on all selected teeth.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleQuickLogCondition = async (toothId: number, condition: DentalCondition) => {
     handleSaveDentalRecord({
@@ -428,6 +500,7 @@ export default function PatientChartingPage({
                         onAddTreatment={handleOpenTreatmentForm}
                         onLogCondition={handleOpenConditionLogger}
                         onQuickLogCondition={handleQuickLogCondition}
+                        onBatchLogCondition={handleBatchLogCondition}
                         onAddRestorativeRecord={handleOpenRestorativeForm}
                         onConfirmBridge={handleConfirmBridge}
                     />
@@ -551,17 +624,31 @@ export default function PatientChartingPage({
         <TreatmentPlanForm
             treatment={selectedTreatment}
             onSave={handleSaveTreatment}
+            onSaveBatch={handleSaveTreatments}
             onOpenChange={handleCloseTreatmentForm}
             toothId={selectedToothForTreatment}
             currentCondition={patient.dentalRecords.find(r => r.toothId === (selectedToothForTreatment || selectedTreatment?.tooth))?.condition}
         />
       )}
-      {isConditionLoggerOpen && selectedToothForCondition && (
+      {isConditionLoggerOpen && (selectedToothForCondition || selectedTeethForCondition.length > 0) && (
         <ConditionLogger
-            toothId={selectedToothForCondition}
-            currentRecord={patient.dentalRecords.find(r => r.toothId === selectedToothForCondition)}
+            toothId={selectedToothForCondition || selectedTeethForCondition[0]}
+            toothIds={selectedTeethForCondition.length > 0 ? selectedTeethForCondition : undefined}
+            currentRecord={patient.dentalRecords.find(r => r.toothId === (selectedToothForCondition || selectedTeethForCondition[0]))}
             onSave={(toothId, condition, notes) => handleSaveDentalRecord({ toothId, condition, notes })}
-            onOpenChange={setIsConditionLoggerOpen}
+            onSaveBatch={(toothIds, condition, notes) => {
+              handleBatchLogCondition(toothIds, condition, notes);
+              setIsConditionLoggerOpen(false);
+              setSelectedToothForCondition(undefined);
+              setSelectedTeethForCondition([]);
+            }}
+            onOpenChange={(open) => {
+              setIsConditionLoggerOpen(open);
+              if (!open) {
+                setSelectedToothForCondition(undefined);
+                setSelectedTeethForCondition([]);
+              }
+            }}
         />
       )}
       <RestorativeRecordForm
