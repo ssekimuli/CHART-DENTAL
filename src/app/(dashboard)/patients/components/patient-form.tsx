@@ -36,7 +36,16 @@ import {
 import type { Patient, BasePatient } from "@/lib/types";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { CalendarIcon, Loader2 } from "lucide-react";
+import { CalendarIcon, Loader2, ChevronsUpDown, Check } from "lucide-react";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+
 import { Calendar } from "@/components/ui/calendar";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -79,7 +88,10 @@ type PatientFormProps = {
 export function PatientForm({ patient, onSave, onOpenChange, asModal = true }: PatientFormProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [useAge, setUseAge] = useState(true);
+  // When editing: use age mode if patient has an explicit age value,
+  // use date mode if patient only has a dateOfBirth string.
+  const initialUseAge = patient ? (patient.age != null) : true;
+  const [useAge, setUseAge] = useState(initialUseAge);
 
   const calculateDateOfBirth = (age: number): string => {
     const today = new Date();
@@ -97,13 +109,18 @@ export function PatientForm({ patient, onSave, onOpenChange, asModal = true }: P
         nationality: patient?.nationality ?? "",
         address: patient?.address ?? "",
         gender: patient?.gender,
-        dateOfBirth: patient?.dateOfBirth ? format(parseISO(patient.dateOfBirth), "dd-MM-yyyy") : "",
+        // Pre-fill with age if available, otherwise format the dateOfBirth date
+        dateOfBirth: patient?.age != null
+          ? String(patient.age)
+          : patient?.dateOfBirth
+            ? format(parseISO(patient.dateOfBirth), "dd-MM-yyyy")
+            : "",
         lastVisit: patient?.lastVisit ? parseISO(patient.lastVisit) : undefined,
         nextVisit: patient?.nextVisit ? parseISO(patient.nextVisit) : undefined,
         status: patient?.status ?? 'Active',
         history: patient?.history ?? "",
         avatar: patient?.avatar ?? "",
-        useAge: true,
+        useAge: initialUseAge,
     },
   });
 
@@ -292,26 +309,59 @@ export function PatientForm({ patient, onSave, onOpenChange, asModal = true }: P
                             control={form.control}
                             name="nationality"
                             render={({ field }) => (
-                                <FormItem>
+                                <FormItem className="flex flex-col">
                                 <FormLabel>Nationality</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value || undefined}>
+                                <Popover>
+                                    <PopoverTrigger asChild>
                                     <FormControl>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select nationality" />
-                                    </SelectTrigger>
+                                        <Button
+                                            variant="outline"
+                                            role="combobox"
+                                            className={cn(
+                                                "justify-between font-normal",
+                                                !field.value && "text-muted-foreground"
+                                            )}
+                                        >
+                                            {field.value
+                                                ? countryList.find(c => c.value === field.value)?.label
+                                                : "Select nationality"}
+                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                        </Button>
                                     </FormControl>
-                                    <SelectContent>
-                                        {countryList.map((country) => (
-                                            <SelectItem key={country.value} value={country.value}>
-                                                {country.label}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-[250px] p-0" align="start">
+                                        <Command>
+                                            <CommandInput placeholder="Search nationality..." />
+                                            <CommandList>
+                                                <CommandEmpty>No country found.</CommandEmpty>
+                                                <CommandGroup>
+                                                    {countryList.map((country) => (
+                                                        <CommandItem
+                                                            key={country.value}
+                                                            value={country.label}
+                                                            onSelect={() => {
+                                                                field.onChange(country.value);
+                                                            }}
+                                                        >
+                                                            <Check
+                                                                className={cn(
+                                                                    "mr-2 h-4 w-4",
+                                                                    field.value === country.value ? "opacity-100" : "opacity-0"
+                                                                )}
+                                                            />
+                                                            {country.label}
+                                                        </CommandItem>
+                                                    ))}
+                                                </CommandGroup>
+                                            </CommandList>
+                                        </Command>
+                                    </PopoverContent>
+                                </Popover>
                                 <FormMessage />
                                 </FormItem>
                             )}
                         />
+
                         <FormField
                             control={form.control}
                             name="status"
