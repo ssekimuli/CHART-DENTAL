@@ -28,6 +28,7 @@ const conditionColors: Record<DentalCondition, string> & { Retained?: string } =
   "Retained Root": "fill-cyan-400",
   Retained: "fill-cyan-400",
   Malocclusion: "fill-fuchsia-500",
+  "Generalized Calculus": "fill-amber-800",
 };
 
 export function Tooth({ toothId, condition, hasTreatmentPlan, onClick }: ToothProps) {

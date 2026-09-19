@@ -76,7 +76,7 @@ export type PatientImage = {
   category?: 'Image' | 'X-Ray' | 'Other Doc';
 };
 
-export type DentalCondition = 'Healthy' | 'Caries' | 'Filling' | 'Crown' | 'Missing' | 'Fracture' | 'Implant' | 'Bridge' | 'Retained Root' | 'Malocclusion';
+export type DentalCondition = 'Healthy' | 'Caries' | 'Filling' | 'Crown' | 'Missing' | 'Fracture' | 'Implant' | 'Bridge' | 'Retained Root' | 'Malocclusion' | 'Generalized Calculus';
 
 export type DentalRecord = {
   id?: string | number;
