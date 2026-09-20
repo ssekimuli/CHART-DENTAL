@@ -82,6 +82,8 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange, asModal =
   const [availableTreatments, setAvailableTreatments] = useState<SystemTreatment[]>([]);
   const [selectedMedicines, setSelectedMedicines] = useState<InvoiceMedicine[]>([]);
   const [availableMedicines, setAvailableMedicines] = useState<Medicine[]>([]);
+  const [isTreatmentPopoverOpen, setIsTreatmentPopoverOpen] = useState(false);
+  const [isMedicinePopoverOpen, setIsMedicinePopoverOpen] = useState(false);
   const { formatCurrency } = useCurrency();
   
   useEffect(() => {
@@ -200,6 +202,7 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange, asModal =
     if (treatment) {
         handleTreatmentToggle({ procedureId: Number(treatment.id), procedure: treatment.procedure, cost: treatment.cost });
     }
+    setIsTreatmentPopoverOpen(false);
   }
 
   const handleMedicineSelect = (medicineId: number) => {
@@ -222,6 +225,7 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange, asModal =
             unit: defaultUnit,
         }];
     });
+    setIsMedicinePopoverOpen(false);
   };
 
   const subTotal = useMemo(() => {
@@ -358,7 +362,7 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange, asModal =
                                 </FormLabel>
                                 
                                 <FormControl>
-                                    <Popover>
+                                    <Popover open={isTreatmentPopoverOpen} onOpenChange={setIsTreatmentPopoverOpen}>
                                         <PopoverTrigger asChild>
                                             <Button variant="outline" className="w-full justify-start text-muted-foreground font-normal bg-background/50 h-10">
                                                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
@@ -434,7 +438,7 @@ export function InvoiceForm({ invoice, patients, onSave, onOpenChange, asModal =
                                 </FormLabel>
                                 
                                 <FormControl>
-                                    <Popover>
+                                    <Popover open={isMedicinePopoverOpen} onOpenChange={setIsMedicinePopoverOpen}>
                                         <PopoverTrigger asChild>
                                             <Button variant="outline" className="w-full justify-start text-muted-foreground font-normal bg-background/50 h-10">
                                                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
