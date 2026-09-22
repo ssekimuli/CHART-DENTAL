@@ -36,17 +36,19 @@ import type { Treatment, DentalCondition, SystemTreatment } from "@/lib/types";
 import { MultiCombobox } from "@/components/ui/multi-combobox";
 import { getTreatments } from "@/lib/api";
 
+const VALID_CONDITIONS: DentalCondition[] = [
+  'Healthy', 'Caries', 'Filling', 'Crown', 'Missing', 'Fracture', 'Implant', 'Bridge', 'Retained Root', 'Malocclusion', 'Generalized Calculus'
+];
+
 const formSchema = z.object({
   procedureIds: z.array(z.string()).min(1, "At least one procedure is required."),
   tooth: z.coerce.number().optional(),
   status: z.enum(['Proposed', 'In Progress', 'Completed', 'Cancelled']),
   cost: z.coerce.number().min(0, { message: "Cost must be 0 or more." }),
-  condition: z.enum(['Healthy', 'Caries', 'Filling', 'Crown', 'Missing', 'Fracture', 'Implant', 'Bridge', 'Retained Root', 'Malocclusion']).optional(),
+  condition: z.enum([
+    'Healthy', 'Caries', 'Filling', 'Crown', 'Missing', 'Fracture', 'Implant', 'Bridge', 'Retained Root', 'Malocclusion', 'Generalized Calculus'
+  ]).optional(),
 });
-
-const VALID_CONDITIONS: DentalCondition[] = [
-  'Healthy', 'Caries', 'Filling', 'Crown', 'Missing', 'Fracture', 'Implant', 'Bridge', 'Retained Root', 'Malocclusion', 'Generalized Calculus'
-];
 
 function normalizeCondition(cond?: DentalCondition | string): DentalCondition | undefined {
   if (!cond) return undefined;
@@ -350,51 +352,56 @@ export function TreatmentPlanForm({ treatment, onSave, onSaveBatch, onOpenChange
                       </div>
                     )}
 
-                    {!isEditing && toothId && (
-                       <FormField
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormField
+                          control={form.control}
+                          name="tooth"
+                          render={({ field }) => (
+                              <FormItem>
+                              <FormLabel>Tooth # (optional)</FormLabel>
+                              <FormControl>
+                                  <Input 
+                                    type="number" 
+                                    placeholder="e.g., 16" 
+                                    {...field} 
+                                    value={field.value ?? ''}
+                                    onChange={(e) => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))}
+                                  />
+                              </FormControl>
+                              <FormMessage />
+                              </FormItem>
+                          )}
+                      />
+
+                      <FormField
                         control={form.control}
                         name="condition"
                         render={({ field }) => (
-                            <FormItem>
-                            <FormLabel>Log Condition (optional)</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormItem>
+                            <FormLabel>Condition</FormLabel>
+                            <Select 
+                              value={field.value ?? "none"} 
+                              onValueChange={(val) => field.onChange(val === "none" ? undefined : val)}
+                            >
                                 <FormControl>
                                 <SelectTrigger>
-                                    <SelectValue placeholder="Select condition to log" />
+                                    <SelectValue placeholder="Select condition" />
                                 </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                    <SelectItem value="Healthy">Healthy</SelectItem>
-                                    <SelectItem value="Caries">Caries</SelectItem>
-                                    <SelectItem value="Filling">Filling</SelectItem>
-                                    <SelectItem value="Crown">Crown</SelectItem>
-                                    <SelectItem value="Fracture">Fracture</SelectItem>
-                                    <SelectItem value="Missing">Missing</SelectItem>
-                                    <SelectItem value="Implant">Implant</SelectItem>
-                                    <SelectItem value="Bridge">Bridge</SelectItem>
-                                    <SelectItem value="Retained Root">Retained Root</SelectItem>
-                                    <SelectItem value="Malocclusion">Malocclusion</SelectItem>
+                                    <SelectItem value="none">None</SelectItem>
+                                    {VALID_CONDITIONS.map((cond) => (
+                                      <SelectItem key={cond} value={cond}>
+                                        {cond}
+                                      </SelectItem>
+                                    ))}
                                 </SelectContent>
                             </Select>
-                            <p className="text-xs text-muted-foreground">This will also update the odontogram chart for this tooth.</p>
                             <FormMessage />
-                            </FormItem>
+                          </FormItem>
                         )}
                       />
-                    )}
-                     <FormField
-                        control={form.control}
-                        name="tooth"
-                        render={({ field }) => (
-                            <FormItem>
-                            <FormLabel>Tooth # (optional)</FormLabel>
-                            <FormControl>
-                                <Input type="number" placeholder="e.g., 16" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                            </FormItem>
-                        )}
-                    />
+                    </div>
                     <div className="grid grid-cols-2 gap-4">
                         <FormField
                             control={form.control}

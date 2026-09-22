@@ -137,10 +137,11 @@ export function DentalChart({
 
     const handleKeyPress = (e: KeyboardEvent) => {
       const key = parseInt(e.key);
-      if (key >= 1 && key <= 8) {
+      const nonBridgeConditions = conditionInfo.filter(c => c.condition !== 'Bridge');
+      if (key >= 1 && key <= nonBridgeConditions.length) {
         e.preventDefault();
-        const selectedCondition = conditionInfo[key - 1];
-        if (selectedCondition && selectedCondition.condition !== 'Bridge') {
+        const selectedCondition = nonBridgeConditions[key - 1];
+        if (selectedCondition) {
           if (onQuickLogCondition) onQuickLogCondition(selectedTooth, selectedCondition.condition);
           setSelectedToothData(null);
         }
@@ -302,6 +303,21 @@ export function DentalChart({
               <FilePen className="h-3.5 w-3.5" />
               <span>With Notes...</span>
             </Button>
+
+            <Button
+              variant="default"
+              size="sm"
+              disabled={isApplyingCondition}
+              className="h-8 px-2.5 text-xs gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium ml-1 shadow-sm"
+              onClick={() => {
+                if (selectedTeeth.length > 0 && onAddTreatment) {
+                  onAddTreatment(selectedTeeth[0]);
+                }
+              }}
+            >
+              <Plus className="h-3.5 w-3.5" />
+              <span>Add Treatment</span>
+            </Button>
           </div>
         </div>
       )}
@@ -323,7 +339,7 @@ export function DentalChart({
             <div className="flex flex-col gap-4 overflow-y-auto flex-1 pr-2">
               <div>
                 <h4 className="text-xs sm:text-sm font-medium mb-2">Select Condition</h4>
-                <p className="text-xs text-muted-foreground mb-2">Click or press 1-8</p>
+                <p className="text-xs text-muted-foreground mb-2">Click or press 1-9</p>
               </div>
               <div className="grid grid-cols-2 gap-1 sm:gap-2">
                   {conditionInfo.map(({ condition, twColor, icon, description }, idx) => (
@@ -424,7 +440,7 @@ export function DentalChart({
               <div className="bg-slate-900/50 p-2 rounded text-xs shrink-0">
                 <h4 className="font-semibold mb-1 text-slate-400">⌨️ Shortcuts</h4>
                 <div className="text-muted-foreground space-y-0.5 text-xs">
-                  <div className="flex justify-between"><span>1-8</span><span>Condition</span></div>
+                  <div className="flex justify-between"><span>1-9</span><span>Condition</span></div>
                   <div className="flex justify-between"><span>B</span><span>Bridge</span></div>
                 </div>
               </div>

@@ -46,6 +46,8 @@ const conditions: DentalCondition[] = [
   "Crown",
   "Missing",
   "Fracture",
+  "Implant",
+  "Bridge",
   "Retained Root",
   "Malocclusion",
   "Generalized Calculus",
