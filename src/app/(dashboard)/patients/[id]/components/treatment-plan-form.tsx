@@ -34,6 +34,7 @@ import {
   } from "@/components/ui/select";
 import type { Treatment, DentalCondition, SystemTreatment } from "@/lib/types";
 import { MultiCombobox } from "@/components/ui/multi-combobox";
+import { Combobox } from "@/components/ui/combobox";
 import { getTreatments } from "@/lib/api";
 
 const VALID_CONDITIONS: DentalCondition[] = [
@@ -379,24 +380,19 @@ export function TreatmentPlanForm({ treatment, onSave, onSaveBatch, onOpenChange
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Condition</FormLabel>
-                            <Select 
-                              value={field.value ?? "none"} 
-                              onValueChange={(val) => field.onChange(val === "none" ? undefined : val)}
-                            >
-                                <FormControl>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select condition" />
-                                </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                    <SelectItem value="none">None</SelectItem>
-                                    {VALID_CONDITIONS.map((cond) => (
-                                      <SelectItem key={cond} value={cond}>
-                                        {cond}
-                                      </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                            <FormControl>
+                              <Combobox
+                                options={[
+                                  { value: "none" as string, label: "None" },
+                                  ...VALID_CONDITIONS.map((cond) => ({ value: cond as string, label: cond })),
+                                ]}
+                                value={field.value ?? "none"}
+                                onChange={(val) => field.onChange(val === "none" ? undefined : val)}
+                                placeholder="Select condition..."
+                                searchPlaceholder="Search condition..."
+                                emptyMessage="No condition found."
+                              />
+                            </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
