@@ -304,6 +304,7 @@ type GetPatientsFilters = {
     branchId?: string | number;
     status?: 'Active' | 'Inactive';
     gender?: 'Male' | 'Female' | 'Other';
+    searchQuery?: string;
     page?: number;
     perPage?: number;
 };
@@ -334,7 +335,7 @@ export const getPatients = async (filters?: string | number | GetPatientsFilters
     console.log('API CALL: getPatients', { filters });
 
     try {
-        const params: { branch_id?: number; status?: string; gender?: string; page?: number; per_page?: number } = {};
+        const params: { branch_id?: number; status?: string; gender?: string; search?: string; page?: number; per_page?: number } = {};
 
         if (typeof filters === 'number' || typeof filters === 'string') {
             const parsed = parseInt(String(filters), 10);
@@ -353,6 +354,9 @@ export const getPatients = async (filters?: string | number | GetPatientsFilters
             }
             if (filters.gender) {
                 params.gender = filters.gender;
+            }
+            if (filters.searchQuery) {
+                params.search = filters.searchQuery;
             }
             if (filters.page) {
                 params.page = filters.page;
@@ -813,6 +817,7 @@ export const getInvoices = async (filters?: {
 
     if (filters?.branchId) params.branch_id = filters.branchId;
     if (filters?.status) params.status = filters.status;
+    if (filters?.searchQuery) params.search = filters.searchQuery;
     if (filters?.page) params.page = filters.page;
     if (filters?.perPage) params.per_page = filters.perPage;
 
@@ -867,12 +872,14 @@ export const getInvoices = async (filters?: {
 
         console.log('Fetched invoices from API:', invoices);
 
-        // ✅ Frontend filters (search + date)
+        // ✅ Client-side search fallback (covers cases where the backend doesn't support search)
         if (filters?.searchQuery) {
             const query = filters.searchQuery.toLowerCase();
             invoices = invoices.filter((inv: any) =>
-                inv.patient_name.toLowerCase().includes(query) ||
-                String(inv.id).toLowerCase().includes(query)
+                (inv.patientName || '').toLowerCase().includes(query) ||
+                String(inv.id).toLowerCase().includes(query) ||
+                (inv.invoiceNumber || inv.invoice_number || '').toLowerCase().includes(query) ||
+                (inv.status || '').toLowerCase().includes(query)
             );
         }
 
