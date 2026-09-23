@@ -173,6 +173,7 @@ function OdontogramToothImage({ toothId, records, dentalRecord, hasTreatment, on
         if (dentalRecord.condition === 'Bridge') conditionColor = "#06B6D4";
         if (dentalRecord.condition === 'Retained Root' || (dentalRecord.condition as string) === 'Retained') conditionColor = "#22D3EE";
         if (dentalRecord.condition === 'Malocclusion') conditionColor = "#D946EF";
+        if (dentalRecord.condition === 'Generalized Calculus') conditionColor = "#92400E";
 
         if (dentalRecord.condition === 'Missing') {
           // Draw an X
@@ -215,7 +216,8 @@ function OdontogramToothImage({ toothId, records, dentalRecord, hasTreatment, on
                       conditionColor === '#9333EA' ? '147, 51, 234' : // Crown
                       conditionColor === '#DC2626' ? '220, 38, 38' : // Fracture
                       conditionColor === '#22D3EE' ? '34, 211, 238' : // Retained Root
-                      conditionColor === '#D946EF' ? '217, 70, 239' : '16, 185, 129'; // Malocclusion / Healthy
+                      conditionColor === '#D946EF' ? '217, 70, 239' : // Malocclusion
+                      conditionColor === '#92400E' ? '146, 64, 14' : '16, 185, 129'; // Generalized Calculus / Healthy
           overlays.push(
             <div
                key={`cond-${dentalRecord.id}`}
