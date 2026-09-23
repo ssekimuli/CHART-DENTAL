@@ -472,9 +472,15 @@ export default function PatientChartingPage({
           <Upload className="mr-2 h-4 w-4" />
           Upload documents
         </Button>
+        {canUpdatePatient && (
+          <Button size="sm" onClick={() => handleOpenTreatmentFormForEdit()} className="ml-2 bg-blue-600 hover:bg-blue-700 text-white shadow-sm">
+            <PlusCircle className="mr-2 h-4 w-4" />
+            New Treatment
+          </Button>
+        )}
       </div>
       <Tabs defaultValue="odontogram">
-        <TabsList className="grid w-full grid-cols-8">
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="odontogram">Odontogram</TabsTrigger>
           <TabsTrigger value="periodontal">Periodontal</TabsTrigger>
           <TabsTrigger value="occlusal">Occlusal</TabsTrigger>
@@ -486,11 +492,19 @@ export default function PatientChartingPage({
 
         <TabsContent value="odontogram">
             <Card>
-                <CardHeader>
-                    <CardTitle>Odontogram (Dental Chart)</CardTitle>
-                    <CardDescription>
-                        Interactive chart of each tooth and its condition. Click a tooth to log conditions or add treatments.
-                    </CardDescription>
+                <CardHeader className="flex flex-row items-center justify-between">
+                    <div>
+                      <CardTitle>Odontogram (Dental Chart)</CardTitle>
+                      <CardDescription>
+                          Interactive chart of each tooth and its condition. Click a tooth to log conditions or add treatments.
+                      </CardDescription>
+                    </div>
+                    {canUpdatePatient && (
+                      <Button size="sm" onClick={() => handleOpenTreatmentFormForEdit()} className="shrink-0">
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        New Treatment
+                      </Button>
+                    )}
                 </CardHeader>
                 <CardContent>
                     <DentalChart
@@ -662,7 +676,7 @@ export default function PatientChartingPage({
         <PrescriptionForm
           patientId={patient.id}
           patientName={getPatientFullName(patient)}
-          branchId={patient.branch_id || getCurrentUser()?.branchId || 1}
+          branchId={patient.branchId || (patient as any).branch_id || getCurrentUser()?.branchId || 1}
           onOpenChange={setIsPrescriptionFormOpen}
           onSave={() => {
             setIsPrescriptionFormOpen(false);
