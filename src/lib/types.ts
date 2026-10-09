@@ -362,8 +362,8 @@ export type LaboratoryOrder = {
   item: string;
   tooth?: number;
   status: 'Draft' | 'Received' | 'In Production' | 'Ready for Delivery' | 'Delivered' | 'Cancelled';
-  sentDate: string;
-  dueDate: string;
+  sentDate?: string;
+  dueDate?: string;
   receivedDate?: string;
   shade?: string;
   material?: string;

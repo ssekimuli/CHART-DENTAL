@@ -2,7 +2,6 @@
 import { useToast } from "@/hooks/use-toast";
 
 import { useState, useEffect } from "react";
-import { format } from "date-fns";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,10 +21,7 @@ import {
     SelectValue,
   } from "@/components/ui/select";
 import type { Client, LabService } from "@/lib/types";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
-import { CalendarIcon, Loader2, PlusCircle, Trash2 } from "lucide-react";
-import { Calendar } from "@/components/ui/calendar";
+import { Loader2, PlusCircle, Trash2 } from "lucide-react";
 import { Combobox } from "@/components/ui/combobox";
 import { useBranch } from "@/context/branch-context";
 import { getLabServices, getActivePriceForService } from "@/lib/api-lab-prices";
@@ -73,9 +69,6 @@ export function LabOrderForm({ clients, onSave, onOpenChange }: LabOrderFormProp
   const [clientId, setClientId] = useState("");
   const [doctorName, setDoctorName] = useState("");
   const [status, setStatus] = useState<string>("Draft");
-  const [sentDate, setSentDate] = useState<Date>(new Date());
-  const [dueDate, setDueDate] = useState<Date | undefined>(undefined);
-  const [receivedDate, setReceivedDate] = useState<Date | undefined>(undefined);
   const [instructions, setInstructions] = useState("");
 
   // ── Items list ──
@@ -144,8 +137,6 @@ export function LabOrderForm({ clients, onSave, onOpenChange }: LabOrderFormProp
 
   const validate = (): string | null => {
     if (!clientId) return "Please select a client.";
-    if (!sentDate) return "Sent date is required.";
-    if (!dueDate) return "Due date is required.";
     for (let i = 0; i < items.length; i++) {
       const it = items[i];
       if (!it.item.trim()) return `Item ${i + 1}: description is required.`;
@@ -172,9 +163,6 @@ export function LabOrderForm({ clients, onSave, onOpenChange }: LabOrderFormProp
         clientId,
         doctorName: doctorName || undefined,
         status,
-        sentDate: format(sentDate, "yyyy-MM-dd"),
-        dueDate: format(dueDate!, "yyyy-MM-dd"),
-        receivedDate: receivedDate ? format(receivedDate, "yyyy-MM-dd") : undefined,
         instructions: instructions || undefined,
         branchId: selectedBranch,
       };
@@ -255,54 +243,6 @@ export function LabOrderForm({ clients, onSave, onOpenChange }: LabOrderFormProp
                                 <SelectItem value="Cancelled">Cancelled</SelectItem>
                             </SelectContent>
                         </Select>
-                    </div>
-
-                    {/* Sent Date */}
-                    <div className="flex flex-col gap-1.5">
-                        <Label>Sent Date *</Label>
-                        <Popover>
-                            <PopoverTrigger asChild>
-                                <Button variant="outline" className={cn("pl-3 text-left font-normal w-full", !sentDate && "text-muted-foreground")}>
-                                    {sentDate ? format(sentDate, "PPP") : <span>Pick a date</span>}
-                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                                <Calendar mode="single" selected={sentDate} onSelect={(d) => d && setSentDate(d)} initialFocus />
-                            </PopoverContent>
-                        </Popover>
-                    </div>
-
-                    {/* Due Date */}
-                    <div className="flex flex-col gap-1.5">
-                        <Label>Due Date *</Label>
-                        <Popover>
-                            <PopoverTrigger asChild>
-                                <Button variant="outline" className={cn("pl-3 text-left font-normal w-full", !dueDate && "text-muted-foreground")}>
-                                    {dueDate ? format(dueDate, "PPP") : <span>Pick a date</span>}
-                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                                <Calendar mode="single" selected={dueDate} onSelect={setDueDate} initialFocus />
-                            </PopoverContent>
-                        </Popover>
-                    </div>
-
-                    {/* Received Date */}
-                    <div className="flex flex-col gap-1.5">
-                        <Label>Received Date (Optional)</Label>
-                        <Popover>
-                            <PopoverTrigger asChild>
-                                <Button variant="outline" className={cn("pl-3 text-left font-normal w-full", !receivedDate && "text-muted-foreground")}>
-                                    {receivedDate ? format(receivedDate, "PPP") : <span>Pick a date</span>}
-                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                                <Calendar mode="single" selected={receivedDate} onSelect={setReceivedDate} initialFocus />
-                            </PopoverContent>
-                        </Popover>
                     </div>
 
                     {/* Instructions */}
