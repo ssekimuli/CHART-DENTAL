@@ -327,10 +327,14 @@ export default function LaboratoryPage() {
   const handleCreateOrder = async (data: any) => {
     try {
       await createLabOrder({ ...data, branchId: selectedBranch });
-      const updated = await getLabOrders(selectedBranch, ordersPage, 10, {
-        search: ordersSearch || undefined,
-      });
+      const [updated, refreshedClients] = await Promise.all([
+        getLabOrders(selectedBranch, ordersPage, 10, {
+          search: ordersSearch || undefined,
+        }),
+        getClients(),
+      ]);
       setLabOrders(updated);
+      setClients(refreshedClients);
       setIsCreateFormOpen(false);
       toast({
         title: "Success",

@@ -3927,6 +3927,10 @@ export const createLabOrder = async (data: any): Promise<LaboratoryOrder | Labor
         if (Array.isArray(data.items) && data.items.length > 0) {
             const response = await customAxios.post('/management/lab-orders/batch', {
                 clientId: data.clientId,
+                clientName: data.clientName,
+                clientEmail: data.clientEmail,
+                clientPhone: data.clientPhone,
+                clientAddress: data.clientAddress,
                 doctorName: data.doctorName,
                 status: data.status,
                 sentDate: data.sentDate,
@@ -3959,6 +3963,10 @@ export const createLabOrder = async (data: any): Promise<LaboratoryOrder | Labor
         // Single-item create (legacy / edit path)
         const response = await customAxios.post('/management/lab-orders', {
             clientId: data.clientId,
+            clientName: data.clientName,
+            clientEmail: data.clientEmail,
+            clientPhone: data.clientPhone,
+            clientAddress: data.clientAddress,
             doctorName: data.doctorName,
             item: data.item,
             tooth: data.tooth,
