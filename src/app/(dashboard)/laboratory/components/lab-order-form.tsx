@@ -163,6 +163,7 @@ export function LabOrderForm({ clients, doctors, onSave, onOpenChange }: LabOrde
   // ── Validation ──
 
   const validate = (): string | null => {
+    if (!selectedBranch) return "Please select a branch first.";
     if (!clientName.trim() && !clientId) return "Please enter or select a client name.";
     for (let i = 0; i < items.length; i++) {
       const it = items[i];
@@ -211,6 +212,8 @@ export function LabOrderForm({ clients, doctors, onSave, onOpenChange }: LabOrde
           labServiceId: it.lab_service_id ?? undefined,
           applied_price: it.applied_price ? parseFloat(it.applied_price) : undefined,
           appliedPrice: it.applied_price ? parseFloat(it.applied_price) : undefined,
+          branch_id: selectedBranch,
+          branchId: selectedBranch,
           material: it.material || undefined,
           shade: it.shade || undefined,
         };

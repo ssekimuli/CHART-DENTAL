@@ -340,10 +340,10 @@ export default function LaboratoryPage() {
         title: "Success",
         description: "Lab order created successfully",
       });
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: "Failed to create lab order",
+        description: error?.response?.data?.message || error?.message || "Failed to create lab order",
         variant: "destructive",
       });
     }
