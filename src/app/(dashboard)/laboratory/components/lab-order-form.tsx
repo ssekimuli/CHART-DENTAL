@@ -32,6 +32,7 @@ import { cn } from "@/lib/utils";
 type OrderItem = {
   id: string; // local only, for React key
   lab_service_id: number | null;
+  service_name: string;
   item: string;
   tooth: string;
   applied_price: string;
@@ -51,6 +52,7 @@ type LabOrderFormProps = {
 const emptyItem = (): OrderItem => ({
   id: crypto.randomUUID(),
   lab_service_id: null,
+  service_name: "",
   item: "",
   tooth: "",
   applied_price: "",
@@ -78,6 +80,7 @@ export function LabOrderForm({ clients, doctors, onSave, onOpenChange }: LabOrde
 
   // ── Items list ──
   const [items, setItems] = useState<OrderItem[]>([emptyItem()]);
+  const [activeServiceDropdownId, setActiveServiceDropdownId] = useState<string | null>(null);
 
   // ── Lab services ──
   const [labServices, setLabServices] = useState<LabService[]>([]);
@@ -103,11 +106,15 @@ export function LabOrderForm({ clients, doctors, onSave, onOpenChange }: LabOrde
     fetchServices();
   }, [selectedBranch]);
 
-  // Click outside to close client suggestions dropdown
+  // Click outside to close client or service suggestions dropdowns
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (clientDropdownRef.current && !clientDropdownRef.current.contains(event.target as Node)) {
+      const target = event.target as HTMLElement;
+      if (clientDropdownRef.current && !clientDropdownRef.current.contains(target)) {
         setIsClientDropdownOpen(false);
+      }
+      if (!target.closest?.('[data-service-dropdown]')) {
+        setActiveServiceDropdownId(null);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -134,8 +141,15 @@ export function LabOrderForm({ clients, doctors, onSave, onOpenChange }: LabOrde
     setItems(prev => prev.filter(item => item.id !== id));
   };
 
-  const handleServiceSelect = async (itemId: string, serviceId: number) => {
-    updateItem(itemId, { lab_service_id: serviceId });
+  const handleServiceSelect = async (itemId: string, serviceId: number, serviceName?: string) => {
+    const sName = serviceName || labServices.find(s => s.id === serviceId)?.service_name || "";
+    const cur = items.find(i => i.id === itemId);
+    updateItem(itemId, { 
+      lab_service_id: serviceId,
+      service_name: sName,
+      item: cur?.item?.trim() ? cur.item : sName,
+    });
+    setActiveServiceDropdownId(null);
     try {
       const price = await getActivePriceForService(serviceId, selectedBranch ? Number(selectedBranch) : undefined);
       if (price) {
@@ -152,10 +166,8 @@ export function LabOrderForm({ clients, doctors, onSave, onOpenChange }: LabOrde
     if (!clientName.trim() && !clientId) return "Please enter or select a client name.";
     for (let i = 0; i < items.length; i++) {
       const it = items[i];
-      if (!it.item.trim()) return `Item ${i + 1}: description is required.`;
-      if (it.lab_service_id === null && !it.applied_price) {
-        return `Item ${i + 1}: select a lab service or enter a price.`;
-      }
+      const desc = it.item.trim() || it.service_name.trim();
+      if (!desc) return `Item ${i + 1}: lab service or description is required.`;
     }
     return null;
   };
@@ -187,14 +199,22 @@ export function LabOrderForm({ clients, doctors, onSave, onOpenChange }: LabOrde
         branchId: selectedBranch,
       };
 
-      const orderItems = items.map(it => ({
-        item: it.item.trim(),
-        tooth: it.tooth ? parseInt(it.tooth) : undefined,
-        lab_service_id: it.lab_service_id ?? undefined,
-        applied_price: it.applied_price ? parseFloat(it.applied_price) : undefined,
-        material: it.material || undefined,
-        shade: it.shade || undefined,
-      }));
+      const orderItems = items.map(it => {
+        const serviceName = it.service_name.trim();
+        const itemName = it.item.trim() || serviceName;
+        return {
+          item: itemName,
+          service_name: serviceName || undefined,
+          serviceName: serviceName || undefined,
+          tooth: it.tooth ? parseInt(it.tooth) : undefined,
+          lab_service_id: it.lab_service_id ?? undefined,
+          labServiceId: it.lab_service_id ?? undefined,
+          applied_price: it.applied_price ? parseFloat(it.applied_price) : undefined,
+          appliedPrice: it.applied_price ? parseFloat(it.applied_price) : undefined,
+          material: it.material || undefined,
+          shade: it.shade || undefined,
+        };
+      });
 
       await onSave({ ...sharedData, items: orderItems });
     } catch (error: any) {
@@ -355,25 +375,72 @@ export function LabOrderForm({ clients, doctors, onSave, onOpenChange }: LabOrde
                                 {/* Item fields grid */}
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
 
-                                    {/* Lab Service */}
-                                    <div className="flex flex-col gap-1.5">
+                                    {/* Lab Service: single input with suggestions, exactly like Client */}
+                                    <div className="flex flex-col gap-1.5" data-service-dropdown={item.id}>
                                         <Label className="text-xs">Lab Service *</Label>
-                                        <Select
-                                            value={item.lab_service_id?.toString() || ""}
-                                            onValueChange={(val) => handleServiceSelect(item.id, parseInt(val))}
-                                            disabled={servicesLoading}
-                                        >
-                                            <SelectTrigger className="h-9 text-sm">
-                                                <SelectValue placeholder="Select service…" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {labServices.map(service => (
-                                                    <SelectItem key={service.id} value={service.id.toString()}>
-                                                        {service.service_name}{service.category && ` (${service.category})`}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
+                                        <div className="relative">
+                                            <Input
+                                                className="h-9 text-sm"
+                                                placeholder="Enter or select lab service..."
+                                                value={item.service_name}
+                                                onChange={(e) => {
+                                                    const val = e.target.value;
+                                                    const match = labServices.find(s => s.service_name.toLowerCase().trim() === val.toLowerCase().trim());
+                                                    updateItem(item.id, {
+                                                        service_name: val,
+                                                        lab_service_id: match ? match.id : null,
+                                                        item: item.item ? item.item : val,
+                                                    });
+                                                    if (match) {
+                                                        handleServiceSelect(item.id, match.id, val);
+                                                    }
+                                                    setActiveServiceDropdownId(item.id);
+                                                }}
+                                                onFocus={() => setActiveServiceDropdownId(item.id)}
+                                            />
+
+                                            {/* Dropdown suggestions of existing lab services */}
+                                            {activeServiceDropdownId === item.id && (() => {
+                                                const query = (item.service_name || "").toLowerCase().trim();
+                                                const filtered = query
+                                                    ? labServices.filter(s => 
+                                                        s.service_name.toLowerCase().includes(query) || 
+                                                        (s.category && s.category.toLowerCase().includes(query))
+                                                      )
+                                                    : labServices;
+                                                
+                                                if (filtered.length === 0) return null;
+
+                                                return (
+                                                    <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-popover text-popover-foreground rounded-md border shadow-md max-h-56 overflow-y-auto p-1">
+                                                        {filtered.map(service => {
+                                                            const isSelected = item.lab_service_id === service.id;
+                                                            return (
+                                                                <button
+                                                                    key={service.id}
+                                                                    type="button"
+                                                                    onClick={() => handleServiceSelect(item.id, service.id, service.service_name)}
+                                                                    className={cn(
+                                                                        "w-full text-left px-2.5 py-1.5 text-xs rounded-sm hover:bg-accent hover:text-accent-foreground flex items-center justify-between",
+                                                                        isSelected && "bg-accent/50 font-medium"
+                                                                    )}
+                                                                >
+                                                                    <div className="flex flex-col">
+                                                                        <span className="font-medium">{service.service_name}</span>
+                                                                        {service.category && (
+                                                                            <span className="text-[10px] text-muted-foreground">{service.category}</span>
+                                                                        )}
+                                                                    </div>
+                                                                    {isSelected && (
+                                                                        <Check className="h-3.5 w-3.5 text-primary ml-2 shrink-0" />
+                                                                    )}
+                                                                </button>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                );
+                                            })()}
+                                        </div>
                                     </div>
 
                                     {/* Item description */}

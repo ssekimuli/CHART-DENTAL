@@ -3977,7 +3977,9 @@ export const createLabOrder = async (data: any): Promise<LaboratoryOrder | Labor
             shade: data.shade,
             material: data.material,
             instructions: data.instructions,
-            appliedPrice: data.applied_price,
+            appliedPrice: data.applied_price ?? data.appliedPrice,
+            labServiceId: data.labServiceId ?? data.lab_service_id,
+            serviceName: data.serviceName ?? data.service_name,
             branchId: data.branchId,
         });
         const order = response.data;
