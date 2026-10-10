@@ -109,6 +109,16 @@ export type Treatment = {
   total_cost?: number;
   date: string;
   invoiceId?: string | number;
+  doctorId?: string | number;
+  doctor_id?: string | number;
+  doctorName?: string;
+  doctor_name?: string;
+  doctor?: {
+    id: string | number;
+    name: string;
+    role?: string;
+    avatar?: string;
+  };
 };
 
 // This represents a treatment item on an invoice. It may or may not correspond

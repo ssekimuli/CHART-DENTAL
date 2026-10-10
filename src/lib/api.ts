@@ -521,6 +521,16 @@ export const getPatientById = async (id: string | number): Promise<Patient | und
                 cost: parseFloat(plan.cost),
                 date: plan.date,
                 invoiceId: plan.invoice_id,
+                doctorId: plan.doctor_id ?? plan.doctorId,
+                doctor_id: plan.doctor_id ?? plan.doctorId,
+                doctorName: plan.doctor_name || plan.doctorName || plan.doctor?.name || '',
+                doctor_name: plan.doctor_name || plan.doctorName || plan.doctor?.name || '',
+                doctor: plan.doctor ? {
+                    id: plan.doctor.id,
+                    name: plan.doctor.name,
+                    role: plan.doctor.role,
+                    avatar: plan.doctor.avatar,
+                } : undefined,
             })),
             imaging: patient.images || patient.imaging || [], // Backend returns 'images', not 'imaging'
             periodontalRecords: mapPeriodontalRecords(patient.periodontal_records),
@@ -2818,6 +2828,7 @@ export const addTreatmentsBatch = async (
                 date: today,
                 condition: condition || null,
                 notes: data.procedure || null,
+                doctor_id: data.doctorId ?? data.doctor_id ?? null,
             };
         }),
     };
@@ -2843,6 +2854,11 @@ export const addTreatmentsBatch = async (
                 totalCost: itemTotal,
                 total_cost: itemTotal,
                 date: backendItem?.date || today,
+                doctorId: backendItem?.doctor_id ?? backendItem?.doctorId ?? t.data.doctorId ?? t.data.doctor_id,
+                doctor_id: backendItem?.doctor_id ?? backendItem?.doctorId ?? t.data.doctorId ?? t.data.doctor_id,
+                doctorName: backendItem?.doctor_name ?? backendItem?.doctorName ?? backendItem?.doctor?.name ?? t.data.doctorName ?? t.data.doctor_name,
+                doctor_name: backendItem?.doctor_name ?? backendItem?.doctorName ?? backendItem?.doctor?.name ?? t.data.doctorName ?? t.data.doctor_name,
+                doctor: backendItem?.doctor ?? t.data.doctor,
             };
 
             if (patientIndex > -1) {
@@ -2893,6 +2909,7 @@ export const addTreatment = async (patientId: string | number, treatmentData: Om
         date: today,
         condition: condition || null,
         notes: treatmentData.procedure || null,
+        doctor_id: treatmentData.doctorId ?? treatmentData.doctor_id ?? null,
     };
 
     try {
@@ -2916,6 +2933,11 @@ export const addTreatment = async (patientId: string | number, treatmentData: Om
             total_cost: savedTreatment?.total_cost ?? savedTreatment?.totalCost ?? totalCost,
             date: savedTreatment?.date || today,
             invoiceId: treatmentData.invoiceId,
+            doctorId: savedTreatment?.doctor_id ?? savedTreatment?.doctorId ?? treatmentData.doctorId ?? treatmentData.doctor_id,
+            doctor_id: savedTreatment?.doctor_id ?? savedTreatment?.doctorId ?? treatmentData.doctorId ?? treatmentData.doctor_id,
+            doctorName: savedTreatment?.doctor_name ?? savedTreatment?.doctorName ?? savedTreatment?.doctor?.name ?? treatmentData.doctorName ?? treatmentData.doctor_name,
+            doctor_name: savedTreatment?.doctor_name ?? savedTreatment?.doctorName ?? savedTreatment?.doctor?.name ?? treatmentData.doctorName ?? treatmentData.doctor_name,
+            doctor: savedTreatment?.doctor ?? treatmentData.doctor,
         };
 
         // Update local cache
@@ -2970,6 +2992,7 @@ export const updateTreatment = async (patientId: string | number, treatment: Tre
             cost: treatment.cost,
             total_cost: totalCost,
             date: treatment.date,
+            doctor_id: treatment.doctorId ?? treatment.doctor_id ?? null,
         };
 
         await customAxios.put(`/patients/${patientId}/treatments/${treatment.id}`, requestBody);

@@ -28,7 +28,7 @@ import type { Patient, Treatment, BasePatient, PatientImage, DentalCondition, Sy
 import { AttachPolicyForm } from "./components/attach-policy-form";
 import { insuranceApi } from "@/services/api/insurance";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Trash, Pencil, FileText, Loader2, Upload, MoreHorizontal, HandCoins, Search, Send, Mail, MessageCircle, Camera } from "lucide-react";
+import { PlusCircle, Trash, Pencil, FileText, Loader2, Upload, MoreHorizontal, HandCoins, Search, Send, Mail, MessageCircle, Camera, User } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { TreatmentPlanForm } from "./components/treatment-plan-form";
 import { PatientForm } from "../components/patient-form";
@@ -590,6 +590,7 @@ export default function PatientDetailPage({
                       <TableRow>
                         <TableHead>Procedure</TableHead>
                         <TableHead>Tooth #</TableHead>
+                        <TableHead>Doctor</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead className="text-right">Cost</TableHead>
                         <TableHead>Date</TableHead>
@@ -602,6 +603,16 @@ export default function PatientDetailPage({
                           <TableRow key={treatment.id}>
                             <TableCell className="font-medium">{treatment.procedure}</TableCell>
                             <TableCell>{treatment.tooth || '-'}</TableCell>
+                            <TableCell>
+                              {treatment.doctorName || treatment.doctor_name || treatment.doctor?.name ? (
+                                <div className="flex items-center gap-1.5 font-medium text-xs text-foreground">
+                                  <User className="h-3.5 w-3.5 text-primary shrink-0" />
+                                  <span>{treatment.doctorName || treatment.doctor_name || treatment.doctor?.name}</span>
+                                </div>
+                              ) : (
+                                <span className="text-muted-foreground text-xs">-</span>
+                              )}
+                            </TableCell>
                             <TableCell>
                               <Badge
                                 variant={
