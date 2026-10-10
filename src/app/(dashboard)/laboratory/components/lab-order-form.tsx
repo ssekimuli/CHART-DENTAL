@@ -21,11 +21,10 @@ import {
     SelectValue,
   } from "@/components/ui/select";
 import type { Client, LabService } from "@/lib/types";
-import { Loader2, PlusCircle, Trash2, Search, UserPlus, Check, ChevronsUpDown, X } from "lucide-react";
+import { Loader2, PlusCircle, Trash2, Check } from "lucide-react";
 import { useBranch } from "@/context/branch-context";
 import { getLabServices, getActivePriceForService } from "@/lib/api-lab-prices";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -69,11 +68,7 @@ export function LabOrderForm({ clients, doctors, onSave, onOpenChange }: LabOrde
 
   // ── Shared order fields ──
   const [clientId, setClientId] = useState("");
-  const [clientSearch, setClientSearch] = useState("");
-  const [isNewClient, setIsNewClient] = useState(false);
-  const [clientEmail, setClientEmail] = useState("");
-  const [clientPhone, setClientPhone] = useState("");
-  const [clientAddress, setClientAddress] = useState("");
+  const [clientName, setClientName] = useState("");
   const [isClientDropdownOpen, setIsClientDropdownOpen] = useState(false);
   const clientDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -94,9 +89,10 @@ export function LabOrderForm({ clients, doctors, onSave, onOpenChange }: LabOrde
   // Fetch lab services
   useEffect(() => {
     const fetchServices = async () => {
+      if (!selectedBranch) return;
       setServicesLoading(true);
       try {
-        const data = await getLabServices(selectedBranch ? Number(selectedBranch) : undefined);
+        const data = await getLabServices(Number(selectedBranch));
         setLabServices(Array.isArray(data) ? data : (data as any)?.data || []);
       } catch (error) {
         console.error("Error fetching lab services:", error);
@@ -107,7 +103,7 @@ export function LabOrderForm({ clients, doctors, onSave, onOpenChange }: LabOrde
     fetchServices();
   }, [selectedBranch]);
 
-  // Click outside to close client dropdown
+  // Click outside to close client suggestions dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (clientDropdownRef.current && !clientDropdownRef.current.contains(event.target as Node)) {
@@ -118,49 +114,12 @@ export function LabOrderForm({ clients, doctors, onSave, onOpenChange }: LabOrde
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Filter clients based on clientSearch
+  // Filter clients based on typed clientName
   const filteredClients = useMemo(() => {
-    if (!clientSearch.trim()) return clients;
-    const q = clientSearch.toLowerCase().trim();
-    return clients.filter(c => 
-      c.name.toLowerCase().includes(q) ||
-      (c.phone && c.phone.toLowerCase().includes(q)) ||
-      (c.email && c.email.toLowerCase().includes(q))
-    );
-  }, [clients, clientSearch]);
-
-  const exactMatch = useMemo(() => {
-    if (!clientSearch.trim()) return null;
-    return clients.find(c => c.name.toLowerCase().trim() === clientSearch.toLowerCase().trim());
-  }, [clients, clientSearch]);
-
-  const handleSelectClient = (c: Client) => {
-    setClientId(String(c.id));
-    setClientSearch(c.name);
-    setIsNewClient(false);
-    setIsClientDropdownOpen(false);
-    if (!doctorName) {
-      setDoctorName(c.name);
-    }
-  };
-
-  const handleStartNewClient = (name?: string) => {
-    setClientId("");
-    const newName = name !== undefined ? name : clientSearch;
-    setClientSearch(newName);
-    setIsNewClient(true);
-    setIsClientDropdownOpen(false);
-  };
-
-  const handleClearClient = () => {
-    setClientId("");
-    setClientSearch("");
-    setIsNewClient(false);
-    setClientEmail("");
-    setClientPhone("");
-    setClientAddress("");
-    setIsClientDropdownOpen(false);
-  };
+    if (!clientName.trim()) return clients;
+    const q = clientName.toLowerCase().trim();
+    return clients.filter(c => c.name.toLowerCase().includes(q));
+  }, [clients, clientName]);
 
   // ── Item mutators ──
 
@@ -190,8 +149,7 @@ export function LabOrderForm({ clients, doctors, onSave, onOpenChange }: LabOrde
   // ── Validation ──
 
   const validate = (): string | null => {
-    const effectiveName = clientSearch.trim();
-    if (!clientId && !effectiveName) return "Please select or type a client name.";
+    if (!clientName.trim() && !clientId) return "Please enter or select a client name.";
     for (let i = 0; i < items.length; i++) {
       const it = items[i];
       if (!it.item.trim()) return `Item ${i + 1}: description is required.`;
@@ -214,16 +172,15 @@ export function LabOrderForm({ clients, doctors, onSave, onOpenChange }: LabOrde
 
     setIsSubmitting(true);
     try {
-      const matchedClient = clientId ? clients.find(c => String(c.id) === clientId) : exactMatch;
-      const finalClientId = matchedClient ? String(matchedClient.id) : (clientId || undefined);
-      const finalClientName = !finalClientId ? clientSearch.trim() : (matchedClient?.name || undefined);
+      const matchedClient = clientId 
+        ? clients.find(c => String(c.id) === clientId) 
+        : clients.find(c => c.name.toLowerCase().trim() === clientName.toLowerCase().trim());
+      const finalClientId = matchedClient ? String(matchedClient.id) : undefined;
+      const finalClientName = clientName.trim();
 
       const sharedData = {
         clientId: finalClientId,
         clientName: finalClientName,
-        clientEmail: clientEmail.trim() || undefined,
-        clientPhone: clientPhone.trim() || undefined,
-        clientAddress: clientAddress.trim() || undefined,
         doctorName: doctorName || undefined,
         status,
         instructions: instructions || undefined,
@@ -267,147 +224,56 @@ export function LabOrderForm({ clients, doctors, onSave, onOpenChange }: LabOrde
                 {/* ── Shared order fields ── */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 
-                    {/* Client */}
-                    <div className="flex flex-col gap-1.5 md:col-span-1" ref={clientDropdownRef}>
-                        <div className="flex items-center justify-between">
-                            <Label>Client *</Label>
-                            {!isNewClient ? (
-                                <button
-                                    type="button"
-                                    onClick={() => handleStartNewClient(clientSearch)}
-                                    className="text-xs text-primary hover:underline flex items-center gap-1 font-medium"
-                                >
-                                    <PlusCircle className="h-3 w-3" />
-                                    New Client
-                                </button>
-                            ) : (
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setIsNewClient(false);
-                                        setClientId("");
-                                        setClientSearch("");
-                                    }}
-                                    className="text-xs text-muted-foreground hover:underline"
-                                >
-                                    Select Existing
-                                </button>
-                            )}
-                        </div>
-
+                    {/* Client: single input with suggestions, no add button */}
+                    <div className="flex flex-col gap-1.5" ref={clientDropdownRef}>
+                        <Label>Client *</Label>
                         <div className="relative">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                             <Input
-                                placeholder="Type or search client..."
-                                value={clientSearch}
+                                placeholder="Enter or select client name..."
+                                value={clientName}
                                 onChange={(e) => {
                                     const val = e.target.value;
-                                    setClientSearch(val);
+                                    setClientName(val);
                                     setIsClientDropdownOpen(true);
                                     const match = clients.find(c => c.name.toLowerCase().trim() === val.toLowerCase().trim());
                                     if (match) {
                                         setClientId(String(match.id));
-                                        setIsNewClient(false);
                                     } else {
                                         setClientId("");
-                                        if (val.trim()) {
-                                            setIsNewClient(true);
-                                        }
                                     }
                                 }}
                                 onFocus={() => setIsClientDropdownOpen(true)}
-                                className="pl-9 pr-16"
                             />
-                            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                                {clientSearch && (
-                                    <button
-                                        type="button"
-                                        onClick={handleClearClient}
-                                        className="h-5 w-5 text-muted-foreground hover:text-foreground flex items-center justify-center rounded-sm"
-                                        title="Clear"
-                                    >
-                                        <X className="h-3.5 w-3.5" />
-                                    </button>
-                                )}
-                                <button
-                                    type="button"
-                                    onClick={() => setIsClientDropdownOpen(prev => !prev)}
-                                    className="h-5 w-5 text-muted-foreground hover:text-foreground flex items-center justify-center rounded-sm"
-                                    title="Toggle list"
-                                >
-                                    <ChevronsUpDown className="h-3.5 w-3.5" />
-                                </button>
-                            </div>
 
-                            {/* Dropdown menu */}
-                            {isClientDropdownOpen && (
-                                <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-popover text-popover-foreground rounded-md border shadow-md max-h-60 overflow-y-auto p-1">
-                                    {filteredClients.length > 0 && (
-                                        <div className="py-1">
-                                            <div className="px-2 py-1 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-                                                Existing Clients
-                                            </div>
-                                            {filteredClients.map(c => (
-                                                <button
-                                                    key={c.id}
-                                                    type="button"
-                                                    onClick={() => handleSelectClient(c)}
-                                                    className={cn(
-                                                        "w-full text-left px-2 py-1.5 text-sm rounded-sm hover:bg-accent hover:text-accent-foreground flex items-center justify-between",
-                                                        String(clientId) === String(c.id) && "bg-accent/50 font-medium"
-                                                    )}
-                                                >
-                                                    <div className="flex flex-col">
-                                                        <span>{c.name}</span>
-                                                        {(c.phone || c.email) && (
-                                                            <span className="text-xs text-muted-foreground">
-                                                                {[c.phone, c.email].filter(Boolean).join(" • ")}
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                    {String(clientId) === String(c.id) && (
-                                                        <Check className="h-4 w-4 text-primary ml-2 shrink-0" />
-                                                    )}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    )}
-
-                                    {clientSearch.trim() && !exactMatch && (
+                            {/* Dropdown suggestions of existing clients */}
+                            {isClientDropdownOpen && filteredClients.length > 0 && (
+                                <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-popover text-popover-foreground rounded-md border shadow-md max-h-56 overflow-y-auto p-1">
+                                    {filteredClients.map(c => (
                                         <button
+                                            key={c.id}
                                             type="button"
-                                            onClick={() => handleStartNewClient(clientSearch.trim())}
-                                            className="w-full text-left px-2 py-2 text-sm rounded-sm hover:bg-primary/10 text-primary flex items-center gap-2 border-t mt-1"
+                                            onClick={() => {
+                                                setClientId(String(c.id));
+                                                setClientName(c.name);
+                                                setIsClientDropdownOpen(false);
+                                                if (!doctorName) {
+                                                    setDoctorName(c.name);
+                                                }
+                                            }}
+                                            className={cn(
+                                                "w-full text-left px-2.5 py-2 text-sm rounded-sm hover:bg-accent hover:text-accent-foreground flex items-center justify-between",
+                                                String(clientId) === String(c.id) && "bg-accent/50 font-medium"
+                                            )}
                                         >
-                                            <UserPlus className="h-4 w-4 shrink-0" />
-                                            <div className="flex flex-col">
-                                                <span className="font-medium">Create new client: "{clientSearch.trim()}"</span>
-                                                <span className="text-xs text-muted-foreground">Will be created automatically</span>
-                                            </div>
+                                            <span>{c.name}</span>
+                                            {String(clientId) === String(c.id) && (
+                                                <Check className="h-4 w-4 text-primary ml-2 shrink-0" />
+                                            )}
                                         </button>
-                                    )}
-
-                                    {filteredClients.length === 0 && !clientSearch.trim() && (
-                                        <div className="p-3 text-center text-xs text-muted-foreground">
-                                            No clients found. Type a name to add a new client.
-                                        </div>
-                                    )}
+                                    ))}
                                 </div>
                             )}
                         </div>
-
-                        {/* Status badge below input */}
-                        {clientId && !isNewClient ? (
-                            <div className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 mt-0.5">
-                                <Check className="h-3 w-3" />
-                                <span>Existing client selected</span>
-                            </div>
-                        ) : isNewClient && clientSearch.trim() ? (
-                            <div className="flex items-center gap-1.5 text-xs text-blue-600 dark:text-blue-400 mt-0.5">
-                                <UserPlus className="h-3 w-3" />
-                                <span>New client will be created</span>
-                            </div>
-                        ) : null}
                     </div>
 
                     {/* Doctor */}
@@ -437,52 +303,6 @@ export function LabOrderForm({ clients, doctors, onSave, onOpenChange }: LabOrde
                             </SelectContent>
                         </Select>
                     </div>
-
-                    {/* Optional New Client Fields */}
-                    {isNewClient && (
-                        <div className="md:col-span-3 p-3.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg space-y-3">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    <Badge variant="outline" className="text-xs font-normal border-blue-300 text-blue-700 dark:text-blue-300 dark:border-blue-800">
-                                        New Client Info
-                                    </Badge>
-                                    <span className="text-xs text-muted-foreground">
-                                        These fields are optional and will be saved with the new client.
-                                    </span>
-                                </div>
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                                <div className="flex flex-col gap-1.5">
-                                    <Label className="text-xs">Email (Optional)</Label>
-                                    <Input
-                                        type="email"
-                                        placeholder="contact@clinic.com"
-                                        value={clientEmail}
-                                        onChange={e => setClientEmail(e.target.value)}
-                                        className="h-9 text-sm"
-                                    />
-                                </div>
-                                <div className="flex flex-col gap-1.5">
-                                    <Label className="text-xs">Phone (Optional)</Label>
-                                    <Input
-                                        placeholder="+1 234 567 890"
-                                        value={clientPhone}
-                                        onChange={e => setClientPhone(e.target.value)}
-                                        className="h-9 text-sm"
-                                    />
-                                </div>
-                                <div className="flex flex-col gap-1.5">
-                                    <Label className="text-xs">Address (Optional)</Label>
-                                    <Input
-                                        placeholder="123 Dental St, City"
-                                        value={clientAddress}
-                                        onChange={e => setClientAddress(e.target.value)}
-                                        className="h-9 text-sm"
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                    )}
 
                     {/* Instructions */}
                     <div className="flex flex-col gap-1.5 md:col-span-3">
