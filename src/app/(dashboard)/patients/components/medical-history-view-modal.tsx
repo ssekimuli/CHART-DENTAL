@@ -54,179 +54,218 @@ export function MedicalHistoryViewModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[92vh] overflow-y-auto p-0 print:border-none print:shadow-none print:max-w-full">
+      <DialogContent className="max-w-3xl max-h-[92vh] overflow-y-auto p-0 print:border-none print:shadow-none print:max-w-full print:p-0">
         {/* PRINTABLE CASE SHEET WRAPPER */}
-        <div className="p-6 md:p-8 space-y-6 bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 print:p-0">
+        <div className="p-6 md:p-8 space-y-5 bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 print:p-0 print:text-black">
           {/* HEADER / CLINIC WATERMARK */}
-          <div className="flex items-start justify-between border-b pb-4">
+          <div className="flex items-start justify-between pb-3 border-b-2 border-dashed border-slate-800 dark:border-slate-200">
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-xl font-black tracking-tight text-teal-600 dark:text-teal-400">
+                <span className="text-xl font-extrabold tracking-tight text-teal-700 dark:text-teal-400 print:text-black">
                   DENTAL & MEDICAL CASE RECORD
                 </span>
               </div>
-              <p className="text-xs text-muted-foreground mt-0.5">
+              <p className="text-xs text-muted-foreground mt-0.5 print:text-slate-600">
                 Clinical Examination, Assessment & Management Sheet
               </p>
             </div>
             <div className="text-right">
-              <Badge variant="outline" className="font-mono text-xs px-2.5 py-0.5 border-teal-300 text-teal-700 dark:text-teal-400">
-                Record #{record.id || "N/A"}
-              </Badge>
-              <p className="text-xs text-muted-foreground mt-1 flex items-center justify-end gap-1">
+              <span className="font-mono text-xs font-bold text-teal-700 dark:text-teal-400 print:text-black">
+                RECORD #{record.id || "N/A"}
+              </span>
+              <p className="text-xs text-muted-foreground mt-0.5 flex items-center justify-end gap-1 print:text-slate-600">
                 <Calendar className="h-3 w-3" /> {formattedDate}
               </p>
             </div>
           </div>
 
-          {/* PATIENT INFO BANNER */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 rounded-xl border bg-slate-50 dark:bg-slate-900/50 text-xs">
-            <div>
-              <span className="text-muted-foreground block text-[11px]">Patient Name</span>
-              <span className="font-bold text-sm text-slate-900 dark:text-slate-100">{fullName}</span>
+          {/* PATIENT DEMOGRAPHICS (CLEAN DASHED LINES) */}
+          <div className="space-y-2 pb-3 border-b border-dashed border-slate-400 dark:border-slate-700 text-xs">
+            <div className="flex flex-wrap items-end gap-x-4 gap-y-2">
+              <div className="flex items-end gap-1.5 flex-1 min-w-[220px]">
+                <span className="text-[11px] font-bold uppercase tracking-wide text-slate-600 dark:text-slate-400">
+                  Patient Name:
+                </span>
+                <span className="flex-1 font-semibold text-sm border-b border-dashed border-slate-400 dark:border-slate-500 pb-0.5">
+                  {fullName}
+                </span>
+              </div>
+              <div className="flex items-end gap-1.5 w-32">
+                <span className="text-[11px] font-bold uppercase tracking-wide text-slate-600 dark:text-slate-400">
+                  Sex:
+                </span>
+                <span className="flex-1 font-medium border-b border-dashed border-slate-400 dark:border-slate-500 pb-0.5">
+                  {patient.gender || "Unspecified"}
+                </span>
+              </div>
+              <div className="flex items-end gap-1.5 w-24">
+                <span className="text-[11px] font-bold uppercase tracking-wide text-slate-600 dark:text-slate-400">
+                  Age:
+                </span>
+                <span className="flex-1 font-medium border-b border-dashed border-slate-400 dark:border-slate-500 pb-0.5">
+                  {patient.age || "N/A"} yrs
+                </span>
+              </div>
             </div>
-            <div>
-              <span className="text-muted-foreground block text-[11px]">Sex / Gender</span>
-              <span className="font-semibold text-slate-800 dark:text-slate-200">
-                {patient.gender || "Unspecified"}
-              </span>
-            </div>
-            <div>
-              <span className="text-muted-foreground block text-[11px]">Age</span>
-              <span className="font-semibold text-slate-800 dark:text-slate-200">
-                {patient.age || "N/A"} years
-              </span>
-            </div>
-            <div>
-              <span className="text-muted-foreground block text-[11px]">Contact Phone</span>
-              <span className="font-semibold text-slate-800 dark:text-slate-200">
-                {patient.phone || patient.email || "N/A"}
-              </span>
+
+            <div className="flex flex-wrap items-end gap-x-4 gap-y-2">
+              <div className="flex items-end gap-1.5 flex-1 min-w-[220px]">
+                <span className="text-[11px] font-bold uppercase tracking-wide text-slate-600 dark:text-slate-400">
+                  Contact / Tel:
+                </span>
+                <span className="flex-1 font-medium border-b border-dashed border-slate-400 dark:border-slate-500 pb-0.5">
+                  {patient.phone || patient.email || "N/A"}
+                </span>
+              </div>
+              <div className="flex items-end gap-1.5 flex-1 min-w-[220px]">
+                <span className="text-[11px] font-bold uppercase tracking-wide text-slate-600 dark:text-slate-400">
+                  Attending Doctor:
+                </span>
+                <span className="flex-1 font-medium border-b border-dashed border-slate-400 dark:border-slate-500 pb-0.5">
+                  {record.doctor_name || "Authorized Clinician"}
+                </span>
+              </div>
             </div>
           </div>
 
-          {/* DOCTOR IN CHARGE */}
-          {record.doctor_name && (
-            <div className="text-xs text-muted-foreground flex items-center gap-2">
-              <Stethoscope className="h-3.5 w-3.5 text-teal-600" />
-              <span>Attending Clinician: <strong className="text-slate-800 dark:text-slate-200">{record.doctor_name}</strong></span>
+          {/* 1. CHIEF COMPLAINT */}
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-teal-800 dark:text-teal-300 print:text-black">
+                1. Chief Complaint
+              </span>
+              <span className="flex-1 border-b border-dashed border-slate-300 dark:border-slate-700" />
             </div>
-          )}
-
-          {/* CHIEF COMPLAINT */}
-          <div className="space-y-1.5">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-teal-700 dark:text-teal-400 flex items-center gap-1.5">
-              <Activity className="h-3.5 w-3.5" /> 1. Chief Complaint
-            </h4>
-            <div className="p-3 rounded-lg border bg-slate-50/50 dark:bg-slate-900/30 text-sm">
+            <div className="border-b border-dashed border-slate-400 dark:border-slate-600 pb-1.5 pt-0.5 text-sm min-h-[26px]">
               {record.chief_complaint || "None recorded"}
             </div>
           </div>
 
           {/* HISTORY OF PRESENT COMPLAINT */}
           {record.history_complaint && (
-            <div className="space-y-1.5">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                History of Present Complaint / Illness
-              </h4>
-              <div className="p-3 rounded-lg border bg-slate-50/50 dark:bg-slate-900/30 text-sm whitespace-pre-wrap">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 print:text-black">
+                  History of Present Complaint / Illness
+                </span>
+                <span className="flex-1 border-b border-dashed border-slate-300 dark:border-slate-700" />
+              </div>
+              <div className="border-b border-dashed border-slate-400 dark:border-slate-600 pb-1.5 pt-0.5 text-sm whitespace-pre-wrap min-h-[26px]">
                 {record.history_complaint}
               </div>
             </div>
           )}
 
-          {/* ORAL EXAMINATION */}
+          {/* 2. ORAL EXAMINATION */}
           <div className="space-y-2">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-teal-700 dark:text-teal-400 flex items-center gap-1.5">
-              <Stethoscope className="h-3.5 w-3.5" /> 2. Clinical Oral Examination
-            </h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div className="p-3 rounded-lg border bg-slate-50/50 dark:bg-slate-900/30 text-xs space-y-1">
-                <span className="font-bold block text-slate-800 dark:text-slate-200">Extra-Oral Findings:</span>
-                <p className="whitespace-pre-wrap text-slate-700 dark:text-slate-300">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-teal-800 dark:text-teal-300 print:text-black">
+                2. Clinical Oral Examination
+              </span>
+              <span className="flex-1 border-b border-dashed border-slate-300 dark:border-slate-700" />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <span className="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase">
+                  Extra-Oral Findings:
+                </span>
+                <div className="border-b border-dashed border-slate-400 dark:border-slate-600 pb-1.5 pt-0.5 text-xs whitespace-pre-wrap min-h-[26px]">
                   {record.extra_oral_exam || "No abnormalities detected (NAD)"}
-                </p>
+                </div>
               </div>
 
-              <div className="p-3 rounded-lg border bg-slate-50/50 dark:bg-slate-900/30 text-xs space-y-1">
-                <span className="font-bold block text-slate-800 dark:text-slate-200">Intra-Oral Findings:</span>
-                <p className="whitespace-pre-wrap text-slate-700 dark:text-slate-300">
+              <div className="space-y-1">
+                <span className="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase">
+                  Intra-Oral Findings:
+                </span>
+                <div className="border-b border-dashed border-slate-400 dark:border-slate-600 pb-1.5 pt-0.5 text-xs whitespace-pre-wrap min-h-[26px]">
                   {record.intra_oral_exam || "No abnormalities detected (NAD)"}
-                </p>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* DIAGNOSIS */}
-          <div className="space-y-1.5">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-teal-700 dark:text-teal-400 flex items-center gap-1.5">
-              <ClipboardList className="h-3.5 w-3.5" /> 3. Diagnosis
-            </h4>
-            <div className="p-3 rounded-lg border bg-teal-50/40 dark:bg-teal-950/20 text-sm font-semibold text-teal-950 dark:text-teal-100">
+          {/* 3. DIAGNOSIS */}
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-teal-800 dark:text-teal-300 print:text-black">
+                3. Diagnosis
+              </span>
+              <span className="flex-1 border-b border-dashed border-slate-300 dark:border-slate-700" />
+            </div>
+            <div className="border-b border-dashed border-teal-500 pb-1.5 pt-0.5 text-sm font-semibold text-teal-900 dark:text-teal-200 print:text-black min-h-[26px]">
               {record.diagnosis || "Under evaluation"}
             </div>
           </div>
 
-          {/* TREATMENT PLAN & TREATMENT GIVEN */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                Proposed Treatment Plan
-              </h4>
-              <div className="p-3 rounded-lg border bg-slate-50/50 dark:bg-slate-900/30 text-xs whitespace-pre-wrap min-h-[70px]">
-                {record.treatment_plan || "None documented"}
-              </div>
+          {/* 4. TREATMENT MANAGEMENT */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 print:text-black">
+                4. Treatment Management
+              </span>
+              <span className="flex-1 border-b border-dashed border-slate-300 dark:border-slate-700" />
             </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <span className="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase">
+                  Proposed Treatment Plan:
+                </span>
+                <div className="border-b border-dashed border-slate-400 dark:border-slate-600 pb-1.5 pt-0.5 text-xs whitespace-pre-wrap min-h-[46px]">
+                  {record.treatment_plan || "None documented"}
+                </div>
+              </div>
 
-            <div className="space-y-1.5">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                Treatment Given (Today)
-              </h4>
-              <div className="p-3 rounded-lg border bg-slate-50/50 dark:bg-slate-900/30 text-xs whitespace-pre-wrap min-h-[70px]">
-                {record.treatment_given || "None rendered"}
+              <div className="space-y-1">
+                <span className="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase">
+                  Treatment Given (Today):
+                </span>
+                <div className="border-b border-dashed border-slate-400 dark:border-slate-600 pb-1.5 pt-0.5 text-xs whitespace-pre-wrap min-h-[46px]">
+                  {record.treatment_given || "None rendered"}
+                </div>
               </div>
             </div>
           </div>
 
-          {/* TREATMENT NOTE */}
+          {/* 5. TREATMENT NOTE */}
           {record.treatment_note && (
-            <div className="space-y-1.5">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                Clinical & Treatment Notes
-              </h4>
-              <div className="p-3 rounded-lg border bg-slate-50/50 dark:bg-slate-900/30 text-xs whitespace-pre-wrap">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 print:text-black">
+                  5. Clinical & Treatment Notes
+                </span>
+                <span className="flex-1 border-b border-dashed border-slate-300 dark:border-slate-700" />
+              </div>
+              <div className="border-b border-dashed border-slate-400 dark:border-slate-600 pb-1.5 pt-0.5 text-xs whitespace-pre-wrap min-h-[26px]">
                 {record.treatment_note}
               </div>
             </div>
           )}
 
-          {/* CONSENT STAMP */}
-          <div className="flex items-center justify-between p-3 rounded-xl border border-teal-200 dark:border-teal-900/60 bg-teal-50/30 dark:bg-teal-950/20 text-xs">
-            <div className="flex items-center gap-2">
-              <ShieldCheck className="h-4 w-4 text-teal-600" />
-              <span>
-                Informed Consent:{" "}
-                <strong className={record.consent ? "text-teal-700 dark:text-teal-400" : "text-amber-600"}>
-                  {record.consent ? "Confirmed & Acknowledged" : "Pending"}
-                </strong>
-              </span>
-            </div>
-            {record.consent_notes && (
-              <span className="text-[11px] text-muted-foreground italic">{record.consent_notes}</span>
-            )}
+          {/* 6. CONSENT */}
+          <div className="flex items-end gap-2 pt-1 pb-2 border-b border-dashed border-slate-400 dark:border-slate-600 text-xs">
+            <span className="font-bold uppercase tracking-wide text-slate-700 dark:text-slate-300">
+              Informed Consent:
+            </span>
+            <span className="flex-1 font-semibold text-slate-900 dark:text-slate-100">
+              {record.consent ? "Confirmed & Acknowledged" : "Pending"}
+              {record.consent_notes && (
+                <span className="font-normal italic text-slate-500 ml-2">&mdash; {record.consent_notes}</span>
+              )}
+            </span>
           </div>
 
-          {/* SIGNATURE SECTION (FOR PRINTING) */}
-          <div className="hidden print:grid grid-cols-2 gap-8 pt-8 mt-6 border-t text-xs">
-            <div className="space-y-6">
-              <p className="text-muted-foreground">Patient / Guardian Signature:</p>
-              <div className="border-b border-dashed border-slate-400 w-48"></div>
-              <p className="text-[10px] text-muted-foreground">Date: ________________________</p>
+          {/* 7. SIGNATURE SECTION (FOR PRINTING) */}
+          <div className="hidden print:grid grid-cols-2 gap-10 pt-10 mt-8 text-xs">
+            <div className="space-y-8">
+              <p className="font-semibold text-slate-700">Patient / Guardian Signature:</p>
+              <div className="border-b border-dashed border-slate-600 w-full"></div>
+              <p className="text-[11px] text-slate-500">Date: ________________________________</p>
             </div>
-            <div className="space-y-6 text-right flex flex-col items-end">
-              <p className="text-muted-foreground">Dentist Signature & Stamp:</p>
-              <div className="border-b border-dashed border-slate-400 w-48"></div>
-              <p className="text-[10px] text-muted-foreground">
+            <div className="space-y-8 text-right flex flex-col items-end">
+              <p className="font-semibold text-slate-700">Dentist Signature & Stamp:</p>
+              <div className="border-b border-dashed border-slate-600 w-full"></div>
+              <p className="text-[11px] text-slate-500">
                 {record.doctor_name || "Authorized Clinician"}
               </p>
             </div>
