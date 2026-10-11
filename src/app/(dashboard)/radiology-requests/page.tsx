@@ -647,8 +647,23 @@ export default function RadiologyRequestsPage() {
                         </TableCell>
 
                         {/* AMOUNT */}
-                        <TableCell className="font-mono text-xs font-bold text-slate-900 dark:text-slate-100 whitespace-nowrap">
-                          {formattedAmount}
+                        <TableCell className="font-mono text-xs whitespace-nowrap">
+                          <div className="font-bold text-slate-900 dark:text-slate-100">
+                            {formattedAmount}
+                          </div>
+                          {item.invoice_id ? (
+                            <Link
+                              href={`/billing`}
+                              className="text-[10px] text-teal-600 dark:text-teal-400 hover:underline flex items-center gap-0.5 mt-0.5 font-sans"
+                            >
+                              <span>Invoice #{item.invoice_id}</span>
+                              <ExternalLink className="h-2.5 w-2.5" />
+                            </Link>
+                          ) : (
+                            <span className="text-[10px] text-muted-foreground block font-sans">
+                              Unbilled
+                            </span>
+                          )}
                         </TableCell>
 
                         {/* SCAN TYPE / REGION */}

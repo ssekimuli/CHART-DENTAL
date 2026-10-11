@@ -729,6 +729,7 @@ export type XrayRequest = {
   doctor_name?: string;
   doctor_id?: string | number;
   branch_id?: string | number;
+  invoice_id?: string | number;
   status: 'pending' | 'completed' | 'cancelled';
   request_date?: string;
   completed_date?: string;
@@ -747,6 +748,13 @@ export type XrayRequest = {
   };
   branch?: { id: string | number; name: string };
   doctor?: { id: string | number; name: string };
+  invoice?: {
+    id: string | number;
+    amount: number | string;
+    paid_amount: number | string;
+    status: string;
+    issue_date: string;
+  };
   created_at?: string;
   updated_at?: string;
 };

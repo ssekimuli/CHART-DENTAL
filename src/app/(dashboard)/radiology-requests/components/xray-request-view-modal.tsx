@@ -203,6 +203,16 @@ export function XrayRequestViewModal({
                   {formattedAmount}
                 </span>
               </div>
+              {record.invoice_id && (
+                <div className="flex items-end gap-1.5 w-36">
+                  <span className="text-[11px] font-bold uppercase tracking-wide text-slate-600 dark:text-slate-400">
+                    Invoice:
+                  </span>
+                  <span className="flex-1 font-mono font-bold text-xs text-teal-700 dark:text-teal-400 print:text-black border-b border-dashed border-slate-400 dark:border-slate-500 pb-0.5">
+                    #{record.invoice_id}
+                  </span>
+                </div>
+              )}
             </div>
 
             <div className="flex flex-wrap items-end gap-x-4 gap-y-2">
