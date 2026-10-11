@@ -30,8 +30,12 @@ export default function ReceiptPage() {
         if (invoiceData) {
           setInvoice(invoiceData);
           if (invoiceData.patientId) {
-            const patientData = await getPatientById(invoiceData.patientId);
-            setPatient(patientData);
+            try {
+              const patientData = await getPatientById(invoiceData.patientId);
+              setPatient(patientData);
+            } catch (pErr) {
+              console.warn('Could not load patient details for receipt:', pErr);
+            }
           }
         } else {
           notFound();
@@ -238,13 +242,19 @@ export default function ReceiptPage() {
                         <td className="text-right py-1">{formatCurrency(c.amount)}</td>
                     </tr>
                 ))}
+                {treatments.length === 0 && (!invoice.otherCharges || invoice.otherCharges.length === 0) && (
+                    <tr>
+                        <td className="text-left py-1">Medical / Dental Service</td>
+                        <td className="text-right py-1">{formatCurrency(invoice.amount)}</td>
+                    </tr>
+                )}
             </tbody>
         </table>
 
         <div className="border-t mt-2">
             <div className="flex">
                 <span>Subtotal:</span>
-                <span>{formatCurrency(subtotal + otherChargesTotal)}</span>
+                <span>{formatCurrency((subtotal + otherChargesTotal) > 0 ? (subtotal + otherChargesTotal) : invoice.amount)}</span>
             </div>
             {invoice.discount ? (
                 <div className="flex">

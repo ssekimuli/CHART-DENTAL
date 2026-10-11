@@ -41,15 +41,19 @@ export function InvoicePrinter({
       const printerService = getWindowsPrinterService();
 
       const treatments = invoice.treatments || [];
+      const otherCharges = Array.isArray(invoice.otherCharges) ? invoice.otherCharges : [];
       const amount = invoice.amount || 0;
       const date = invoice.issueDate
         ? new Date(invoice.issueDate).toLocaleDateString()
         : new Date().toLocaleDateString();
-      const billNumber = String(invoice.id || "INV-001");
-      const patientName = String(invoice.patientName || "Patient");
+      const billNumber = String(invoice.receiptNumber || invoice.id || "INV-001");
+      const patientName = String(invoice.patientName || "Walk-in Patient");
 
       // Calculate totals for detailed receipt
-      const subtotal = treatments.reduce((sum, t) => sum + (typeof t.cost === "number" ? t.cost : 0), 0);
+      const treatmentsTotal = treatments.reduce((sum, t) => sum + (typeof t.cost === "number" ? t.cost : (parseFloat(t.cost as any) || 0)), 0);
+      const otherChargesTotal = otherCharges.reduce((sum, c) => sum + (typeof c.amount === "number" ? c.amount : (parseFloat(c.amount as any) || 0)), 0);
+      const calculatedSubtotal = treatmentsTotal + otherChargesTotal;
+      const subtotal = calculatedSubtotal > 0 ? calculatedSubtotal : amount;
       const balanceDue = (invoice.amount || 0) - (invoice.paidAmount || 0);
 
       // For detailed receipt, use generateReceiptHTML with all fields
@@ -64,7 +68,11 @@ export function InvoicePrinter({
           billNumber: billNumber,
           treatments: treatments.map(t => ({
             name: String(t.procedure || "Treatment"),
-            amount: typeof t.cost === "number" ? t.cost : 0,
+            amount: typeof t.cost === "number" ? t.cost : (parseFloat(t.cost as any) || 0),
+          })),
+          otherCharges: otherCharges.map(c => ({
+            description: String(c.description || "Service"),
+            amount: typeof c.amount === "number" ? c.amount : (parseFloat(c.amount as any) || 0),
           })),
           subtotal: subtotal,
           totalBill: amount,
@@ -89,7 +97,7 @@ export function InvoicePrinter({
             name: m.medicine?.name || `Medicine ID: ${m.medicine_id}`,
             unit: m.unit?.unit_name,
             quantity: m.quantity || 0,
-            price: typeof m.price === "number" ? m.price : 0,
+            price: typeof m.price === "number" ? m.price : (parseFloat(m.price as any) || 0),
           })) : undefined,
         },
         "58mm"
