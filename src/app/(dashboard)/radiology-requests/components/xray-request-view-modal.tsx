@@ -37,6 +37,7 @@ import {
 import moment from "moment";
 import { useBranch } from "@/context/branch-context";
 import { useToast } from "@/hooks/use-toast";
+import { XrayShareDialog } from "./xray-share-dialog";
 
 interface XrayRequestViewModalProps {
   record: XrayRequest | null;
@@ -67,6 +68,11 @@ export function XrayRequestViewModal({
   const { toast } = useToast();
   const { selectedBranch, availableBranches } = useBranch();
   const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
+
+  // Send / Share Dialog State
+  const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
+  const [shareChannel, setShareChannel] = useState<"email" | "whatsapp">("email");
+  const [shareTargetFile, setShareTargetFile] = useState<XrayAttachment | null>(null);
 
   if (!record) return null;
 
@@ -148,50 +154,18 @@ export function XrayRequestViewModal({
   };
 
   // ── File Sharing Handlers ──────────────────────────────────────────────────
+  const handleOpenShareModal = (channel: "email" | "whatsapp", file?: XrayAttachment | null) => {
+    setShareChannel(channel);
+    setShareTargetFile(file || null);
+    setIsShareDialogOpen(true);
+  };
+
   const handleShareFileWhatsApp = (att: XrayAttachment) => {
-    const title = `*Dental Radiology Requisition File*`;
-    const details = [
-      title,
-      `*Patient:* ${patientName}`,
-      `*Requisition:* #${String(record.id).padStart(5, "0")}`,
-      `*Scan Type:* ${record.xray_type || "X-Ray"} (${record.tooth_region || "Full Dentition"})`,
-      `*Facility:* ${record.facility}`,
-      `*File Name:* ${att.name || "Imaging Scan"}`,
-      `\n🔗 *Direct File Link:*\n${att.url}`,
-    ].join("\n");
-
-    const cleanPhone = patientPhone.replace(/[^0-9]/g, "");
-    // If phone has a valid length, user can send to that number or general
-    const waUrl = cleanPhone.length >= 9
-      ? `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(details)}`
-      : `https://api.whatsapp.com/send?text=${encodeURIComponent(details)}`;
-
-    window.open(waUrl, "_blank", "noopener,noreferrer");
+    handleOpenShareModal("whatsapp", att);
   };
 
   const handleShareFileEmail = (att: XrayAttachment) => {
-    const subject = `[${facilityClinicName}] Radiology Scan File - ${patientName} (Req #${String(record.id).padStart(5, "0")})`;
-    const body = [
-      `Dear Clinician / Patient,`,
-      ``,
-      `Please find the radiology imaging file and requisition details below:`,
-      ``,
-      `Patient Name: ${patientName}`,
-      `Requisition #: ${String(record.id).padStart(5, "0")}`,
-      `Date: ${formattedDate}`,
-      `Investigation: ${record.xray_type || "X-Ray"} - ${record.tooth_region || "Full Dentition"}`,
-      `Facility: ${record.facility}`,
-      `File Name: ${att.name || "Attached Scan"}`,
-      ``,
-      `Access File Link:`,
-      `${att.url}`,
-      ``,
-      `Best regards,`,
-      `${facilityClinicName}`,
-    ].join("\n");
-
-    const mailtoUrl = `mailto:${patientEmail || ""}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    window.location.href = mailtoUrl;
+    handleOpenShareModal("email", att);
   };
 
   const handleCopyLink = async (url: string) => {
@@ -214,53 +188,16 @@ export function XrayRequestViewModal({
 
   // ── Entire Requisition Sharing Handlers ─────────────────────────────────────
   const handleShareRequisitionWhatsApp = () => {
-    const attachmentLinks = attachments.map((a, i) => `File ${i + 1}: ${a.url}`).join("\n");
-    const text = [
-      `*Radiology & Imaging Requisition #${String(record.id).padStart(5, "0")}*`,
-      `*Clinic:* ${facilityClinicName}`,
-      `*Patient:* ${patientName}`,
-      `*Date:* ${formattedDate}`,
-      `*Facility:* ${record.facility}`,
-      `*Scan Type:* ${record.xray_type || "X-Ray"}`,
-      `*Tooth/Region:* ${record.tooth_region || "Full Dentition"}`,
-      `*Fee Amount:* ${formattedAmount} UGX`,
-      record.clinical_notes ? `*Clinical Notes:* ${record.clinical_notes}` : "",
-      attachments.length > 0 ? `\n*Attached Scans:*\n${attachmentLinks}` : "",
-    ].filter(Boolean).join("\n");
-
-    const cleanPhone = patientPhone.replace(/[^0-9]/g, "");
-    const waUrl = cleanPhone.length >= 9
-      ? `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(text)}`
-      : `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
-
-    window.open(waUrl, "_blank", "noopener,noreferrer");
+    handleOpenShareModal("whatsapp", null);
   };
 
   const handleShareRequisitionEmail = () => {
-    const subject = `Radiology Requisition #${String(record.id).padStart(5, "0")} - ${patientName}`;
-    const attachmentLinks = attachments.map((a, i) => `• ${a.name || "File " + (i + 1)}: ${a.url}`).join("\n");
-    const body = [
-      `Radiology Requisition Details:`,
-      ``,
-      `Patient Name: ${patientName}`,
-      `Requisition #: ${String(record.id).padStart(5, "0")}`,
-      `Date: ${formattedDate}`,
-      `Imaging Facility: ${record.facility}`,
-      `Scan Type: ${record.xray_type || "X-Ray"}`,
-      `Tooth / Region: ${record.tooth_region || "Full Dentition"}`,
-      `Amount: ${formattedAmount}`,
-      record.clinical_notes ? `Clinical Indication: ${record.clinical_notes}` : "",
-      attachments.length > 0 ? `\nAttached Imaging Files:\n${attachmentLinks}` : "",
-      ``,
-      `Sent from ${facilityClinicName}`,
-    ].filter(Boolean).join("\n");
-
-    const mailtoUrl = `mailto:${patientEmail || ""}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    window.location.href = mailtoUrl;
+    handleOpenShareModal("email", null);
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+    <>
+      <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[92vh] overflow-y-auto p-0 print:border-none print:shadow-none print:max-w-full print:p-0">
         {/* PRINTABLE REQUISITION CASE SHEET */}
         <div className="p-6 md:p-8 space-y-5 bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 print:p-0 print:text-black">
@@ -645,5 +582,15 @@ export function XrayRequestViewModal({
         </div>
       </DialogContent>
     </Dialog>
+
+    {/* SHARE REQUISITION / FILE DIALOG */}
+    <XrayShareDialog
+      isOpen={isShareDialogOpen}
+      onOpenChange={setIsShareDialogOpen}
+      record={record}
+      targetFile={shareTargetFile}
+      initialChannel={shareChannel}
+    />
+    </>
   );
 }

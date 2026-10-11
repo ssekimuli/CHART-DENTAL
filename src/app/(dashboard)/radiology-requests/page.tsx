@@ -42,6 +42,7 @@ import { getXrayRequests, deleteXrayRequest, updateXrayRequest } from "@/lib/api
 import type { XrayRequest } from "@/lib/types";
 import { XrayRequestFormModal } from "./components/xray-request-form-modal";
 import { XrayRequestViewModal } from "./components/xray-request-view-modal";
+import { XrayShareDialog } from "./components/xray-share-dialog";
 import moment from "moment";
 import {
   ScanLine,
@@ -102,6 +103,11 @@ export default function RadiologyRequestsPage() {
   const [editingRecord, setEditingRecord] = useState<XrayRequest | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [viewingRecord, setViewingRecord] = useState<XrayRequest | null>(null);
+
+  // Share Dialog State
+  const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
+  const [shareRecord, setShareRecord] = useState<XrayRequest | null>(null);
+  const [shareChannel, setShareChannel] = useState<"email" | "whatsapp">("email");
 
   // Debounce search
   useEffect(() => {
@@ -259,58 +265,15 @@ export default function RadiologyRequestsPage() {
   };
 
   const handleShareRowWhatsApp = (item: XrayRequest) => {
-    const patientDisplayName =
-      typeof item.patient === "string" && item.patient.trim()
-        ? item.patient.trim()
-        : item.patientRecord
-        ? `${item.patientRecord.first_name || ""} ${item.patientRecord.last_name || ""}`.trim()
-        : "Patient";
-
-    const attachments = Array.isArray(item.attachments) ? item.attachments : [];
-    const filesList = attachments.map((a, i) => `File ${i + 1}: ${a.url}`).join("\n");
-
-    const text = [
-      `*Radiology Requisition #${String(item.id).padStart(5, "0")}*`,
-      `*Patient:* ${patientDisplayName}`,
-      `*Facility:* ${item.facility}`,
-      `*Investigation:* ${item.xray_type || "X-Ray"} - ${item.tooth_region || "Full Dentition"}`,
-      `*Amount:* ${Number(item.amount || 0).toLocaleString()} UGX`,
-      filesList ? `\n*Attached Files:*\n${filesList}` : "",
-    ].filter(Boolean).join("\n");
-
-    const phone = item.patientRecord?.phone?.replace(/[^0-9]/g, "") || "";
-    const waUrl = phone.length >= 9
-      ? `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(text)}`
-      : `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
-
-    window.open(waUrl, "_blank", "noopener,noreferrer");
+    setShareRecord(item);
+    setShareChannel("whatsapp");
+    setIsShareDialogOpen(true);
   };
 
   const handleShareRowEmail = (item: XrayRequest) => {
-    const patientDisplayName =
-      typeof item.patient === "string" && item.patient.trim()
-        ? item.patient.trim()
-        : item.patientRecord
-        ? `${item.patientRecord.first_name || ""} ${item.patientRecord.last_name || ""}`.trim()
-        : "Patient";
-
-    const subject = `Radiology Requisition #${String(item.id).padStart(5, "0")} - ${patientDisplayName}`;
-    const attachments = Array.isArray(item.attachments) ? item.attachments : [];
-    const filesList = attachments.map((a, i) => `• ${a.name || "Scan " + (i + 1)}: ${a.url}`).join("\n");
-
-    const body = [
-      `Radiology Requisition Details:`,
-      ``,
-      `Patient Name: ${patientDisplayName}`,
-      `Requisition #: ${String(item.id).padStart(5, "0")}`,
-      `Facility: ${item.facility}`,
-      `Investigation: ${item.xray_type || "X-Ray"} - ${item.tooth_region || "Full Dentition"}`,
-      `Amount: ${Number(item.amount || 0).toLocaleString()} UGX`,
-      filesList ? `\nAttached Files:\n${filesList}` : "",
-    ].filter(Boolean).join("\n");
-
-    const email = item.patientRecord?.email || "";
-    window.location.href = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    setShareRecord(item);
+    setShareChannel("email");
+    setIsShareDialogOpen(true);
   };
 
   const handleDelete = async (id: string | number) => {
@@ -935,6 +898,14 @@ export default function RadiologyRequestsPage() {
         onEdit={(rec) => {
           handleEdit(rec);
         }}
+      />
+
+      {/* SHARE REQUISITION / FILES DIALOG */}
+      <XrayShareDialog
+        isOpen={isShareDialogOpen}
+        onOpenChange={setIsShareDialogOpen}
+        record={shareRecord}
+        initialChannel={shareChannel}
       />
     </div>
   );

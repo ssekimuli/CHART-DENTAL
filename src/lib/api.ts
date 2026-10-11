@@ -5478,4 +5478,31 @@ export const deleteXrayRequest = async (id: string | number): Promise<boolean> =
     return true;
 };
 
+export const sendXrayRequestDocument = async (
+    id: string | number,
+    payload: {
+        channel: 'email' | 'whatsapp';
+        recipient: string;
+        custom_message?: string;
+        file_url?: string;
+        file_name?: string;
+    }
+): Promise<{ success: boolean; message?: string }> => {
+    console.log('API CALL: sendXrayRequestDocument', { id, payload });
+    try {
+        const response = await customAxios.post(`/xray-requests/${id}/send`, payload);
+        return {
+            success: true,
+            message: response.data?.message || `Requisition sent via ${payload.channel}.`
+        };
+    } catch (error: any) {
+        console.error('Error sending xray requisition document:', error);
+        return {
+            success: false,
+            message: error?.response?.data?.error || error?.response?.data?.message || error?.message || 'Failed to send requisition document'
+        };
+    }
+};
+
+
 
