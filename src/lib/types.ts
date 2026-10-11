@@ -96,6 +96,7 @@ export type MedicalHistory = {
     age?: number | string;
     phone?: string;
     email?: string;
+    address?: string;
     branch_id?: number | string;
     branch?: { id: number | string; name: string };
   };

@@ -45,9 +45,11 @@ export interface PatientBasicInfo {
   gender?: string;
   age?: number | string;
   dateOfBirth?: string;
+  date_of_birth?: string;
   phone?: string;
   email?: string;
   address?: string;
+  branch_id?: string | number;
 }
 
 interface MedicalHistoryFormProps {

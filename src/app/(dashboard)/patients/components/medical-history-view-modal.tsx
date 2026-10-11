@@ -117,13 +117,13 @@ export function MedicalHistoryViewModal({
                   Age:
                 </span>
                 <span className="flex-1 font-medium border-b border-dashed border-slate-400 dark:border-slate-500 pb-0.5">
-                  {patient.age || "N/A"} yrs
+                  {patient.age ? `${patient.age} yrs` : (patient.dateOfBirth || patient.date_of_birth ? `${moment().diff(moment(patient.dateOfBirth || patient.date_of_birth), "years")} yrs` : "N/A")}
                 </span>
               </div>
             </div>
 
             <div className="flex flex-wrap items-end gap-x-4 gap-y-2">
-              <div className="flex items-end gap-1.5 flex-1 min-w-[220px]">
+              <div className="flex items-end gap-1.5 flex-1 min-w-[200px]">
                 <span className="text-[11px] font-bold uppercase tracking-wide text-slate-600 dark:text-slate-400">
                   Contact / Tel:
                 </span>
@@ -131,7 +131,15 @@ export function MedicalHistoryViewModal({
                   {patient.phone || patient.email || "N/A"}
                 </span>
               </div>
-              <div className="flex items-end gap-1.5 flex-1 min-w-[220px]">
+              <div className="flex items-end gap-1.5 flex-1 min-w-[200px]">
+                <span className="text-[11px] font-bold uppercase tracking-wide text-slate-600 dark:text-slate-400">
+                  Address:
+                </span>
+                <span className="flex-1 font-medium border-b border-dashed border-slate-400 dark:border-slate-500 pb-0.5">
+                  {patient.address || "N/A"}
+                </span>
+              </div>
+              <div className="flex items-end gap-1.5 flex-1 min-w-[200px]">
                 <span className="text-[11px] font-bold uppercase tracking-wide text-slate-600 dark:text-slate-400">
                   Attending Doctor:
                 </span>

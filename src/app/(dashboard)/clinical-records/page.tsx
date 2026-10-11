@@ -228,9 +228,11 @@ export default function ClinicalRecordsPage() {
       last_name: record.patient?.last_name || "",
       gender: record.patient?.gender || "Unspecified",
       age: record.patient?.age,
+      dateOfBirth: record.patient?.date_of_birth,
       date_of_birth: record.patient?.date_of_birth,
       phone: record.patient?.phone || "",
       email: record.patient?.email || "",
+      address: record.patient?.address || "",
       branch_id: record.patient?.branch_id,
     };
     setViewingPatient(patientInfo);
@@ -481,26 +483,35 @@ export default function ClinicalRecordsPage() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-slate-50/50 dark:bg-slate-900/50">
-                  <TableHead className="w-[120px] text-xs font-bold uppercase">
-                    Date
+                  <TableHead className="min-w-[160px] text-xs font-bold uppercase">
+                    Name
+                  </TableHead>
+                  <TableHead className="w-[85px] text-xs font-bold uppercase">
+                    Age
+                  </TableHead>
+                  <TableHead className="min-w-[130px] text-xs font-bold uppercase">
+                    Contact
+                  </TableHead>
+                  <TableHead className="w-[85px] text-xs font-bold uppercase">
+                    Sex
+                  </TableHead>
+                  <TableHead className="min-w-[140px] text-xs font-bold uppercase">
+                    Address
                   </TableHead>
                   <TableHead className="min-w-[190px] text-xs font-bold uppercase">
-                    Patient
-                  </TableHead>
-                  <TableHead className="min-w-[200px] text-xs font-bold uppercase">
                     Chief Complaint
                   </TableHead>
-                  <TableHead className="min-w-[170px] text-xs font-bold uppercase">
+                  <TableHead className="min-w-[150px] text-xs font-bold uppercase">
                     Diagnosis
                   </TableHead>
-                  <TableHead className="min-w-[150px] text-xs font-bold uppercase">
-                    Attending Clinician
-                  </TableHead>
-                  <TableHead className="w-[110px] text-xs font-bold uppercase text-center">
+                  <TableHead className="w-[100px] text-xs font-bold uppercase text-center">
                     Consent
                   </TableHead>
-                  <TableHead className="w-[100px] text-right text-xs font-bold uppercase pr-4">
-                    Actions
+                  <TableHead className="w-[115px] text-xs font-bold uppercase">
+                    Date
+                  </TableHead>
+                  <TableHead className="w-[110px] text-right text-xs font-bold uppercase pr-4">
+                    Action
                   </TableHead>
                 </TableRow>
               </TableHeader>
@@ -508,18 +519,21 @@ export default function ClinicalRecordsPage() {
                 {isLoading ? (
                   Array.from({ length: 6 }).map((_, i) => (
                     <TableRow key={i}>
-                      <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                      <TableCell><Skeleton className="h-5 w-36" /></TableCell>
-                      <TableCell><Skeleton className="h-4 w-44" /></TableCell>
-                      <TableCell><Skeleton className="h-5 w-28" /></TableCell>
+                      <TableCell><Skeleton className="h-5 w-32" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-12" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-12" /></TableCell>
                       <TableCell><Skeleton className="h-4 w-28" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-36" /></TableCell>
+                      <TableCell><Skeleton className="h-5 w-24" /></TableCell>
                       <TableCell><Skeleton className="h-5 w-16 mx-auto" /></TableCell>
-                      <TableCell><Skeleton className="h-8 w-16 ml-auto" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                      <TableCell><Skeleton className="h-8 w-20 ml-auto" /></TableCell>
                     </TableRow>
                   ))
                 ) : records.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="h-48 text-center">
+                    <TableCell colSpan={10} className="h-48 text-center">
                       <div className="flex flex-col items-center justify-center space-y-2">
                         <Activity className="h-10 w-10 text-muted-foreground/40" />
                         <p className="font-semibold text-slate-800 dark:text-slate-200">
@@ -551,48 +565,85 @@ export default function ClinicalRecordsPage() {
                     const patientId =
                       item.patient?.id || item.patient_id || item.patientId;
 
+                    // Dynamic Age calculation
+                    const patientAge = (() => {
+                      if (
+                        item.patient?.age !== undefined &&
+                        item.patient?.age !== null &&
+                        String(item.patient.age).trim() !== ""
+                      ) {
+                        return `${item.patient.age} yrs`;
+                      }
+                      if (item.patient?.date_of_birth) {
+                        const years = moment().diff(
+                          moment(item.patient.date_of_birth),
+                          "years"
+                        );
+                        if (!isNaN(years) && years >= 0) {
+                          return `${years} yrs`;
+                        }
+                      }
+                      return "—";
+                    })();
+
+                    const patientContact =
+                      item.patient?.phone || item.patient?.email || "—";
+                    const patientSex = item.patient?.gender || "—";
+                    const patientAddress = item.patient?.address || "—";
+
                     return (
                       <TableRow
                         key={item.id}
                         className="hover:bg-slate-50/60 dark:hover:bg-slate-900/40 transition-colors"
                       >
-                        {/* DATE */}
-                        <TableCell className="font-mono text-xs text-slate-700 dark:text-slate-300">
-                          <div className="font-semibold">
-                            {item.date
-                              ? moment(item.date).format("MMM DD, YYYY")
-                              : moment(item.created_at).format("MMM DD, YYYY")}
-                          </div>
-                          <span className="text-[10px] text-muted-foreground">
-                            {moment(item.created_at || item.date).format("hh:mm A")}
+                        {/* 1. NAME */}
+                        <TableCell>
+                          {patientId ? (
+                            <Link
+                              href={`/patients/${patientId}`}
+                              className="font-bold text-sm text-teal-700 dark:text-teal-400 hover:underline flex items-center gap-1 group whitespace-nowrap"
+                            >
+                              {patientName}
+                              <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            </Link>
+                          ) : (
+                            <span className="font-bold text-sm whitespace-nowrap">
+                              {patientName}
+                            </span>
+                          )}
+                        </TableCell>
+
+                        {/* 2. AGE */}
+                        <TableCell className="text-xs text-slate-700 dark:text-slate-300 font-medium whitespace-nowrap">
+                          {patientAge}
+                        </TableCell>
+
+                        {/* 3. CONTACT */}
+                        <TableCell className="text-xs text-slate-700 dark:text-slate-300 font-mono whitespace-nowrap">
+                          {patientContact}
+                        </TableCell>
+
+                        {/* 4. SEX */}
+                        <TableCell className="text-xs text-slate-700 dark:text-slate-300 capitalize whitespace-nowrap">
+                          {patientSex}
+                        </TableCell>
+
+                        {/* 5. ADDRESS */}
+                        <TableCell className="text-xs text-slate-600 dark:text-slate-300 max-w-[180px]">
+                          <span
+                            className="truncate block"
+                            title={patientAddress}
+                          >
+                            {patientAddress}
                           </span>
                         </TableCell>
 
-                        {/* PATIENT */}
-                        <TableCell>
-                          <div className="flex flex-col">
-                            {patientId ? (
-                              <Link
-                                href={`/patients/${patientId}`}
-                                className="font-bold text-sm text-teal-700 dark:text-teal-400 hover:underline flex items-center gap-1 group"
-                              >
-                                {patientName}
-                                <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                              </Link>
-                            ) : (
-                              <span className="font-bold text-sm">{patientName}</span>
-                            )}
-                            <div className="flex items-center gap-2 text-[11px] text-muted-foreground mt-0.5">
-                              {item.patient?.gender && <span>{item.patient.gender}</span>}
-                              {item.patient?.age && <span>• {item.patient.age} yrs</span>}
-                              {item.patient?.phone && <span>• {item.patient.phone}</span>}
-                            </div>
-                          </div>
-                        </TableCell>
-
-                        {/* CHIEF COMPLAINT */}
-                        <TableCell>
-                          <div className="text-xs font-medium text-slate-800 dark:text-slate-200 line-clamp-2">
+                        {/* 6. CHIEF COMPLAINT */}
+                        <TableCell className="max-w-[220px]">
+                          <div
+                            className="text-xs font-medium text-slate-800 dark:text-slate-200 line-clamp-2"
+                            title={item.chief_complaint}
+                          >
                             {item.chief_complaint || "—"}
                           </div>
                           {item.history_complaint && (
@@ -602,32 +653,24 @@ export default function ClinicalRecordsPage() {
                           )}
                         </TableCell>
 
-                        {/* DIAGNOSIS */}
-                        <TableCell>
+                        {/* 7. DIAGNOSIS */}
+                        <TableCell className="max-w-[160px]">
                           {item.diagnosis ? (
                             <Badge
                               variant="outline"
-                              className="text-xs font-semibold px-2 py-0.5 border-teal-300 text-teal-800 dark:border-teal-700 dark:text-teal-300 bg-teal-50/50 dark:bg-teal-950/30"
+                              className="text-xs font-semibold px-2 py-0.5 border-teal-300 text-teal-800 dark:border-teal-700 dark:text-teal-300 bg-teal-50/50 dark:bg-teal-950/30 whitespace-nowrap"
                             >
                               {item.diagnosis}
                             </Badge>
                           ) : (
                             <span className="text-xs text-muted-foreground italic">
-                              Pending evaluation
+                              —
                             </span>
                           )}
                         </TableCell>
 
-                        {/* CLINICIAN */}
-                        <TableCell className="text-xs text-slate-700 dark:text-slate-300">
-                          <div className="flex items-center gap-1.5 font-medium">
-                            <Stethoscope className="h-3.5 w-3.5 text-teal-600 dark:text-teal-400 shrink-0" />
-                            <span>{item.doctor_name || "Assigned Dentist"}</span>
-                          </div>
-                        </TableCell>
-
-                        {/* CONSENT */}
-                        <TableCell className="text-center">
+                        {/* 8. CONSENT */}
+                        <TableCell className="text-center whitespace-nowrap">
                           {item.consent ? (
                             <Badge
                               variant="outline"
@@ -645,8 +688,20 @@ export default function ClinicalRecordsPage() {
                           )}
                         </TableCell>
 
-                        {/* ACTIONS */}
-                        <TableCell className="text-right pr-4">
+                        {/* 9. DATE */}
+                        <TableCell className="font-mono text-xs text-slate-700 dark:text-slate-300 whitespace-nowrap">
+                          <div className="font-semibold">
+                            {item.date
+                              ? moment(item.date).format("MMM DD, YYYY")
+                              : moment(item.created_at).format("MMM DD, YYYY")}
+                          </div>
+                          <span className="text-[10px] text-muted-foreground">
+                            {moment(item.created_at || item.date).format("hh:mm A")}
+                          </span>
+                        </TableCell>
+
+                        {/* 10. ACTION */}
+                        <TableCell className="text-right pr-4 whitespace-nowrap">
                           <Button
                             variant="outline"
                             size="sm"
