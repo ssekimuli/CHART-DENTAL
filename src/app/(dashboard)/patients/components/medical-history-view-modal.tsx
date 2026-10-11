@@ -23,7 +23,6 @@ import {
   User,
   Phone,
   Building2,
-  FileText,
 } from "lucide-react";
 import moment from "moment";
 import { useBranch } from "@/context/branch-context";
@@ -292,19 +291,6 @@ export function MedicalHistoryViewModal({
             <Button variant="outline" size="sm" onClick={handlePrint}>
               <Printer className="mr-2 h-4 w-4" /> Print Case Sheet
             </Button>
-            {record.id && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  const backendBase = (process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000/api').replace(/\/api\/?$/, '');
-                  window.open(`${backendBase}/medical-histories/${record.id}/print?print=1`, '_blank');
-                }}
-                className="border-teal-300 text-teal-700 hover:bg-teal-50 dark:border-teal-700 dark:text-teal-300 dark:hover:bg-teal-950/40"
-              >
-                <FileText className="mr-2 h-4 w-4" /> Official Template
-              </Button>
-            )}
           </div>
           {onEdit && (
             <Button
