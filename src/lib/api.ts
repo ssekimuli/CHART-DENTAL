@@ -5335,10 +5335,15 @@ export const getXrayRequestById = async (id: string | number): Promise<XrayReque
     }
 };
 
-export const createXrayRequest = async (data: Partial<XrayRequest>): Promise<XrayRequest> => {
+export const createXrayRequest = async (data: Partial<XrayRequest> | FormData): Promise<XrayRequest> => {
     console.log('API CALL: createXrayRequest', data);
     try {
-        const response = await customAxios.post('/xray-requests', data);
+        const isFormData = typeof FormData !== 'undefined' && data instanceof FormData;
+        const response = await customAxios.post(
+            '/xray-requests',
+            data,
+            isFormData ? { headers: { 'Content-Type': 'multipart/form-data' } } : undefined
+        );
         const created = response.data?.data || response.data;
         try {
             if (typeof window !== 'undefined') {
@@ -5350,19 +5355,34 @@ export const createXrayRequest = async (data: Partial<XrayRequest>): Promise<Xra
         return created;
     } catch (error) {
         console.warn('Backend POST /xray-requests failed, saving locally:', error);
+        const fallbackObj: Partial<XrayRequest> = (typeof FormData !== 'undefined' && data instanceof FormData)
+            ? {
+                patient: (data.get('patient') as string) || 'Patient',
+                facility: (data.get('facility') as string) || '',
+                amount: parseFloat(data.get('amount') as string) || 0,
+                xray_type: (data.get('xray_type') as string) || '',
+                tooth_region: (data.get('tooth_region') as string) || '',
+                clinical_notes: (data.get('clinical_notes') as string) || '',
+                doctor_name: (data.get('doctor_name') as string) || '',
+                status: (data.get('status') as any) || 'pending',
+                request_date: (data.get('request_date') as string) || new Date().toISOString().split('T')[0],
+              }
+            : data;
+
         const fallback: XrayRequest = {
             id: `xray_${Date.now()}`,
-            patient_id: data.patient_id || '',
-            facility: data.facility || '',
-            amount: data.amount || 0,
-            xray_type: data.xray_type || '',
-            tooth_region: data.tooth_region || '',
-            clinical_notes: data.clinical_notes || '',
-            doctor_name: data.doctor_name || '',
-            status: data.status || 'pending',
-            request_date: data.request_date || new Date().toISOString().split('T')[0],
+            patient: fallbackObj.patient || 'Patient',
+            patient_id: fallbackObj.patient_id || '',
+            facility: fallbackObj.facility || '',
+            amount: fallbackObj.amount || 0,
+            xray_type: fallbackObj.xray_type || '',
+            tooth_region: fallbackObj.tooth_region || '',
+            clinical_notes: fallbackObj.clinical_notes || '',
+            doctor_name: fallbackObj.doctor_name || '',
+            status: fallbackObj.status || 'pending',
+            request_date: fallbackObj.request_date || new Date().toISOString().split('T')[0],
             created_at: new Date().toISOString(),
-            ...data
+            ...fallbackObj
         } as XrayRequest;
         try {
             if (typeof window !== 'undefined') {
@@ -5375,10 +5395,22 @@ export const createXrayRequest = async (data: Partial<XrayRequest>): Promise<Xra
     }
 };
 
-export const updateXrayRequest = async (id: string | number, data: Partial<XrayRequest>): Promise<XrayRequest> => {
+export const updateXrayRequest = async (id: string | number, data: Partial<XrayRequest> | FormData): Promise<XrayRequest> => {
     console.log('API CALL: updateXrayRequest', { id, data });
     try {
-        const response = await customAxios.put(`/xray-requests/${id}`, data);
+        const isFormData = typeof FormData !== 'undefined' && data instanceof FormData;
+        let response;
+        if (isFormData) {
+            // Laravel requires POST with _method=PUT for multipart/form-data updates
+            if (!data.has('_method')) {
+                data.append('_method', 'PUT');
+            }
+            response = await customAxios.post(`/xray-requests/${id}`, data, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+        } else {
+            response = await customAxios.put(`/xray-requests/${id}`, data);
+        }
         const updated = response.data?.data || response.data;
         try {
             if (typeof window !== 'undefined') {
@@ -5390,17 +5422,42 @@ export const updateXrayRequest = async (id: string | number, data: Partial<XrayR
         } catch {}
         return updated;
     } catch (error) {
-        console.warn(`Backend PUT /xray-requests/${id} failed:`, error);
-        const updated = { id, ...data } as XrayRequest;
+        console.warn(`Backend update /xray-requests/${id} failed:`, error);
+        const dataObj: any = (typeof FormData !== 'undefined' && data instanceof FormData)
+            ? {
+                patient: data.get('patient'),
+                facility: data.get('facility'),
+                amount: data.get('amount'),
+                status: data.get('status'),
+              }
+            : data;
+        const updated = { id, ...dataObj } as XrayRequest;
         try {
             if (typeof window !== 'undefined') {
                 const existing: XrayRequest[] = JSON.parse(localStorage.getItem('xray_requests_all') || '[]');
                 const idx = existing.findIndex(r => String(r.id) === String(id));
-                if (idx >= 0) existing[idx] = { ...existing[idx], ...data };
+                if (idx >= 0) existing[idx] = { ...existing[idx], ...updated };
                 localStorage.setItem('xray_requests_all', JSON.stringify(existing));
             }
         } catch {}
         return updated;
+    }
+};
+
+export const uploadXrayRequestAttachments = async (id: string | number, files: File[]): Promise<XrayRequest | null> => {
+    console.log('API CALL: uploadXrayRequestAttachments', { id, count: files.length });
+    try {
+        const formData = new FormData();
+        files.forEach((file) => {
+            formData.append('files[]', file);
+        });
+        const response = await customAxios.post(`/xray-requests/${id}/attachments`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        return response.data?.data || response.data;
+    } catch (error) {
+        console.error(`Upload attachments for XrayRequest #${id} failed:`, error);
+        return null;
     }
 };
 

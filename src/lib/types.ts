@@ -717,10 +717,19 @@ export type EndodonticRecord = {
   notes?: string;
 };
 
+export type XrayAttachment = {
+  url: string;
+  name?: string;
+  size?: number;
+  mime?: string;
+  uploaded_at?: string;
+};
+
 export type XrayRequest = {
   id?: string | number;
   client_uuid?: string;
-  patient_id: string | number;
+  patient: string;
+  patient_id?: string | number;
   facility: string;
   amount: number | string;
   xray_type?: string;
@@ -734,7 +743,8 @@ export type XrayRequest = {
   request_date?: string;
   completed_date?: string;
   report_findings?: string;
-  patient?: {
+  attachments?: XrayAttachment[];
+  patientRecord?: {
     id: string | number;
     first_name: string;
     last_name: string;

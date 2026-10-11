@@ -65,7 +65,18 @@ import {
   Printer,
   Trash2,
   Edit,
+  Paperclip,
+  Share2,
+  Mail,
 } from "lucide-react";
+
+function WhatsAppIcon({ className = "h-4 w-4" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L0 24l6.335-1.662c1.746.953 3.71 1.456 5.711 1.457h.004c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
+    </svg>
+  );
+}
 
 export default function RadiologyRequestsPage() {
   const { toast } = useToast();
@@ -245,6 +256,61 @@ export default function RadiologyRequestsPage() {
         variant: "destructive",
       });
     }
+  };
+
+  const handleShareRowWhatsApp = (item: XrayRequest) => {
+    const patientDisplayName =
+      typeof item.patient === "string" && item.patient.trim()
+        ? item.patient.trim()
+        : item.patientRecord
+        ? `${item.patientRecord.first_name || ""} ${item.patientRecord.last_name || ""}`.trim()
+        : "Patient";
+
+    const attachments = Array.isArray(item.attachments) ? item.attachments : [];
+    const filesList = attachments.map((a, i) => `File ${i + 1}: ${a.url}`).join("\n");
+
+    const text = [
+      `*Radiology Requisition #${String(item.id).padStart(5, "0")}*`,
+      `*Patient:* ${patientDisplayName}`,
+      `*Facility:* ${item.facility}`,
+      `*Investigation:* ${item.xray_type || "X-Ray"} - ${item.tooth_region || "Full Dentition"}`,
+      `*Amount:* ${Number(item.amount || 0).toLocaleString()} UGX`,
+      filesList ? `\n*Attached Files:*\n${filesList}` : "",
+    ].filter(Boolean).join("\n");
+
+    const phone = item.patientRecord?.phone?.replace(/[^0-9]/g, "") || "";
+    const waUrl = phone.length >= 9
+      ? `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(text)}`
+      : `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+
+    window.open(waUrl, "_blank", "noopener,noreferrer");
+  };
+
+  const handleShareRowEmail = (item: XrayRequest) => {
+    const patientDisplayName =
+      typeof item.patient === "string" && item.patient.trim()
+        ? item.patient.trim()
+        : item.patientRecord
+        ? `${item.patientRecord.first_name || ""} ${item.patientRecord.last_name || ""}`.trim()
+        : "Patient";
+
+    const subject = `Radiology Requisition #${String(item.id).padStart(5, "0")} - ${patientDisplayName}`;
+    const attachments = Array.isArray(item.attachments) ? item.attachments : [];
+    const filesList = attachments.map((a, i) => `• ${a.name || "Scan " + (i + 1)}: ${a.url}`).join("\n");
+
+    const body = [
+      `Radiology Requisition Details:`,
+      ``,
+      `Patient Name: ${patientDisplayName}`,
+      `Requisition #: ${String(item.id).padStart(5, "0")}`,
+      `Facility: ${item.facility}`,
+      `Investigation: ${item.xray_type || "X-Ray"} - ${item.tooth_region || "Full Dentition"}`,
+      `Amount: ${Number(item.amount || 0).toLocaleString()} UGX`,
+      filesList ? `\nAttached Files:\n${filesList}` : "",
+    ].filter(Boolean).join("\n");
+
+    const email = item.patientRecord?.email || "";
+    window.location.href = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   };
 
   const handleDelete = async (id: string | number) => {
@@ -580,11 +646,19 @@ export default function RadiologyRequestsPage() {
                   </TableRow>
                 ) : (
                   records.map((item) => {
-                    const patientName = item.patient
-                      ? `${item.patient.first_name || ""} ${item.patient.last_name || ""}`.trim()
-                      : "Patient Record";
+                    const patientName =
+                      typeof item.patient === "string" && item.patient.trim()
+                        ? item.patient.trim()
+                        : item.patientRecord
+                        ? `${item.patientRecord.first_name || ""} ${item.patientRecord.last_name || ""}`.trim()
+                        : typeof item.patient === "object" && item.patient
+                        ? `${(item.patient as any).first_name || ""} ${(item.patient as any).last_name || ""}`.trim()
+                        : "Walk-in Patient";
+
                     const patientId =
-                      item.patient?.id || item.patient_id;
+                      item.patient_id ||
+                      (typeof item.patient === "object" && item.patient ? (item.patient as any).id : null) ||
+                      item.patientRecord?.id;
 
                     const formattedAmount = Number(item.amount || 0).toLocaleString(
                       "en-US",
@@ -593,6 +667,8 @@ export default function RadiologyRequestsPage() {
                         maximumFractionDigits: 2,
                       }
                     );
+
+                    const attachmentCount = Array.isArray(item.attachments) ? item.attachments.length : 0;
 
                     return (
                       <TableRow
@@ -613,7 +689,7 @@ export default function RadiologyRequestsPage() {
                           </div>
                         </TableCell>
 
-                        {/* PATIENT */}
+                        {/* PATIENT (STRING ON TABLE) */}
                         <TableCell>
                           <div className="flex flex-col">
                             {patientId ? (
@@ -625,13 +701,16 @@ export default function RadiologyRequestsPage() {
                                 <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
                               </Link>
                             ) : (
-                              <span className="font-bold text-sm whitespace-nowrap">
+                              <span className="font-bold text-sm text-slate-800 dark:text-slate-100 whitespace-nowrap">
                                 {patientName}
                               </span>
                             )}
                             <div className="flex items-center gap-2 text-[11px] text-muted-foreground mt-0.5">
-                              {item.patient?.gender && <span>{item.patient.gender}</span>}
-                              {item.patient?.phone && <span>• {item.patient.phone}</span>}
+                              {item.patientRecord?.gender && <span>{item.patientRecord.gender}</span>}
+                              {item.patientRecord?.phone && <span>• {item.patientRecord.phone}</span>}
+                              {!patientId && (
+                                <span className="text-[10px] text-slate-400">Direct Entry</span>
+                              )}
                             </div>
                           </div>
                         </TableCell>
@@ -666,7 +745,7 @@ export default function RadiologyRequestsPage() {
                           )}
                         </TableCell>
 
-                        {/* SCAN TYPE / REGION */}
+                        {/* SCAN TYPE / REGION & ATTACHMENTS */}
                         <TableCell>
                           <div className="text-xs font-semibold text-slate-800 dark:text-slate-200">
                             {item.xray_type || "General Dental X-Ray"}
@@ -675,6 +754,17 @@ export default function RadiologyRequestsPage() {
                             <div className="text-[11px] text-muted-foreground truncate max-w-[180px]" title={item.tooth_region}>
                               {item.tooth_region}
                             </div>
+                          )}
+                          {attachmentCount > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => handleView(item)}
+                              className="inline-flex items-center gap-1 mt-1 text-[10px] font-medium text-teal-700 dark:text-teal-400 hover:underline bg-teal-50 dark:bg-teal-950/50 px-1.5 py-0.5 rounded border border-teal-200 dark:border-teal-800 transition-colors"
+                              title="Click to view attached scans"
+                            >
+                              <Paperclip className="h-3 w-3 text-teal-600" />
+                              <span>{attachmentCount} attached file{attachmentCount > 1 ? "s" : ""}</span>
+                            </button>
                           )}
                         </TableCell>
 
@@ -736,6 +826,22 @@ export default function RadiologyRequestsPage() {
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => handleEdit(item)}>
                                   <Edit className="mr-2 h-3.5 w-3.5" /> Edit Order
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuLabel className="text-[10px] text-muted-foreground uppercase font-bold">
+                                  Share Requisition & Files
+                                </DropdownMenuLabel>
+                                <DropdownMenuItem
+                                  onClick={() => handleShareRowWhatsApp(item)}
+                                  className="text-emerald-700 dark:text-emerald-400 cursor-pointer"
+                                >
+                                  <WhatsAppIcon className="mr-2 h-3.5 w-3.5" /> Share via WhatsApp
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => handleShareRowEmail(item)}
+                                  className="text-sky-700 dark:text-sky-400 cursor-pointer"
+                                >
+                                  <Mail className="mr-2 h-3.5 w-3.5" /> Share via Email
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuLabel className="text-[10px] text-muted-foreground uppercase font-bold">
