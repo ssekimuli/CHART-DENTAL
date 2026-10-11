@@ -86,6 +86,19 @@ export type MedicalHistory = {
   treatment_note: string;
   doctor_name?: string;
   doctor_id?: string | number;
+  doctor?: { id: number | string; name: string };
+  patient?: {
+    id: number | string;
+    first_name: string;
+    last_name: string;
+    gender?: string;
+    date_of_birth?: string;
+    age?: number | string;
+    phone?: string;
+    email?: string;
+    branch_id?: number | string;
+    branch?: { id: number | string; name: string };
+  };
   created_at?: string;
   updated_at?: string;
 };

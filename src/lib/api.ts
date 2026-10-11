@@ -5019,8 +5019,10 @@ export const mapMedicalHistories = (data: any, patientId?: string | number): Med
             consent: item.consent === true || item.consent === 1 || item.consent === '1' || item.consent === 'yes',
             consent_notes: item.consent_notes || '',
             treatment_note: item.treatment_note || '',
-            doctor_name: item.doctor_name || '',
-            doctor_id: item.doctor_id,
+            doctor_name: item.doctor_name || item.doctor?.name || '',
+            doctor_id: item.doctor_id || item.doctor?.id,
+            doctor: item.doctor,
+            patient: item.patient,
             created_at: item.created_at || new Date().toISOString(),
             updated_at: item.updated_at || new Date().toISOString(),
         }));
@@ -5029,6 +5031,59 @@ export const mapMedicalHistories = (data: any, patientId?: string | number): Med
         return getLocalMedicalHistories(patientId);
     }
     return [];
+};
+
+export interface GetAllMedicalHistoriesResponse {
+    data: MedicalHistory[];
+    meta?: {
+        current_page: number;
+        last_page: number;
+        per_page: number;
+        total: number;
+    };
+}
+
+export const getAllMedicalHistories = async (params?: {
+    search?: string;
+    date?: string;
+    date_from?: string;
+    date_to?: string;
+    doctor_id?: string | number;
+    doctor_name?: string;
+    branch_id?: string | number;
+    consent?: boolean | string;
+    page?: number;
+    per_page?: number | string;
+}): Promise<GetAllMedicalHistoriesResponse> => {
+    console.log('API CALL: getAllMedicalHistories', params);
+    try {
+        const response = await customAxios.get('/medical-histories', { params });
+        const resData = response.data;
+        const items = resData?.data || resData;
+        const mapped = mapMedicalHistories(items);
+        return {
+            data: mapped,
+            meta: resData?.meta,
+        };
+    } catch (error) {
+        console.warn('Backend /medical-histories endpoint failed, gathering from local fallback:', error);
+        const allLocal: MedicalHistory[] = [];
+        try {
+            if (typeof window !== 'undefined') {
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key && key.startsWith('medical_histories_')) {
+                        const stored = JSON.parse(localStorage.getItem(key) || '[]');
+                        allLocal.push(...stored);
+                    }
+                }
+            }
+        } catch {}
+        return {
+            data: allLocal,
+            meta: { current_page: 1, last_page: 1, per_page: allLocal.length, total: allLocal.length },
+        };
+    }
 };
 
 export const getPatientMedicalHistories = async (patientId: string | number): Promise<MedicalHistory[]> => {
