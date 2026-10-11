@@ -16,7 +16,7 @@ import {
     roles as mockRoles,
     businesses as mockBusinesses
 } from '@/lib/data';
-import type { Business, PaginatedArray, Patient, Appointment, Invoice, ChartData, PracticeTrendPoint, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, BasePatient, InvoiceTreatment, OtherCharge, SystemTreatment, PaymentMethod, PaymentTransaction, AttendanceRecord, LeaveRequest, StaffAdvance, StaffAdvanceStatus, Expense, ExpenseCategory, ExpenseSummary, IncomeRecord, RolePermissions, Permission, DentalRecord, PeriodontalRecord, OcclusalRecord, SoftTissueRecord, OrthodonticRecord, Treatment, DentalCondition, PatientImage, FinancialSummary, CurrentUser, ProfileData, AppointmentStatus, DashboardSummary, EmployeeRole, ReportsOverview, Medicine, MedicineUnit, Prescription, PrescriptionItem, InvoiceMedicine, EndodonticRecord, RestorativeRecord, Client } from '@/lib/types';
+import type { Business, PaginatedArray, Patient, Appointment, Invoice, ChartData, PracticeTrendPoint, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, BasePatient, InvoiceTreatment, OtherCharge, SystemTreatment, PaymentMethod, PaymentTransaction, AttendanceRecord, LeaveRequest, StaffAdvance, StaffAdvanceStatus, Expense, ExpenseCategory, ExpenseSummary, IncomeRecord, RolePermissions, Permission, DentalRecord, PeriodontalRecord, OcclusalRecord, SoftTissueRecord, OrthodonticRecord, Treatment, DentalCondition, PatientImage, FinancialSummary, CurrentUser, ProfileData, AppointmentStatus, DashboardSummary, EmployeeRole, ReportsOverview, Medicine, MedicineUnit, Prescription, PrescriptionItem, InvoiceMedicine, EndodonticRecord, RestorativeRecord, Client, MedicalHistory } from '@/lib/types';
 import { format, parse } from "date-fns";
 import { speak } from '@/ai/flows/speak';
 import { clearCurrentUser, setCurrentUser } from './user';
@@ -547,6 +547,7 @@ export const getPatientById = async (id: string | number): Promise<Patient | und
                 createdAt: record.created_at || record.createdAt,
                 updatedAt: record.updated_at || record.updatedAt,
             })),
+            medicalHistories: mapMedicalHistories(patient.medical_histories || patient.medicalHistories, patient.id),
         };
     } catch (error) {
         if (axios.isAxiosError(error)) {
@@ -4976,3 +4977,237 @@ export const updatePatientAvatar = async (patientId: string | number, file: File
     });
     return response.data;
 };
+
+// -------------------------------------------------------------
+// MEDICAL / DENTAL HISTORY RECORDS
+// -------------------------------------------------------------
+
+const getLocalMedicalHistories = (patientId: string | number): MedicalHistory[] => {
+    if (typeof window === 'undefined') return [];
+    try {
+        const stored = localStorage.getItem(`dental_patient_medical_histories_${patientId}`);
+        return stored ? JSON.parse(stored) : [];
+    } catch {
+        return [];
+    }
+};
+
+const saveLocalMedicalHistories = (patientId: string | number, items: MedicalHistory[]): void => {
+    if (typeof window === 'undefined') return;
+    try {
+        localStorage.setItem(`dental_patient_medical_histories_${patientId}`, JSON.stringify(items));
+    } catch (e) {
+        console.error('Failed to save to localStorage:', e);
+    }
+};
+
+export const mapMedicalHistories = (data: any, patientId?: string | number): MedicalHistory[] => {
+    const list = parseJsonArraySafe(data);
+    if (list.length > 0) {
+        return list.map((item: any) => ({
+            id: item.id || `mh_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+            patientId: String(item.patient_id || item.patientId || patientId || ''),
+            patient_id: item.patient_id || item.patientId || patientId,
+            date: item.date ? String(item.date).split('T')[0] : (item.created_at ? String(item.created_at).split('T')[0] : new Date().toISOString().split('T')[0]),
+            chief_complaint: item.chief_complaint || '',
+            history_complaint: item.history_complaint || item.history_of_complaint || '',
+            extra_oral_exam: item.extra_oral_exam || '',
+            intra_oral_exam: item.intra_oral_exam || '',
+            diagnosis: item.diagnosis || '',
+            treatment_plan: item.treatment_plan || '',
+            treatment_given: item.treatment_given || '',
+            consent: item.consent === true || item.consent === 1 || item.consent === '1' || item.consent === 'yes',
+            consent_notes: item.consent_notes || '',
+            treatment_note: item.treatment_note || '',
+            doctor_name: item.doctor_name || '',
+            doctor_id: item.doctor_id,
+            created_at: item.created_at || new Date().toISOString(),
+            updated_at: item.updated_at || new Date().toISOString(),
+        }));
+    }
+    if (patientId) {
+        return getLocalMedicalHistories(patientId);
+    }
+    return [];
+};
+
+export const getPatientMedicalHistories = async (patientId: string | number): Promise<MedicalHistory[]> => {
+    console.log('API CALL: getPatientMedicalHistories', { patientId });
+    try {
+        const response = await customAxios.get(`/patients/${patientId}/medical-histories`);
+        const data = response.data?.data || response.data;
+        if (Array.isArray(data)) {
+            const mapped = mapMedicalHistories(data, patientId);
+            saveLocalMedicalHistories(patientId, mapped);
+            return mapped;
+        }
+    } catch (error) {
+        console.warn('Backend /patients/:id/medical-histories endpoint not available or failed, using local cache:', error);
+    }
+    return getLocalMedicalHistories(patientId);
+};
+
+export const createMedicalHistory = async (
+    patientId: string | number,
+    data: Omit<MedicalHistory, 'id'>
+): Promise<MedicalHistory> => {
+    console.log('API CALL: createMedicalHistory', { patientId, data });
+    const payload = {
+        patient_id: patientId,
+        date: data.date || new Date().toISOString().split('T')[0],
+        chief_complaint: data.chief_complaint || '',
+        history_complaint: data.history_complaint || '',
+        extra_oral_exam: data.extra_oral_exam || '',
+        intra_oral_exam: data.intra_oral_exam || '',
+        diagnosis: data.diagnosis || '',
+        treatment_plan: data.treatment_plan || '',
+        treatment_given: data.treatment_given || '',
+        consent: data.consent ? 1 : 0,
+        consent_notes: data.consent_notes || '',
+        treatment_note: data.treatment_note || '',
+        doctor_name: data.doctor_name || '',
+        doctor_id: data.doctor_id || null,
+    };
+
+    let createdRecord: MedicalHistory | null = null;
+    try {
+        const response = await customAxios.post(`/patients/${patientId}/medical-histories`, payload);
+        const resData = response.data?.data || response.data;
+        if (resData && (resData.id || resData.chief_complaint)) {
+            createdRecord = {
+                id: resData.id,
+                patientId: String(patientId),
+                patient_id: patientId,
+                date: resData.date ? String(resData.date).split('T')[0] : payload.date,
+                chief_complaint: resData.chief_complaint ?? payload.chief_complaint,
+                history_complaint: resData.history_complaint ?? payload.history_complaint,
+                extra_oral_exam: resData.extra_oral_exam ?? payload.extra_oral_exam,
+                intra_oral_exam: resData.intra_oral_exam ?? payload.intra_oral_exam,
+                diagnosis: resData.diagnosis ?? payload.diagnosis,
+                treatment_plan: resData.treatment_plan ?? payload.treatment_plan,
+                treatment_given: resData.treatment_given ?? payload.treatment_given,
+                consent: resData.consent === true || resData.consent === 1 || resData.consent === '1',
+                consent_notes: resData.consent_notes ?? payload.consent_notes,
+                treatment_note: resData.treatment_note ?? payload.treatment_note,
+                doctor_name: resData.doctor_name ?? payload.doctor_name,
+                doctor_id: resData.doctor_id ?? payload.doctor_id,
+                created_at: resData.created_at || new Date().toISOString(),
+                updated_at: resData.updated_at || new Date().toISOString(),
+            };
+        }
+    } catch (error) {
+        console.warn('Backend POST /patients/:id/medical-histories failed, saving to local fallback storage:', error);
+    }
+
+    if (!createdRecord) {
+        createdRecord = {
+            id: `mh_${Date.now()}`,
+            patientId: String(patientId),
+            patient_id: patientId,
+            ...data,
+            date: data.date || new Date().toISOString().split('T')[0],
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+        };
+    }
+
+    const current = getLocalMedicalHistories(patientId);
+    const updatedList = [createdRecord, ...current.filter(i => String(i.id) !== String(createdRecord!.id))];
+    saveLocalMedicalHistories(patientId, updatedList);
+
+    return createdRecord;
+};
+
+export const updateMedicalHistory = async (
+    id: string | number,
+    patientId: string | number,
+    data: Partial<MedicalHistory>
+): Promise<MedicalHistory> => {
+    console.log('API CALL: updateMedicalHistory', { id, patientId, data });
+    const payload = {
+        ...data,
+        consent: data.consent !== undefined ? (data.consent ? 1 : 0) : undefined,
+    };
+
+    let updatedRecord: MedicalHistory | null = null;
+    try {
+        const response = await customAxios.put(`/medical-histories/${id}`, payload);
+        const resData = response.data?.data || response.data;
+        if (resData) {
+            updatedRecord = {
+                id,
+                patientId: String(patientId),
+                patient_id: patientId,
+                date: resData.date ? String(resData.date).split('T')[0] : (data.date || new Date().toISOString().split('T')[0]),
+                chief_complaint: resData.chief_complaint ?? data.chief_complaint ?? '',
+                history_complaint: resData.history_complaint ?? data.history_complaint ?? '',
+                extra_oral_exam: resData.extra_oral_exam ?? data.extra_oral_exam ?? '',
+                intra_oral_exam: resData.intra_oral_exam ?? data.intra_oral_exam ?? '',
+                diagnosis: resData.diagnosis ?? data.diagnosis ?? '',
+                treatment_plan: resData.treatment_plan ?? data.treatment_plan ?? '',
+                treatment_given: resData.treatment_given ?? data.treatment_given ?? '',
+                consent: resData.consent === true || resData.consent === 1 || resData.consent === '1',
+                consent_notes: resData.consent_notes ?? data.consent_notes ?? '',
+                treatment_note: resData.treatment_note ?? data.treatment_note ?? '',
+                doctor_name: resData.doctor_name ?? data.doctor_name ?? '',
+                doctor_id: resData.doctor_id ?? data.doctor_id,
+                updated_at: resData.updated_at || new Date().toISOString(),
+            };
+        }
+    } catch (error) {
+        console.warn('Backend PUT /medical-histories/:id failed, updating local fallback storage:', error);
+    }
+
+    const current = getLocalMedicalHistories(patientId);
+    const existingIndex = current.findIndex(i => String(i.id) === String(id));
+    if (!updatedRecord) {
+        if (existingIndex >= 0) {
+            updatedRecord = { ...current[existingIndex], ...data, updated_at: new Date().toISOString() };
+        } else {
+            updatedRecord = {
+                id,
+                patientId: String(patientId),
+                patient_id: patientId,
+                date: data.date || new Date().toISOString().split('T')[0],
+                chief_complaint: data.chief_complaint || '',
+                history_complaint: data.history_complaint || '',
+                extra_oral_exam: data.extra_oral_exam || '',
+                intra_oral_exam: data.intra_oral_exam || '',
+                diagnosis: data.diagnosis || '',
+                treatment_plan: data.treatment_plan || '',
+                treatment_given: data.treatment_given || '',
+                consent: !!data.consent,
+                consent_notes: data.consent_notes || '',
+                treatment_note: data.treatment_note || '',
+                doctor_name: data.doctor_name || '',
+                updated_at: new Date().toISOString(),
+            };
+        }
+    }
+
+    if (existingIndex >= 0) {
+        current[existingIndex] = updatedRecord;
+    } else {
+        current.unshift(updatedRecord);
+    }
+    saveLocalMedicalHistories(patientId, current);
+
+    return updatedRecord;
+};
+
+export const deleteMedicalHistory = async (id: string | number, patientId?: string | number): Promise<boolean> => {
+    console.log('API CALL: deleteMedicalHistory', { id, patientId });
+    try {
+        await customAxios.delete(`/medical-histories/${id}`);
+    } catch (error) {
+        console.warn('Backend DELETE /medical-histories/:id failed:', error);
+    }
+
+    if (patientId) {
+        const current = getLocalMedicalHistories(patientId);
+        const filtered = current.filter(i => String(i.id) !== String(id));
+        saveLocalMedicalHistories(patientId, filtered);
+    }
+    return true;
+};
+

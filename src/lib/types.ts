@@ -59,6 +59,7 @@ export type Patient = {
   treatmentPlans: Treatment[];
   imaging: PatientImage[];
   history?: string;
+  medicalHistories?: MedicalHistory[];
   branchId: string | number;
   periodontalRecords: PeriodontalRecord;
   occlusalRecords: OcclusalRecord;
@@ -66,6 +67,27 @@ export type Patient = {
   orthodonticRecords: OrthodonticRecord[];
   endodonticRecords?: EndodonticRecord[];
   restorativeRecords?: RestorativeRecord[];
+};
+
+export type MedicalHistory = {
+  id?: string | number;
+  patient_id?: string | number;
+  patientId?: string | number;
+  date: string;
+  chief_complaint: string;
+  history_complaint: string;
+  extra_oral_exam: string;
+  intra_oral_exam: string;
+  diagnosis: string;
+  treatment_plan: string;
+  treatment_given: string;
+  consent: boolean;
+  consent_notes?: string;
+  treatment_note: string;
+  doctor_name?: string;
+  doctor_id?: string | number;
+  created_at?: string;
+  updated_at?: string;
 };
 
 export type PatientImage = {
@@ -408,7 +430,7 @@ export type LabServicePrice = {
   updated_at: string;
 };
 
-export type BasePatient = Omit<Patient, 'id' | 'dentalRecords' | 'treatmentPlans' | 'imaging' | 'periodontalRecords' | 'occlusalRecords' | 'softTissueRecords' | 'orthodonticRecords'>;
+export type BasePatient = Omit<Patient, 'id' | 'dentalRecords' | 'treatmentPlans' | 'imaging' | 'periodontalRecords' | 'occlusalRecords' | 'softTissueRecords' | 'orthodonticRecords' | 'medicalHistories'>;
 
 export type BaseInvoice = Omit<Invoice, 'id' | 'patientName' | 'branchId'>;
 
