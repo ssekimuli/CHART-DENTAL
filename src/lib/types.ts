@@ -716,3 +716,38 @@ export type EndodonticRecord = {
   postType?: string;
   notes?: string;
 };
+
+export type XrayRequest = {
+  id?: string | number;
+  client_uuid?: string;
+  patient_id: string | number;
+  facility: string;
+  amount: number | string;
+  xray_type?: string;
+  tooth_region?: string;
+  clinical_notes?: string;
+  doctor_name?: string;
+  doctor_id?: string | number;
+  branch_id?: string | number;
+  status: 'pending' | 'completed' | 'cancelled';
+  request_date?: string;
+  completed_date?: string;
+  report_findings?: string;
+  patient?: {
+    id: string | number;
+    first_name: string;
+    last_name: string;
+    gender?: string;
+    date_of_birth?: string;
+    age?: string | number;
+    phone?: string;
+    email?: string;
+    address?: string;
+    branch_id?: string | number;
+  };
+  branch?: { id: string | number; name: string };
+  doctor?: { id: string | number; name: string };
+  created_at?: string;
+  updated_at?: string;
+};
+

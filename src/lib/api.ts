@@ -16,7 +16,7 @@ import {
     roles as mockRoles,
     businesses as mockBusinesses
 } from '@/lib/data';
-import type { Business, PaginatedArray, Patient, Appointment, Invoice, ChartData, PracticeTrendPoint, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, BasePatient, InvoiceTreatment, OtherCharge, SystemTreatment, PaymentMethod, PaymentTransaction, AttendanceRecord, LeaveRequest, StaffAdvance, StaffAdvanceStatus, Expense, ExpenseCategory, ExpenseSummary, IncomeRecord, RolePermissions, Permission, DentalRecord, PeriodontalRecord, OcclusalRecord, SoftTissueRecord, OrthodonticRecord, Treatment, DentalCondition, PatientImage, FinancialSummary, CurrentUser, ProfileData, AppointmentStatus, DashboardSummary, EmployeeRole, ReportsOverview, Medicine, MedicineUnit, Prescription, PrescriptionItem, InvoiceMedicine, EndodonticRecord, RestorativeRecord, Client, MedicalHistory } from '@/lib/types';
+import type { Business, PaginatedArray, Patient, Appointment, Invoice, ChartData, PracticeTrendPoint, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, BasePatient, InvoiceTreatment, OtherCharge, SystemTreatment, PaymentMethod, PaymentTransaction, AttendanceRecord, LeaveRequest, StaffAdvance, StaffAdvanceStatus, Expense, ExpenseCategory, ExpenseSummary, IncomeRecord, RolePermissions, Permission, DentalRecord, PeriodontalRecord, OcclusalRecord, SoftTissueRecord, OrthodonticRecord, Treatment, DentalCondition, PatientImage, FinancialSummary, CurrentUser, ProfileData, AppointmentStatus, DashboardSummary, EmployeeRole, ReportsOverview, Medicine, MedicineUnit, Prescription, PrescriptionItem, InvoiceMedicine, EndodonticRecord, RestorativeRecord, Client, MedicalHistory, XrayRequest } from '@/lib/types';
 import { format, parse } from "date-fns";
 import { speak } from '@/ai/flows/speak';
 import { clearCurrentUser, setCurrentUser } from './user';
@@ -5265,4 +5265,160 @@ export const deleteMedicalHistory = async (id: string | number, patientId?: stri
     }
     return true;
 };
+
+// ==========================================
+// RADIOLOGY & X-RAY REQUISITION REQUESTS API
+// ==========================================
+
+export interface GetXrayRequestsResponse {
+    data: XrayRequest[];
+    meta?: {
+        current_page: number;
+        last_page: number;
+        per_page: number;
+        total: number;
+    };
+}
+
+export const getXrayRequests = async (params?: {
+    search?: string;
+    patient_id?: string | number;
+    status?: string;
+    facility?: string;
+    xray_type?: string;
+    date_from?: string;
+    date_to?: string;
+    branch_id?: string | number;
+    doctor_name?: string;
+    page?: number;
+    per_page?: number | string;
+}): Promise<GetXrayRequestsResponse> => {
+    console.log('API CALL: getXrayRequests', params);
+    try {
+        const response = await customAxios.get('/xray-requests', { params });
+        const resData = response.data;
+        const items = resData?.data || resData;
+        const mapped = Array.isArray(items) ? items : [];
+        return {
+            data: mapped,
+            meta: resData?.meta || {
+                current_page: resData?.current_page || 1,
+                last_page: resData?.last_page || 1,
+                per_page: resData?.per_page || mapped.length,
+                total: resData?.total || mapped.length
+            }
+        };
+    } catch (error) {
+        console.warn('Backend /xray-requests endpoint failed, using local cache fallback:', error);
+        let local: XrayRequest[] = [];
+        try {
+            if (typeof window !== 'undefined') {
+                const stored = localStorage.getItem('xray_requests_all');
+                if (stored) local = JSON.parse(stored);
+            }
+        } catch {}
+        return {
+            data: local,
+            meta: { current_page: 1, last_page: 1, per_page: local.length, total: local.length }
+        };
+    }
+};
+
+export const getXrayRequestById = async (id: string | number): Promise<XrayRequest | null> => {
+    console.log('API CALL: getXrayRequestById', { id });
+    try {
+        const response = await customAxios.get(`/xray-requests/${id}`);
+        return response.data?.data || response.data;
+    } catch (error) {
+        console.warn(`Backend GET /xray-requests/${id} failed:`, error);
+        return null;
+    }
+};
+
+export const createXrayRequest = async (data: Partial<XrayRequest>): Promise<XrayRequest> => {
+    console.log('API CALL: createXrayRequest', data);
+    try {
+        const response = await customAxios.post('/xray-requests', data);
+        const created = response.data?.data || response.data;
+        try {
+            if (typeof window !== 'undefined') {
+                const existing: XrayRequest[] = JSON.parse(localStorage.getItem('xray_requests_all') || '[]');
+                existing.unshift(created);
+                localStorage.setItem('xray_requests_all', JSON.stringify(existing));
+            }
+        } catch {}
+        return created;
+    } catch (error) {
+        console.warn('Backend POST /xray-requests failed, saving locally:', error);
+        const fallback: XrayRequest = {
+            id: `xray_${Date.now()}`,
+            patient_id: data.patient_id || '',
+            facility: data.facility || '',
+            amount: data.amount || 0,
+            xray_type: data.xray_type || '',
+            tooth_region: data.tooth_region || '',
+            clinical_notes: data.clinical_notes || '',
+            doctor_name: data.doctor_name || '',
+            status: data.status || 'pending',
+            request_date: data.request_date || new Date().toISOString().split('T')[0],
+            created_at: new Date().toISOString(),
+            ...data
+        } as XrayRequest;
+        try {
+            if (typeof window !== 'undefined') {
+                const existing: XrayRequest[] = JSON.parse(localStorage.getItem('xray_requests_all') || '[]');
+                existing.unshift(fallback);
+                localStorage.setItem('xray_requests_all', JSON.stringify(existing));
+            }
+        } catch {}
+        return fallback;
+    }
+};
+
+export const updateXrayRequest = async (id: string | number, data: Partial<XrayRequest>): Promise<XrayRequest> => {
+    console.log('API CALL: updateXrayRequest', { id, data });
+    try {
+        const response = await customAxios.put(`/xray-requests/${id}`, data);
+        const updated = response.data?.data || response.data;
+        try {
+            if (typeof window !== 'undefined') {
+                const existing: XrayRequest[] = JSON.parse(localStorage.getItem('xray_requests_all') || '[]');
+                const idx = existing.findIndex(r => String(r.id) === String(id));
+                if (idx >= 0) existing[idx] = { ...existing[idx], ...updated };
+                localStorage.setItem('xray_requests_all', JSON.stringify(existing));
+            }
+        } catch {}
+        return updated;
+    } catch (error) {
+        console.warn(`Backend PUT /xray-requests/${id} failed:`, error);
+        const updated = { id, ...data } as XrayRequest;
+        try {
+            if (typeof window !== 'undefined') {
+                const existing: XrayRequest[] = JSON.parse(localStorage.getItem('xray_requests_all') || '[]');
+                const idx = existing.findIndex(r => String(r.id) === String(id));
+                if (idx >= 0) existing[idx] = { ...existing[idx], ...data };
+                localStorage.setItem('xray_requests_all', JSON.stringify(existing));
+            }
+        } catch {}
+        return updated;
+    }
+};
+
+export const deleteXrayRequest = async (id: string | number): Promise<boolean> => {
+    console.log('API CALL: deleteXrayRequest', { id });
+    try {
+        await customAxios.delete(`/xray-requests/${id}`);
+    } catch (error) {
+        console.warn(`Backend DELETE /xray-requests/${id} failed:`, error);
+    }
+    try {
+        if (typeof window !== 'undefined') {
+            const existing: XrayRequest[] = JSON.parse(localStorage.getItem('xray_requests_all') || '[]');
+            const filtered = existing.filter(r => String(r.id) !== String(id));
+            localStorage.setItem('xray_requests_all', JSON.stringify(filtered));
+        }
+    } catch {}
+    return true;
+};
+
 
