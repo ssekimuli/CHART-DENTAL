@@ -26,6 +26,7 @@ import {
   FileText,
 } from "lucide-react";
 import moment from "moment";
+import { useBranch } from "@/context/branch-context";
 
 interface MedicalHistoryViewModalProps {
   patient: PatientBasicInfo;
@@ -42,9 +43,18 @@ export function MedicalHistoryViewModal({
   onOpenChange,
   onEdit,
 }: MedicalHistoryViewModalProps) {
+  const { selectedBranch, availableBranches } = useBranch();
+
   if (!record) return null;
 
   const fullName = `${patient.first_name || ""} ${patient.last_name || ""}`.trim() || "Patient";
+
+  const currentBranch = availableBranches.find(
+    (b) => String(b.id) === String(selectedBranch || patient.branch_id)
+  ) || availableBranches[0];
+
+  const facilityName = currentBranch?.name || "DENTAL & ORAL HEALTHCARE CLINIC";
+  const facilityAddress = currentBranch?.address || "";
 
   const handlePrint = () => {
     window.print();
@@ -62,12 +72,17 @@ export function MedicalHistoryViewModal({
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-xl font-extrabold tracking-tight text-teal-700 dark:text-teal-400 print:text-black">
-                  DENTAL & MEDICAL CASE RECORD
+                  {facilityName}
                 </span>
               </div>
-              <p className="text-xs text-muted-foreground mt-0.5 print:text-slate-600">
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 print:text-slate-700 mt-0.5">
                 Clinical Examination, Assessment & Management Sheet
               </p>
+              {facilityAddress && (
+                <p className="text-[11px] text-muted-foreground print:text-slate-600 mt-0.5">
+                  📍 {facilityAddress}
+                </p>
+              )}
             </div>
             <div className="text-right">
               <span className="font-mono text-xs font-bold text-teal-700 dark:text-teal-400 print:text-black">
