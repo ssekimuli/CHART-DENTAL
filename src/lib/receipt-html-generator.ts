@@ -9,6 +9,7 @@ export interface ReceiptInfo {
   clinicAddress?: string;
   patientName: string;
   patientPhone?: string;
+  patientAddress?: string;
   date: string;
   billNumber: string;
   treatments: Array<{
@@ -135,12 +136,25 @@ export function generateReceiptHTML(info: ReceiptInfo, paperWidth: "58mm" | "80m
   html += line(centerText("═".repeat(Math.min(charsPerLine, info.clinicName.length))));
   html += line();
 
-  if (info.clinicPhone) {
-    html += line(centerText(info.clinicPhone));
+  if (info.clinicAddress) {
+    const words = info.clinicAddress.split(" ");
+    let curLine = "";
+    for (const word of words) {
+      if ((curLine ? curLine + " " + word : word).length <= charsPerLine) {
+        curLine = curLine ? curLine + " " + word : word;
+      } else {
+        if (curLine) html += line(centerText(curLine));
+        curLine = word;
+      }
+    }
+    if (curLine) html += line(centerText(curLine));
   }
 
-  if (info.clinicAddress) {
-    html += line(centerText(info.clinicAddress));
+  if (info.clinicPhone) {
+    const phoneStr = info.clinicPhone.toLowerCase().startsWith("tel") || info.clinicPhone.toLowerCase().startsWith("ph")
+      ? info.clinicPhone
+      : `Tel: ${info.clinicPhone}`;
+    html += line(centerText(phoneStr));
   }
 
   html += line();
@@ -158,6 +172,19 @@ export function generateReceiptHTML(info: ReceiptInfo, paperWidth: "58mm" | "80m
   html += line(`Patient: ${info.patientName}`);
   if (info.patientPhone) {
     html += line(`Phone: ${info.patientPhone}`);
+  }
+  if (info.patientAddress) {
+    const words = info.patientAddress.split(" ");
+    let curLine = "";
+    for (const word of words) {
+      if ((curLine ? curLine + " " + word : word).length <= (charsPerLine - 9)) {
+        curLine = curLine ? curLine + " " + word : word;
+      } else {
+        if (curLine) html += line(`Address: ${curLine}`);
+        curLine = word;
+      }
+    }
+    if (curLine) html += line(`Address: ${curLine}`);
   }
 
   // Branch and payment method

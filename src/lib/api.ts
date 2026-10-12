@@ -864,7 +864,8 @@ export const getInvoices = async (filters?: {
                 id: inv.branch.id,
                 name: inv.branch.name,
                 currency: inv.branch.currency || 'USD',
-                address: inv.branch.address || ''
+                address: inv.branch.address || '',
+                contactNumber: inv.branch.contact_number || inv.branch.contactNumber || inv.branch.phone || ''
             } : undefined,
             otherCharges: (inv.other_charges || inv.otherCharges || []).map((charge: any) => ({
                 description: charge.description,
@@ -967,7 +968,8 @@ export const getInvoiceById = async (id: string | number): Promise<Invoice | und
                 id: invoiceData.branch.id,
                 name: invoiceData.branch.name,
                 currency: invoiceData.branch.currency || 'USD',
-                address: invoiceData.branch.address || ''
+                address: invoiceData.branch.address || '',
+                contactNumber: invoiceData.branch.contact_number || invoiceData.branch.contactNumber || invoiceData.branch.phone || ''
             } : undefined,
             otherCharges: (invoiceData.other_charges || invoiceData.otherCharges || []).map((charge: any) => ({
                 description: charge.description,

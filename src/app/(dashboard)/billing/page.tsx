@@ -63,6 +63,7 @@ import { Pagination, PaginationContent, PaginationItem, PaginationPrevious, Pagi
 import { useCurrency } from "@/hooks/use-currency";
 import { useToast } from "@/hooks/use-toast";
 import { useBusinessDetails } from "@/hooks/use-business-details";
+import { getClinicName, getClinicAddress, getClinicPhone } from "@/lib/business-details";
 
 
 export default function BillingPage() {
@@ -429,14 +430,26 @@ export default function BillingPage() {
       // Calculate balance due
       const balanceDue = (invoice.amount || 0) - (invoice.paidAmount || 0);
 
+      // Branch details (with fallback to business details)
+      const branchName = invoice.branch?.name || clinicName || getClinicName();
+      const branchPhone = invoice.branch?.contactNumber || (invoice.branch as any)?.phone || (invoice.branch as any)?.contact_number || clinicPhone || getClinicPhone();
+      const branchAddress = invoice.branch?.address || clinicAddress || getClinicAddress();
+
+      // Patient details
+      const matchedPatient = invoice.patientId ? allPatients.find(p => String(p.id) === String(invoice.patientId)) : invoice.patient;
+      const patientPhone = matchedPatient?.phone || invoice.patient?.phone || invoice.patient?.contact || (invoice as any).patientPhone || "";
+      const patientAddress = matchedPatient?.address || invoice.patient?.address || (invoice as any).patientAddress || "";
+
       // Generate detailed receipt with all billing information
       const { generateReceiptHTML } = await import("@/lib/receipt-html-generator");
       const html = generateReceiptHTML(
         {
-          clinicName: clinicName,
-          clinicPhone: clinicPhone,
-          clinicAddress: clinicAddress,
+          clinicName: branchName,
+          clinicPhone: branchPhone,
+          clinicAddress: branchAddress,
           patientName: patientName,
+          patientPhone: patientPhone,
+          patientAddress: patientAddress,
           date: date,
           billNumber: billNumber,
           treatments: treatments.map(t => ({

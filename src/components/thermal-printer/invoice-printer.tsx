@@ -56,14 +56,34 @@ export function InvoicePrinter({
       const subtotal = calculatedSubtotal > 0 ? calculatedSubtotal : amount;
       const balanceDue = (invoice.amount || 0) - (invoice.paidAmount || 0);
 
+      const branchName = (invoice as any).branch?.name || businessName || getClinicName();
+      const branchPhone = (invoice as any).branch?.contactNumber || (invoice as any).branch?.phone || (invoice as any).branch?.contact_number || businessPhone || getClinicPhone();
+      const branchAddress = (invoice as any).branch?.address || businessAddress || getClinicAddress();
+
+      let patientPhone = invoice.patient?.phone || (invoice as any).patient?.contact || (invoice as any).patientPhone || "";
+      let patientAddress = invoice.patient?.address || (invoice as any).patientAddress || "";
+
+      if (invoice.patientId && (!patientPhone || !patientAddress)) {
+        try {
+          const { getPatientById } = await import("@/lib/api");
+          const p = await getPatientById(invoice.patientId);
+          if (p) {
+            patientPhone = patientPhone || p.phone || "";
+            patientAddress = patientAddress || p.address || "";
+          }
+        } catch {}
+      }
+
       // For detailed receipt, use generateReceiptHTML with all fields
       const { generateReceiptHTML } = await import("@/lib/receipt-html-generator");
       const detailedHtml = generateReceiptHTML(
         {
-          clinicName: businessName,
-          clinicPhone: businessPhone,
-          clinicAddress: businessAddress,
+          clinicName: branchName,
+          clinicPhone: branchPhone,
+          clinicAddress: branchAddress,
           patientName: patientName,
+          patientPhone: patientPhone,
+          patientAddress: patientAddress,
           date: date,
           billNumber: billNumber,
           treatments: treatments.map(t => ({
