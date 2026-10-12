@@ -9,7 +9,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { PlusCircle, Trash, Pencil, MoreHorizontal } from "lucide-react";
+import { PlusCircle, Trash, Pencil, MoreHorizontal, User } from "lucide-react";
 import { getTreatments, deleteTreatment } from "@/lib/api";
 import type { SystemTreatment } from "@/lib/types";
 
@@ -580,6 +580,7 @@ export default function PatientChartingPage({
                       <TableRow className="bg-muted/30 hover:bg-muted/30">
                         <TableHead>Procedure</TableHead>
                         <TableHead>Tooth</TableHead>
+                        <TableHead>Doctor</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Cost</TableHead>
                         {canUpdatePatient && <TableHead className="text-right">Actions</TableHead>}
@@ -592,6 +593,16 @@ export default function PatientChartingPage({
                             {plan.procedure}
                           </TableCell>
                           <TableCell>{plan.tooth || "N/A"}</TableCell>
+                          <TableCell>
+                            {plan.doctorName || plan.doctor_name || plan.doctor?.name ? (
+                              <div className="flex items-center gap-1.5 font-medium text-xs text-foreground">
+                                <User className="h-3.5 w-3.5 text-primary shrink-0" />
+                                <span>{plan.doctorName || plan.doctor_name || plan.doctor?.name}</span>
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground text-xs">-</span>
+                            )}
+                          </TableCell>
                           <TableCell>
                             <Badge variant="outline">{plan.status}</Badge>
                           </TableCell>
