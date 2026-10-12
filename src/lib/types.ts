@@ -338,7 +338,9 @@ export type IncomeRecord = {
   date: string;
   patientName: string;
   amount: number;
-  status: 'Paid' | 'Pending' | 'Overdue';
+  paidAmount?: number;
+  totalAmount?: number;
+  status: 'Paid' | 'Pending' | 'Overdue' | string;
   invoiceNumber: string;
   category?: string;
 };

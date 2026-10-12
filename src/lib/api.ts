@@ -1976,16 +1976,23 @@ export const getIncomeRecords = async (filters?: { branchId?: string | number; d
         const data = response.data;
 
         // Map the records to IncomeRecord format
-        const records = (data.records || []).map((item: any) => ({
-            id: item.id,
-            branchId: item.branch_id || item.branchId || item.branch?.id,
-            date: item.issue_date ? String(item.issue_date).split('T')[0] : item.date || item.invoice_date || '',
-            patientName: item.patient_name || item.patientName || [item.patient?.first_name, item.patient?.last_name].filter(Boolean).join(' ') || '',
-            amount: Number(item.paid_amount || item.amount || item.total) || 0,
-            status: item.status || item.payment_status || 'Paid',
-            invoiceNumber: item.invoice_number || item.invoiceNo || item.number || '',
-            category: item.category || 'other',
-        }));
+        const records = (data.records || []).map((item: any) => {
+            const paid = parseFloat(item.paid_amount);
+            const total = parseFloat(item.amount ?? item.total);
+            const effectiveAmount = (!isNaN(paid) && paid > 0) ? paid : (!isNaN(total) ? total : 0);
+            return {
+                id: item.id,
+                branchId: item.branch_id || item.branchId || item.branch?.id,
+                date: item.issue_date ? String(item.issue_date).split('T')[0] : item.date || item.invoice_date || '',
+                patientName: item.patient_name || item.patientName || [item.patient?.first_name, item.patient?.last_name].filter(Boolean).join(' ') || '',
+                amount: effectiveAmount,
+                paidAmount: !isNaN(paid) ? paid : 0,
+                totalAmount: !isNaN(total) ? total : 0,
+                status: item.status || (paid > 0 && paid >= total ? 'Paid' : 'Pending'),
+                invoiceNumber: item.invoice_number || item.invoiceNo || item.number || '',
+                category: item.category || 'other',
+            };
+        });
 
         return {
             branch: data.branch,
