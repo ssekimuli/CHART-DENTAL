@@ -172,7 +172,7 @@ export default function BillingPage() {
   }, [selectedBranch, allPatients]);
 
   // Predefined invoice categories (matching backend)
-  const INVOICE_CATEGORIES = ['lab-income', 'pharmacy-income', 'procedure-income', 'other'] as const;
+  const INVOICE_CATEGORIES = ['procedure-income', 'radiology-income', 'lab-income', 'pharmacy-income', 'other'] as const;
 
   // Get category display names and counts
   const categories = useMemo(() => {
@@ -200,6 +200,7 @@ export default function BillingPage() {
 
   // Format category name for display
   const formatCategoryName = (category: string) => {
+    if (category === 'radiology-income') return 'Radiology Income';
     return category
       .split('-')
       .map(word => word.charAt(0).toUpperCase() + word.slice(1))
