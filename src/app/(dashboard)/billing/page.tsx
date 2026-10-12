@@ -51,7 +51,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Skeleton } from "@/components/ui/skeleton";
 import { PaymentForm } from "./components/payment-form";
 import { getWindowsPrinterService } from "@/lib/windows-printer";
-import { generateSimpleReceiptHTML } from "@/lib/receipt-html-generator";
+import { generateSimpleReceiptHTML, generateReceiptHTML } from "@/lib/receipt-html-generator";
 import { DateRange } from "react-day-picker";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
@@ -441,7 +441,6 @@ export default function BillingPage() {
       const patientAddress = matchedPatient?.address || invoice.patient?.address || (invoice as any).patientAddress || "";
 
       // Generate detailed receipt with all billing information
-      const { generateReceiptHTML } = await import("@/lib/receipt-html-generator");
       const html = generateReceiptHTML(
         {
           clinicName: branchName,
@@ -499,6 +498,10 @@ export default function BillingPage() {
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : "Print failed";
       console.error("Print error:", errorMsg);
+      if (errorMsg.includes("Loading chunk") || errorMsg.includes("ChunkLoadError")) {
+        window.location.reload();
+        return;
+      }
       toast({
         variant: "destructive",
         title: "Print Failed",
