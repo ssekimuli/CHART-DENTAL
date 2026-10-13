@@ -1,8 +1,7 @@
 "use client";
 import { useToast } from "@/hooks/use-toast";
 
-import { useState, useEffect } from "react";
-import { format } from "date-fns";
+import { useState, useEffect, useMemo, useRef } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,20 +21,18 @@ import {
     SelectValue,
   } from "@/components/ui/select";
 import type { Client, LabService } from "@/lib/types";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
-import { CalendarIcon, Loader2, PlusCircle, Trash2 } from "lucide-react";
-import { Calendar } from "@/components/ui/calendar";
-import { Combobox } from "@/components/ui/combobox";
+import { Loader2, PlusCircle, Trash2, Check } from "lucide-react";
 import { useBranch } from "@/context/branch-context";
 import { getLabServices, getActivePriceForService } from "@/lib/api-lab-prices";
 import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 type OrderItem = {
   id: string; // local only, for React key
   lab_service_id: number | null;
+  service_name: string;
   item: string;
   tooth: string;
   applied_price: string;
@@ -45,6 +42,7 @@ type OrderItem = {
 
 type LabOrderFormProps = {
     clients: Client[];
+    doctors?: any[];
     onSave: (data: any) => void;
     onOpenChange: (open: boolean) => void;
 };
@@ -54,6 +52,7 @@ type LabOrderFormProps = {
 const emptyItem = (): OrderItem => ({
   id: crypto.randomUUID(),
   lab_service_id: null,
+  service_name: "",
   item: "",
   tooth: "",
   applied_price: "",
@@ -63,7 +62,7 @@ const emptyItem = (): OrderItem => ({
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-export function LabOrderForm({ clients, onSave, onOpenChange }: LabOrderFormProps) {
+export function LabOrderForm({ clients, doctors, onSave, onOpenChange }: LabOrderFormProps) {
   const { toast } = useToast();
   const { selectedBranch, availableBranches } = useBranch();
 
@@ -71,15 +70,17 @@ export function LabOrderForm({ clients, onSave, onOpenChange }: LabOrderFormProp
 
   // ── Shared order fields ──
   const [clientId, setClientId] = useState("");
+  const [clientName, setClientName] = useState("");
+  const [isClientDropdownOpen, setIsClientDropdownOpen] = useState(false);
+  const clientDropdownRef = useRef<HTMLDivElement>(null);
+
   const [doctorName, setDoctorName] = useState("");
   const [status, setStatus] = useState<string>("Draft");
-  const [sentDate, setSentDate] = useState<Date>(new Date());
-  const [dueDate, setDueDate] = useState<Date | undefined>(undefined);
-  const [receivedDate, setReceivedDate] = useState<Date | undefined>(undefined);
   const [instructions, setInstructions] = useState("");
 
   // ── Items list ──
   const [items, setItems] = useState<OrderItem[]>([emptyItem()]);
+  const [activeServiceDropdownId, setActiveServiceDropdownId] = useState<string | null>(null);
 
   // ── Lab services ──
   const [labServices, setLabServices] = useState<LabService[]>([]);
@@ -91,9 +92,10 @@ export function LabOrderForm({ clients, onSave, onOpenChange }: LabOrderFormProp
   // Fetch lab services
   useEffect(() => {
     const fetchServices = async () => {
+      if (!selectedBranch) return;
       setServicesLoading(true);
       try {
-        const data = await getLabServices(selectedBranch);
+        const data = await getLabServices(Number(selectedBranch));
         setLabServices(Array.isArray(data) ? data : (data as any)?.data || []);
       } catch (error) {
         console.error("Error fetching lab services:", error);
@@ -104,16 +106,27 @@ export function LabOrderForm({ clients, onSave, onOpenChange }: LabOrderFormProp
     fetchServices();
   }, [selectedBranch]);
 
-  // Auto-fill doctor name when client changes
+  // Click outside to close client or service suggestions dropdowns
   useEffect(() => {
-    if (clientId) {
-      const selectedClient = clients.find(c => String(c.id) === clientId);
-      if (selectedClient && !doctorName) {
-        setDoctorName(selectedClient.name);
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (clientDropdownRef.current && !clientDropdownRef.current.contains(target)) {
+        setIsClientDropdownOpen(false);
       }
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clientId]);
+      if (!target.closest?.('[data-service-dropdown]')) {
+        setActiveServiceDropdownId(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Filter clients based on typed clientName
+  const filteredClients = useMemo(() => {
+    if (!clientName.trim()) return clients;
+    const q = clientName.toLowerCase().trim();
+    return clients.filter(c => c.name.toLowerCase().includes(q));
+  }, [clients, clientName]);
 
   // ── Item mutators ──
 
@@ -128,10 +141,17 @@ export function LabOrderForm({ clients, onSave, onOpenChange }: LabOrderFormProp
     setItems(prev => prev.filter(item => item.id !== id));
   };
 
-  const handleServiceSelect = async (itemId: string, serviceId: number) => {
-    updateItem(itemId, { lab_service_id: serviceId });
+  const handleServiceSelect = async (itemId: string, serviceId: number, serviceName?: string) => {
+    const sName = serviceName || labServices.find(s => s.id === serviceId)?.service_name || "";
+    const cur = items.find(i => i.id === itemId);
+    updateItem(itemId, { 
+      lab_service_id: serviceId,
+      service_name: sName,
+      item: cur?.item?.trim() ? cur.item : sName,
+    });
+    setActiveServiceDropdownId(null);
     try {
-      const price = await getActivePriceForService(serviceId, selectedBranch);
+      const price = await getActivePriceForService(serviceId, selectedBranch ? Number(selectedBranch) : undefined);
       if (price) {
         updateItem(itemId, { applied_price: String(price.base_price) });
       }
@@ -143,15 +163,12 @@ export function LabOrderForm({ clients, onSave, onOpenChange }: LabOrderFormProp
   // ── Validation ──
 
   const validate = (): string | null => {
-    if (!clientId) return "Please select a client.";
-    if (!sentDate) return "Sent date is required.";
-    if (!dueDate) return "Due date is required.";
+    if (!selectedBranch) return "Please select a branch first.";
+    if (!clientName.trim() && !clientId) return "Please enter or select a client name.";
     for (let i = 0; i < items.length; i++) {
       const it = items[i];
-      if (!it.item.trim()) return `Item ${i + 1}: description is required.`;
-      if (it.lab_service_id === null && !it.applied_price) {
-        return `Item ${i + 1}: select a lab service or enter a price.`;
-      }
+      const desc = it.item.trim() || it.service_name.trim();
+      if (!desc) return `Item ${i + 1}: lab service or description is required.`;
     }
     return null;
   };
@@ -168,25 +185,39 @@ export function LabOrderForm({ clients, onSave, onOpenChange }: LabOrderFormProp
 
     setIsSubmitting(true);
     try {
+      const matchedClient = clientId 
+        ? clients.find(c => String(c.id) === clientId) 
+        : clients.find(c => c.name.toLowerCase().trim() === clientName.toLowerCase().trim());
+      const finalClientId = matchedClient ? String(matchedClient.id) : undefined;
+      const finalClientName = clientName.trim();
+
       const sharedData = {
-        clientId,
+        clientId: finalClientId,
+        clientName: finalClientName,
         doctorName: doctorName || undefined,
         status,
-        sentDate: format(sentDate, "yyyy-MM-dd"),
-        dueDate: format(dueDate!, "yyyy-MM-dd"),
-        receivedDate: receivedDate ? format(receivedDate, "yyyy-MM-dd") : undefined,
         instructions: instructions || undefined,
         branchId: selectedBranch,
       };
 
-      const orderItems = items.map(it => ({
-        item: it.item.trim(),
-        tooth: it.tooth ? parseInt(it.tooth) : undefined,
-        lab_service_id: it.lab_service_id ?? undefined,
-        applied_price: it.applied_price ? parseFloat(it.applied_price) : undefined,
-        material: it.material || undefined,
-        shade: it.shade || undefined,
-      }));
+      const orderItems = items.map(it => {
+        const serviceName = it.service_name.trim();
+        const itemName = it.item.trim() || serviceName;
+        return {
+          item: itemName,
+          service_name: serviceName || undefined,
+          serviceName: serviceName || undefined,
+          tooth: it.tooth ? parseInt(it.tooth) : undefined,
+          lab_service_id: it.lab_service_id ?? undefined,
+          labServiceId: it.lab_service_id ?? undefined,
+          applied_price: it.applied_price ? parseFloat(it.applied_price) : undefined,
+          appliedPrice: it.applied_price ? parseFloat(it.applied_price) : undefined,
+          branch_id: selectedBranch,
+          branchId: selectedBranch,
+          material: it.material || undefined,
+          shade: it.shade || undefined,
+        };
+      });
 
       await onSave({ ...sharedData, items: orderItems });
     } catch (error: any) {
@@ -216,17 +247,56 @@ export function LabOrderForm({ clients, onSave, onOpenChange }: LabOrderFormProp
                 {/* ── Shared order fields ── */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 
-                    {/* Client */}
-                    <div className="flex flex-col gap-1.5">
+                    {/* Client: single input with suggestions, no add button */}
+                    <div className="flex flex-col gap-1.5" ref={clientDropdownRef}>
                         <Label>Client *</Label>
-                        <Combobox
-                            options={clients.map(c => ({ value: String(c.id), label: c.name }))}
-                            value={clientId}
-                            onChange={setClientId}
-                            placeholder="Select a client"
-                            searchPlaceholder="Search clients..."
-                            emptyMessage="No client found."
-                        />
+                        <div className="relative">
+                            <Input
+                                placeholder="Enter or select client name..."
+                                value={clientName}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    setClientName(val);
+                                    setIsClientDropdownOpen(true);
+                                    const match = clients.find(c => c.name.toLowerCase().trim() === val.toLowerCase().trim());
+                                    if (match) {
+                                        setClientId(String(match.id));
+                                    } else {
+                                        setClientId("");
+                                    }
+                                }}
+                                onFocus={() => setIsClientDropdownOpen(true)}
+                            />
+
+                            {/* Dropdown suggestions of existing clients */}
+                            {isClientDropdownOpen && filteredClients.length > 0 && (
+                                <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-popover text-popover-foreground rounded-md border shadow-md max-h-56 overflow-y-auto p-1">
+                                    {filteredClients.map(c => (
+                                        <button
+                                            key={c.id}
+                                            type="button"
+                                            onClick={() => {
+                                                setClientId(String(c.id));
+                                                setClientName(c.name);
+                                                setIsClientDropdownOpen(false);
+                                                if (!doctorName) {
+                                                    setDoctorName(c.name);
+                                                }
+                                            }}
+                                            className={cn(
+                                                "w-full text-left px-2.5 py-2 text-sm rounded-sm hover:bg-accent hover:text-accent-foreground flex items-center justify-between",
+                                                String(clientId) === String(c.id) && "bg-accent/50 font-medium"
+                                            )}
+                                        >
+                                            <span>{c.name}</span>
+                                            {String(clientId) === String(c.id) && (
+                                                <Check className="h-4 w-4 text-primary ml-2 shrink-0" />
+                                            )}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                     </div>
 
                     {/* Doctor */}
@@ -255,54 +325,6 @@ export function LabOrderForm({ clients, onSave, onOpenChange }: LabOrderFormProp
                                 <SelectItem value="Cancelled">Cancelled</SelectItem>
                             </SelectContent>
                         </Select>
-                    </div>
-
-                    {/* Sent Date */}
-                    <div className="flex flex-col gap-1.5">
-                        <Label>Sent Date *</Label>
-                        <Popover>
-                            <PopoverTrigger asChild>
-                                <Button variant="outline" className={cn("pl-3 text-left font-normal w-full", !sentDate && "text-muted-foreground")}>
-                                    {sentDate ? format(sentDate, "PPP") : <span>Pick a date</span>}
-                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                                <Calendar mode="single" selected={sentDate} onSelect={(d) => d && setSentDate(d)} initialFocus />
-                            </PopoverContent>
-                        </Popover>
-                    </div>
-
-                    {/* Due Date */}
-                    <div className="flex flex-col gap-1.5">
-                        <Label>Due Date *</Label>
-                        <Popover>
-                            <PopoverTrigger asChild>
-                                <Button variant="outline" className={cn("pl-3 text-left font-normal w-full", !dueDate && "text-muted-foreground")}>
-                                    {dueDate ? format(dueDate, "PPP") : <span>Pick a date</span>}
-                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                                <Calendar mode="single" selected={dueDate} onSelect={setDueDate} initialFocus />
-                            </PopoverContent>
-                        </Popover>
-                    </div>
-
-                    {/* Received Date */}
-                    <div className="flex flex-col gap-1.5">
-                        <Label>Received Date (Optional)</Label>
-                        <Popover>
-                            <PopoverTrigger asChild>
-                                <Button variant="outline" className={cn("pl-3 text-left font-normal w-full", !receivedDate && "text-muted-foreground")}>
-                                    {receivedDate ? format(receivedDate, "PPP") : <span>Pick a date</span>}
-                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                                <Calendar mode="single" selected={receivedDate} onSelect={setReceivedDate} initialFocus />
-                            </PopoverContent>
-                        </Popover>
                     </div>
 
                     {/* Instructions */}
@@ -356,25 +378,72 @@ export function LabOrderForm({ clients, onSave, onOpenChange }: LabOrderFormProp
                                 {/* Item fields grid */}
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
 
-                                    {/* Lab Service */}
-                                    <div className="flex flex-col gap-1.5">
+                                    {/* Lab Service: single input with suggestions, exactly like Client */}
+                                    <div className="flex flex-col gap-1.5" data-service-dropdown={item.id}>
                                         <Label className="text-xs">Lab Service *</Label>
-                                        <Select
-                                            value={item.lab_service_id?.toString() || ""}
-                                            onValueChange={(val) => handleServiceSelect(item.id, parseInt(val))}
-                                            disabled={servicesLoading}
-                                        >
-                                            <SelectTrigger className="h-9 text-sm">
-                                                <SelectValue placeholder="Select service…" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {labServices.map(service => (
-                                                    <SelectItem key={service.id} value={service.id.toString()}>
-                                                        {service.service_name}{service.category && ` (${service.category})`}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
+                                        <div className="relative">
+                                            <Input
+                                                className="h-9 text-sm"
+                                                placeholder="Enter or select lab service..."
+                                                value={item.service_name}
+                                                onChange={(e) => {
+                                                    const val = e.target.value;
+                                                    const match = labServices.find(s => s.service_name.toLowerCase().trim() === val.toLowerCase().trim());
+                                                    updateItem(item.id, {
+                                                        service_name: val,
+                                                        lab_service_id: match ? match.id : null,
+                                                        item: item.item ? item.item : val,
+                                                    });
+                                                    if (match) {
+                                                        handleServiceSelect(item.id, match.id, val);
+                                                    }
+                                                    setActiveServiceDropdownId(item.id);
+                                                }}
+                                                onFocus={() => setActiveServiceDropdownId(item.id)}
+                                            />
+
+                                            {/* Dropdown suggestions of existing lab services */}
+                                            {activeServiceDropdownId === item.id && (() => {
+                                                const query = (item.service_name || "").toLowerCase().trim();
+                                                const filtered = query
+                                                    ? labServices.filter(s => 
+                                                        s.service_name.toLowerCase().includes(query) || 
+                                                        (s.category && s.category.toLowerCase().includes(query))
+                                                      )
+                                                    : labServices;
+                                                
+                                                if (filtered.length === 0) return null;
+
+                                                return (
+                                                    <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-popover text-popover-foreground rounded-md border shadow-md max-h-56 overflow-y-auto p-1">
+                                                        {filtered.map(service => {
+                                                            const isSelected = item.lab_service_id === service.id;
+                                                            return (
+                                                                <button
+                                                                    key={service.id}
+                                                                    type="button"
+                                                                    onClick={() => handleServiceSelect(item.id, service.id, service.service_name)}
+                                                                    className={cn(
+                                                                        "w-full text-left px-2.5 py-1.5 text-xs rounded-sm hover:bg-accent hover:text-accent-foreground flex items-center justify-between",
+                                                                        isSelected && "bg-accent/50 font-medium"
+                                                                    )}
+                                                                >
+                                                                    <div className="flex flex-col">
+                                                                        <span className="font-medium">{service.service_name}</span>
+                                                                        {service.category && (
+                                                                            <span className="text-[10px] text-muted-foreground">{service.category}</span>
+                                                                        )}
+                                                                    </div>
+                                                                    {isSelected && (
+                                                                        <Check className="h-3.5 w-3.5 text-primary ml-2 shrink-0" />
+                                                                    )}
+                                                                </button>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                );
+                                            })()}
+                                        </div>
                                     </div>
 
                                     {/* Item description */}

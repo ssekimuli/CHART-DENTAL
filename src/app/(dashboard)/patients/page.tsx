@@ -99,13 +99,14 @@ export default function PatientsPage() {
           filters.gender = genderFilter;
         }
 
-        // Add pagination
+        // Add search filter — sent to API as `search` param
         if (searchQuery) {
-          filters.perPage = 1000;
-        } else {
-          filters.page = page;
-          filters.perPage = 10;
+          filters.searchQuery = searchQuery;
         }
+
+        // Add pagination
+        filters.page = page;
+        filters.perPage = 10;
 
         const data = await getPatients(filters);
         setPatientsData(data);

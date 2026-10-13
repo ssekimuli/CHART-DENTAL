@@ -32,21 +32,26 @@ import {
     SelectTrigger,
     SelectValue,
   } from "@/components/ui/select";
-import type { Treatment, DentalCondition, SystemTreatment } from "@/lib/types";
+import type { Treatment, DentalCondition, SystemTreatment, Employee } from "@/lib/types";
 import { MultiCombobox } from "@/components/ui/multi-combobox";
-import { getTreatments } from "@/lib/api";
-
-const formSchema = z.object({
-  procedureIds: z.array(z.string()).min(1, "At least one procedure is required."),
-  tooth: z.coerce.number().optional(),
-  status: z.enum(['Proposed', 'In Progress', 'Completed', 'Cancelled']),
-  cost: z.coerce.number().min(0, { message: "Cost must be 0 or more." }),
-  condition: z.enum(['Healthy', 'Caries', 'Filling', 'Crown', 'Missing', 'Fracture', 'Implant', 'Bridge', 'Retained Root', 'Malocclusion']).optional(),
-});
+import { Combobox } from "@/components/ui/combobox";
+import { getTreatments, getDoctors } from "@/lib/api";
+import { getCurrentUser } from "@/lib/user";
 
 const VALID_CONDITIONS: DentalCondition[] = [
   'Healthy', 'Caries', 'Filling', 'Crown', 'Missing', 'Fracture', 'Implant', 'Bridge', 'Retained Root', 'Malocclusion', 'Generalized Calculus'
 ];
+
+const formSchema = z.object({
+  procedureIds: z.array(z.string()).min(1, "At least one procedure is required."),
+  doctorId: z.string().min(1, "Doctor is required."),
+  tooth: z.coerce.number().optional(),
+  status: z.enum(['Proposed', 'In Progress', 'Completed', 'Cancelled']),
+  cost: z.coerce.number().min(0, { message: "Cost must be 0 or more." }),
+  condition: z.enum([
+    'Healthy', 'Caries', 'Filling', 'Crown', 'Missing', 'Fracture', 'Implant', 'Bridge', 'Retained Root', 'Malocclusion', 'Generalized Calculus'
+  ]).optional(),
+});
 
 function normalizeCondition(cond?: DentalCondition | string): DentalCondition | undefined {
   if (!cond) return undefined;
@@ -69,6 +74,7 @@ export function TreatmentPlanForm({ treatment, onSave, onSaveBatch, onOpenChange
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [systemTreatments, setSystemTreatments] = useState<SystemTreatment[]>([]);
+  const [doctors, setDoctors] = useState<Employee[]>([]);
   const [itemCosts, setItemCosts] = useState<Record<string, number>>({});
   const isEditing = !!treatment;
   const lastProcedureIdsRef = useRef<string[]>([]);
@@ -77,6 +83,7 @@ export function TreatmentPlanForm({ treatment, onSave, onSaveBatch, onOpenChange
     resolver: zodResolver(formSchema),
     defaultValues: {
       procedureIds: treatment?.procedureId ? [String(treatment.procedureId)] : [],
+      doctorId: treatment?.doctorId ? String(treatment.doctorId) : treatment?.doctor_id ? String(treatment.doctor_id) : '',
       status: treatment?.status ?? 'Proposed',
       tooth: treatment?.tooth ?? toothId ?? undefined,
       cost: treatment?.totalCost ?? treatment?.cost ?? 0,
@@ -85,12 +92,35 @@ export function TreatmentPlanForm({ treatment, onSave, onSaveBatch, onOpenChange
   });
 
   useEffect(() => {
-    const fetchTreatments = async () => {
-        const data = await getTreatments();
-        setSystemTreatments(data);
+    const fetchData = async () => {
+      try {
+        const [tData, dData] = await Promise.all([
+          getTreatments(),
+          getDoctors(),
+        ]);
+        setSystemTreatments(tData);
+        setDoctors(dData);
+
+        // If not editing and doctorId isn't set, default to logged in user if they're a doctor or the first doctor
+        if (!treatment) {
+          const user = getCurrentUser();
+          if (user?.id) {
+            const userDoc = dData.find(d => String(d.id) === String(user.id));
+            if (userDoc) {
+              form.setValue('doctorId', String(userDoc.id));
+            } else if (dData.length === 1) {
+              form.setValue('doctorId', String(dData[0].id));
+            }
+          } else if (dData.length === 1) {
+            form.setValue('doctorId', String(dData[0].id));
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch treatments or doctors:", err);
+      }
     };
-    fetchTreatments();
-  }, []);
+    fetchData();
+  }, [treatment, form]);
 
   // When editing, pre-populate procedure selection after system treatments load
   useEffect(() => {
@@ -113,6 +143,9 @@ export function TreatmentPlanForm({ treatment, onSave, onSaveBatch, onOpenChange
           }
           form.setValue('status', treatment.status);
           if (treatment.tooth) form.setValue('tooth', treatment.tooth);
+          if (treatment.doctorId || treatment.doctor_id) {
+            form.setValue('doctorId', String(treatment.doctorId || treatment.doctor_id));
+          }
           const effectiveCost = treatment.totalCost ?? treatment.cost ?? 0;
           form.setValue('cost', effectiveCost);
           const norm = normalizeCondition(currentCondition);
@@ -201,6 +234,9 @@ export function TreatmentPlanForm({ treatment, onSave, onSaveBatch, onOpenChange
       }
 
       const totalCostValue = Number(values.cost);
+      const selectedDoctor = doctors.find(d => String(d.id) === String(values.doctorId));
+      const doctorIdVal = values.doctorId;
+      const doctorNameVal = selectedDoctor?.name || treatment?.doctorName || treatment?.doctor_name || '';
 
       if (isEditing) {
         // Single update
@@ -214,6 +250,16 @@ export function TreatmentPlanForm({ treatment, onSave, onSaveBatch, onOpenChange
           cost: totalCostValue,
           totalCost: totalCostValue,
           total_cost: totalCostValue,
+          doctorId: doctorIdVal,
+          doctor_id: doctorIdVal,
+          doctorName: doctorNameVal,
+          doctor_name: doctorNameVal,
+          doctor: selectedDoctor ? {
+            id: selectedDoctor.id,
+            name: selectedDoctor.name,
+            role: selectedDoctor.role,
+            avatar: selectedDoctor.avatar,
+          } : undefined,
         }, values.condition);
       } else if (values.procedureIds.length === 1) {
         // Single procedure add
@@ -229,6 +275,16 @@ export function TreatmentPlanForm({ treatment, onSave, onSaveBatch, onOpenChange
           cost: totalCostValue,
           totalCost: totalCostValue,
           total_cost: totalCostValue,
+          doctorId: doctorIdVal,
+          doctor_id: doctorIdVal,
+          doctorName: doctorNameVal,
+          doctor_name: doctorNameVal,
+          doctor: selectedDoctor ? {
+            id: selectedDoctor.id,
+            name: selectedDoctor.name,
+            role: selectedDoctor.role,
+            avatar: selectedDoctor.avatar,
+          } : undefined,
         };
 
         if (onSaveBatch) {
@@ -250,6 +306,16 @@ export function TreatmentPlanForm({ treatment, onSave, onSaveBatch, onOpenChange
               cost: Number(allocatedCost),
               totalCost: totalCostValue,
               total_cost: totalCostValue,
+              doctorId: doctorIdVal,
+              doctor_id: doctorIdVal,
+              doctorName: doctorNameVal,
+              doctor_name: doctorNameVal,
+              doctor: selectedDoctor ? {
+                id: selectedDoctor.id,
+                name: selectedDoctor.name,
+                role: selectedDoctor.role,
+                avatar: selectedDoctor.avatar,
+              } : undefined,
             },
             condition: values.condition as DentalCondition | undefined,
           };
@@ -350,101 +416,130 @@ export function TreatmentPlanForm({ treatment, onSave, onSaveBatch, onOpenChange
                       </div>
                     )}
 
-                    {!isEditing && toothId && (
-                       <FormField
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormField
+                          control={form.control}
+                          name="tooth"
+                          render={({ field }) => (
+                              <FormItem>
+                              <FormLabel>Tooth # (optional)</FormLabel>
+                              <FormControl>
+                                  <Input 
+                                    type="number" 
+                                    placeholder="e.g., 16" 
+                                    {...field} 
+                                    value={field.value ?? ''}
+                                    onChange={(e) => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))}
+                                  />
+                              </FormControl>
+                              <FormMessage />
+                              </FormItem>
+                          )}
+                      />
+
+                      <FormField
                         control={form.control}
                         name="condition"
                         render={({ field }) => (
-                            <FormItem>
-                            <FormLabel>Log Condition (optional)</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                <FormControl>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select condition to log" />
-                                </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                    <SelectItem value="Healthy">Healthy</SelectItem>
-                                    <SelectItem value="Caries">Caries</SelectItem>
-                                    <SelectItem value="Filling">Filling</SelectItem>
-                                    <SelectItem value="Crown">Crown</SelectItem>
-                                    <SelectItem value="Fracture">Fracture</SelectItem>
-                                    <SelectItem value="Missing">Missing</SelectItem>
-                                    <SelectItem value="Implant">Implant</SelectItem>
-                                    <SelectItem value="Bridge">Bridge</SelectItem>
-                                    <SelectItem value="Retained Root">Retained Root</SelectItem>
-                                    <SelectItem value="Malocclusion">Malocclusion</SelectItem>
-                                </SelectContent>
-                            </Select>
-                            <p className="text-xs text-muted-foreground">This will also update the odontogram chart for this tooth.</p>
+                          <FormItem>
+                            <FormLabel>Condition</FormLabel>
+                            <FormControl>
+                              <Combobox
+                                options={[
+                                  { value: "none" as string, label: "None" },
+                                  ...VALID_CONDITIONS.map((cond) => ({ value: cond as string, label: cond })),
+                                ]}
+                                value={field.value ?? "none"}
+                                onChange={(val) => field.onChange(val === "none" ? undefined : val)}
+                                placeholder="Select condition..."
+                                searchPlaceholder="Search condition..."
+                                emptyMessage="No condition found."
+                              />
+                            </FormControl>
                             <FormMessage />
-                            </FormItem>
+                          </FormItem>
                         )}
                       />
-                    )}
-                     <FormField
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormField
                         control={form.control}
-                        name="tooth"
+                        name="doctorId"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="flex items-center gap-1">
+                              <span>Doctor</span>
+                              <span className="text-destructive">*</span>
+                            </FormLabel>
+                            <FormControl>
+                              <Combobox
+                                options={doctors.map((d) => ({
+                                  value: String(d.id),
+                                  label: `Dr. ${d.name}${d.role ? ` (${d.role})` : ''}`,
+                                }))}
+                                value={field.value || ""}
+                                onChange={(val) => field.onChange(val)}
+                                placeholder="Select doctor..."
+                                searchPlaceholder="Search doctors..."
+                                emptyMessage="No doctor found."
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                          control={form.control}
+                          name="status"
+                          render={({ field }) => (
+                              <FormItem>
+                              <FormLabel>Status</FormLabel>
+                              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                  <FormControl>
+                                  <SelectTrigger>
+                                      <SelectValue placeholder="Select status" />
+                                  </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                      <SelectItem value="Proposed">Proposed</SelectItem>
+                                      <SelectItem value="In Progress">In Progress</SelectItem>
+                                      <SelectItem value="Completed">Completed</SelectItem>
+                                      <SelectItem value="Cancelled">Cancelled</SelectItem>
+                                  </SelectContent>
+                              </Select>
+                              <FormMessage />
+                              </FormItem>
+                          )}
+                      />
+                    </div>
+
+                    <FormField
+                        control={form.control}
+                        name="cost"
                         render={({ field }) => (
                             <FormItem>
-                            <FormLabel>Tooth # (optional)</FormLabel>
+                            <FormLabel className="flex items-center justify-between">
+                              <span>Total Cost {selectedProcedureIds.length > 1 ? `(${selectedProcedureIds.length} procedures)` : ''}</span>
+                              <span className="text-[10px] text-muted-foreground font-normal">Adjustable</span>
+                            </FormLabel>
                             <FormControl>
-                                <Input type="number" placeholder="e.g., 16" {...field} />
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  step="0.01"
+                                  placeholder="0.00"
+                                  value={field.value ?? ''}
+                                  onChange={(e) => handleTotalCostChange(parseFloat(e.target.value) || 0)}
+                                  onBlur={field.onBlur}
+                                />
                             </FormControl>
+                            <p className="text-[11px] text-muted-foreground">Total cost posted with treatment payload</p>
                             <FormMessage />
                             </FormItem>
                         )}
                     />
-                    <div className="grid grid-cols-2 gap-4">
-                        <FormField
-                            control={form.control}
-                            name="status"
-                            render={({ field }) => (
-                                <FormItem>
-                                <FormLabel>Status</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                    <FormControl>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select status" />
-                                    </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                        <SelectItem value="Proposed">Proposed</SelectItem>
-                                        <SelectItem value="In Progress">In Progress</SelectItem>
-                                        <SelectItem value="Completed">Completed</SelectItem>
-                                        <SelectItem value="Cancelled">Cancelled</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                         <FormField
-                            control={form.control}
-                            name="cost"
-                            render={({ field }) => (
-                                <FormItem>
-                                <FormLabel className="flex items-center justify-between">
-                                  <span>Total Cost {selectedProcedureIds.length > 1 ? `(${selectedProcedureIds.length} procedures)` : ''}</span>
-                                  <span className="text-[10px] text-muted-foreground font-normal">Adjustable</span>
-                                </FormLabel>
-                                <FormControl>
-                                    <Input
-                                      type="number"
-                                      min="0"
-                                      step="0.01"
-                                      placeholder="0.00"
-                                      value={field.value ?? ''}
-                                      onChange={(e) => handleTotalCostChange(parseFloat(e.target.value) || 0)}
-                                      onBlur={field.onBlur}
-                                    />
-                                </FormControl>
-                                <p className="text-[11px] text-muted-foreground">Total cost posted with treatment payload</p>
-                                <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                    </div>
                      <DialogFooter>
                         <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
                         <Button type="submit" disabled={isSubmitting}>

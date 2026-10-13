@@ -16,7 +16,7 @@ import {
     roles as mockRoles,
     businesses as mockBusinesses
 } from '@/lib/data';
-import type { Business, PaginatedArray, Patient, Appointment, Invoice, ChartData, PracticeTrendPoint, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, BasePatient, InvoiceTreatment, OtherCharge, SystemTreatment, PaymentMethod, PaymentTransaction, AttendanceRecord, LeaveRequest, StaffAdvance, StaffAdvanceStatus, Expense, ExpenseCategory, ExpenseSummary, IncomeRecord, RolePermissions, Permission, DentalRecord, PeriodontalRecord, OcclusalRecord, SoftTissueRecord, OrthodonticRecord, Treatment, DentalCondition, PatientImage, FinancialSummary, CurrentUser, ProfileData, AppointmentStatus, DashboardSummary, EmployeeRole, ReportsOverview, Medicine, MedicineUnit, Prescription, PrescriptionItem, InvoiceMedicine, EndodonticRecord, RestorativeRecord, Client } from '@/lib/types';
+import type { Business, PaginatedArray, Patient, Appointment, Invoice, ChartData, PracticeTrendPoint, Employee, Payroll, Branch, InventoryItem, LaboratoryOrder, BasePatient, InvoiceTreatment, OtherCharge, SystemTreatment, PaymentMethod, PaymentTransaction, AttendanceRecord, LeaveRequest, StaffAdvance, StaffAdvanceStatus, Expense, ExpenseCategory, ExpenseSummary, IncomeRecord, RolePermissions, Permission, DentalRecord, PeriodontalRecord, OcclusalRecord, SoftTissueRecord, OrthodonticRecord, Treatment, DentalCondition, PatientImage, FinancialSummary, CurrentUser, ProfileData, AppointmentStatus, DashboardSummary, EmployeeRole, ReportsOverview, Medicine, MedicineUnit, Prescription, PrescriptionItem, InvoiceMedicine, EndodonticRecord, RestorativeRecord, Client, MedicalHistory, XrayRequest } from '@/lib/types';
 import { format, parse } from "date-fns";
 import { speak } from '@/ai/flows/speak';
 import { clearCurrentUser, setCurrentUser } from './user';
@@ -304,6 +304,7 @@ type GetPatientsFilters = {
     branchId?: string | number;
     status?: 'Active' | 'Inactive';
     gender?: 'Male' | 'Female' | 'Other';
+    searchQuery?: string;
     page?: number;
     perPage?: number;
 };
@@ -334,7 +335,7 @@ export const getPatients = async (filters?: string | number | GetPatientsFilters
     console.log('API CALL: getPatients', { filters });
 
     try {
-        const params: { branch_id?: number; status?: string; gender?: string; page?: number; per_page?: number } = {};
+        const params: { branch_id?: number; status?: string; gender?: string; search?: string; page?: number; per_page?: number } = {};
 
         if (typeof filters === 'number' || typeof filters === 'string') {
             const parsed = parseInt(String(filters), 10);
@@ -353,6 +354,9 @@ export const getPatients = async (filters?: string | number | GetPatientsFilters
             }
             if (filters.gender) {
                 params.gender = filters.gender;
+            }
+            if (filters.searchQuery) {
+                params.search = filters.searchQuery;
             }
             if (filters.page) {
                 params.page = filters.page;
@@ -517,6 +521,16 @@ export const getPatientById = async (id: string | number): Promise<Patient | und
                 cost: parseFloat(plan.cost),
                 date: plan.date,
                 invoiceId: plan.invoice_id,
+                doctorId: plan.doctor_id ?? plan.doctorId,
+                doctor_id: plan.doctor_id ?? plan.doctorId,
+                doctorName: plan.doctor_name || plan.doctorName || plan.doctor?.name || '',
+                doctor_name: plan.doctor_name || plan.doctorName || plan.doctor?.name || '',
+                doctor: plan.doctor ? {
+                    id: plan.doctor.id,
+                    name: plan.doctor.name,
+                    role: plan.doctor.role,
+                    avatar: plan.doctor.avatar,
+                } : undefined,
             })),
             imaging: patient.images || patient.imaging || [], // Backend returns 'images', not 'imaging'
             periodontalRecords: mapPeriodontalRecords(patient.periodontal_records),
@@ -533,6 +547,7 @@ export const getPatientById = async (id: string | number): Promise<Patient | und
                 createdAt: record.created_at || record.createdAt,
                 updatedAt: record.updated_at || record.updatedAt,
             })),
+            medicalHistories: mapMedicalHistories(patient.medical_histories || patient.medicalHistories, patient.id),
         };
     } catch (error) {
         if (axios.isAxiosError(error)) {
@@ -813,6 +828,7 @@ export const getInvoices = async (filters?: {
 
     if (filters?.branchId) params.branch_id = filters.branchId;
     if (filters?.status) params.status = filters.status;
+    if (filters?.searchQuery) params.search = filters.searchQuery;
     if (filters?.page) params.page = filters.page;
     if (filters?.perPage) params.per_page = filters.perPage;
 
@@ -848,7 +864,8 @@ export const getInvoices = async (filters?: {
                 id: inv.branch.id,
                 name: inv.branch.name,
                 currency: inv.branch.currency || 'USD',
-                address: inv.branch.address || ''
+                address: inv.branch.address || '',
+                contactNumber: inv.branch.contact_number || inv.branch.contactNumber || inv.branch.phone || ''
             } : undefined,
             otherCharges: (inv.other_charges || inv.otherCharges || []).map((charge: any) => ({
                 description: charge.description,
@@ -867,12 +884,14 @@ export const getInvoices = async (filters?: {
 
         console.log('Fetched invoices from API:', invoices);
 
-        // ✅ Frontend filters (search + date)
+        // ✅ Client-side search fallback (covers cases where the backend doesn't support search)
         if (filters?.searchQuery) {
             const query = filters.searchQuery.toLowerCase();
             invoices = invoices.filter((inv: any) =>
-                inv.patient_name.toLowerCase().includes(query) ||
-                String(inv.id).toLowerCase().includes(query)
+                (inv.patientName || '').toLowerCase().includes(query) ||
+                String(inv.id).toLowerCase().includes(query) ||
+                (inv.invoiceNumber || inv.invoice_number || '').toLowerCase().includes(query) ||
+                (inv.status || '').toLowerCase().includes(query)
             );
         }
 
@@ -949,7 +968,8 @@ export const getInvoiceById = async (id: string | number): Promise<Invoice | und
                 id: invoiceData.branch.id,
                 name: invoiceData.branch.name,
                 currency: invoiceData.branch.currency || 'USD',
-                address: invoiceData.branch.address || ''
+                address: invoiceData.branch.address || '',
+                contactNumber: invoiceData.branch.contact_number || invoiceData.branch.contactNumber || invoiceData.branch.phone || ''
             } : undefined,
             otherCharges: (invoiceData.other_charges || invoiceData.otherCharges || []).map((charge: any) => ({
                 description: charge.description,
@@ -1956,16 +1976,23 @@ export const getIncomeRecords = async (filters?: { branchId?: string | number; d
         const data = response.data;
 
         // Map the records to IncomeRecord format
-        const records = (data.records || []).map((item: any) => ({
-            id: item.id,
-            branchId: item.branch_id || item.branchId || item.branch?.id,
-            date: item.issue_date ? String(item.issue_date).split('T')[0] : item.date || item.invoice_date || '',
-            patientName: item.patient_name || item.patientName || [item.patient?.first_name, item.patient?.last_name].filter(Boolean).join(' ') || '',
-            amount: Number(item.paid_amount || item.amount || item.total) || 0,
-            status: item.status || item.payment_status || 'Paid',
-            invoiceNumber: item.invoice_number || item.invoiceNo || item.number || '',
-            category: item.category || 'other',
-        }));
+        const records = (data.records || []).map((item: any) => {
+            const paid = parseFloat(item.paid_amount);
+            const total = parseFloat(item.amount ?? item.total);
+            const effectiveAmount = (!isNaN(paid) && paid > 0) ? paid : (!isNaN(total) ? total : 0);
+            return {
+                id: item.id,
+                branchId: item.branch_id || item.branchId || item.branch?.id,
+                date: item.issue_date ? String(item.issue_date).split('T')[0] : item.date || item.invoice_date || '',
+                patientName: item.patient_name || item.patientName || [item.patient?.first_name, item.patient?.last_name].filter(Boolean).join(' ') || '',
+                amount: effectiveAmount,
+                paidAmount: !isNaN(paid) ? paid : 0,
+                totalAmount: !isNaN(total) ? total : 0,
+                status: item.status || (paid > 0 && paid >= total ? 'Paid' : 'Pending'),
+                invoiceNumber: item.invoice_number || item.invoiceNo || item.number || '',
+                category: item.category || 'other',
+            };
+        });
 
         return {
             branch: data.branch,
@@ -2811,6 +2838,7 @@ export const addTreatmentsBatch = async (
                 date: today,
                 condition: condition || null,
                 notes: data.procedure || null,
+                doctor_id: data.doctorId ?? data.doctor_id ?? null,
             };
         }),
     };
@@ -2836,6 +2864,11 @@ export const addTreatmentsBatch = async (
                 totalCost: itemTotal,
                 total_cost: itemTotal,
                 date: backendItem?.date || today,
+                doctorId: backendItem?.doctor_id ?? backendItem?.doctorId ?? t.data.doctorId ?? t.data.doctor_id,
+                doctor_id: backendItem?.doctor_id ?? backendItem?.doctorId ?? t.data.doctorId ?? t.data.doctor_id,
+                doctorName: backendItem?.doctor_name ?? backendItem?.doctorName ?? backendItem?.doctor?.name ?? t.data.doctorName ?? t.data.doctor_name,
+                doctor_name: backendItem?.doctor_name ?? backendItem?.doctorName ?? backendItem?.doctor?.name ?? t.data.doctorName ?? t.data.doctor_name,
+                doctor: backendItem?.doctor ?? t.data.doctor,
             };
 
             if (patientIndex > -1) {
@@ -2886,6 +2919,7 @@ export const addTreatment = async (patientId: string | number, treatmentData: Om
         date: today,
         condition: condition || null,
         notes: treatmentData.procedure || null,
+        doctor_id: treatmentData.doctorId ?? treatmentData.doctor_id ?? null,
     };
 
     try {
@@ -2909,6 +2943,11 @@ export const addTreatment = async (patientId: string | number, treatmentData: Om
             total_cost: savedTreatment?.total_cost ?? savedTreatment?.totalCost ?? totalCost,
             date: savedTreatment?.date || today,
             invoiceId: treatmentData.invoiceId,
+            doctorId: savedTreatment?.doctor_id ?? savedTreatment?.doctorId ?? treatmentData.doctorId ?? treatmentData.doctor_id,
+            doctor_id: savedTreatment?.doctor_id ?? savedTreatment?.doctorId ?? treatmentData.doctorId ?? treatmentData.doctor_id,
+            doctorName: savedTreatment?.doctor_name ?? savedTreatment?.doctorName ?? savedTreatment?.doctor?.name ?? treatmentData.doctorName ?? treatmentData.doctor_name,
+            doctor_name: savedTreatment?.doctor_name ?? savedTreatment?.doctorName ?? savedTreatment?.doctor?.name ?? treatmentData.doctorName ?? treatmentData.doctor_name,
+            doctor: savedTreatment?.doctor ?? treatmentData.doctor,
         };
 
         // Update local cache
@@ -2963,6 +3002,7 @@ export const updateTreatment = async (patientId: string | number, treatment: Tre
             cost: treatment.cost,
             total_cost: totalCost,
             date: treatment.date,
+            doctor_id: treatment.doctorId ?? treatment.doctor_id ?? null,
         };
 
         await customAxios.put(`/patients/${patientId}/treatments/${treatment.id}`, requestBody);
@@ -3920,6 +3960,10 @@ export const createLabOrder = async (data: any): Promise<LaboratoryOrder | Labor
         if (Array.isArray(data.items) && data.items.length > 0) {
             const response = await customAxios.post('/management/lab-orders/batch', {
                 clientId: data.clientId,
+                clientName: data.clientName,
+                clientEmail: data.clientEmail,
+                clientPhone: data.clientPhone,
+                clientAddress: data.clientAddress,
                 doctorName: data.doctorName,
                 status: data.status,
                 sentDate: data.sentDate,
@@ -3952,6 +3996,10 @@ export const createLabOrder = async (data: any): Promise<LaboratoryOrder | Labor
         // Single-item create (legacy / edit path)
         const response = await customAxios.post('/management/lab-orders', {
             clientId: data.clientId,
+            clientName: data.clientName,
+            clientEmail: data.clientEmail,
+            clientPhone: data.clientPhone,
+            clientAddress: data.clientAddress,
             doctorName: data.doctorName,
             item: data.item,
             tooth: data.tooth,
@@ -3962,7 +4010,9 @@ export const createLabOrder = async (data: any): Promise<LaboratoryOrder | Labor
             shade: data.shade,
             material: data.material,
             instructions: data.instructions,
-            appliedPrice: data.applied_price,
+            appliedPrice: data.applied_price ?? data.appliedPrice,
+            labServiceId: data.labServiceId ?? data.lab_service_id,
+            serviceName: data.serviceName ?? data.service_name,
             branchId: data.branchId,
         });
         const order = response.data;
@@ -4936,3 +4986,532 @@ export const updatePatientAvatar = async (patientId: string | number, file: File
     });
     return response.data;
 };
+
+// -------------------------------------------------------------
+// MEDICAL / DENTAL HISTORY RECORDS
+// -------------------------------------------------------------
+
+const getLocalMedicalHistories = (patientId: string | number): MedicalHistory[] => {
+    if (typeof window === 'undefined') return [];
+    try {
+        const stored = localStorage.getItem(`dental_patient_medical_histories_${patientId}`);
+        return stored ? JSON.parse(stored) : [];
+    } catch {
+        return [];
+    }
+};
+
+const saveLocalMedicalHistories = (patientId: string | number, items: MedicalHistory[]): void => {
+    if (typeof window === 'undefined') return;
+    try {
+        localStorage.setItem(`dental_patient_medical_histories_${patientId}`, JSON.stringify(items));
+    } catch (e) {
+        console.error('Failed to save to localStorage:', e);
+    }
+};
+
+export const mapMedicalHistories = (data: any, patientId?: string | number): MedicalHistory[] => {
+    const list = parseJsonArraySafe(data);
+    if (list.length > 0) {
+        return list.map((item: any) => ({
+            id: item.id || `mh_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+            patientId: String(item.patient_id || item.patientId || patientId || ''),
+            patient_id: item.patient_id || item.patientId || patientId,
+            date: item.date ? String(item.date).split('T')[0] : (item.created_at ? String(item.created_at).split('T')[0] : new Date().toISOString().split('T')[0]),
+            chief_complaint: item.chief_complaint || '',
+            history_complaint: item.history_complaint || item.history_of_complaint || '',
+            extra_oral_exam: item.extra_oral_exam || '',
+            intra_oral_exam: item.intra_oral_exam || '',
+            diagnosis: item.diagnosis || '',
+            treatment_plan: item.treatment_plan || '',
+            treatment_given: item.treatment_given || '',
+            consent: item.consent === true || item.consent === 1 || item.consent === '1' || item.consent === 'yes',
+            consent_notes: item.consent_notes || '',
+            treatment_note: item.treatment_note || '',
+            doctor_name: item.doctor_name || item.doctor?.name || '',
+            doctor_id: item.doctor_id || item.doctor?.id,
+            doctor: item.doctor,
+            patient: item.patient,
+            created_at: item.created_at || new Date().toISOString(),
+            updated_at: item.updated_at || new Date().toISOString(),
+        }));
+    }
+    if (patientId) {
+        return getLocalMedicalHistories(patientId);
+    }
+    return [];
+};
+
+export interface GetAllMedicalHistoriesResponse {
+    data: MedicalHistory[];
+    meta?: {
+        current_page: number;
+        last_page: number;
+        per_page: number;
+        total: number;
+    };
+}
+
+export const getAllMedicalHistories = async (params?: {
+    search?: string;
+    date?: string;
+    date_from?: string;
+    date_to?: string;
+    doctor_id?: string | number;
+    doctor_name?: string;
+    branch_id?: string | number;
+    consent?: boolean | string;
+    page?: number;
+    per_page?: number | string;
+}): Promise<GetAllMedicalHistoriesResponse> => {
+    console.log('API CALL: getAllMedicalHistories', params);
+    try {
+        const response = await customAxios.get('/medical-histories', { params });
+        const resData = response.data;
+        const items = resData?.data || resData;
+        const mapped = mapMedicalHistories(items);
+        return {
+            data: mapped,
+            meta: resData?.meta,
+        };
+    } catch (error) {
+        console.warn('Backend /medical-histories endpoint failed, gathering from local fallback:', error);
+        const allLocal: MedicalHistory[] = [];
+        try {
+            if (typeof window !== 'undefined') {
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key && key.startsWith('medical_histories_')) {
+                        const stored = JSON.parse(localStorage.getItem(key) || '[]');
+                        allLocal.push(...stored);
+                    }
+                }
+            }
+        } catch {}
+        return {
+            data: allLocal,
+            meta: { current_page: 1, last_page: 1, per_page: allLocal.length, total: allLocal.length },
+        };
+    }
+};
+
+export const getPatientMedicalHistories = async (patientId: string | number): Promise<MedicalHistory[]> => {
+    console.log('API CALL: getPatientMedicalHistories', { patientId });
+    try {
+        const response = await customAxios.get(`/patients/${patientId}/medical-histories`);
+        const data = response.data?.data || response.data;
+        if (Array.isArray(data)) {
+            const mapped = mapMedicalHistories(data, patientId);
+            saveLocalMedicalHistories(patientId, mapped);
+            return mapped;
+        }
+    } catch (error) {
+        console.warn('Backend /patients/:id/medical-histories endpoint not available or failed, using local cache:', error);
+    }
+    return getLocalMedicalHistories(patientId);
+};
+
+export const createMedicalHistory = async (
+    patientId: string | number,
+    data: Omit<MedicalHistory, 'id'>
+): Promise<MedicalHistory> => {
+    console.log('API CALL: createMedicalHistory', { patientId, data });
+    const payload = {
+        patient_id: patientId,
+        date: data.date || new Date().toISOString().split('T')[0],
+        chief_complaint: data.chief_complaint || '',
+        history_complaint: data.history_complaint || '',
+        extra_oral_exam: data.extra_oral_exam || '',
+        intra_oral_exam: data.intra_oral_exam || '',
+        diagnosis: data.diagnosis || '',
+        treatment_plan: data.treatment_plan || '',
+        treatment_given: data.treatment_given || '',
+        consent: data.consent ? 1 : 0,
+        consent_notes: data.consent_notes || '',
+        treatment_note: data.treatment_note || '',
+        doctor_name: data.doctor_name || '',
+        doctor_id: data.doctor_id || null,
+    };
+
+    let createdRecord: MedicalHistory | null = null;
+    try {
+        const response = await customAxios.post(`/patients/${patientId}/medical-histories`, payload);
+        const resData = response.data?.data || response.data;
+        if (resData && (resData.id || resData.chief_complaint)) {
+            createdRecord = {
+                id: resData.id,
+                patientId: String(patientId),
+                patient_id: patientId,
+                date: resData.date ? String(resData.date).split('T')[0] : payload.date,
+                chief_complaint: resData.chief_complaint ?? payload.chief_complaint,
+                history_complaint: resData.history_complaint ?? payload.history_complaint,
+                extra_oral_exam: resData.extra_oral_exam ?? payload.extra_oral_exam,
+                intra_oral_exam: resData.intra_oral_exam ?? payload.intra_oral_exam,
+                diagnosis: resData.diagnosis ?? payload.diagnosis,
+                treatment_plan: resData.treatment_plan ?? payload.treatment_plan,
+                treatment_given: resData.treatment_given ?? payload.treatment_given,
+                consent: resData.consent === true || resData.consent === 1 || resData.consent === '1',
+                consent_notes: resData.consent_notes ?? payload.consent_notes,
+                treatment_note: resData.treatment_note ?? payload.treatment_note,
+                doctor_name: resData.doctor_name ?? payload.doctor_name,
+                doctor_id: resData.doctor_id ?? payload.doctor_id,
+                created_at: resData.created_at || new Date().toISOString(),
+                updated_at: resData.updated_at || new Date().toISOString(),
+            };
+        }
+    } catch (error) {
+        console.warn('Backend POST /patients/:id/medical-histories failed, saving to local fallback storage:', error);
+    }
+
+    if (!createdRecord) {
+        createdRecord = {
+            id: `mh_${Date.now()}`,
+            patientId: String(patientId),
+            patient_id: patientId,
+            ...data,
+            date: data.date || new Date().toISOString().split('T')[0],
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+        };
+    }
+
+    const current = getLocalMedicalHistories(patientId);
+    const updatedList = [createdRecord, ...current.filter(i => String(i.id) !== String(createdRecord!.id))];
+    saveLocalMedicalHistories(patientId, updatedList);
+
+    return createdRecord;
+};
+
+export const updateMedicalHistory = async (
+    id: string | number,
+    patientId: string | number,
+    data: Partial<MedicalHistory>
+): Promise<MedicalHistory> => {
+    console.log('API CALL: updateMedicalHistory', { id, patientId, data });
+    const payload = {
+        ...data,
+        consent: data.consent !== undefined ? (data.consent ? 1 : 0) : undefined,
+    };
+
+    let updatedRecord: MedicalHistory | null = null;
+    try {
+        const response = await customAxios.put(`/medical-histories/${id}`, payload);
+        const resData = response.data?.data || response.data;
+        if (resData) {
+            updatedRecord = {
+                id,
+                patientId: String(patientId),
+                patient_id: patientId,
+                date: resData.date ? String(resData.date).split('T')[0] : (data.date || new Date().toISOString().split('T')[0]),
+                chief_complaint: resData.chief_complaint ?? data.chief_complaint ?? '',
+                history_complaint: resData.history_complaint ?? data.history_complaint ?? '',
+                extra_oral_exam: resData.extra_oral_exam ?? data.extra_oral_exam ?? '',
+                intra_oral_exam: resData.intra_oral_exam ?? data.intra_oral_exam ?? '',
+                diagnosis: resData.diagnosis ?? data.diagnosis ?? '',
+                treatment_plan: resData.treatment_plan ?? data.treatment_plan ?? '',
+                treatment_given: resData.treatment_given ?? data.treatment_given ?? '',
+                consent: resData.consent === true || resData.consent === 1 || resData.consent === '1',
+                consent_notes: resData.consent_notes ?? data.consent_notes ?? '',
+                treatment_note: resData.treatment_note ?? data.treatment_note ?? '',
+                doctor_name: resData.doctor_name ?? data.doctor_name ?? '',
+                doctor_id: resData.doctor_id ?? data.doctor_id,
+                updated_at: resData.updated_at || new Date().toISOString(),
+            };
+        }
+    } catch (error) {
+        console.warn('Backend PUT /medical-histories/:id failed, updating local fallback storage:', error);
+    }
+
+    const current = getLocalMedicalHistories(patientId);
+    const existingIndex = current.findIndex(i => String(i.id) === String(id));
+    if (!updatedRecord) {
+        if (existingIndex >= 0) {
+            updatedRecord = { ...current[existingIndex], ...data, updated_at: new Date().toISOString() };
+        } else {
+            updatedRecord = {
+                id,
+                patientId: String(patientId),
+                patient_id: patientId,
+                date: data.date || new Date().toISOString().split('T')[0],
+                chief_complaint: data.chief_complaint || '',
+                history_complaint: data.history_complaint || '',
+                extra_oral_exam: data.extra_oral_exam || '',
+                intra_oral_exam: data.intra_oral_exam || '',
+                diagnosis: data.diagnosis || '',
+                treatment_plan: data.treatment_plan || '',
+                treatment_given: data.treatment_given || '',
+                consent: !!data.consent,
+                consent_notes: data.consent_notes || '',
+                treatment_note: data.treatment_note || '',
+                doctor_name: data.doctor_name || '',
+                updated_at: new Date().toISOString(),
+            };
+        }
+    }
+
+    if (existingIndex >= 0) {
+        current[existingIndex] = updatedRecord;
+    } else {
+        current.unshift(updatedRecord);
+    }
+    saveLocalMedicalHistories(patientId, current);
+
+    return updatedRecord;
+};
+
+export const deleteMedicalHistory = async (id: string | number, patientId?: string | number): Promise<boolean> => {
+    console.log('API CALL: deleteMedicalHistory', { id, patientId });
+    try {
+        await customAxios.delete(`/medical-histories/${id}`);
+    } catch (error) {
+        console.warn('Backend DELETE /medical-histories/:id failed:', error);
+    }
+
+    if (patientId) {
+        const current = getLocalMedicalHistories(patientId);
+        const filtered = current.filter(i => String(i.id) !== String(id));
+        saveLocalMedicalHistories(patientId, filtered);
+    }
+    return true;
+};
+
+// ==========================================
+// RADIOLOGY & X-RAY REQUISITION REQUESTS API
+// ==========================================
+
+export interface GetXrayRequestsResponse {
+    data: XrayRequest[];
+    meta?: {
+        current_page: number;
+        last_page: number;
+        per_page: number;
+        total: number;
+    };
+}
+
+export const getXrayRequests = async (params?: {
+    search?: string;
+    patient_id?: string | number;
+    status?: string;
+    facility?: string;
+    xray_type?: string;
+    date_from?: string;
+    date_to?: string;
+    branch_id?: string | number;
+    doctor_name?: string;
+    page?: number;
+    per_page?: number | string;
+}): Promise<GetXrayRequestsResponse> => {
+    console.log('API CALL: getXrayRequests', params);
+    try {
+        const response = await customAxios.get('/xray-requests', { params });
+        const resData = response.data;
+        const items = resData?.data || resData;
+        const mapped = Array.isArray(items) ? items : [];
+        return {
+            data: mapped,
+            meta: resData?.meta || {
+                current_page: resData?.current_page || 1,
+                last_page: resData?.last_page || 1,
+                per_page: resData?.per_page || mapped.length,
+                total: resData?.total || mapped.length
+            }
+        };
+    } catch (error) {
+        console.warn('Backend /xray-requests endpoint failed, using local cache fallback:', error);
+        let local: XrayRequest[] = [];
+        try {
+            if (typeof window !== 'undefined') {
+                const stored = localStorage.getItem('xray_requests_all');
+                if (stored) local = JSON.parse(stored);
+            }
+        } catch {}
+        return {
+            data: local,
+            meta: { current_page: 1, last_page: 1, per_page: local.length, total: local.length }
+        };
+    }
+};
+
+export const getXrayRequestById = async (id: string | number): Promise<XrayRequest | null> => {
+    console.log('API CALL: getXrayRequestById', { id });
+    try {
+        const response = await customAxios.get(`/xray-requests/${id}`);
+        return response.data?.data || response.data;
+    } catch (error) {
+        console.warn(`Backend GET /xray-requests/${id} failed:`, error);
+        return null;
+    }
+};
+
+export const createXrayRequest = async (data: Partial<XrayRequest> | FormData): Promise<XrayRequest> => {
+    console.log('API CALL: createXrayRequest', data);
+    try {
+        const isFormData = typeof FormData !== 'undefined' && data instanceof FormData;
+        const response = await customAxios.post(
+            '/xray-requests',
+            data,
+            isFormData ? { headers: { 'Content-Type': 'multipart/form-data' } } : undefined
+        );
+        const created = response.data?.data || response.data;
+        try {
+            if (typeof window !== 'undefined') {
+                const existing: XrayRequest[] = JSON.parse(localStorage.getItem('xray_requests_all') || '[]');
+                existing.unshift(created);
+                localStorage.setItem('xray_requests_all', JSON.stringify(existing));
+            }
+        } catch {}
+        return created;
+    } catch (error) {
+        console.warn('Backend POST /xray-requests failed, saving locally:', error);
+        const fallbackObj: Partial<XrayRequest> = (typeof FormData !== 'undefined' && data instanceof FormData)
+            ? {
+                patient: (data.get('patient') as string) || 'Patient',
+                facility: (data.get('facility') as string) || '',
+                amount: parseFloat(data.get('amount') as string) || 0,
+                xray_type: (data.get('xray_type') as string) || '',
+                tooth_region: (data.get('tooth_region') as string) || '',
+                clinical_notes: (data.get('clinical_notes') as string) || '',
+                doctor_name: (data.get('doctor_name') as string) || '',
+                status: (data.get('status') as any) || 'pending',
+                request_date: (data.get('request_date') as string) || new Date().toISOString().split('T')[0],
+              }
+            : data;
+
+        const fallback: XrayRequest = {
+            id: `xray_${Date.now()}`,
+            patient: fallbackObj.patient || 'Patient',
+            patient_id: fallbackObj.patient_id || '',
+            facility: fallbackObj.facility || '',
+            amount: fallbackObj.amount || 0,
+            xray_type: fallbackObj.xray_type || '',
+            tooth_region: fallbackObj.tooth_region || '',
+            clinical_notes: fallbackObj.clinical_notes || '',
+            doctor_name: fallbackObj.doctor_name || '',
+            status: fallbackObj.status || 'pending',
+            request_date: fallbackObj.request_date || new Date().toISOString().split('T')[0],
+            created_at: new Date().toISOString(),
+            ...fallbackObj
+        } as XrayRequest;
+        try {
+            if (typeof window !== 'undefined') {
+                const existing: XrayRequest[] = JSON.parse(localStorage.getItem('xray_requests_all') || '[]');
+                existing.unshift(fallback);
+                localStorage.setItem('xray_requests_all', JSON.stringify(existing));
+            }
+        } catch {}
+        return fallback;
+    }
+};
+
+export const updateXrayRequest = async (id: string | number, data: Partial<XrayRequest> | FormData): Promise<XrayRequest> => {
+    console.log('API CALL: updateXrayRequest', { id, data });
+    try {
+        const isFormData = typeof FormData !== 'undefined' && data instanceof FormData;
+        let response;
+        if (isFormData) {
+            // Laravel requires POST with _method=PUT for multipart/form-data updates
+            if (!data.has('_method')) {
+                data.append('_method', 'PUT');
+            }
+            response = await customAxios.post(`/xray-requests/${id}`, data, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+        } else {
+            response = await customAxios.put(`/xray-requests/${id}`, data);
+        }
+        const updated = response.data?.data || response.data;
+        try {
+            if (typeof window !== 'undefined') {
+                const existing: XrayRequest[] = JSON.parse(localStorage.getItem('xray_requests_all') || '[]');
+                const idx = existing.findIndex(r => String(r.id) === String(id));
+                if (idx >= 0) existing[idx] = { ...existing[idx], ...updated };
+                localStorage.setItem('xray_requests_all', JSON.stringify(existing));
+            }
+        } catch {}
+        return updated;
+    } catch (error) {
+        console.warn(`Backend update /xray-requests/${id} failed:`, error);
+        const dataObj: any = (typeof FormData !== 'undefined' && data instanceof FormData)
+            ? {
+                patient: data.get('patient'),
+                facility: data.get('facility'),
+                amount: data.get('amount'),
+                status: data.get('status'),
+              }
+            : data;
+        const updated = { id, ...dataObj } as XrayRequest;
+        try {
+            if (typeof window !== 'undefined') {
+                const existing: XrayRequest[] = JSON.parse(localStorage.getItem('xray_requests_all') || '[]');
+                const idx = existing.findIndex(r => String(r.id) === String(id));
+                if (idx >= 0) existing[idx] = { ...existing[idx], ...updated };
+                localStorage.setItem('xray_requests_all', JSON.stringify(existing));
+            }
+        } catch {}
+        return updated;
+    }
+};
+
+export const uploadXrayRequestAttachments = async (id: string | number, files: File[]): Promise<XrayRequest | null> => {
+    console.log('API CALL: uploadXrayRequestAttachments', { id, count: files.length });
+    try {
+        const formData = new FormData();
+        files.forEach((file) => {
+            formData.append('files[]', file);
+        });
+        const response = await customAxios.post(`/xray-requests/${id}/attachments`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        return response.data?.data || response.data;
+    } catch (error) {
+        console.error(`Upload attachments for XrayRequest #${id} failed:`, error);
+        return null;
+    }
+};
+
+export const deleteXrayRequest = async (id: string | number): Promise<boolean> => {
+    console.log('API CALL: deleteXrayRequest', { id });
+    try {
+        await customAxios.delete(`/xray-requests/${id}`);
+    } catch (error) {
+        console.warn(`Backend DELETE /xray-requests/${id} failed:`, error);
+    }
+    try {
+        if (typeof window !== 'undefined') {
+            const existing: XrayRequest[] = JSON.parse(localStorage.getItem('xray_requests_all') || '[]');
+            const filtered = existing.filter(r => String(r.id) !== String(id));
+            localStorage.setItem('xray_requests_all', JSON.stringify(filtered));
+        }
+    } catch {}
+    return true;
+};
+
+export const sendXrayRequestDocument = async (
+    id: string | number,
+    payload: {
+        channel: 'email' | 'whatsapp';
+        recipient: string;
+        custom_message?: string;
+        file_url?: string;
+        file_name?: string;
+    }
+): Promise<{ success: boolean; message?: string }> => {
+    console.log('API CALL: sendXrayRequestDocument', { id, payload });
+    try {
+        const response = await customAxios.post(`/xray-requests/${id}/send`, payload);
+        return {
+            success: true,
+            message: response.data?.message || `Requisition sent via ${payload.channel}.`
+        };
+    } catch (error: any) {
+        console.error('Error sending xray requisition document:', error);
+        return {
+            success: false,
+            message: error?.response?.data?.error || error?.response?.data?.message || error?.message || 'Failed to send requisition document'
+        };
+    }
+};
+
+
+

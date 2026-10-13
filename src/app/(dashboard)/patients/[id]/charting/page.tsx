@@ -9,7 +9,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { PlusCircle, Trash, Pencil, MoreHorizontal } from "lucide-react";
+import { PlusCircle, Trash, Pencil, MoreHorizontal, User } from "lucide-react";
 import { getTreatments, deleteTreatment } from "@/lib/api";
 import type { SystemTreatment } from "@/lib/types";
 
@@ -472,9 +472,15 @@ export default function PatientChartingPage({
           <Upload className="mr-2 h-4 w-4" />
           Upload documents
         </Button>
+        {canUpdatePatient && (
+          <Button size="sm" onClick={() => handleOpenTreatmentFormForEdit()} className="ml-2 bg-blue-600 hover:bg-blue-700 text-white shadow-sm">
+            <PlusCircle className="mr-2 h-4 w-4" />
+            New Treatment
+          </Button>
+        )}
       </div>
       <Tabs defaultValue="odontogram">
-        <TabsList className="grid w-full grid-cols-8">
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="odontogram">Odontogram</TabsTrigger>
           <TabsTrigger value="periodontal">Periodontal</TabsTrigger>
           <TabsTrigger value="occlusal">Occlusal</TabsTrigger>
@@ -486,11 +492,19 @@ export default function PatientChartingPage({
 
         <TabsContent value="odontogram">
             <Card>
-                <CardHeader>
-                    <CardTitle>Odontogram (Dental Chart)</CardTitle>
-                    <CardDescription>
-                        Interactive chart of each tooth and its condition. Click a tooth to log conditions or add treatments.
-                    </CardDescription>
+                <CardHeader className="flex flex-row items-center justify-between">
+                    <div>
+                      <CardTitle>Odontogram (Dental Chart)</CardTitle>
+                      <CardDescription>
+                          Interactive chart of each tooth and its condition. Click a tooth to log conditions or add treatments.
+                      </CardDescription>
+                    </div>
+                    {canUpdatePatient && (
+                      <Button size="sm" onClick={() => handleOpenTreatmentFormForEdit()} className="shrink-0">
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        New Treatment
+                      </Button>
+                    )}
                 </CardHeader>
                 <CardContent>
                     <DentalChart
@@ -566,6 +580,7 @@ export default function PatientChartingPage({
                       <TableRow className="bg-muted/30 hover:bg-muted/30">
                         <TableHead>Procedure</TableHead>
                         <TableHead>Tooth</TableHead>
+                        <TableHead>Doctor</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Cost</TableHead>
                         {canUpdatePatient && <TableHead className="text-right">Actions</TableHead>}
@@ -578,6 +593,16 @@ export default function PatientChartingPage({
                             {plan.procedure}
                           </TableCell>
                           <TableCell>{plan.tooth || "N/A"}</TableCell>
+                          <TableCell>
+                            {plan.doctorName || plan.doctor_name || plan.doctor?.name ? (
+                              <div className="flex items-center gap-1.5 font-medium text-xs text-foreground">
+                                <User className="h-3.5 w-3.5 text-primary shrink-0" />
+                                <span>{plan.doctorName || plan.doctor_name || plan.doctor?.name}</span>
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground text-xs">-</span>
+                            )}
+                          </TableCell>
                           <TableCell>
                             <Badge variant="outline">{plan.status}</Badge>
                           </TableCell>
@@ -662,7 +687,7 @@ export default function PatientChartingPage({
         <PrescriptionForm
           patientId={patient.id}
           patientName={getPatientFullName(patient)}
-          branchId={patient.branch_id || getCurrentUser()?.branchId || 1}
+          branchId={patient.branchId || (patient as any).branch_id || getCurrentUser()?.branchId || 1}
           onOpenChange={setIsPrescriptionFormOpen}
           onSave={() => {
             setIsPrescriptionFormOpen(false);
