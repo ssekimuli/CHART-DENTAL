@@ -7,6 +7,7 @@ import { getInvoiceById, getPatientById } from '@/lib/api';
 import moment from 'moment';
 import { useCurrency } from '@/hooks/use-currency';
 import { Loader2 } from 'lucide-react';
+import { getClinicName, getClinicAddress, getClinicPhone } from '@/lib/business-details';
 
 export default function ReceiptPage() {
   const params = useParams();
@@ -30,8 +31,12 @@ export default function ReceiptPage() {
         if (invoiceData) {
           setInvoice(invoiceData);
           if (invoiceData.patientId) {
-            const patientData = await getPatientById(invoiceData.patientId);
-            setPatient(patientData);
+            try {
+              const patientData = await getPatientById(invoiceData.patientId);
+              setPatient(patientData);
+            } catch (pErr) {
+              console.warn('Could not load patient details for receipt:', pErr);
+            }
           }
         } else {
           notFound();
@@ -106,6 +111,14 @@ export default function ReceiptPage() {
   }
 
   if (!invoice) return null;
+
+  const clinicName = invoice.branch?.name || getClinicName();
+  const clinicAddress = invoice.branch?.address || getClinicAddress();
+  const clinicPhone = invoice.branch?.contactNumber || (invoice.branch as any)?.phone || (invoice.branch as any)?.contact_number || getClinicPhone();
+
+  const patientDisplayName = invoice.patientName || (patient ? `${patient.first_name} ${patient.last_name}` : 'Walk-in');
+  const patientPhone = patient?.phone || invoice.patient?.phone || (invoice as any)?.patientPhone;
+  const patientAddress = patient?.address || invoice.patient?.address || (invoice as any)?.patientAddress;
 
   return (
     <>
@@ -207,15 +220,17 @@ export default function ReceiptPage() {
 
       <div className="receipt-container" id="receipt-content">
         <div className="text-center mb-2">
-            <h2 className="font-bold" style={{ fontSize: '16px', margin: '0 0 4px 0' }}>{invoice.branch?.name || 'CHART DENTAL'}</h2>
-            <div>{invoice.branch?.address || ''}</div>
-            {invoice.branch?.contactNumber && <div>Tel: {invoice.branch.contactNumber}</div>}
+            <h2 className="font-bold" style={{ fontSize: '16px', margin: '0 0 4px 0' }}>{clinicName}</h2>
+            {clinicAddress && <div>{clinicAddress}</div>}
+            {clinicPhone && <div>Tel: {clinicPhone}</div>}
         </div>
 
-        <div className="border-b">
+        <div className="border-b pb-2 mb-2">
             <div>Receipt No: {invoice.receiptNumber || invoice.id}</div>
             <div>Date: {moment().format('DD/MM/YYYY HH:mm')}</div>
-            <div>Patient: {invoice.patientName || 'Walk-in'}</div>
+            <div>Patient: {patientDisplayName}</div>
+            {patientPhone && <div>Tel: {patientPhone}</div>}
+            {patientAddress && <div>Address: {patientAddress}</div>}
         </div>
 
         <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '5px' }}>
@@ -238,13 +253,19 @@ export default function ReceiptPage() {
                         <td className="text-right py-1">{formatCurrency(c.amount)}</td>
                     </tr>
                 ))}
+                {treatments.length === 0 && (!invoice.otherCharges || invoice.otherCharges.length === 0) && (
+                    <tr>
+                        <td className="text-left py-1">Medical / Dental Service</td>
+                        <td className="text-right py-1">{formatCurrency(invoice.amount)}</td>
+                    </tr>
+                )}
             </tbody>
         </table>
 
         <div className="border-t mt-2">
             <div className="flex">
                 <span>Subtotal:</span>
-                <span>{formatCurrency(subtotal + otherChargesTotal)}</span>
+                <span>{formatCurrency((subtotal + otherChargesTotal) > 0 ? (subtotal + otherChargesTotal) : invoice.amount)}</span>
             </div>
             {invoice.discount ? (
                 <div className="flex">
