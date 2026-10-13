@@ -27,6 +27,7 @@ import type { IncomeRecord, Expense, ExpenseSummary, FinancialSummary, IncomeRec
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 import { ExpenseForm } from "./components/expense-form";
 import { useRouter } from "next/navigation";
 import { hasPermission } from "@/lib/user";
@@ -55,6 +56,7 @@ export default function AccountingPage() {
     const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
     const [isEditMode, setIsEditMode] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
+    const [incomeStatusFilter, setIncomeStatusFilter] = useState<'All' | 'Paid' | 'Pending'>('All');
 
     useEffect(() => {
         if (!hasPermission('accounting:read')) {
@@ -80,6 +82,12 @@ export default function AccountingPage() {
         };
         fetchData();
       }, [selectedBranch, dateRange, router]);
+
+    const filteredIncomeRecords = useMemo(() => {
+        if (!incomeResponse?.records) return [];
+        if (incomeStatusFilter === 'All') return incomeResponse.records;
+        return incomeResponse.records.filter((record: IncomeRecord) => record.status === incomeStatusFilter);
+    }, [incomeResponse, incomeStatusFilter]);
 
     const paidIncomeRecords = useMemo(() => {
         return incomeResponse?.records?.filter((record: IncomeRecord) => record.status === 'Paid') || [];
@@ -389,15 +397,39 @@ export default function AccountingPage() {
 
                 {/* Income Records Table */}
                 <Card>
-                    <CardHeader className="flex flex-row items-center justify-between">
+                    <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div>
                             <CardTitle>Income Records</CardTitle>
-                            <CardDescription>All paid invoices for the selected branch.</CardDescription>
+                            <CardDescription>Invoices and income records for the selected branch.</CardDescription>
                         </div>
-                        <Button variant="outline" onClick={() => downloadCSV(paidIncomeRecords, 'income_records.csv')}>
-                            <Download className="mr-2 h-4 w-4"/>
-                            Export CSV
-                        </Button>
+                        <div className="flex items-center gap-2 flex-wrap">
+                            <div className="flex rounded-md border p-0.5 bg-muted/40">
+                                {(['All', 'Paid', 'Pending'] as const).map((tab) => {
+                                    const count = tab === 'All'
+                                        ? (incomeResponse?.records?.length || 0)
+                                        : (incomeResponse?.records?.filter(r => r.status === tab).length || 0);
+                                    return (
+                                        <button
+                                            key={tab}
+                                            type="button"
+                                            onClick={() => setIncomeStatusFilter(tab)}
+                                            className={cn(
+                                                "px-2.5 py-1 text-xs font-medium rounded-sm transition-colors",
+                                                incomeStatusFilter === tab
+                                                    ? "bg-background text-foreground shadow-sm"
+                                                    : "text-muted-foreground hover:text-foreground"
+                                            )}
+                                        >
+                                            {tab} ({count})
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                            <Button variant="outline" size="sm" onClick={() => downloadCSV(filteredIncomeRecords, 'income_records.csv')}>
+                                <Download className="mr-2 h-4 w-4"/>
+                                Export CSV
+                            </Button>
+                        </div>
                     </CardHeader>
                     <CardContent>
                         <Table>
@@ -406,26 +438,36 @@ export default function AccountingPage() {
                                     <TableHead>Invoice ID</TableHead>
                                     <TableHead>Patient</TableHead>
                                     <TableHead>Category</TableHead>
+                                    <TableHead>Status</TableHead>
                                     <TableHead>Issue Date</TableHead>
                                     <TableHead className="text-right">Amount</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {isLoading ? (
-                                    <TableRow><TableCell colSpan={5}><Skeleton className="h-24 w-full"/></TableCell></TableRow>
-                                ) : paidIncomeRecords.map((record: IncomeRecord) => (
+                                    <TableRow><TableCell colSpan={6}><Skeleton className="h-24 w-full"/></TableCell></TableRow>
+                                ) : filteredIncomeRecords.map((record: IncomeRecord) => (
                                     <TableRow key={record.id}>
                                         <TableCell className="font-mono">{record.id}</TableCell>
-                                        <TableCell>{record.patientName}</TableCell>
+                                        <TableCell>{record.patientName || 'Walk-in'}</TableCell>
                                         <TableCell>
-                                            <span className="capitalize">{(record.category || 'other').replace('-', ' ')}</span>
+                                            <span className="capitalize font-medium">{(record.category || 'other').replace('-', ' ')}</span>
+                                        </TableCell>
+                                        <TableCell>
+                                            <Badge variant="outline" className={cn(
+                                                record.status === 'Paid' && "border-emerald-500/30 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400",
+                                                record.status === 'Pending' && "border-amber-500/30 bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400",
+                                                record.status === 'Overdue' && "border-red-500/30 bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-400"
+                                            )}>
+                                                {record.status}
+                                            </Badge>
                                         </TableCell>
                                         <TableCell>{record.date}</TableCell>
-                                        <TableCell className="text-right">{formatCurrency(record.amount)}</TableCell>
+                                        <TableCell className="text-right font-semibold">{formatCurrency(record.amount)}</TableCell>
                                     </TableRow>
                                 ))}
-                                {paidIncomeRecords.length === 0 && !isLoading && (
-                                    <TableRow><TableCell colSpan={5} className="text-center h-24">No income records found.</TableCell></TableRow>
+                                {filteredIncomeRecords.length === 0 && !isLoading && (
+                                    <TableRow><TableCell colSpan={6} className="text-center h-24">No income records found.</TableCell></TableRow>
                                 )}
                             </TableBody>
                         </Table>

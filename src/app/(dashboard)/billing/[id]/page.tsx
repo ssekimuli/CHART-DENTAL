@@ -217,12 +217,17 @@ export default function InvoiceDetailPage() {
                 </Button>
               )}
               {invoice && (
-                <InvoicePrinter
-                  invoice={invoice}
-                  businessName={getClinicName()}
-                  businessPhone={getClinicPhone()}
-                  businessAddress={getClinicAddress()}
-                />
+                <>
+                  <InvoicePrinter
+                    invoice={invoice}
+                    businessName={getClinicName()}
+                    businessPhone={getClinicPhone()}
+                    businessAddress={getClinicAddress()}
+                  />
+                  <Button variant="outline" onClick={() => window.open(`/receipt/${invoice.id}`, '_blank')}>
+                    <Printer className="mr-2 h-4 w-4" /> Thermal View
+                  </Button>
+                </>
               )}
               <Button onClick={handleDownload}>
                 <Download className="mr-2 h-4 w-4" /> Download PDF
@@ -359,12 +364,37 @@ export default function InvoiceDetailPage() {
                       ))}
                       {treatments.length === 0 && (
                           <TableRow>
-                              <TableCell colSpan={4} className="text-center text-muted-foreground">No treatments on this invoice.</TableCell>
+                              <TableCell colSpan={4} className="text-center text-muted-foreground">No dental treatments recorded on this invoice.</TableCell>
                           </TableRow>
                       )}
                   </TableBody>
               </Table>
           </div>
+
+          {invoice.otherCharges && invoice.otherCharges.length > 0 && (
+            <div>
+              <h4 className="font-semibold mb-2">Services & Other Charges</h4>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Description</TableHead>
+                    <TableHead className="text-right">Amount</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {invoice.otherCharges.map((charge, index) => {
+                    const amount = typeof charge.amount === 'number' ? charge.amount : (parseFloat(charge.amount as any) || 0);
+                    return (
+                      <TableRow key={index}>
+                        <TableCell className="font-medium">{charge.description || 'Service'}</TableCell>
+                        <TableCell className="text-right font-medium">{formatCurrency(amount)}</TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
 
           {invoice.medicines && invoice.medicines.length > 0 && (
             <div>
