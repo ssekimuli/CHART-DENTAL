@@ -51,6 +51,7 @@ export type Patient = {
   address?: string;
   gender?: 'Male' | 'Female' | 'Other';
   dateOfBirth: string;
+  age?: number;
   lastVisit?: string;
   nextVisit?: string;
   status: 'Active' | 'Inactive';
@@ -58,6 +59,7 @@ export type Patient = {
   treatmentPlans: Treatment[];
   imaging: PatientImage[];
   history?: string;
+  medicalHistories?: MedicalHistory[];
   branchId: string | number;
   periodontalRecords: PeriodontalRecord;
   occlusalRecords: OcclusalRecord;
@@ -65,6 +67,41 @@ export type Patient = {
   orthodonticRecords: OrthodonticRecord[];
   endodonticRecords?: EndodonticRecord[];
   restorativeRecords?: RestorativeRecord[];
+};
+
+export type MedicalHistory = {
+  id?: string | number;
+  patient_id?: string | number;
+  patientId?: string | number;
+  date: string;
+  chief_complaint: string;
+  history_complaint: string;
+  extra_oral_exam: string;
+  intra_oral_exam: string;
+  diagnosis: string;
+  treatment_plan: string;
+  treatment_given: string;
+  consent: boolean;
+  consent_notes?: string;
+  treatment_note: string;
+  doctor_name?: string;
+  doctor_id?: string | number;
+  doctor?: { id: number | string; name: string };
+  patient?: {
+    id: number | string;
+    first_name: string;
+    last_name: string;
+    gender?: string;
+    date_of_birth?: string;
+    age?: number | string;
+    phone?: string;
+    email?: string;
+    address?: string;
+    branch_id?: number | string;
+    branch?: { id: number | string; name: string };
+  };
+  created_at?: string;
+  updated_at?: string;
 };
 
 export type PatientImage = {
@@ -75,7 +112,7 @@ export type PatientImage = {
   category?: 'Image' | 'X-Ray' | 'Other Doc';
 };
 
-export type DentalCondition = 'Healthy' | 'Caries' | 'Filling' | 'Crown' | 'Missing' | 'Fracture' | 'Implant' | 'Bridge';
+export type DentalCondition = 'Healthy' | 'Caries' | 'Filling' | 'Crown' | 'Missing' | 'Fracture' | 'Implant' | 'Bridge' | 'Retained Root' | 'Malocclusion' | 'Generalized Calculus';
 
 export type DentalRecord = {
   id?: string | number;
@@ -104,8 +141,20 @@ export type Treatment = {
   tooth?: number;
   status: 'Proposed' | 'In Progress' | 'Completed' | 'Cancelled';
   cost: number;
+  totalCost?: number;
+  total_cost?: number;
   date: string;
   invoiceId?: string | number;
+  doctorId?: string | number;
+  doctor_id?: string | number;
+  doctorName?: string;
+  doctor_name?: string;
+  doctor?: {
+    id: string | number;
+    name: string;
+    role?: string;
+    avatar?: string;
+  };
 };
 
 // This represents a treatment item on an invoice. It may or may not correspond
@@ -210,6 +259,7 @@ export type Invoice = {
   issueDate: string;
   dueDate: string;
   branchId: string | number;
+  category?: string;
   treatments: InvoiceTreatment[];
   otherCharges?: OtherCharge[];
   paymentMethod?: PaymentMethod;
@@ -243,7 +293,7 @@ export type PracticeTrendPoint = {
   newPatients: number;
 };
 
-export type EmployeeRole = 'Super Admin' | 'Account' | 'HR' | 'Dentist' | 'Hygienist' | 'Receptionist' | 'Assistant';
+export type EmployeeRole = 'Super Admin' | 'Account' | 'HR' | 'Dentist' | 'Hygienist' | 'Receptionist' | 'Assistant' | 'Lab Technician' | 'Lab Manager';
 
 export type Employee = {
   id: string | number;
@@ -288,7 +338,9 @@ export type IncomeRecord = {
   date: string;
   patientName: string;
   amount: number;
-  status: 'Paid' | 'Pending' | 'Overdue';
+  paidAmount?: number;
+  totalAmount?: number;
+  status: 'Paid' | 'Pending' | 'Overdue' | string;
   invoiceNumber: string;
   category?: string;
 };
@@ -358,8 +410,8 @@ export type LaboratoryOrder = {
   item: string;
   tooth?: number;
   status: 'Draft' | 'Received' | 'In Production' | 'Ready for Delivery' | 'Delivered' | 'Cancelled';
-  sentDate: string;
-  dueDate: string;
+  sentDate?: string;
+  dueDate?: string;
   receivedDate?: string;
   shade?: string;
   material?: string;
@@ -394,7 +446,7 @@ export type LabServicePrice = {
   updated_at: string;
 };
 
-export type BasePatient = Omit<Patient, 'id' | 'dentalRecords' | 'treatmentPlans' | 'imaging' | 'periodontalRecords' | 'occlusalRecords' | 'softTissueRecords' | 'orthodonticRecords'>;
+export type BasePatient = Omit<Patient, 'id' | 'dentalRecords' | 'treatmentPlans' | 'imaging' | 'periodontalRecords' | 'occlusalRecords' | 'softTissueRecords' | 'orthodonticRecords' | 'medicalHistories'>;
 
 export type BaseInvoice = Omit<Invoice, 'id' | 'patientName' | 'branchId'>;
 
@@ -510,7 +562,7 @@ export type CurrentUser = {
     avatar: string;
 };
 
-export type Permission = 
+export type Permission =
   | 'dashboard:read'
   | 'queue:read'
   | 'patients:read' | 'patients:create' | 'patients:update' | 'patients:delete'
@@ -519,7 +571,7 @@ export type Permission =
   | 'billing:read' | 'billing:create' | 'billing:update' | 'billing:delete'
   | 'accounting:read' | 'accounting:create'
   | 'inventory:read' | 'inventory:create' | 'inventory:update'
-  | 'laboratory:read' | 'laboratory:create' | 'laboratory:update'
+  | 'laboratory:read' | 'laboratory:create' | 'laboratory:update' | 'laboratory:delete'
   | 'hrm:read' | 'hrm:create' | 'hrm:update' | 'hrm:delete'
   | 'branches:read' | 'branches:create'
   | 'reports:read'
@@ -666,3 +718,56 @@ export type EndodonticRecord = {
   postType?: string;
   notes?: string;
 };
+
+export type XrayAttachment = {
+  url: string;
+  name?: string;
+  size?: number;
+  mime?: string;
+  uploaded_at?: string;
+};
+
+export type XrayRequest = {
+  id?: string | number;
+  client_uuid?: string;
+  patient: string;
+  patient_id?: string | number;
+  facility: string;
+  amount: number | string;
+  xray_type?: string;
+  tooth_region?: string;
+  clinical_notes?: string;
+  doctor_name?: string;
+  doctor_id?: string | number;
+  branch_id?: string | number;
+  invoice_id?: string | number;
+  status: 'pending' | 'completed' | 'cancelled';
+  request_date?: string;
+  completed_date?: string;
+  report_findings?: string;
+  attachments?: XrayAttachment[];
+  patientRecord?: {
+    id: string | number;
+    first_name: string;
+    last_name: string;
+    gender?: string;
+    date_of_birth?: string;
+    age?: string | number;
+    phone?: string;
+    email?: string;
+    address?: string;
+    branch_id?: string | number;
+  };
+  branch?: { id: string | number; name: string };
+  doctor?: { id: string | number; name: string };
+  invoice?: {
+    id: string | number;
+    amount: number | string;
+    paid_amount: number | string;
+    status: string;
+    issue_date: string;
+  };
+  created_at?: string;
+  updated_at?: string;
+};
+

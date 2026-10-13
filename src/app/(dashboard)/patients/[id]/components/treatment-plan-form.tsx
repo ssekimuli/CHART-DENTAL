@@ -1,11 +1,11 @@
 "use client";
 import { useToast } from "@/hooks/use-toast";
 
-import { Loader2 } from "lucide-react";
+import { Loader2, Calculator } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -32,145 +32,320 @@ import {
     SelectTrigger,
     SelectValue,
   } from "@/components/ui/select";
-import type { Treatment, DentalCondition, SystemTreatment } from "@/lib/types";
+import type { Treatment, DentalCondition, SystemTreatment, Employee } from "@/lib/types";
+import { MultiCombobox } from "@/components/ui/multi-combobox";
 import { Combobox } from "@/components/ui/combobox";
-import { getTreatments } from "@/lib/api";
+import { getTreatments, getDoctors } from "@/lib/api";
+import { getCurrentUser } from "@/lib/user";
+
+const VALID_CONDITIONS: DentalCondition[] = [
+  'Healthy', 'Caries', 'Filling', 'Crown', 'Missing', 'Fracture', 'Implant', 'Bridge', 'Retained Root', 'Malocclusion', 'Generalized Calculus'
+];
 
 const formSchema = z.object({
-  procedureId: z.preprocess((value) => String(value), z.string().min(1, "Procedure is required.")),
-  procedure: z.string().optional(),
+  procedureIds: z.array(z.string()).min(1, "At least one procedure is required."),
+  doctorId: z.string().min(1, "Doctor is required."),
   tooth: z.coerce.number().optional(),
   status: z.enum(['Proposed', 'In Progress', 'Completed', 'Cancelled']),
-  cost: z.coerce.number().positive({ message: "Cost must be a positive number."}),
-  condition: z.enum(['Healthy', 'Caries', 'Filling', 'Crown', 'Missing', 'Fracture', 'Implant', 'Bridge']).optional(),
+  cost: z.coerce.number().min(0, { message: "Cost must be 0 or more." }),
+  condition: z.enum([
+    'Healthy', 'Caries', 'Filling', 'Crown', 'Missing', 'Fracture', 'Implant', 'Bridge', 'Retained Root', 'Malocclusion', 'Generalized Calculus'
+  ]).optional(),
 });
+
+function normalizeCondition(cond?: DentalCondition | string): DentalCondition | undefined {
+  if (!cond) return undefined;
+  if ((cond as string) === 'Retained' || cond === 'Retained Root') {
+    return 'Retained Root';
+  }
+  return VALID_CONDITIONS.includes(cond as DentalCondition) ? (cond as DentalCondition) : undefined;
+}
 
 type TreatmentPlanFormProps = {
     treatment?: Treatment;
     onSave: (data: Omit<Treatment, 'id' | 'date'>, condition?: DentalCondition) => void;
+    onSaveBatch?: (items: Array<{ data: Omit<Treatment, 'id' | 'date'>; condition?: DentalCondition }>) => void;
     onOpenChange: (open: boolean) => void;
     toothId?: number;
-    currentCondition?: DentalCondition;
+    currentCondition?: DentalCondition | string;
 };
 
-export function TreatmentPlanForm({ treatment, onSave, onOpenChange, toothId, currentCondition }: TreatmentPlanFormProps) {
+export function TreatmentPlanForm({ treatment, onSave, onSaveBatch, onOpenChange, toothId, currentCondition }: TreatmentPlanFormProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
-
   const [systemTreatments, setSystemTreatments] = useState<SystemTreatment[]>([]);
-  const [initialProcedureId, setInitialProcedureId] = useState<string>("");
+  const [doctors, setDoctors] = useState<Employee[]>([]);
+  const [itemCosts, setItemCosts] = useState<Record<string, number>>({});
   const isEditing = !!treatment;
+  const lastProcedureIdsRef = useRef<string[]>([]);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      procedureId: treatment?.procedureId ? String(treatment.procedureId) : "",
-      procedure: treatment?.procedure ?? "",
+      procedureIds: treatment?.procedureId ? [String(treatment.procedureId)] : [],
+      doctorId: treatment?.doctorId ? String(treatment.doctorId) : treatment?.doctor_id ? String(treatment.doctor_id) : '',
       status: treatment?.status ?? 'Proposed',
       tooth: treatment?.tooth ?? toothId ?? undefined,
-      cost: treatment?.cost ?? 0,
-      condition: (currentCondition && ['Healthy', 'Caries', 'Filling', 'Crown', 'Missing', 'Fracture', 'Implant', 'Bridge'].includes(currentCondition)) ? currentCondition as any : undefined,
+      cost: treatment?.totalCost ?? treatment?.cost ?? 0,
+      condition: normalizeCondition(currentCondition),
     },
   });
 
   useEffect(() => {
-    const fetchTreatments = async () => {
-        const data = await getTreatments();
-        setSystemTreatments(data);
-    }
-    fetchTreatments();
-  }, [])
+    const fetchData = async () => {
+      try {
+        const [tData, dData] = await Promise.all([
+          getTreatments(),
+          getDoctors(),
+        ]);
+        setSystemTreatments(tData);
+        setDoctors(dData);
 
-  // When editing, match treatment to system treatments by name and ID
-  // after system treatments load.
+        // If not editing and doctorId isn't set, default to logged in user if they're a doctor or the first doctor
+        if (!treatment) {
+          const user = getCurrentUser();
+          if (user?.id) {
+            const userDoc = dData.find(d => String(d.id) === String(user.id));
+            if (userDoc) {
+              form.setValue('doctorId', String(userDoc.id));
+            } else if (dData.length === 1) {
+              form.setValue('doctorId', String(dData[0].id));
+            }
+          } else if (dData.length === 1) {
+            form.setValue('doctorId', String(dData[0].id));
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch treatments or doctors:", err);
+      }
+    };
+    fetchData();
+  }, [treatment, form]);
+
+  // When editing, pre-populate procedure selection after system treatments load
   useEffect(() => {
       if (treatment && systemTreatments.length > 0) {
           let pId = "";
-
-          // Try exact match by procedure name first
           let matchedByName = systemTreatments.find(st => st.procedure === treatment.procedure);
-
-          // If no exact match, try partial match (e.g., treatment name contains system procedure name)
           if (!matchedByName && treatment.procedure) {
               matchedByName = systemTreatments.find(st =>
                   treatment.procedure.includes(st.procedure) || st.procedure.includes(treatment.procedure)
               );
           }
-
           if (matchedByName) {
               pId = String(matchedByName.id);
-              form.setValue('procedureId', pId);
           } else if (treatment.procedureId) {
-              // Fall back to treatment's procedureId if no match found
               pId = String(treatment.procedureId);
-              form.setValue('procedureId', pId);
           }
-
-          setInitialProcedureId(pId);
-          // Set other values to ensure form is fully populated
-          form.setValue('procedure', treatment.procedure);
+          if (pId) {
+            form.setValue('procedureIds', [pId]);
+            setItemCosts({ [pId]: treatment.cost });
+          }
           form.setValue('status', treatment.status);
           if (treatment.tooth) form.setValue('tooth', treatment.tooth);
-          form.setValue('cost', treatment.cost);
-          if (currentCondition && ['Healthy', 'Caries', 'Filling', 'Crown', 'Missing', 'Fracture', 'Implant', 'Bridge'].includes(currentCondition)) {
-            form.setValue('condition', currentCondition as any);
+          if (treatment.doctorId || treatment.doctor_id) {
+            form.setValue('doctorId', String(treatment.doctorId || treatment.doctor_id));
+          }
+          const effectiveCost = treatment.totalCost ?? treatment.cost ?? 0;
+          form.setValue('cost', effectiveCost);
+          const norm = normalizeCondition(currentCondition);
+          if (norm) {
+            form.setValue('condition', norm);
           }
       }
   }, [treatment, systemTreatments, form, currentCondition]);
-  
-  const selectedProcedureId = form.watch("procedureId");
-  useEffect(() => {
-    // Auto-populate cost and procedure only when procedure ID is changed by user (not on initial load)
-    // For new treatments (!isEditing), auto-populate on any change
-    // For editing treatments, only auto-populate if procedure was changed from initial value
-    const procedureHasChanged = selectedProcedureId && (
-      !isEditing || (initialProcedureId && String(selectedProcedureId) !== String(initialProcedureId))
-    );
 
-    if (procedureHasChanged) {
-      const matchingTreatment = systemTreatments.find(
-        t => String(t.id) === String(selectedProcedureId)
-      );
-      if (matchingTreatment) {
-        form.setValue('cost', matchingTreatment.cost);
-        form.setValue('procedure', matchingTreatment.procedure);
+  const selectedProcedureIds = form.watch("procedureIds");
+
+  // Keep itemCosts and total cost in sync when procedures are selected or removed
+  useEffect(() => {
+    if (isEditing || systemTreatments.length === 0) return;
+
+    const prevIds = lastProcedureIdsRef.current;
+    const isSameIds = prevIds.length === selectedProcedureIds.length && prevIds.every((id, idx) => id === selectedProcedureIds[idx]);
+    if (isSameIds) return;
+
+    lastProcedureIdsRef.current = selectedProcedureIds;
+
+    const newItemCosts: Record<string, number> = {};
+    let total = 0;
+
+    selectedProcedureIds.forEach(id => {
+      if (itemCosts[id] !== undefined) {
+        newItemCosts[id] = itemCosts[id];
+        total += itemCosts[id];
+      } else {
+        const match = systemTreatments.find(t => String(t.id) === String(id));
+        const defaultCost = match ? Number(match.cost) || 0 : 0;
+        newItemCosts[id] = defaultCost;
+        total += defaultCost;
       }
+    });
+
+    setItemCosts(newItemCosts);
+    form.setValue('cost', total);
+  }, [selectedProcedureIds, systemTreatments, isEditing, form, itemCosts]);
+
+  // When user directly modifies the Total Cost input
+  const handleTotalCostChange = (newTotal: number) => {
+    form.setValue('cost', newTotal);
+
+    if (selectedProcedureIds.length <= 1) {
+      if (selectedProcedureIds[0]) {
+        setItemCosts({ [selectedProcedureIds[0]]: newTotal });
+      }
+      return;
     }
-  }, [selectedProcedureId, systemTreatments, form, isEditing, initialProcedureId])
+
+    // Proportionally distribute adjusted total across selected procedures
+    const currentSum = selectedProcedureIds.reduce((sum, id) => sum + (itemCosts[id] ?? 0), 0);
+    const updated: Record<string, number> = {};
+    let allocated = 0;
+
+    selectedProcedureIds.forEach((id, idx) => {
+      if (idx === selectedProcedureIds.length - 1) {
+        updated[id] = Math.max(0, Math.round((newTotal - allocated) * 100) / 100);
+      } else {
+        const proportion = currentSum > 0 ? ((itemCosts[id] ?? 0) / currentSum) : (1 / selectedProcedureIds.length);
+        const itemVal = Math.max(0, Math.round(newTotal * proportion * 100) / 100);
+        updated[id] = itemVal;
+        allocated += itemVal;
+      }
+    });
+
+    setItemCosts(updated);
+  };
+
+  // When user modifies an individual procedure cost in the breakdown
+  const handleItemCostChange = (id: string, newCost: number) => {
+    const validCost = Math.max(0, Number(newCost) || 0);
+    const updated = { ...itemCosts, [id]: validCost };
+    setItemCosts(updated);
+    const newTotal = selectedProcedureIds.reduce((sum, pid) => sum + (updated[pid] ?? 0), 0);
+    form.setValue('cost', Math.round(newTotal * 100) / 100);
+  };
+
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
     try {
-      const selectedSystemTreatment = systemTreatments.find(t => String(t.id) === String(values.procedureId));
-
-      const procedureName = selectedSystemTreatment?.procedure ?? treatment?.procedure ?? values.procedure ?? '';
-      if (!procedureName) {
-        toast({
-          title: "Error",
-          description: "Procedure name is required.",
-          variant: "destructive",
-        });
+      if (values.procedureIds.length === 0) {
+        toast({ title: "Error", description: "Please select at least one procedure.", variant: "destructive" });
         return;
       }
 
-      onSave({
-        ...values,
-        procedure: procedureName,
-      }, values.condition);
+      const totalCostValue = Number(values.cost);
+      const selectedDoctor = doctors.find(d => String(d.id) === String(values.doctorId));
+      const doctorIdVal = values.doctorId;
+      const doctorNameVal = selectedDoctor?.name || treatment?.doctorName || treatment?.doctor_name || '';
+
+      if (isEditing) {
+        // Single update
+        const selectedSystemTreatment = systemTreatments.find(t => String(t.id) === String(values.procedureIds[0]));
+        const procedureName = selectedSystemTreatment?.procedure ?? treatment?.procedure ?? '';
+        onSave({
+          procedureId: values.procedureIds[0],
+          procedure: procedureName,
+          tooth: values.tooth,
+          status: values.status,
+          cost: totalCostValue,
+          totalCost: totalCostValue,
+          total_cost: totalCostValue,
+          doctorId: doctorIdVal,
+          doctor_id: doctorIdVal,
+          doctorName: doctorNameVal,
+          doctor_name: doctorNameVal,
+          doctor: selectedDoctor ? {
+            id: selectedDoctor.id,
+            name: selectedDoctor.name,
+            role: selectedDoctor.role,
+            avatar: selectedDoctor.avatar,
+          } : undefined,
+        }, values.condition);
+      } else if (values.procedureIds.length === 1) {
+        // Single procedure add
+        const pid = values.procedureIds[0];
+        const selectedSystemTreatment = systemTreatments.find(t => String(t.id) === String(pid));
+        const procedureName = selectedSystemTreatment?.procedure ?? '';
+
+        const singleItemData = {
+          procedureId: pid,
+          procedure: procedureName,
+          tooth: values.tooth,
+          status: values.status,
+          cost: totalCostValue,
+          totalCost: totalCostValue,
+          total_cost: totalCostValue,
+          doctorId: doctorIdVal,
+          doctor_id: doctorIdVal,
+          doctorName: doctorNameVal,
+          doctor_name: doctorNameVal,
+          doctor: selectedDoctor ? {
+            id: selectedDoctor.id,
+            name: selectedDoctor.name,
+            role: selectedDoctor.role,
+            avatar: selectedDoctor.avatar,
+          } : undefined,
+        };
+
+        if (onSaveBatch) {
+          onSaveBatch([{ data: singleItemData, condition: values.condition }]);
+        } else {
+          onSave(singleItemData, values.condition);
+        }
+      } else {
+        // Multiple procedures add
+        const items = values.procedureIds.map((pid, idx) => {
+          const st = systemTreatments.find(t => String(t.id) === String(pid));
+          const allocatedCost = itemCosts[pid] ?? (totalCostValue / values.procedureIds.length);
+          return {
+            data: {
+              procedureId: pid,
+              procedure: st?.procedure ?? '',
+              tooth: values.tooth,
+              status: values.status,
+              cost: Number(allocatedCost),
+              totalCost: totalCostValue,
+              total_cost: totalCostValue,
+              doctorId: doctorIdVal,
+              doctor_id: doctorIdVal,
+              doctorName: doctorNameVal,
+              doctor_name: doctorNameVal,
+              doctor: selectedDoctor ? {
+                id: selectedDoctor.id,
+                name: selectedDoctor.name,
+                role: selectedDoctor.role,
+                avatar: selectedDoctor.avatar,
+              } : undefined,
+            },
+            condition: values.condition as DentalCondition | undefined,
+          };
+        }).filter(item => item.data.procedure);
+
+        if (onSaveBatch) {
+          onSaveBatch(items);
+        } else {
+          for (const item of items) {
+            onSave(item.data, item.condition);
+          }
+        }
+      }
     } catch (error: any) {
       console.error(error);
-      toast({
-        title: "Error",
-        description: error.message || "An unexpected error occurred.",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: error.message || "An unexpected error occurred.", variant: "destructive" });
     } finally {
       setIsSubmitting(false);
     }
   }
 
+  const comboboxOptions = systemTreatments.map(t => ({
+    value: String(t.id),
+    label: t.procedure,
+    category: t.category,
+  }));
+
   return (
     <Dialog open={true} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="sm:max-w-[650px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
                 <DialogTitle>{isEditing ? 'Edit Treatment' : `Add New Treatment`}</DialogTitle>
                 <DialogDescription>
@@ -179,116 +354,198 @@ export function TreatmentPlanForm({ treatment, onSave, onOpenChange, toothId, cu
             </DialogHeader>
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                    <FormField
+                    {/* Multi-procedure selector */}
+                    <Controller
                       control={form.control}
-                      name="procedureId"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Procedure</FormLabel>
-                          <FormControl>
-                            <Combobox
-                                options={systemTreatments.map(t => ({
-                                    value: t.id,
-                                    label: t.procedure,
-                                    category: t.category
-                                }))}
-                                value={field.value}
-                                onChange={(value) => {
-                                  field.onChange(value);
-                                }}
-                                placeholder="Select a procedure"
-                                searchPlaceholder="Search procedures..."
-                                emptyMessage="No procedure found."
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
+                      name="procedureIds"
+                      render={({ field, fieldState }) => (
+                        <div className="space-y-1">
+                          <FormLabel>Procedures</FormLabel>
+                          <MultiCombobox
+                            options={comboboxOptions}
+                            values={field.value}
+                            onChange={field.onChange}
+                            placeholder="Select one or more procedures..."
+                            searchPlaceholder="Search procedures..."
+                            emptyMessage="No procedure found."
+                          />
+                          {fieldState.error && (
+                            <p className="text-sm font-medium text-destructive">{fieldState.error.message}</p>
+                          )}
+                        </div>
                       )}
                     />
-                    {!isEditing && toothId && (
-                       <FormField
+
+                    {/* Individual Procedure Breakdown if more than 1 procedure is selected */}
+                    {selectedProcedureIds.length > 1 && (
+                      <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                            <Calculator className="h-3.5 w-3.5" />
+                            Procedure Cost Breakdown ({selectedProcedureIds.length} items)
+                          </span>
+                          <span className="text-xs text-muted-foreground">Adjust item or total cost</span>
+                        </div>
+                        <div className="space-y-2 max-h-44 overflow-y-auto pr-1">
+                          {selectedProcedureIds.map(pid => {
+                            const st = systemTreatments.find(t => String(t.id) === String(pid));
+                            return (
+                              <div key={pid} className="flex items-center justify-between gap-3 text-xs bg-background p-2 rounded border">
+                                <div className="min-w-0 flex-1">
+                                  <p className="font-medium truncate">{st?.procedure || `Procedure #${pid}`}</p>
+                                  <p className="text-muted-foreground text-[11px]">
+                                    Catalog: {st?.cost !== undefined ? Number(st.cost).toLocaleString() : '0'}
+                                    {st?.category ? ` • ${st.category}` : ''}
+                                  </p>
+                                </div>
+                                <div className="w-28 shrink-0">
+                                  <Input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    className="h-7 text-xs text-right font-mono"
+                                    value={itemCosts[pid] ?? ''}
+                                    onChange={(e) => handleItemCostChange(pid, parseFloat(e.target.value) || 0)}
+                                    placeholder="0.00"
+                                  />
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormField
+                          control={form.control}
+                          name="tooth"
+                          render={({ field }) => (
+                              <FormItem>
+                              <FormLabel>Tooth # (optional)</FormLabel>
+                              <FormControl>
+                                  <Input 
+                                    type="number" 
+                                    placeholder="e.g., 16" 
+                                    {...field} 
+                                    value={field.value ?? ''}
+                                    onChange={(e) => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))}
+                                  />
+                              </FormControl>
+                              <FormMessage />
+                              </FormItem>
+                          )}
+                      />
+
+                      <FormField
                         control={form.control}
                         name="condition"
                         render={({ field }) => (
-                            <FormItem>
-                            <FormLabel>Log Condition (optional)</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                <FormControl>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select condition to log" />
-                                </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                    <SelectItem value="Caries">Caries</SelectItem>
-                                    <SelectItem value="Filling">Filling</SelectItem>
-                                    <SelectItem value="Crown">Crown</SelectItem>
-                                    <SelectItem value="Fracture">Fracture</SelectItem>
-                                    <SelectItem value="Missing">Missing</SelectItem>
-                                </SelectContent>
-                            </Select>
-                            <p className="text-xs text-muted-foreground">This will also update the odontogram chart for this tooth.</p>
+                          <FormItem>
+                            <FormLabel>Condition</FormLabel>
+                            <FormControl>
+                              <Combobox
+                                options={[
+                                  { value: "none" as string, label: "None" },
+                                  ...VALID_CONDITIONS.map((cond) => ({ value: cond as string, label: cond })),
+                                ]}
+                                value={field.value ?? "none"}
+                                onChange={(val) => field.onChange(val === "none" ? undefined : val)}
+                                placeholder="Select condition..."
+                                searchPlaceholder="Search condition..."
+                                emptyMessage="No condition found."
+                              />
+                            </FormControl>
                             <FormMessage />
-                            </FormItem>
+                          </FormItem>
                         )}
                       />
-                    )}
-                     <FormField
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormField
                         control={form.control}
-                        name="tooth"
+                        name="doctorId"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="flex items-center gap-1">
+                              <span>Doctor</span>
+                              <span className="text-destructive">*</span>
+                            </FormLabel>
+                            <FormControl>
+                              <Combobox
+                                options={doctors.map((d) => ({
+                                  value: String(d.id),
+                                  label: `Dr. ${d.name}${d.role ? ` (${d.role})` : ''}`,
+                                }))}
+                                value={field.value || ""}
+                                onChange={(val) => field.onChange(val)}
+                                placeholder="Select doctor..."
+                                searchPlaceholder="Search doctors..."
+                                emptyMessage="No doctor found."
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                          control={form.control}
+                          name="status"
+                          render={({ field }) => (
+                              <FormItem>
+                              <FormLabel>Status</FormLabel>
+                              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                  <FormControl>
+                                  <SelectTrigger>
+                                      <SelectValue placeholder="Select status" />
+                                  </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                      <SelectItem value="Proposed">Proposed</SelectItem>
+                                      <SelectItem value="In Progress">In Progress</SelectItem>
+                                      <SelectItem value="Completed">Completed</SelectItem>
+                                      <SelectItem value="Cancelled">Cancelled</SelectItem>
+                                  </SelectContent>
+                              </Select>
+                              <FormMessage />
+                              </FormItem>
+                          )}
+                      />
+                    </div>
+
+                    <FormField
+                        control={form.control}
+                        name="cost"
                         render={({ field }) => (
                             <FormItem>
-                            <FormLabel>Tooth # (optional)</FormLabel>
+                            <FormLabel className="flex items-center justify-between">
+                              <span>Total Cost {selectedProcedureIds.length > 1 ? `(${selectedProcedureIds.length} procedures)` : ''}</span>
+                              <span className="text-[10px] text-muted-foreground font-normal">Adjustable</span>
+                            </FormLabel>
                             <FormControl>
-                                <Input type="number" placeholder="e.g., 16" {...field} />
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  step="0.01"
+                                  placeholder="0.00"
+                                  value={field.value ?? ''}
+                                  onChange={(e) => handleTotalCostChange(parseFloat(e.target.value) || 0)}
+                                  onBlur={field.onBlur}
+                                />
                             </FormControl>
+                            <p className="text-[11px] text-muted-foreground">Total cost posted with treatment payload</p>
                             <FormMessage />
                             </FormItem>
                         )}
                     />
-                    <div className="grid grid-cols-2 gap-4">
-                        <FormField
-                            control={form.control}
-                            name="status"
-                            render={({ field }) => (
-                                <FormItem>
-                                <FormLabel>Status</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                    <FormControl>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select status" />
-                                    </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                        <SelectItem value="Proposed">Proposed</SelectItem>
-                                        <SelectItem value="In Progress">In Progress</SelectItem>
-                                        <SelectItem value="Completed">Completed</SelectItem>
-                                        <SelectItem value="Cancelled">Cancelled</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                         <FormField
-                            control={form.control}
-                            name="cost"
-                            render={({ field }) => (
-                                <FormItem>
-                                <FormLabel>Cost</FormLabel>
-                                <FormControl>
-                                    <Input type="number" placeholder="0.00" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                    </div>
                      <DialogFooter>
                         <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-                        <Button type="submit"  disabled={isSubmitting}>
-        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-        {isEditing ? 'Save Changes' : 'Add Treatment'}
-      </Button>
+                        <Button type="submit" disabled={isSubmitting}>
+                          {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                          {isEditing ? 'Save Changes' : `Add ${selectedProcedureIds.length > 1 ? `${selectedProcedureIds.length} Treatments` : 'Treatment'}`}
+                        </Button>
                     </DialogFooter>
                 </form>
             </Form>

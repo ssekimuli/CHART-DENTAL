@@ -33,10 +33,21 @@ import {
     SelectTrigger,
     SelectValue,
   } from "@/components/ui/select";
-import type { Patient, BasePatient } from "@/lib/types";
+import type { Patient, BasePatient, MedicalHistory } from "@/lib/types";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { CalendarIcon, Loader2 } from "lucide-react";
+import { CalendarIcon, Loader2, ChevronsUpDown, Check, HeartPulse, FileText, Sparkles, ClipboardCheck } from "lucide-react";
+import { MedicalHistoryForm, type PatientBasicInfo } from "./medical-history-form";
+import { createMedicalHistory } from "@/lib/api";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+
 import { Calendar } from "@/components/ui/calendar";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -79,7 +90,27 @@ type PatientFormProps = {
 export function PatientForm({ patient, onSave, onOpenChange, asModal = true }: PatientFormProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [useAge, setUseAge] = useState(false);
+  const [nationalityOpen, setNationalityOpen] = useState(false);
+  // When editing: use age mode if patient has an explicit age value,
+  // use date mode if patient only has a dateOfBirth string.
+  const initialUseAge = patient ? (patient.age != null) : true;
+  const [useAge, setUseAge] = useState(initialUseAge);
+  const [isMedicalHistoryModalOpen, setIsMedicalHistoryModalOpen] = useState(false);
+  const [draftMedicalHistory, setDraftMedicalHistory] = useState<MedicalHistory | null>(null);
+
+  const handleMedicalHistorySaved = (rec: MedicalHistory) => {
+    setDraftMedicalHistory(rec);
+    const summaryLines = [
+      `Chief Complaint: ${rec.chief_complaint}`,
+      rec.diagnosis ? `Diagnosis: ${rec.diagnosis}` : null,
+      rec.treatment_plan ? `Treatment Plan: ${rec.treatment_plan}` : null,
+      rec.treatment_given ? `Treatment Given: ${rec.treatment_given}` : null,
+      rec.extra_oral_exam || rec.intra_oral_exam ? `Oral Exam: Extra: ${rec.extra_oral_exam || 'NAD'}; Intra: ${rec.intra_oral_exam || 'NAD'}` : null,
+      rec.treatment_note ? `Notes: ${rec.treatment_note}` : null,
+    ].filter(Boolean).join("\n");
+
+    form.setValue("history", summaryLines);
+  };
 
   const calculateDateOfBirth = (age: number): string => {
     const today = new Date();
@@ -97,13 +128,18 @@ export function PatientForm({ patient, onSave, onOpenChange, asModal = true }: P
         nationality: patient?.nationality ?? "",
         address: patient?.address ?? "",
         gender: patient?.gender,
-        dateOfBirth: patient?.dateOfBirth ? format(parseISO(patient.dateOfBirth), "dd-MM-yyyy") : "",
+        // Pre-fill with age if available, otherwise format the dateOfBirth date
+        dateOfBirth: patient?.age != null
+          ? String(patient.age)
+          : patient?.dateOfBirth
+            ? format(parseISO(patient.dateOfBirth), "dd-MM-yyyy")
+            : "",
         lastVisit: patient?.lastVisit ? parseISO(patient.lastVisit) : undefined,
         nextVisit: patient?.nextVisit ? parseISO(patient.nextVisit) : undefined,
         status: patient?.status ?? 'Active',
         history: patient?.history ?? "",
         avatar: patient?.avatar ?? "",
-        useAge: false,
+        useAge: initialUseAge,
     },
   });
 
@@ -140,19 +176,28 @@ export function PatientForm({ patient, onSave, onOpenChange, asModal = true }: P
         await onSave({
             first_name: values.first_name,
             last_name: values.last_name,
-            email: values.email,
+            email: values.email || '',
             phone: values.phone,
             nationality: values.nationality,
             address: values.address,
             gender: values.gender,
             status: values.status,
             dateOfBirth: dateOfBirthFormatted,
+            age: values.useAge ? parseInt(values.dateOfBirth) : undefined,
             lastVisit: values.lastVisit ? format(values.lastVisit, "yyyy-MM-dd") : undefined,
             nextVisit: values.nextVisit ? format(values.nextVisit, "yyyy-MM-dd") : undefined,
             history: values.history,
             branchId: patient?.branchId ?? "",
             avatar: values.avatar || `https://picsum.photos/seed/p${Math.random()}/200/200`,
         });
+
+        if (draftMedicalHistory && patient?.id) {
+            try {
+                await createMedicalHistory(patient.id, draftMedicalHistory);
+            } catch (syncErr) {
+                console.error("Failed to sync medical history record:", syncErr);
+            }
+        }
     } catch (error: any) {
         console.error(error);
         toast({
@@ -167,8 +212,8 @@ export function PatientForm({ patient, onSave, onOpenChange, asModal = true }: P
 
   const formContent = (
             <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                         <FormField
                             control={form.control}
                             name="first_name"
@@ -291,26 +336,61 @@ export function PatientForm({ patient, onSave, onOpenChange, asModal = true }: P
                             control={form.control}
                             name="nationality"
                             render={({ field }) => (
-                                <FormItem>
+                                <FormItem className="flex flex-col">
                                 <FormLabel>Nationality</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value || undefined}>
+                                <Popover open={nationalityOpen} onOpenChange={setNationalityOpen}>
+                                    <PopoverTrigger asChild>
                                     <FormControl>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select nationality" />
-                                    </SelectTrigger>
+                                        <Button
+                                            variant="outline"
+                                            role="combobox"
+                                            aria-expanded={nationalityOpen}
+                                            className={cn(
+                                                "justify-between font-normal",
+                                                !field.value && "text-muted-foreground"
+                                            )}
+                                        >
+                                            {field.value
+                                                ? (countryList.find(c => c.value === field.value)?.label ?? field.value)
+                                                : "Select nationality"}
+                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                        </Button>
                                     </FormControl>
-                                    <SelectContent>
-                                        {countryList.map((country) => (
-                                            <SelectItem key={country.value} value={country.value}>
-                                                {country.label}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-[250px] p-0" align="start">
+                                        <Command>
+                                            <CommandInput placeholder="Search nationality..." />
+                                            <CommandList>
+                                                <CommandEmpty>No country found.</CommandEmpty>
+                                                <CommandGroup>
+                                                    {countryList.map((country) => (
+                                                        <CommandItem
+                                                            key={country.value}
+                                                            value={country.label}
+                                                            onSelect={() => {
+                                                                field.onChange(country.value);
+                                                                setNationalityOpen(false);
+                                                            }}
+                                                        >
+                                                            <Check
+                                                                className={cn(
+                                                                    "mr-2 h-4 w-4",
+                                                                    field.value === country.value ? "opacity-100" : "opacity-0"
+                                                                )}
+                                                            />
+                                                            {country.label}
+                                                        </CommandItem>
+                                                    ))}
+                                                </CommandGroup>
+                                            </CommandList>
+                                        </Command>
+                                    </PopoverContent>
+                                </Popover>
                                 <FormMessage />
                                 </FormItem>
                             )}
                         />
+
                         <FormField
                             control={form.control}
                             name="status"
@@ -414,7 +494,7 @@ export function PatientForm({ patient, onSave, onOpenChange, asModal = true }: P
                                 </FormItem>
                             )}
                         />
-                        <div className="md:col-span-3">
+                        <div className="col-span-2 md:col-span-4">
                             <FormField
                                 control={form.control}
                                 name="address"
@@ -430,23 +510,64 @@ export function PatientForm({ patient, onSave, onOpenChange, asModal = true }: P
                             />
                         </div>
                     </div>
-                    <FormField
-                        control={form.control}
-                        name="history"
-                        render={({ field }) => (
-                            <FormItem>
-                            <FormLabel>Medical/Dental History</FormLabel>
-                            <FormControl>
-                                <Textarea
-                                placeholder="Enter patient history..."
-                                className="resize-none"
-                                {...field}
-                                />
-                            </FormControl>
-                            <FormMessage />
-                            </FormItem>
+                    <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                            <FormLabel className="flex items-center gap-1.5 font-semibold text-slate-800 dark:text-slate-200">
+                                <HeartPulse className="h-4 w-4 text-teal-600" /> Medical/Dental History
+                            </FormLabel>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setIsMedicalHistoryModalOpen(true)}
+                                className="h-7 text-xs border-teal-300 text-teal-700 hover:bg-teal-50 dark:border-teal-700 dark:text-teal-300 dark:hover:bg-teal-950/40"
+                            >
+                                <HeartPulse className="mr-1.5 h-3.5 w-3.5" />
+                                {draftMedicalHistory ? "Edit Medical Form" : "+ Open Clinical Case Form"}
+                            </Button>
+                        </div>
+
+                        {draftMedicalHistory && (
+                            <div className="rounded-lg border border-teal-200 bg-teal-50/50 dark:border-teal-900/60 dark:bg-teal-950/20 p-2.5 text-xs flex items-center justify-between">
+                                <div className="space-y-0.5">
+                                    <span className="font-semibold text-teal-800 dark:text-teal-300 flex items-center gap-1">
+                                        <ClipboardCheck className="h-3.5 w-3.5" /> Structured Case Sheet Attached
+                                    </span>
+                                    <p className="text-muted-foreground truncate max-w-md">
+                                        Complaint: {draftMedicalHistory.chief_complaint}
+                                        {draftMedicalHistory.diagnosis ? ` | Dx: ${draftMedicalHistory.diagnosis}` : ""}
+                                    </p>
+                                </div>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setIsMedicalHistoryModalOpen(true)}
+                                    className="h-6 text-xs text-teal-700 dark:text-teal-300 hover:bg-teal-100 dark:hover:bg-teal-900"
+                                >
+                                    Review
+                                </Button>
+                            </div>
                         )}
-                    />
+
+                        <FormField
+                            control={form.control}
+                            name="history"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormControl>
+                                    <Textarea
+                                    placeholder="Enter or summarize patient medical & dental history (chief complaint, systemic conditions, known allergies)..."
+                                    className="resize-none text-xs"
+                                    rows={2}
+                                    {...field}
+                                    />
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    </div>
                      <div className="flex justify-end space-x-2 pt-4">
                         <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>Cancel</Button>
                         <Button type="submit" disabled={isSubmitting}>
@@ -458,21 +579,54 @@ export function PatientForm({ patient, onSave, onOpenChange, asModal = true }: P
             </Form>
   );
 
+  const currentPatientInfo: PatientBasicInfo = {
+    id: patient?.id,
+    first_name: form.watch("first_name"),
+    last_name: form.watch("last_name"),
+    gender: form.watch("gender"),
+    dateOfBirth: form.watch("dateOfBirth"),
+    age: useAge ? form.watch("dateOfBirth") : undefined,
+    phone: form.watch("phone"),
+    email: form.watch("email"),
+    address: form.watch("address"),
+  };
+
   if (!asModal) {
-      return formContent;
+      return (
+        <>
+          {formContent}
+          <MedicalHistoryForm
+            patient={currentPatientInfo}
+            initialData={draftMedicalHistory}
+            isOpen={isMedicalHistoryModalOpen}
+            onOpenChange={setIsMedicalHistoryModalOpen}
+            onSuccess={handleMedicalHistorySaved}
+          />
+        </>
+      );
   }
 
   return (
-    <Dialog open={true} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[550px]">
-            <DialogHeader>
-                <DialogTitle>{patient ? "Edit Patient" : "Add Patient"}</DialogTitle>
-                <DialogDescription>
-                    Fill out the details for the patient.
-                </DialogDescription>
-            </DialogHeader>
-            {formContent}
-        </DialogContent>
-    </Dialog>
+    <>
+      <Dialog open={true} onOpenChange={onOpenChange}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                  <DialogTitle>{patient ? "Edit Patient" : "Add Patient"}</DialogTitle>
+                  <DialogDescription>
+                      Fill out the details for the patient.
+                  </DialogDescription>
+              </DialogHeader>
+              {formContent}
+          </DialogContent>
+      </Dialog>
+
+      <MedicalHistoryForm
+        patient={currentPatientInfo}
+        initialData={draftMedicalHistory}
+        isOpen={isMedicalHistoryModalOpen}
+        onOpenChange={setIsMedicalHistoryModalOpen}
+        onSuccess={handleMedicalHistorySaved}
+      />
+    </>
   );
 }

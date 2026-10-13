@@ -45,6 +45,8 @@ import {
   deleteMedicine, 
   getPrescriptions, 
   storePrescription, 
+  updatePrescription,
+  deletePrescription,
   updatePrescriptionStatus,
   getDoctorsList,
   getPatientsList
@@ -77,10 +79,12 @@ export default function PharmacyPage() {
   // Modals
   const [isMedModalOpen, setIsMedModalOpen] = useState(false);
   const [isRxModalOpen, setIsRxModalOpen] = useState(false);
+  const [isEditRxModalOpen, setIsEditRxModalOpen] = useState(false);
   const [isViewRxOpen, setIsViewRxOpen] = useState(false);
   const [isSubmittingMed, setIsSubmittingMed] = useState(false);
   const [isSubmittingRx, setIsSubmittingRx] = useState(false);
   const [selectedRx, setSelectedRx] = useState<Prescription | null>(null);
+  const [editingRx, setEditingRx] = useState<Prescription | null>(null);
   const [editingMedicine, setEditingMedicine] = useState<Medicine | null>(null);
 
   // Add/Edit Medicine Form State
@@ -98,6 +102,13 @@ export default function PharmacyPage() {
     prescription_date: new Date().toISOString().split("T")[0],
     notes: "",
     bill_to_invoice: true,
+    items: [{ medicine_id: "", medicine_unit_id: "", dosage: "", quantity: 1, price: 0 }]
+  });
+
+  // Edit Prescription Form State
+  const [editRxForm, setEditRxForm] = useState({
+    doctor_id: "",
+    notes: "",
     items: [{ medicine_id: "", medicine_unit_id: "", dosage: "", quantity: 1, price: 0 }]
   });
 
@@ -318,6 +329,101 @@ export default function PharmacyPage() {
     }
   };
 
+  // Open Edit Prescription modal and pre-populate form
+  const openEditRx = (rx: Prescription) => {
+    setEditingRx(rx);
+    setEditRxForm({
+      doctor_id: rx.doctor_id ? String(rx.doctor_id) : "",
+      notes: rx.notes || "",
+      items: rx.items && rx.items.length > 0
+        ? rx.items.map((item: any) => ({
+            medicine_id: String(item.medicine_id || item.medicine?.id || ""),
+            medicine_unit_id: String(item.medicine_unit_id || item.unit?.id || ""),
+            dosage: item.dosage || "",
+            quantity: Number(item.quantity || 1),
+            price: Number(item.price || 0),
+          }))
+        : [{ medicine_id: "", medicine_unit_id: "", dosage: "", quantity: 1, price: 0 }],
+    });
+    setIsEditRxModalOpen(true);
+  };
+
+  // Handle item field changes in the edit form
+  const handleEditRxItemChange = (index: number, field: string, value: any) => {
+    const updatedItems = [...editRxForm.items];
+    if (field === "medicine_id") {
+      updatedItems[index].medicine_id = value;
+      const med = medicines.find(m => String(m.id) === String(value));
+      if (med && med.units.length > 0) {
+        updatedItems[index].medicine_unit_id = String(med.units[0].id);
+        updatedItems[index].price = Number(med.units[0].price);
+      } else {
+        updatedItems[index].medicine_unit_id = "";
+        updatedItems[index].price = 0;
+      }
+    } else if (field === "medicine_unit_id") {
+      updatedItems[index].medicine_unit_id = value;
+      const med = medicines.find(m => String(m.id) === String(updatedItems[index].medicine_id));
+      const unit = med?.units.find(u => String(u.id) === String(value));
+      if (unit) updatedItems[index].price = Number(unit.price);
+    } else {
+      (updatedItems[index] as any)[field] = value;
+    }
+    setEditRxForm(prev => ({ ...prev, items: updatedItems }));
+  };
+
+  // Submit the update prescription form
+  const handleUpdateRx = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingRx) return;
+    const invalidItem = editRxForm.items.some(
+      item => !item.medicine_id || !item.medicine_unit_id || !item.dosage || item.quantity <= 0
+    );
+    if (invalidItem) {
+      toast({ variant: "destructive", title: "Validation Error", description: "Please fill out all fields for each medicine item." });
+      return;
+    }
+    setIsSubmittingRx(true);
+    try {
+      await updatePrescription(editingRx.id, {
+        doctor_id: editRxForm.doctor_id ? Number(editRxForm.doctor_id) : undefined,
+        notes: editRxForm.notes,
+        items: editRxForm.items.map(item => ({
+          medicine_id: Number(item.medicine_id),
+          medicine_unit_id: Number(item.medicine_unit_id),
+          dosage: item.dosage,
+          quantity: Number(item.quantity),
+          price: Number(item.price),
+        })),
+      } as any);
+      toast({ title: "Updated", description: "Prescription updated successfully." });
+      setIsEditRxModalOpen(false);
+      setEditingRx(null);
+      fetchPrescriptions();
+    } catch (err) {
+      toast({ variant: "destructive", title: "Error", description: "Failed to update prescription." });
+    } finally {
+      setIsSubmittingRx(false);
+    }
+  };
+
+  // Delete prescription with confirmation
+  const handleDeleteRx = (id: number) => {
+    confirm({
+      title: "Delete Prescription",
+      description: "Are you sure you want to delete this prescription? This action cannot be undone.",
+      onConfirm: async () => {
+        const success = await deletePrescription(id);
+        if (success) {
+          toast({ title: "Deleted", description: "Prescription deleted successfully." });
+          fetchPrescriptions();
+        } else {
+          toast({ variant: "destructive", title: "Error", description: "Failed to delete prescription." });
+        }
+      },
+    });
+  };
+
   const getStockBadge = (stock: number) => {
     if (stock === 0) return <Badge variant="destructive">Out of Stock</Badge>;
     if (stock < 50) return <Badge variant="outline" className="bg-yellow-500/20 text-yellow-600 border-yellow-500/30 hover:bg-yellow-500/20">Low Stock ({stock})</Badge>;
@@ -508,6 +614,12 @@ export default function PharmacyPage() {
                             <div className="flex justify-end gap-2">
                               <Button size="sm" variant="outline" className="h-8 gap-1" onClick={() => { setSelectedRx(rx); setIsViewRxOpen(true); }}>
                                 <Eye className="h-3.5 w-3.5" /> View
+                              </Button>
+                              <Button size="sm" variant="outline" className="h-8 gap-1" onClick={() => openEditRx(rx)}>
+                                <Edit className="h-3.5 w-3.5" /> Edit
+                              </Button>
+                              <Button size="sm" variant="outline" className="h-8 gap-1 text-destructive hover:text-destructive border-destructive/30 hover:border-destructive/60" onClick={() => handleDeleteRx(rx.id)}>
+                                <Trash2 className="h-3.5 w-3.5" /> Delete
                               </Button>
                               {rx.status === "Pending" && (
                                 <Button size="sm" className="h-8 gap-1 bg-emerald-600 hover:bg-emerald-500" onClick={() => handleDispenseRx(rx.id)}>
@@ -713,32 +825,32 @@ export default function PharmacyPage() {
                   <div key={index} className="grid grid-cols-12 gap-2 items-end border-b border-border/10 pb-3 last:border-0 last:pb-0">
                     <div className="col-span-3 space-y-1">
                       <Label className="text-xs">Medicine</Label>
-                      <select
-                        required
-                        className="flex h-9 w-full rounded-md border border-input bg-background px-2 py-1 text-xs ring-offset-background"
+                      <Combobox
+                        options={medicines.map((m) => ({
+                          value: String(m.id),
+                          label: m.name,
+                          category: m.category,
+                        }))}
                         value={item.medicine_id}
-                        onChange={(e) => handleRxItemChange(index, "medicine_id", e.target.value)}
-                      >
-                        <option value="">Select...</option>
-                        {medicines.map(m => (
-                          <option key={m.id} value={m.id}>{m.name}</option>
-                        ))}
-                      </select>
+                        onChange={(val) => handleRxItemChange(index, "medicine_id", val)}
+                        placeholder="Select medicine"
+                        searchPlaceholder="Search medicine..."
+                        emptyMessage="No medicine found."
+                      />
                     </div>
                     <div className="col-span-3 space-y-1">
                       <Label className="text-xs">Unit Size</Label>
-                      <select
-                        required
-                        disabled={!item.medicine_id}
-                        className="flex h-9 w-full rounded-md border border-input bg-background px-2 py-1 text-xs ring-offset-background"
+                      <Combobox
+                        options={(selectedMed?.units ?? []).map((u) => ({
+                          value: String(u.id),
+                          label: `${u.unit_name} (${formatCurrency(u.price)})`,
+                        }))}
                         value={item.medicine_unit_id}
-                        onChange={(e) => handleRxItemChange(index, "medicine_unit_id", e.target.value)}
-                      >
-                        <option value="">Select...</option>
-                        {selectedMed?.units.map(u => (
-                          <option key={u.id} value={u.id}>{u.unit_name} ({formatCurrency(u.price)})</option>
-                        ))}
-                      </select>
+                        onChange={(val) => handleRxItemChange(index, "medicine_unit_id", val)}
+                        placeholder={item.medicine_id ? "Select unit" : "Select medicine first"}
+                        searchPlaceholder="Search unit..."
+                        emptyMessage="No units available."
+                      />
                     </div>
                     <div className="col-span-3 space-y-1">
                       <Label className="text-xs">Dosage Instructions</Label>
@@ -877,6 +989,131 @@ export default function PharmacyPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* EDIT PRESCRIPTION MODAL */}
+      <Dialog open={isEditRxModalOpen} onOpenChange={(open) => { setIsEditRxModalOpen(open); if (!open) setEditingRx(null); }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Prescription</DialogTitle>
+            <DialogDescription>
+              Modify prescription details for <strong>{editingRx?.patient_name || "this patient"}</strong>.
+              Note: Billing will not be automatically updated from here.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleUpdateRx} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-rx-patient">Patient</Label>
+                <Input id="edit-rx-patient" value={editingRx?.patient_name || ""} disabled />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-rx-doctor">Doctor</Label>
+                <Combobox
+                  options={doctors.map(d => ({ value: String(d.id), label: `${d.name} (${d.role})` }))}
+                  value={editRxForm.doctor_id}
+                  onChange={(val) => setEditRxForm(prev => ({ ...prev, doctor_id: val }))}
+                  placeholder="Select Doctor..."
+                  searchPlaceholder="Search doctors..."
+                  emptyMessage="No doctor found."
+                />
+              </div>
+            </div>
+
+            <div className="border border-border/20 rounded-md p-4 space-y-3 bg-muted/20">
+              <div className="flex items-center justify-between">
+                <Label className="font-semibold">Prescribed Medicines</Label>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setEditRxForm(prev => ({ ...prev, items: [...prev.items, { medicine_id: "", medicine_unit_id: "", dosage: "", quantity: 1, price: 0 }] }))}
+                >
+                  + Add Item
+                </Button>
+              </div>
+              {editRxForm.items.map((item, index) => {
+                const selectedMed = medicines.find(m => String(m.id) === String(item.medicine_id));
+                return (
+                  <div key={index} className="grid grid-cols-12 gap-2 items-end border-b border-border/10 pb-3 last:border-0 last:pb-0">
+                    <div className="col-span-3 space-y-1">
+                      <Label className="text-xs">Medicine</Label>
+                      <Combobox
+                        options={medicines.map((m) => ({ value: String(m.id), label: m.name, category: m.category }))}
+                        value={item.medicine_id}
+                        onChange={(val) => handleEditRxItemChange(index, "medicine_id", val)}
+                        placeholder="Select medicine"
+                        searchPlaceholder="Search medicine..."
+                        emptyMessage="No medicine found."
+                      />
+                    </div>
+                    <div className="col-span-3 space-y-1">
+                      <Label className="text-xs">Unit Size</Label>
+                      <Combobox
+                        options={(selectedMed?.units ?? []).map((u) => ({ value: String(u.id), label: `${u.unit_name} (${formatCurrency(u.price)})` }))}
+                        value={item.medicine_unit_id}
+                        onChange={(val) => handleEditRxItemChange(index, "medicine_unit_id", val)}
+                        placeholder={item.medicine_id ? "Select unit" : "Select medicine first"}
+                        searchPlaceholder="Search unit..."
+                        emptyMessage="No units available."
+                      />
+                    </div>
+                    <div className="col-span-3 space-y-1">
+                      <Label className="text-xs">Dosage Instructions</Label>
+                      <Input
+                        placeholder="e.g. 1x3 daily"
+                        required
+                        value={item.dosage}
+                        onChange={(e) => handleEditRxItemChange(index, "dosage", e.target.value)}
+                      />
+                    </div>
+                    <div className="col-span-2 space-y-1">
+                      <Label className="text-xs">Qty</Label>
+                      <Input
+                        type="number"
+                        min="1"
+                        required
+                        value={item.quantity}
+                        onChange={(e) => handleEditRxItemChange(index, "quantity", parseInt(e.target.value) || 1)}
+                      />
+                    </div>
+                    <div className="col-span-1 text-right">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="text-destructive h-9"
+                        disabled={editRxForm.items.length === 1}
+                        onClick={() => setEditRxForm(prev => ({ ...prev, items: prev.items.filter((_, i) => i !== index) }))}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-rx-notes">Notes / Doctor Instructions</Label>
+              <Textarea
+                id="edit-rx-notes"
+                placeholder="Special notes on usage..."
+                value={editRxForm.notes}
+                onChange={(e) => setEditRxForm(prev => ({ ...prev, notes: e.target.value }))}
+              />
+            </div>
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsEditRxModalOpen(false)} disabled={isSubmittingRx}>Cancel</Button>
+              <Button type="submit" disabled={isSubmittingRx}>
+                {isSubmittingRx && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Update Prescription
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
       <ConfirmDialog />
     </div>
   );

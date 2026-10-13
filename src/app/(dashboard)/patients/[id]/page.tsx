@@ -24,16 +24,18 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useEffect, useState, use } from "react";
-import type { Patient, Treatment, BasePatient, PatientImage, DentalCondition, SystemTreatment } from "@/lib/types";
+import type { Patient, Treatment, BasePatient, PatientImage, DentalCondition, SystemTreatment, MedicalHistory } from "@/lib/types";
 import { AttachPolicyForm } from "./components/attach-policy-form";
 import { insuranceApi } from "@/services/api/insurance";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Trash, Pencil, FileText, Loader2, Upload, MoreHorizontal, HandCoins, Search, Send, Mail, MessageCircle, Camera } from "lucide-react";
+import { PlusCircle, Trash, Pencil, FileText, Loader2, Upload, MoreHorizontal, HandCoins, Search, Send, Mail, MessageCircle, Camera, User, Eye, HeartPulse, ShieldCheck, Stethoscope } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { TreatmentPlanForm } from "./components/treatment-plan-form";
 import { PatientForm } from "../components/patient-form";
 import { PrescriptionForm } from "./components/prescription-form";
 import { EditPrescriptionForm } from "./components/edit-prescription-form";
+import { MedicalHistoryForm } from "../components/medical-history-form";
+import { MedicalHistoryViewModal } from "../components/medical-history-view-modal";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -59,7 +61,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { deletePatient, getPatientById, updatePatient, addTreatment, updateTreatment, deleteTreatment, addImageToPatient, getTreatments, getPatientInvoices, processPayment, getPatientPrescriptions, deletePrescription, getPatientImages, sendPatientDocuments } from "@/lib/api";
+import { deletePatient, getPatientById, updatePatient, addTreatment, addTreatmentsBatch, updateTreatment, deleteTreatment, addImageToPatient, getTreatments, getPatientInvoices, processPayment, getPatientPrescriptions, deletePrescription, getPatientImages, sendPatientDocuments, getPatientMedicalHistories, deleteMedicalHistory } from "@/lib/api";
 import { Input } from "@/components/ui/input";
 import { ImageUploadForm } from "./components/image-upload-form";
 import { AvatarUploadModal } from "./components/avatar-upload-modal";
@@ -101,6 +103,11 @@ export default function PatientDetailPage({
   const [isImageFormOpen, setIsImageFormOpen] = useState(false);
   const [isAvatarUploadModalOpen, setIsAvatarUploadModalOpen] = useState(false);
   const [historySummary, setHistorySummary] = useState<{ summary: string } | null>(null);
+  const [medicalHistories, setMedicalHistories] = useState<MedicalHistory[]>([]);
+  const [isMedicalHistoryFormOpen, setIsMedicalHistoryFormOpen] = useState(false);
+  const [selectedMedicalHistory, setSelectedMedicalHistory] = useState<MedicalHistory | null>(null);
+  const [isViewMedicalHistoryModalOpen, setIsViewMedicalHistoryModalOpen] = useState(false);
+  const [viewingMedicalHistory, setViewingMedicalHistory] = useState<MedicalHistory | null>(null);
 
   const { toast } = useToast();
   const [selectedInvoice, setSelectedInvoice] = useState<any | undefined>(undefined);
@@ -216,6 +223,25 @@ export default function PatientDetailPage({
     });
   };
 
+  const handleDeleteMedicalHistory = (historyId: string | number) => {
+    confirm({
+      description: "Are you sure you want to delete this clinical medical history record?",
+      onConfirm: async () => {
+        try {
+          const success = await deleteMedicalHistory(historyId, id);
+          if (success) {
+            setMedicalHistories((prev) => prev.filter((mh) => String(mh.id) !== String(historyId)));
+            toast({ title: "Deleted", description: "Medical history record deleted successfully." });
+          } else {
+            toast({ title: "Error", description: "Failed to delete medical history.", variant: "destructive" });
+          }
+        } catch {
+          toast({ title: "Error", description: "Failed to delete medical history.", variant: "destructive" });
+        }
+      },
+    });
+  };
+
   const toggleDocumentSelection = (docId: number) => {
     setSelectedDocumentIds(prev => 
       prev.includes(docId) ? prev.filter(id => id !== docId) : [...prev, docId]
@@ -252,18 +278,20 @@ export default function PatientDetailPage({
     if (typeof id !== "string") return;
     const fetchData = async () => {
         setIsLoading(true);
-        const [patientData, treatmentsData, invoicesData, prescriptionsData, imagesData] = await Promise.all([
+        const [patientData, treatmentsData, invoicesData, prescriptionsData, imagesData, medicalHistoriesData] = await Promise.all([
             getPatientById(id),
             getTreatments(),
             getPatientInvoices(id),
             getPatientPrescriptions(id),
-            getPatientImages(id)
+            getPatientImages(id),
+            getPatientMedicalHistories(id),
         ]);
         setPatient(patientData);
         setSystemTreatments(treatmentsData);
         setInvoices(invoicesData);
         setPrescriptions(prescriptionsData);
         setPatientImages(imagesData);
+        setMedicalHistories(medicalHistoriesData || patientData?.medicalHistories || []);
         if (patientData && !isReceptionist && patientData.history) {
             summarizePatientHistory({ patientHistory: patientData.history }).then(setHistorySummary);
         }
@@ -345,7 +373,7 @@ export default function PatientDetailPage({
                 // Update the patient's treatment plans with the saved treatment
                 setPatient({
                     ...patient,
-                    treatmentPlans: [...patient.treatmentPlans, savedTreatment]
+                    treatmentPlans: [savedTreatment, ...patient.treatmentPlans]
                 });
                 toast({ title: "Success", description: "Treatment added successfully." });
             }
@@ -354,6 +382,23 @@ export default function PatientDetailPage({
         toast({ title: "Error", description: e.message || "Failed to save treatment.", variant: "destructive" });
     }
 
+    handleCloseTreatmentForm();
+  }
+
+  const handleSaveTreatmentsBatch = async (items: Array<{ data: Omit<Treatment, 'id' | 'date'>; condition?: DentalCondition }>) => {
+    if (!patient) return;
+    try {
+      const savedList = await addTreatmentsBatch(patient.id, items);
+      if (savedList && savedList.length > 0) {
+        setPatient({
+          ...patient,
+          treatmentPlans: [...savedList, ...patient.treatmentPlans]
+        });
+        toast({ title: "Success", description: `${savedList.length} treatments added successfully.` });
+      }
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message || "Failed to save treatments.", variant: "destructive" });
+    }
     handleCloseTreatmentForm();
   }
   
@@ -573,6 +618,7 @@ export default function PatientDetailPage({
                       <TableRow>
                         <TableHead>Procedure</TableHead>
                         <TableHead>Tooth #</TableHead>
+                        <TableHead>Doctor</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead className="text-right">Cost</TableHead>
                         <TableHead>Date</TableHead>
@@ -585,6 +631,16 @@ export default function PatientDetailPage({
                           <TableRow key={treatment.id}>
                             <TableCell className="font-medium">{treatment.procedure}</TableCell>
                             <TableCell>{treatment.tooth || '-'}</TableCell>
+                            <TableCell>
+                              {treatment.doctorName || treatment.doctor_name || treatment.doctor?.name ? (
+                                <div className="flex items-center gap-1.5 font-medium text-xs text-foreground">
+                                  <User className="h-3.5 w-3.5 text-primary shrink-0" />
+                                  <span>{treatment.doctorName || treatment.doctor_name || treatment.doctor?.name}</span>
+                                </div>
+                              ) : (
+                                <span className="text-muted-foreground text-xs">-</span>
+                              )}
+                            </TableCell>
                             <TableCell>
                               <Badge
                                 variant={
@@ -651,21 +707,220 @@ export default function PatientDetailPage({
 
           <TabsContent value="history">
             <Card>
-              <CardHeader>
-                <CardTitle>Patient History</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
+              <CardHeader className="flex flex-row items-center justify-between pb-3">
                 <div>
-                  <h3 className="font-semibold">AI Summary</h3>
-                  <p className="mt-1 text-sm text-muted-foreground italic">
-                    {historySummary?.summary || "Generating summary..."}
-                  </p>
+                  <CardTitle className="text-xl flex items-center gap-2">
+                    <HeartPulse className="h-5 w-5 text-teal-600" />
+                    Medical & Dental Case History Records
+                  </CardTitle>
+                  <CardDescription>
+                    All clinical examinations, chief complaints, oral findings, diagnoses, and treatment plans recorded for this patient ({medicalHistories.length} records).
+                  </CardDescription>
                 </div>
-                <div>
-                  <h3 className="font-semibold">Full History</h3>
-                  <div className="mt-1 rounded-md border bg-secondary/30 p-4 text-sm text-muted-foreground">
-                      <p className="whitespace-pre-wrap">{patient.history}</p>
+                {canUpdatePatient && (
+                  <Button
+                    size="sm"
+                    className="bg-teal-600 hover:bg-teal-700 text-white"
+                    onClick={() => {
+                      setSelectedMedicalHistory(null);
+                      setIsMedicalHistoryFormOpen(true);
+                    }}
+                  >
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    New Medical History
+                  </Button>
+                )}
+              </CardHeader>
+
+              <CardContent className="space-y-6">
+                {(historySummary?.summary || patient.history) && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 rounded-xl border bg-slate-50/60 dark:bg-slate-900/30 text-xs">
+                    {historySummary?.summary && (
+                      <div className="space-y-1">
+                        <span className="font-bold flex items-center gap-1.5 text-teal-700 dark:text-teal-400">
+                          <FileText className="h-3.5 w-3.5" /> AI Clinical Summary
+                        </span>
+                        <p className="text-muted-foreground italic leading-relaxed">
+                          {historySummary.summary}
+                        </p>
+                      </div>
+                    )}
+                    {patient.history && (
+                      <div className="space-y-1">
+                        <span className="font-bold text-slate-800 dark:text-slate-200">
+                          Patient Medical Background & Alerts
+                        </span>
+                        <p className="text-muted-foreground whitespace-pre-wrap leading-relaxed line-clamp-3">
+                          {patient.history}
+                        </p>
+                      </div>
+                    )}
                   </div>
+                )}
+
+                <div className="rounded-md border overflow-hidden">
+                  <Table>
+                    <TableHeader className="bg-slate-50/80 dark:bg-slate-900/50">
+                      <TableRow>
+                        <TableHead className="w-[120px]">Date</TableHead>
+                        <TableHead className="min-w-[200px]">Chief Complaint</TableHead>
+                        <TableHead className="min-w-[180px]">Diagnosis</TableHead>
+                        <TableHead className="min-w-[200px]">Treatment Plan / Given</TableHead>
+                        <TableHead className="w-[120px]">Consent</TableHead>
+                        <TableHead className="w-[130px]">Clinician</TableHead>
+                        <TableHead className="text-right w-[110px]">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {medicalHistories.length > 0 ? (
+                        medicalHistories.map((mh, idx) => (
+                          <TableRow
+                            key={mh.id || idx}
+                            className="cursor-pointer hover:bg-slate-50/80 dark:hover:bg-slate-900/40"
+                            onClick={() => {
+                              setViewingMedicalHistory(mh);
+                              setIsViewMedicalHistoryModalOpen(true);
+                            }}
+                          >
+                            <TableCell className="font-medium whitespace-nowrap text-xs">
+                              {mh.date ? moment(mh.date).format("MMM DD, YYYY") : "Undated"}
+                            </TableCell>
+                            <TableCell>
+                              <div className="space-y-0.5">
+                                <p className="font-semibold text-xs line-clamp-1 text-slate-900 dark:text-slate-100">
+                                  {mh.chief_complaint}
+                                </p>
+                                {mh.history_complaint && (
+                                  <p className="text-[11px] text-muted-foreground line-clamp-1">
+                                    {mh.history_complaint}
+                                  </p>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className="text-xs font-normal border-teal-200 dark:border-teal-800 text-teal-800 dark:text-teal-300 bg-teal-50/50 dark:bg-teal-950/30 line-clamp-1 max-w-[220px]">
+                                {mh.diagnosis || "Under evaluation"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <div className="text-xs space-y-0.5">
+                                {mh.treatment_plan && (
+                                  <p className="line-clamp-1 text-slate-700 dark:text-slate-300">
+                                    <span className="text-muted-foreground">Plan:</span> {mh.treatment_plan}
+                                  </p>
+                                )}
+                                {mh.treatment_given && (
+                                  <p className="line-clamp-1 text-slate-600 dark:text-slate-400 text-[11px]">
+                                    <span className="text-muted-foreground">Given:</span> {mh.treatment_given}
+                                  </p>
+                                )}
+                                {!mh.treatment_plan && !mh.treatment_given && (
+                                  <span className="text-muted-foreground">-</span>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              {mh.consent ? (
+                                <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 text-[11px] font-normal border-emerald-200 dark:border-emerald-800">
+                                  <ShieldCheck className="h-3 w-3 mr-1" /> Agreed
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="text-[11px] font-normal text-amber-600 border-amber-300">
+                                  Pending
+                                </Badge>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-xs text-muted-foreground truncate">
+                              {mh.doctor_name || "-"}
+                            </TableCell>
+                            <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                              <div className="flex items-center justify-end gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-slate-600 hover:text-teal-600"
+                                  title="View Clinical Case Sheet"
+                                  onClick={() => {
+                                    setViewingMedicalHistory(mh);
+                                    setIsViewMedicalHistoryModalOpen(true);
+                                  }}
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                                {canUpdatePatient && (
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button variant="ghost" className="h-8 w-8 p-0">
+                                        <span className="sr-only">Open menu</span>
+                                        <MoreHorizontal className="h-4 w-4" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                      <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                      <DropdownMenuItem
+                                        onClick={() => {
+                                          setSelectedMedicalHistory(mh);
+                                          setIsMedicalHistoryFormOpen(true);
+                                        }}
+                                      >
+                                        <Pencil className="mr-2 h-4 w-4" />
+                                        Edit Record
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        onClick={() => {
+                                          setViewingMedicalHistory(mh);
+                                          setIsViewMedicalHistoryModalOpen(true);
+                                        }}
+                                      >
+                                        <FileText className="mr-2 h-4 w-4" />
+                                        Print Case Sheet
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        onClick={() => handleDeleteMedicalHistory(mh.id!)}
+                                        className="text-destructive focus:text-destructive"
+                                      >
+                                        <Trash className="mr-2 h-4 w-4" />
+                                        Delete
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                )}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={7} className="h-40 text-center">
+                            <div className="flex flex-col items-center justify-center space-y-2 py-4">
+                              <div className="h-12 w-12 rounded-full bg-teal-50 dark:bg-teal-950/40 text-teal-600 flex items-center justify-center">
+                                <HeartPulse className="h-6 w-6" />
+                              </div>
+                              <p className="font-semibold text-slate-800 dark:text-slate-200">
+                                No Medical History Records Found
+                              </p>
+                              <p className="text-xs text-muted-foreground max-w-sm">
+                                Record a complete clinical examination, chief complaints, oral findings, and treatment plan for this patient.
+                              </p>
+                              {canUpdatePatient && (
+                                <Button
+                                  size="sm"
+                                  className="bg-teal-600 hover:bg-teal-700 text-white mt-2"
+                                  onClick={() => {
+                                    setSelectedMedicalHistory(null);
+                                    setIsMedicalHistoryFormOpen(true);
+                                  }}
+                                >
+                                  <PlusCircle className="mr-2 h-4 w-4" />
+                                  Record First Medical History
+                                </Button>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
                 </div>
               </CardContent>
             </Card>
@@ -929,13 +1184,14 @@ export default function PatientDetailPage({
         <TreatmentPlanForm
             treatment={selectedTreatment}
             onSave={handleSaveTreatment as any}
+            onSaveBatch={handleSaveTreatmentsBatch}
             onOpenChange={handleCloseTreatmentForm}
         />
       )}
       
       {isAttachPolicyModalOpen && patient && (
         <AttachPolicyForm 
-            patientId={patient.id} 
+            patientId={Number(patient.id)} 
             onSave={fetchPatientInsurances} 
             onOpenChange={setIsAttachPolicyModalOpen} 
         />
@@ -1098,6 +1354,39 @@ export default function PatientDetailPage({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {patient && (
+        <>
+          <MedicalHistoryForm
+            patient={patient}
+            initialData={selectedMedicalHistory}
+            isOpen={isMedicalHistoryFormOpen}
+            onOpenChange={setIsMedicalHistoryFormOpen}
+            onSuccess={(saved) => {
+              setMedicalHistories((prev) => {
+                const idx = prev.findIndex((m) => String(m.id) === String(saved.id));
+                if (idx >= 0) {
+                  const updated = [...prev];
+                  updated[idx] = saved;
+                  return updated;
+                }
+                return [saved, ...prev];
+              });
+            }}
+          />
+
+          <MedicalHistoryViewModal
+            patient={patient}
+            record={viewingMedicalHistory}
+            isOpen={isViewMedicalHistoryModalOpen}
+            onOpenChange={setIsViewMedicalHistoryModalOpen}
+            onEdit={(rec) => {
+              setSelectedMedicalHistory(rec);
+              setIsMedicalHistoryFormOpen(true);
+            }}
+          />
+        </>
+      )}
     </div>
   );
 }

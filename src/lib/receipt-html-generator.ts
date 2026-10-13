@@ -9,6 +9,7 @@ export interface ReceiptInfo {
   clinicAddress?: string;
   patientName: string;
   patientPhone?: string;
+  patientAddress?: string;
   date: string;
   billNumber: string;
   treatments: Array<{
@@ -46,6 +47,11 @@ export interface ReceiptInfo {
     quantity: number;
     price: number;
   }>;
+  // Services / Other charges (e.g. X-ray requisitions, procedures, consultation)
+  otherCharges?: Array<{
+    description: string;
+    amount: number;
+  }>;
 }
 
 export function generateReceiptHTML(info: ReceiptInfo, paperWidth: "58mm" | "80mm" = "58mm"): string {
@@ -57,12 +63,9 @@ export function generateReceiptHTML(info: ReceiptInfo, paperWidth: "58mm" | "80m
   }
 
   const treatments = Array.isArray(info.treatments) ? info.treatments : [];
-  const hasLabOrder = info.labOrderDetails && Object.keys(info.labOrderDetails).length > 0;
+  const otherCharges = Array.isArray(info.otherCharges) ? info.otherCharges : [];
+  const hasLabOrder = !!(info.labOrderDetails && Object.keys(info.labOrderDetails).length > 0);
   const medicines = Array.isArray(info.medicines) ? info.medicines : [];
-
-  if (treatments.length === 0 && !hasLabOrder && medicines.length === 0) {
-    throw new Error("Receipt must have at least one treatment, lab order, or medicine");
-  }
 
   // Get currency config
   const currencyConfig = getCurrencyConfig();
@@ -70,7 +73,8 @@ export function generateReceiptHTML(info: ReceiptInfo, paperWidth: "58mm" | "80m
 
   // Format amount with currency
   const formatAmount = (amount: number): string => {
-    const formattedNum = amount.toLocaleString(currencyConfig.locale, {
+    const num = typeof amount === "number" ? amount : (parseFloat(amount as any) || 0);
+    const formattedNum = num.toLocaleString(currencyConfig.locale, {
       minimumFractionDigits: currencyConfig.digits,
       maximumFractionDigits: currencyConfig.digits,
     });
@@ -82,10 +86,28 @@ export function generateReceiptHTML(info: ReceiptInfo, paperWidth: "58mm" | "80m
   };
 
   // Calculate totals
-  const totalAmount = treatments.reduce((sum, t) => {
-    const amount = typeof t.amount === "number" ? t.amount : 0;
+  const treatmentsTotal = treatments.reduce((sum, t) => {
+    const amount = typeof t?.amount === "number" ? t.amount : (parseFloat(t?.amount as any) || 0);
     return sum + (isNaN(amount) ? 0 : amount);
   }, 0);
+
+  const otherChargesTotal = otherCharges.reduce((sum, c) => {
+    const amount = typeof c?.amount === "number" ? c.amount : (parseFloat(c?.amount as any) || 0);
+    return sum + (isNaN(amount) ? 0 : amount);
+  }, 0);
+
+  const medicinesTotal = medicines.reduce((sum, m) => {
+    const qty = typeof m?.quantity === "number" ? m.quantity : (parseFloat(m?.quantity as any) || 0);
+    const price = typeof m?.price === "number" ? m.price : (parseFloat(m?.price as any) || 0);
+    return sum + (qty * price);
+  }, 0);
+
+  const calculatedItemsTotal = treatmentsTotal + otherChargesTotal + medicinesTotal;
+  const subtotal = info.subtotal !== undefined
+    ? info.subtotal
+    : (calculatedItemsTotal > 0 ? calculatedItemsTotal : (info.totalBill ?? 0));
+  const totalBill = info.totalBill !== undefined ? info.totalBill : subtotal;
+
   const now = new Date().toLocaleTimeString();
 
   const line = (text: string = ""): string => {
@@ -114,12 +136,25 @@ export function generateReceiptHTML(info: ReceiptInfo, paperWidth: "58mm" | "80m
   html += line(centerText("═".repeat(Math.min(charsPerLine, info.clinicName.length))));
   html += line();
 
-  if (info.clinicPhone) {
-    html += line(centerText(info.clinicPhone));
+  if (info.clinicAddress) {
+    const words = info.clinicAddress.split(" ");
+    let curLine = "";
+    for (const word of words) {
+      if ((curLine ? curLine + " " + word : word).length <= charsPerLine) {
+        curLine = curLine ? curLine + " " + word : word;
+      } else {
+        if (curLine) html += line(centerText(curLine));
+        curLine = word;
+      }
+    }
+    if (curLine) html += line(centerText(curLine));
   }
 
-  if (info.clinicAddress) {
-    html += line(centerText(info.clinicAddress));
+  if (info.clinicPhone) {
+    const phoneStr = info.clinicPhone.toLowerCase().startsWith("tel") || info.clinicPhone.toLowerCase().startsWith("ph")
+      ? info.clinicPhone
+      : `Tel: ${info.clinicPhone}`;
+    html += line(centerText(phoneStr));
   }
 
   html += line();
@@ -138,6 +173,19 @@ export function generateReceiptHTML(info: ReceiptInfo, paperWidth: "58mm" | "80m
   if (info.patientPhone) {
     html += line(`Phone: ${info.patientPhone}`);
   }
+  if (info.patientAddress) {
+    const words = info.patientAddress.split(" ");
+    let curLine = "";
+    for (const word of words) {
+      if ((curLine ? curLine + " " + word : word).length <= (charsPerLine - 9)) {
+        curLine = curLine ? curLine + " " + word : word;
+      } else {
+        if (curLine) html += line(`Address: ${curLine}`);
+        curLine = word;
+      }
+    }
+    if (curLine) html += line(`Address: ${curLine}`);
+  }
 
   // Branch and payment method
   if (info.branchName) {
@@ -150,9 +198,11 @@ export function generateReceiptHTML(info: ReceiptInfo, paperWidth: "58mm" | "80m
   html += line();
   html += line(dashes);
 
-  // Treatments, Lab Order, or Medicines
+  // 1. Treatments
+  let hasRenderedAnyItems = false;
   if (treatments.length > 0) {
-    html += line("TREATMENTS");
+    hasRenderedAnyItems = true;
+    html += line("TREATMENTS / PROCEDURES");
     html += line("-".repeat(Math.floor(charsPerLine * 0.8)));
 
     for (const treatment of treatments) {
@@ -165,7 +215,31 @@ export function generateReceiptHTML(info: ReceiptInfo, paperWidth: "58mm" | "80m
       const line2 = rightAlign(treatmentName, amount);
       html += line(line2);
     }
-  } else if (hasLabOrder) {
+  }
+
+  // 2. Services / Other Charges (e.g. X-Ray Requisitions, Consultations)
+  if (otherCharges.length > 0) {
+    if (hasRenderedAnyItems) html += line();
+    hasRenderedAnyItems = true;
+    html += line(treatments.length > 0 ? "OTHER SERVICES / CHARGES" : "SERVICES / PROCEDURES");
+    html += line("-".repeat(Math.floor(charsPerLine * 0.8)));
+
+    for (const charge of otherCharges) {
+      if (!charge) continue;
+
+      const chargeDesc = String(charge.description || "Service").slice(0, Math.floor(charsPerLine * 0.6));
+      const amount = typeof charge.amount === "number"
+        ? formatAmount(charge.amount)
+        : formatAmount(0);
+      const line2 = rightAlign(chargeDesc, amount);
+      html += line(line2);
+    }
+  }
+
+  // 3. Lab Order
+  if (hasLabOrder) {
+    if (hasRenderedAnyItems) html += line();
+    hasRenderedAnyItems = true;
     html += line("LAB ORDER");
     html += line("-".repeat(Math.floor(charsPerLine * 0.8)));
 
@@ -188,8 +262,13 @@ export function generateReceiptHTML(info: ReceiptInfo, paperWidth: "58mm" | "80m
     if (lab.status) {
       html += line(`Status: ${String(lab.status).slice(0, Math.floor(charsPerLine * 0.8))}`);
     }
-  } else if (medicines.length > 0) {
-    html += line("MEDICINES/PRESCRIPTIONS");
+  }
+
+  // 4. Medicines / Prescriptions
+  if (medicines.length > 0) {
+    if (hasRenderedAnyItems) html += line();
+    hasRenderedAnyItems = true;
+    html += line("MEDICINES / PRESCRIPTIONS");
     html += line("-".repeat(Math.floor(charsPerLine * 0.8)));
 
     for (const medicine of medicines) {
@@ -205,6 +284,13 @@ export function generateReceiptHTML(info: ReceiptInfo, paperWidth: "58mm" | "80m
     }
   }
 
+  // 5. Fallback if no specific line items are present
+  if (!hasRenderedAnyItems) {
+    html += line("SERVICES / PROCEDURES");
+    html += line("-".repeat(Math.floor(charsPerLine * 0.8)));
+    html += line(rightAlign("Medical / Dental Service", formatAmount(totalBill)));
+  }
+
   html += line();
   html += line(dashes);
 
@@ -212,8 +298,7 @@ export function generateReceiptHTML(info: ReceiptInfo, paperWidth: "58mm" | "80m
   html += line("SUMMARY");
   html += line("-".repeat(Math.floor(charsPerLine * 0.8)));
 
-  // Treatments Subtotal
-  const subtotal = info.subtotal ?? totalAmount;
+  // Subtotal
   html += line(rightAlign("Subtotal:", formatAmount(subtotal)));
 
   // Discount (if applicable)
@@ -233,7 +318,6 @@ export function generateReceiptHTML(info: ReceiptInfo, paperWidth: "58mm" | "80m
   }
 
   // Total Bill
-  const totalBill = info.totalBill ?? totalAmount;
   html += line(rightAlign("TOTAL BILL:", formatAmount(totalBill)));
 
   html += line();

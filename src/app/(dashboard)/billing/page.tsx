@@ -45,12 +45,13 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
   } from "@/components/ui/alert-dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { createNewInvoice, deleteInvoice, getInvoices, getPatientList, processPayment, updateInvoice, updatePatient, getInvoiceById } from "@/lib/api";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PaymentForm } from "./components/payment-form";
 import { getWindowsPrinterService } from "@/lib/windows-printer";
-import { generateSimpleReceiptHTML } from "@/lib/receipt-html-generator";
+import { generateSimpleReceiptHTML, generateReceiptHTML } from "@/lib/receipt-html-generator";
 import { DateRange } from "react-day-picker";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
@@ -62,6 +63,7 @@ import { Pagination, PaginationContent, PaginationItem, PaginationPrevious, Pagi
 import { useCurrency } from "@/hooks/use-currency";
 import { useToast } from "@/hooks/use-toast";
 import { useBusinessDetails } from "@/hooks/use-business-details";
+import { getClinicName, getClinicAddress, getClinicPhone } from "@/lib/business-details";
 
 
 export default function BillingPage() {
@@ -109,6 +111,7 @@ export default function BillingPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [pageInput, setPageInput] = useState("1");
+  const [selectedCategory, setSelectedCategory] = useState<string | undefined>(undefined);
 
   // Memoize date range to prevent unnecessary re-renders
   const dateRangeString = useMemo(() => {
@@ -168,11 +171,45 @@ export default function BillingPage() {
     return allPatients.filter(p => p.branchId === getCurrentUser()?.branchId);
   }, [selectedBranch, allPatients]);
 
-  const filteredInvoices = allInvoices;
-  
+  // Predefined invoice categories (matching backend)
+  const INVOICE_CATEGORIES = ['procedure-income', 'radiology-income', 'lab-income', 'pharmacy-income', 'other'] as const;
+
+  // Get category display names and counts
+  const categories = useMemo(() => {
+    return INVOICE_CATEGORIES.map(category => {
+      const count = allInvoices.filter(inv => {
+        if (category === 'other') {
+          return !inv.category || inv.category === '' || inv.category === 'other';
+        }
+        return inv.category === category;
+      }).length;
+      return { key: category, count };
+    });
+  }, [allInvoices]);
+
+  // Filter invoices by selected category
+  const filteredInvoices = useMemo(() => {
+    if (!selectedCategory) {
+      return allInvoices;
+    }
+    if (selectedCategory === 'other') {
+      return allInvoices.filter(invoice => !invoice.category || invoice.category === '' || invoice.category === 'other');
+    }
+    return allInvoices.filter(invoice => invoice.category === selectedCategory);
+  }, [allInvoices, selectedCategory]);
+
+  // Format category name for display
+  const formatCategoryName = (category: string) => {
+    if (category === 'radiology-income') return 'Radiology Income';
+    return category
+      .split('-')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
+
   const totalPages = allInvoices.meta?.last_page || 1;
-  
-  const paginatedInvoices = allInvoices;
+
+  const paginatedInvoices = filteredInvoices;
 
   useEffect(() => {
     setCurrentPage(1);
@@ -380,28 +417,50 @@ export default function BillingPage() {
       const date = invoice.issueDate
         ? new Date(invoice.issueDate).toLocaleDateString()
         : new Date().toLocaleDateString();
-      const billNumber = String(invoice.id || "INV-001");
-      const patientName = String(invoice.patientName || "Patient");
+      const billNumber = String(invoice.receiptNumber || invoice.id || "INV-001");
+      const patientName = String(invoice.patientName || "Walk-in Patient");
       const treatments = invoice.treatments || [];
+      const otherCharges = Array.isArray(invoice.otherCharges) ? invoice.otherCharges : [];
+
+      // Calculate totals
+      const treatmentsTotal = treatments.reduce((sum, t) => sum + (typeof t.cost === "number" ? t.cost : (parseFloat(t.cost as any) || 0)), 0);
+      const otherChargesTotal = otherCharges.reduce((sum, c) => sum + (typeof c.amount === "number" ? c.amount : (parseFloat(c.amount as any) || 0)), 0);
+      const calculatedSubtotal = treatmentsTotal + otherChargesTotal;
+      const subtotal = calculatedSubtotal > 0 ? calculatedSubtotal : (invoice.amount || 0);
 
       // Calculate balance due
       const balanceDue = (invoice.amount || 0) - (invoice.paidAmount || 0);
 
+      // Branch details (with fallback to business details)
+      const branchName = invoice.branch?.name || clinicName || getClinicName();
+      const branchPhone = invoice.branch?.contactNumber || (invoice.branch as any)?.phone || (invoice.branch as any)?.contact_number || clinicPhone || getClinicPhone();
+      const branchAddress = invoice.branch?.address || clinicAddress || getClinicAddress();
+
+      // Patient details
+      const matchedPatient = invoice.patientId ? allPatients.find(p => String(p.id) === String(invoice.patientId)) : invoice.patient;
+      const patientPhone = matchedPatient?.phone || invoice.patient?.phone || invoice.patient?.contact || (invoice as any).patientPhone || "";
+      const patientAddress = matchedPatient?.address || invoice.patient?.address || (invoice as any).patientAddress || "";
+
       // Generate detailed receipt with all billing information
-      const { generateReceiptHTML } = await import("@/lib/receipt-html-generator");
       const html = generateReceiptHTML(
         {
-          clinicName: clinicName,
-          clinicPhone: clinicPhone,
-          clinicAddress: clinicAddress,
+          clinicName: branchName,
+          clinicPhone: branchPhone,
+          clinicAddress: branchAddress,
           patientName: patientName,
+          patientPhone: patientPhone,
+          patientAddress: patientAddress,
           date: date,
           billNumber: billNumber,
           treatments: treatments.map(t => ({
             name: String(t.procedure || "Treatment"),
-            amount: typeof t.cost === "number" ? t.cost : 0,
+            amount: typeof t.cost === "number" ? t.cost : (parseFloat(t.cost as any) || 0),
           })),
-          subtotal: treatments.reduce((sum, t) => sum + (typeof t.cost === "number" ? t.cost : 0), 0),
+          otherCharges: otherCharges.map(c => ({
+            description: String(c.description || "Service"),
+            amount: typeof c.amount === "number" ? c.amount : (parseFloat(c.amount as any) || 0),
+          })),
+          subtotal: subtotal,
           totalBill: invoice.amount,
           insurancePortion: invoice.insuranceResponsibility,
           patientPortion: invoice.patientResponsibility,
@@ -424,7 +483,7 @@ export default function BillingPage() {
             name: m.medicine?.name || `Medicine ID: ${m.medicine_id}`,
             unit: m.unit?.unit_name,
             quantity: m.quantity || 0,
-            price: typeof m.price === "number" ? m.price : 0,
+            price: typeof m.price === "number" ? m.price : (parseFloat(m.price as any) || 0),
           })) : undefined,
         },
         "58mm"
@@ -440,6 +499,10 @@ export default function BillingPage() {
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : "Print failed";
       console.error("Print error:", errorMsg);
+      if (errorMsg.includes("Loading chunk") || errorMsg.includes("ChunkLoadError")) {
+        window.location.reload();
+        return;
+      }
       toast({
         variant: "destructive",
         title: "Print Failed",
@@ -534,7 +597,27 @@ export default function BillingPage() {
               <Skeleton className="h-12 w-full" />
             </div>
           ) : (
-          <Table>
+          <>
+            {categories.length > 0 && (
+              <div className="mb-6">
+                <Tabs value={selectedCategory || "all"} onValueChange={(value) => {
+                  setSelectedCategory(value === "all" ? undefined : value);
+                  setCurrentPage(1);
+                }} className="w-full">
+                  <TabsList className="grid w-full gap-2" style={{gridTemplateColumns: `repeat(auto-fit, minmax(150px, 1fr))`}}>
+                    <TabsTrigger value="all">
+                      All ({allInvoices.length})
+                    </TabsTrigger>
+                    {categories.map(cat => (
+                      <TabsTrigger key={cat.key} value={cat.key}>
+                        {formatCategoryName(cat.key)} ({cat.count})
+                      </TabsTrigger>
+                    ))}
+                  </TabsList>
+                </Tabs>
+              </div>
+            )}
+            <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Invoice ID</TableHead>
@@ -544,6 +627,7 @@ export default function BillingPage() {
                 <TableHead>Total Bill</TableHead>
                 <TableHead>Ins. Portion</TableHead>
                 <TableHead>Pat. Portion</TableHead>
+                <TableHead>Paid Amount</TableHead>
                 <TableHead>Balance</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -575,6 +659,9 @@ export default function BillingPage() {
                   </TableCell>
                   <TableCell>
                     {formatCurrency(invoice.patientResponsibility ?? invoice.amount)}
+                  </TableCell>
+                  <TableCell className="text-green-600 font-medium">
+                    {formatCurrency(invoice.paidAmount || 0)}
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-col text-sm">
@@ -612,6 +699,12 @@ export default function BillingPage() {
                                 )}
                                 {printingInvoiceId === invoice.id ? "Printing..." : "Print Receipt (POS)"}
                             </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => window.open(`/receipt/${invoice.id}`, '_blank')}
+                            >
+                                <FileText className="mr-2 h-4 w-4" />
+                                View Receipt
+                            </DropdownMenuItem>
                             {hasPermission('billing:update') && (
                                 <DropdownMenuItem onClick={() => handleOpenForm(invoice)}>
                                     <Pencil className="mr-2 h-4 w-4" />
@@ -641,7 +734,7 @@ export default function BillingPage() {
                 </TableRow>
                 {expandedInvoiceId === invoice.id && (
                   <TableRow className="bg-muted/30 hover:bg-muted/30">
-                    <TableCell colSpan={8} className="p-0">
+                    <TableCell colSpan={9} className="p-0">
                       <div className="space-y-4 p-4">
                         {/* Treatments Section */}
                         {invoice.treatments && invoice.treatments.length > 0 && (
@@ -660,6 +753,31 @@ export default function BillingPage() {
                                     <TableRow key={tx.id}>
                                       <TableCell className="py-2">{tx.procedure}</TableCell>
                                       <TableCell className="text-right py-2">{formatCurrency(tx.cost)}</TableCell>
+                                    </TableRow>
+                                  ))}
+                                </TableBody>
+                              </Table>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Other Charges / Services Section */}
+                        {invoice.otherCharges && invoice.otherCharges.length > 0 && (
+                          <div className="border-b pb-4">
+                            <h4 className="font-semibold mb-2 text-sm">Services & Other Charges</h4>
+                            <div className="rounded-md border bg-background">
+                              <Table>
+                                <TableHeader>
+                                  <TableRow>
+                                    <TableHead className="h-8">Description</TableHead>
+                                    <TableHead className="text-right h-8">Amount</TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {invoice.otherCharges.map((ch: any, idx: number) => (
+                                    <TableRow key={idx}>
+                                      <TableCell className="py-2">{ch.description}</TableCell>
+                                      <TableCell className="text-right py-2">{formatCurrency(ch.amount)}</TableCell>
                                     </TableRow>
                                   ))}
                                 </TableBody>
@@ -795,7 +913,8 @@ export default function BillingPage() {
                  </TableRow>
               )}
             </TableBody>
-          </Table>
+            </Table>
+            </>
           )}
         </CardContent>
          <CardFooter className="flex items-center justify-between">

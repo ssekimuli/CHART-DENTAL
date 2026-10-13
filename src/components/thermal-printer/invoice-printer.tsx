@@ -7,6 +7,8 @@ import type { Invoice } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { getWindowsPrinterService } from "@/lib/windows-printer";
 import { getClinicName, getClinicAddress, getClinicPhone } from "@/lib/business-details";
+import { generateReceiptHTML } from "@/lib/receipt-html-generator";
+import { getPatientById } from "@/lib/api";
 
 interface InvoicePrinterProps {
   invoice: Invoice;
@@ -41,30 +43,56 @@ export function InvoicePrinter({
       const printerService = getWindowsPrinterService();
 
       const treatments = invoice.treatments || [];
+      const otherCharges = Array.isArray(invoice.otherCharges) ? invoice.otherCharges : [];
       const amount = invoice.amount || 0;
       const date = invoice.issueDate
         ? new Date(invoice.issueDate).toLocaleDateString()
         : new Date().toLocaleDateString();
-      const billNumber = String(invoice.id || "INV-001");
-      const patientName = String(invoice.patientName || "Patient");
+      const billNumber = String(invoice.receiptNumber || invoice.id || "INV-001");
+      const patientName = String(invoice.patientName || "Walk-in Patient");
 
       // Calculate totals for detailed receipt
-      const subtotal = treatments.reduce((sum, t) => sum + (typeof t.cost === "number" ? t.cost : 0), 0);
+      const treatmentsTotal = treatments.reduce((sum, t) => sum + (typeof t.cost === "number" ? t.cost : (parseFloat(t.cost as any) || 0)), 0);
+      const otherChargesTotal = otherCharges.reduce((sum, c) => sum + (typeof c.amount === "number" ? c.amount : (parseFloat(c.amount as any) || 0)), 0);
+      const calculatedSubtotal = treatmentsTotal + otherChargesTotal;
+      const subtotal = calculatedSubtotal > 0 ? calculatedSubtotal : amount;
       const balanceDue = (invoice.amount || 0) - (invoice.paidAmount || 0);
 
-      // For detailed receipt, use generateReceiptHTML with all fields
-      const { generateReceiptHTML } = await import("@/lib/receipt-html-generator");
+      const branchName = (invoice as any).branch?.name || businessName || getClinicName();
+      const branchPhone = (invoice as any).branch?.contactNumber || (invoice as any).branch?.phone || (invoice as any).branch?.contact_number || businessPhone || getClinicPhone();
+      const branchAddress = (invoice as any).branch?.address || businessAddress || getClinicAddress();
+
+      let patientPhone = invoice.patient?.phone || (invoice as any).patient?.contact || (invoice as any).patientPhone || "";
+      let patientAddress = invoice.patient?.address || (invoice as any).patientAddress || "";
+
+      if (invoice.patientId && (!patientPhone || !patientAddress)) {
+        try {
+          const p = await getPatientById(invoice.patientId);
+          if (p) {
+            patientPhone = patientPhone || p.phone || "";
+            patientAddress = patientAddress || p.address || "";
+          }
+        } catch {}
+      }
+
+      // For detailed receipt, generateReceiptHTML with all fields
       const detailedHtml = generateReceiptHTML(
         {
-          clinicName: businessName,
-          clinicPhone: businessPhone,
-          clinicAddress: businessAddress,
+          clinicName: branchName,
+          clinicPhone: branchPhone,
+          clinicAddress: branchAddress,
           patientName: patientName,
+          patientPhone: patientPhone,
+          patientAddress: patientAddress,
           date: date,
           billNumber: billNumber,
           treatments: treatments.map(t => ({
             name: String(t.procedure || "Treatment"),
-            amount: typeof t.cost === "number" ? t.cost : 0,
+            amount: typeof t.cost === "number" ? t.cost : (parseFloat(t.cost as any) || 0),
+          })),
+          otherCharges: otherCharges.map(c => ({
+            description: String(c.description || "Service"),
+            amount: typeof c.amount === "number" ? c.amount : (parseFloat(c.amount as any) || 0),
           })),
           subtotal: subtotal,
           totalBill: amount,
@@ -89,7 +117,7 @@ export function InvoicePrinter({
             name: m.medicine?.name || `Medicine ID: ${m.medicine_id}`,
             unit: m.unit?.unit_name,
             quantity: m.quantity || 0,
-            price: typeof m.price === "number" ? m.price : 0,
+            price: typeof m.price === "number" ? m.price : (parseFloat(m.price as any) || 0),
           })) : undefined,
         },
         "58mm"
@@ -105,6 +133,10 @@ export function InvoicePrinter({
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : "Print failed";
       console.error("Print error:", errorMsg);
+      if (errorMsg.includes("Loading chunk") || errorMsg.includes("ChunkLoadError")) {
+        window.location.reload();
+        return;
+      }
       toast({
         variant: "destructive",
         title: "Print Failed",

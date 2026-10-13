@@ -99,13 +99,14 @@ export default function PatientsPage() {
           filters.gender = genderFilter;
         }
 
-        // Add pagination
+        // Add search filter — sent to API as `search` param
         if (searchQuery) {
-          filters.perPage = 1000;
-        } else {
-          filters.page = page;
-          filters.perPage = 10;
+          filters.searchQuery = searchQuery;
         }
+
+        // Add pagination
+        filters.page = page;
+        filters.perPage = 10;
 
         const data = await getPatients(filters);
         setPatientsData(data);
@@ -120,7 +121,7 @@ export default function PatientsPage() {
       const query = searchQuery.toLowerCase();
       return patientsData.filter(p => {
         const fullName = getPatientFullName(p).toLowerCase();
-        const email = p.email.toLowerCase();
+        const email = p.email?.toLowerCase() || '';
         const phone = p.phone?.toLowerCase() || '';
         return fullName.includes(query) || email.includes(query) || phone.includes(query);
       });
