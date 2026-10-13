@@ -61,8 +61,8 @@ export function Combobox<T extends string | number>({ options, value, onChange, 
           aria-expanded={open}
           className="w-full justify-between"
         >
-          {value !== undefined && value !== null
-            ? options.find((option) => String(option.value) === String(value))?.label
+          {value !== undefined && value !== null && value !== ""
+            ? options.find((option) => String(option.value) === String(value))?.label ?? String(value)
             : placeholder ?? "Select option..."}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>

@@ -37,6 +37,8 @@ import {
   Database,
   History,
   Handshake,
+  Stethoscope,
+  ScanLine,
 } from "lucide-react";
 import type { EmployeeRole, Permission } from "@/lib/types";
 import { getCurrentUser, hasPermission, hasRole } from "@/lib/user";
@@ -55,6 +57,8 @@ const allLinks: NavLink[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/queue", label: "Queue", icon: ClipboardList },
   { href: "/patients", label: "Patients", icon: Users },
+  { href: "/clinical-records", label: "Clinical Records", icon: Stethoscope, permission: 'patients:read' },
+  { href: "/radiology-requests", label: "Radiology Requests", icon: ScanLine, permission: 'patients:read' },
   { href: "/charting", label: "Charting", icon: FileText },
   { href: "/appointments", label: "Appointments", icon: Calendar },
   { href: "/billing", label: "Billing", icon: CreditCard },
