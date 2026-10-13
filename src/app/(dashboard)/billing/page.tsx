@@ -51,7 +51,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Skeleton } from "@/components/ui/skeleton";
 import { PaymentForm } from "./components/payment-form";
 import { getWindowsPrinterService } from "@/lib/windows-printer";
-import { generateSimpleReceiptHTML } from "@/lib/receipt-html-generator";
+import { generateSimpleReceiptHTML, generateReceiptHTML } from "@/lib/receipt-html-generator";
 import { DateRange } from "react-day-picker";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
@@ -63,6 +63,7 @@ import { Pagination, PaginationContent, PaginationItem, PaginationPrevious, Pagi
 import { useCurrency } from "@/hooks/use-currency";
 import { useToast } from "@/hooks/use-toast";
 import { useBusinessDetails } from "@/hooks/use-business-details";
+import { getClinicName, getClinicAddress, getClinicPhone } from "@/lib/business-details";
 
 
 export default function BillingPage() {
@@ -171,7 +172,7 @@ export default function BillingPage() {
   }, [selectedBranch, allPatients]);
 
   // Predefined invoice categories (matching backend)
-  const INVOICE_CATEGORIES = ['lab-income', 'pharmacy-income', 'procedure-income', 'other'] as const;
+  const INVOICE_CATEGORIES = ['procedure-income', 'radiology-income', 'lab-income', 'pharmacy-income', 'other'] as const;
 
   // Get category display names and counts
   const categories = useMemo(() => {
@@ -199,6 +200,7 @@ export default function BillingPage() {
 
   // Format category name for display
   const formatCategoryName = (category: string) => {
+    if (category === 'radiology-income') return 'Radiology Income';
     return category
       .split('-')
       .map(word => word.charAt(0).toUpperCase() + word.slice(1))
@@ -415,28 +417,50 @@ export default function BillingPage() {
       const date = invoice.issueDate
         ? new Date(invoice.issueDate).toLocaleDateString()
         : new Date().toLocaleDateString();
-      const billNumber = String(invoice.id || "INV-001");
-      const patientName = String(invoice.patientName || "Patient");
+      const billNumber = String(invoice.receiptNumber || invoice.id || "INV-001");
+      const patientName = String(invoice.patientName || "Walk-in Patient");
       const treatments = invoice.treatments || [];
+      const otherCharges = Array.isArray(invoice.otherCharges) ? invoice.otherCharges : [];
+
+      // Calculate totals
+      const treatmentsTotal = treatments.reduce((sum, t) => sum + (typeof t.cost === "number" ? t.cost : (parseFloat(t.cost as any) || 0)), 0);
+      const otherChargesTotal = otherCharges.reduce((sum, c) => sum + (typeof c.amount === "number" ? c.amount : (parseFloat(c.amount as any) || 0)), 0);
+      const calculatedSubtotal = treatmentsTotal + otherChargesTotal;
+      const subtotal = calculatedSubtotal > 0 ? calculatedSubtotal : (invoice.amount || 0);
 
       // Calculate balance due
       const balanceDue = (invoice.amount || 0) - (invoice.paidAmount || 0);
 
+      // Branch details (with fallback to business details)
+      const branchName = invoice.branch?.name || clinicName || getClinicName();
+      const branchPhone = invoice.branch?.contactNumber || (invoice.branch as any)?.phone || (invoice.branch as any)?.contact_number || clinicPhone || getClinicPhone();
+      const branchAddress = invoice.branch?.address || clinicAddress || getClinicAddress();
+
+      // Patient details
+      const matchedPatient = invoice.patientId ? allPatients.find(p => String(p.id) === String(invoice.patientId)) : invoice.patient;
+      const patientPhone = matchedPatient?.phone || invoice.patient?.phone || invoice.patient?.contact || (invoice as any).patientPhone || "";
+      const patientAddress = matchedPatient?.address || invoice.patient?.address || (invoice as any).patientAddress || "";
+
       // Generate detailed receipt with all billing information
-      const { generateReceiptHTML } = await import("@/lib/receipt-html-generator");
       const html = generateReceiptHTML(
         {
-          clinicName: clinicName,
-          clinicPhone: clinicPhone,
-          clinicAddress: clinicAddress,
+          clinicName: branchName,
+          clinicPhone: branchPhone,
+          clinicAddress: branchAddress,
           patientName: patientName,
+          patientPhone: patientPhone,
+          patientAddress: patientAddress,
           date: date,
           billNumber: billNumber,
           treatments: treatments.map(t => ({
             name: String(t.procedure || "Treatment"),
-            amount: typeof t.cost === "number" ? t.cost : 0,
+            amount: typeof t.cost === "number" ? t.cost : (parseFloat(t.cost as any) || 0),
           })),
-          subtotal: treatments.reduce((sum, t) => sum + (typeof t.cost === "number" ? t.cost : 0), 0),
+          otherCharges: otherCharges.map(c => ({
+            description: String(c.description || "Service"),
+            amount: typeof c.amount === "number" ? c.amount : (parseFloat(c.amount as any) || 0),
+          })),
+          subtotal: subtotal,
           totalBill: invoice.amount,
           insurancePortion: invoice.insuranceResponsibility,
           patientPortion: invoice.patientResponsibility,
@@ -459,7 +483,7 @@ export default function BillingPage() {
             name: m.medicine?.name || `Medicine ID: ${m.medicine_id}`,
             unit: m.unit?.unit_name,
             quantity: m.quantity || 0,
-            price: typeof m.price === "number" ? m.price : 0,
+            price: typeof m.price === "number" ? m.price : (parseFloat(m.price as any) || 0),
           })) : undefined,
         },
         "58mm"
@@ -475,6 +499,10 @@ export default function BillingPage() {
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : "Print failed";
       console.error("Print error:", errorMsg);
+      if (errorMsg.includes("Loading chunk") || errorMsg.includes("ChunkLoadError")) {
+        window.location.reload();
+        return;
+      }
       toast({
         variant: "destructive",
         title: "Print Failed",
@@ -671,6 +699,12 @@ export default function BillingPage() {
                                 )}
                                 {printingInvoiceId === invoice.id ? "Printing..." : "Print Receipt (POS)"}
                             </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => window.open(`/receipt/${invoice.id}`, '_blank')}
+                            >
+                                <FileText className="mr-2 h-4 w-4" />
+                                View Receipt
+                            </DropdownMenuItem>
                             {hasPermission('billing:update') && (
                                 <DropdownMenuItem onClick={() => handleOpenForm(invoice)}>
                                     <Pencil className="mr-2 h-4 w-4" />
@@ -719,6 +753,31 @@ export default function BillingPage() {
                                     <TableRow key={tx.id}>
                                       <TableCell className="py-2">{tx.procedure}</TableCell>
                                       <TableCell className="text-right py-2">{formatCurrency(tx.cost)}</TableCell>
+                                    </TableRow>
+                                  ))}
+                                </TableBody>
+                              </Table>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Other Charges / Services Section */}
+                        {invoice.otherCharges && invoice.otherCharges.length > 0 && (
+                          <div className="border-b pb-4">
+                            <h4 className="font-semibold mb-2 text-sm">Services & Other Charges</h4>
+                            <div className="rounded-md border bg-background">
+                              <Table>
+                                <TableHeader>
+                                  <TableRow>
+                                    <TableHead className="h-8">Description</TableHead>
+                                    <TableHead className="text-right h-8">Amount</TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {invoice.otherCharges.map((ch: any, idx: number) => (
+                                    <TableRow key={idx}>
+                                      <TableCell className="py-2">{ch.description}</TableCell>
+                                      <TableCell className="text-right py-2">{formatCurrency(ch.amount)}</TableCell>
                                     </TableRow>
                                   ))}
                                 </TableBody>
