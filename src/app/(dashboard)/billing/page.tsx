@@ -445,10 +445,22 @@ export default function BillingPage() {
       // Calculate balance due
       const balanceDue = (invoice.amount || 0) - (invoice.paidAmount || 0);
 
-      // Branch details (with fallback to business details)
-      const branchName = invoice.branch?.name || clinicName || getClinicName();
-      const branchPhone = invoice.branch?.contactNumber || (invoice.branch as any)?.phone || (invoice.branch as any)?.contact_number || clinicPhone || getClinicPhone();
-      const branchAddress = invoice.branch?.address || clinicAddress || getClinicAddress();
+      // Facility / Branch receipt header & footer details
+      let activeReceipt = receiptSettings;
+      if (!activeReceipt) {
+        try {
+          activeReceipt = await getFacilityReceiptSettings();
+        } catch {
+          // ignore
+        }
+      }
+
+      const branchName = activeReceipt?.clinic_name || invoice.branch?.name || clinicName || getClinicName();
+      const branchSubtitle = activeReceipt?.subtitle || getClinicSubtitle();
+      const branchPhone = activeReceipt?.phone || invoice.branch?.contactNumber || (invoice.branch as any)?.phone || (invoice.branch as any)?.contact_number || clinicPhone || getClinicPhone();
+      const branchEmail = activeReceipt?.email || getClinicEmail();
+      const branchAddress = activeReceipt?.address || invoice.branch?.address || clinicAddress || getClinicAddress();
+      const receiptFooter = activeReceipt?.receipt_footer || getReceiptFooter();
 
       // Patient details
       const matchedPatient = invoice.patientId ? allPatients.find(p => String(p.id) === String(invoice.patientId)) : invoice.patient;
@@ -459,8 +471,11 @@ export default function BillingPage() {
       const html = generateReceiptHTML(
         {
           clinicName: branchName,
+          clinicSubtitle: branchSubtitle,
           clinicPhone: branchPhone,
+          clinicEmail: branchEmail,
           clinicAddress: branchAddress,
+          footerNote: receiptFooter,
           patientName: patientName,
           patientPhone: patientPhone,
           patientAddress: patientAddress,
