@@ -130,7 +130,7 @@ export function MedicalHistoryViewModal({
                 </span>
               </div>
               <p className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 print:text-slate-700 mt-0.5">
-                Clinical Examination, Assessment & Management Sheet
+                Medical Form
               </p>
               {facilityAddress && (
                 <p className="text-[11px] text-muted-foreground print:text-slate-600 mt-0.5">
@@ -196,7 +196,7 @@ export function MedicalHistoryViewModal({
               </div>
               <div className="flex items-end gap-1.5 flex-1 min-w-[200px]">
                 <span className="text-[11px] font-bold uppercase tracking-wide text-slate-600 dark:text-slate-400">
-                  Attending Doctor:
+                  Attending Clinician:
                 </span>
                 <span className="flex-1 font-medium border-b border-dashed border-slate-400 dark:border-slate-500 pb-0.5">
                   {record.doctor_name || "Authorized Clinician"}

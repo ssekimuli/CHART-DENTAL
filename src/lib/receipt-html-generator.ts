@@ -5,8 +5,11 @@ import { getCurrencyConfig } from "./currency";
 
 export interface ReceiptInfo {
   clinicName: string;
+  clinicSubtitle?: string;
   clinicPhone?: string;
+  clinicEmail?: string;
   clinicAddress?: string;
+  footerNote?: string;
   patientName: string;
   patientPhone?: string;
   patientAddress?: string;
