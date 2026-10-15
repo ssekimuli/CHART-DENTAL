@@ -63,7 +63,8 @@ import { Pagination, PaginationContent, PaginationItem, PaginationPrevious, Pagi
 import { useCurrency } from "@/hooks/use-currency";
 import { useToast } from "@/hooks/use-toast";
 import { useBusinessDetails } from "@/hooks/use-business-details";
-import { getClinicName, getClinicAddress, getClinicPhone } from "@/lib/business-details";
+import { getClinicName, getClinicAddress, getClinicPhone, getClinicSubtitle, getClinicEmail, getReceiptFooter } from "@/lib/business-details";
+import { getFacilityReceiptSettings, FacilityReceiptSettings } from "@/lib/api";
 
 
 export default function BillingPage() {
@@ -71,6 +72,19 @@ export default function BillingPage() {
   const { selectedBranch } = useBranch();
   const { formatCurrency } = useCurrency();
   const { clinicName, clinicAddress, clinicPhone } = useBusinessDetails();
+  const [receiptSettings, setReceiptSettings] = useState<FacilityReceiptSettings | null>(null);
+
+  useEffect(() => {
+    const loadReceiptSettings = async () => {
+      try {
+        const s = await getFacilityReceiptSettings();
+        if (s) setReceiptSettings(s);
+      } catch (e) {
+        console.warn("Could not load facility receipt settings in BillingPage:", e);
+      }
+    };
+    loadReceiptSettings();
+  }, []);
   const [allInvoices, setAllInvoices] = useState<PaginatedArray<Invoice>>([] as unknown as PaginatedArray<Invoice>);
   const [allPatients, setAllPatients] = useState<Patient[]>([]);
   const [isLoading, setIsLoading] = useState(true);
