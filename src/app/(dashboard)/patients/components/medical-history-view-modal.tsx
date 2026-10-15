@@ -162,10 +162,9 @@ export function MedicalHistoryViewModal({
                 Medical Form
               </p>
               <div className="text-[11px] text-muted-foreground print:text-slate-600 mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5">
-                {facilityAddress && <span>📍 {facilityAddress}</span>}
-                {facilityPhone && <span>
-📁 {facilityPhone}</span>}
-                {facilityEmail && <span>✉ {facilityEmail}</span>}
+                {facilityAddress && <span>{facilityAddress}</span>}
+                {facilityPhone && <span>Tel: {facilityPhone}</span>}
+                {facilityEmail && <span>Email: {facilityEmail}</span>}
               </div>
             </div>
             <div className="text-right">
