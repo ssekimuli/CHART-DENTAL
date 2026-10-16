@@ -5,8 +5,11 @@ import { getCurrencyConfig } from "./currency";
 
 export interface ReceiptInfo {
   clinicName: string;
+  clinicSubtitle?: string;
   clinicPhone?: string;
+  clinicEmail?: string;
   clinicAddress?: string;
+  footerNote?: string;
   patientName: string;
   patientPhone?: string;
   patientAddress?: string;
@@ -132,8 +135,11 @@ export function generateReceiptHTML(info: ReceiptInfo, paperWidth: "58mm" | "80m
   let html = "";
 
   // Header
-  html += line(centerText(info.clinicName));
-  html += line(centerText("═".repeat(Math.min(charsPerLine, info.clinicName.length))));
+  html += line(centerText((info.clinicName || "CLINIC").toUpperCase()));
+  if (info.clinicSubtitle) {
+    html += line(centerText(info.clinicSubtitle));
+  }
+  html += line(centerText("═".repeat(Math.min(charsPerLine, 24))));
   html += line();
 
   if (info.clinicAddress) {
@@ -155,6 +161,13 @@ export function generateReceiptHTML(info: ReceiptInfo, paperWidth: "58mm" | "80m
       ? info.clinicPhone
       : `Tel: ${info.clinicPhone}`;
     html += line(centerText(phoneStr));
+  }
+
+  if (info.clinicEmail) {
+    const emailStr = info.clinicEmail.toLowerCase().startsWith("email")
+      ? info.clinicEmail
+      : `Email: ${info.clinicEmail}`;
+    html += line(centerText(emailStr));
   }
 
   html += line();
@@ -348,7 +361,11 @@ export function generateReceiptHTML(info: ReceiptInfo, paperWidth: "58mm" | "80m
 
   // Footer
   html += line();
-  html += line(centerText("Thank you for your visit!"));
+  if (info.footerNote) {
+    html += line(centerText(info.footerNote));
+  } else {
+    html += line(centerText("Thank you for your visit!"));
+  }
   html += line();
   html += line(centerText("═".repeat(Math.floor(charsPerLine * 0.8))));
   html += line();

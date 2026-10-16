@@ -6,7 +6,8 @@ import { Printer, Loader2 } from "lucide-react";
 import type { Invoice } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { getWindowsPrinterService } from "@/lib/windows-printer";
-import { getClinicName, getClinicAddress, getClinicPhone } from "@/lib/business-details";
+import { getClinicName, getClinicAddress, getClinicPhone, getClinicSubtitle, getClinicEmail, getReceiptFooter } from "@/lib/business-details";
+import { getFacilityReceiptSettings, FacilityReceiptSettings } from "@/lib/api";
 import { generateReceiptHTML } from "@/lib/receipt-html-generator";
 import { getPatientById } from "@/lib/api";
 
@@ -28,12 +29,23 @@ export function InvoicePrinter({
   const [businessName, setBusinessName] = useState("");
   const [businessPhone, setBusinessPhone] = useState("");
   const [businessAddress, setBusinessAddress] = useState("");
+  const [receiptSettings, setReceiptSettings] = useState<FacilityReceiptSettings | null>(null);
 
   // Load business details from localStorage on mount
   useEffect(() => {
     setBusinessName(propBusinessName || getClinicName());
     setBusinessPhone(propBusinessPhone || getClinicPhone());
     setBusinessAddress(propBusinessAddress || getClinicAddress());
+
+    const loadReceiptSettings = async () => {
+      try {
+        const s = await getFacilityReceiptSettings();
+        if (s) setReceiptSettings(s);
+      } catch (err) {
+        console.warn("Could not load receipt settings in InvoicePrinter:", err);
+      }
+    };
+    loadReceiptSettings();
   }, [propBusinessName, propBusinessPhone, propBusinessAddress]);
 
   const handlePrint = async () => {
@@ -58,9 +70,12 @@ export function InvoicePrinter({
       const subtotal = calculatedSubtotal > 0 ? calculatedSubtotal : amount;
       const balanceDue = (invoice.amount || 0) - (invoice.paidAmount || 0);
 
-      const branchName = (invoice as any).branch?.name || businessName || getClinicName();
-      const branchPhone = (invoice as any).branch?.contactNumber || (invoice as any).branch?.phone || (invoice as any).branch?.contact_number || businessPhone || getClinicPhone();
-      const branchAddress = (invoice as any).branch?.address || businessAddress || getClinicAddress();
+      const branchName = receiptSettings?.clinic_name || (invoice as any).branch?.name || businessName || getClinicName();
+      const branchSubtitle = receiptSettings?.subtitle || getClinicSubtitle();
+      const branchPhone = receiptSettings?.phone || (invoice as any).branch?.contactNumber || (invoice as any).branch?.phone || (invoice as any).branch?.contact_number || businessPhone || getClinicPhone();
+      const branchEmail = receiptSettings?.email || (invoice as any).branch?.email || getClinicEmail();
+      const branchAddress = receiptSettings?.address || (invoice as any).branch?.address || businessAddress || getClinicAddress();
+      const footerNote = receiptSettings?.receipt_footer || getReceiptFooter();
 
       let patientPhone = invoice.patient?.phone || (invoice as any).patient?.contact || (invoice as any).patientPhone || "";
       let patientAddress = invoice.patient?.address || (invoice as any).patientAddress || "";
@@ -79,8 +94,11 @@ export function InvoicePrinter({
       const detailedHtml = generateReceiptHTML(
         {
           clinicName: branchName,
+          clinicSubtitle: branchSubtitle,
           clinicPhone: branchPhone,
+          clinicEmail: branchEmail,
           clinicAddress: branchAddress,
+          footerNote: footerNote,
           patientName: patientName,
           patientPhone: patientPhone,
           patientAddress: patientAddress,
