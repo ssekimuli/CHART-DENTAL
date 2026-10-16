@@ -43,6 +43,7 @@ function WhatsAppIcon({ className = "h-4 w-4" }: { className?: string }) {
 }
 import moment from "moment";
 import { useBranch } from "@/context/branch-context";
+import { getFacilityReceiptSettings, type FacilityReceiptSettings } from "@/lib/api";
 
 interface MedicalHistoryViewModalProps {
   patient: PatientBasicInfo;
@@ -60,6 +61,25 @@ export function MedicalHistoryViewModal({
   onEdit,
 }: MedicalHistoryViewModalProps) {
   const { selectedBranch, availableBranches } = useBranch();
+  const [receiptSettings, setReceiptSettings] = React.useState<FacilityReceiptSettings | null>(null);
+
+  React.useEffect(() => {
+    let isMounted = true;
+    const loadSettings = async () => {
+      try {
+        const s = await getFacilityReceiptSettings();
+        if (isMounted && s) setReceiptSettings(s);
+      } catch (err) {
+        console.warn("Could not load facility receipt settings:", err);
+      }
+    };
+    if (isOpen) {
+      loadSettings();
+    }
+    return () => {
+      isMounted = false;
+    };
+  }, [isOpen]);
 
   if (!record) return null;
 
@@ -69,8 +89,12 @@ export function MedicalHistoryViewModal({
     (b) => String(b.id) === String(selectedBranch || patient.branch_id)
   ) || availableBranches[0];
 
-  const facilityName = currentBranch?.name || "DENTAL & ORAL HEALTHCARE CLINIC";
-  const facilityAddress = currentBranch?.address || "";
+  const facilityName = receiptSettings?.clinic_name || currentBranch?.name || "DENTAL & ORAL HEALTHCARE CLINIC";
+  const facilitySubtitle = receiptSettings?.subtitle || "";
+  const facilityAddress = receiptSettings?.address || currentBranch?.address || "";
+  const facilityPhone = receiptSettings?.phone || (currentBranch as any)?.contactNumber || (currentBranch as any)?.phone || "";
+  const facilityEmail = receiptSettings?.email || "";
+  const facilityFooter = receiptSettings?.receipt_footer || "";
 
   const handlePrint = () => {
     window.print();
@@ -129,14 +153,19 @@ export function MedicalHistoryViewModal({
                   {facilityName}
                 </span>
               </div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 print:text-slate-700 mt-0.5">
-                Clinical Examination, Assessment & Management Sheet
-              </p>
-              {facilityAddress && (
-                <p className="text-[11px] text-muted-foreground print:text-slate-600 mt-0.5">
-                  📍 {facilityAddress}
+              {facilitySubtitle && (
+                <p className="text-xs font-medium text-slate-600 dark:text-slate-300 print:text-slate-700 mt-0.5">
+                  {facilitySubtitle}
                 </p>
               )}
+              <p className="text-xs font-semibold uppercase tracking-wider text-teal-800 dark:text-teal-300 print:text-slate-800 mt-0.5">
+                Medical Form
+              </p>
+              <div className="text-[11px] text-muted-foreground print:text-slate-600 mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5">
+                {facilityAddress && <span>Address: {facilityAddress}</span>}
+                {facilityPhone && <span>Tel: {facilityPhone}</span>}
+                {facilityEmail && <span>Email: {facilityEmail}</span>}
+              </div>
             </div>
             <div className="text-right">
               <span className="font-mono text-xs font-bold text-teal-700 dark:text-teal-400 print:text-black">
@@ -196,7 +225,7 @@ export function MedicalHistoryViewModal({
               </div>
               <div className="flex items-end gap-1.5 flex-1 min-w-[200px]">
                 <span className="text-[11px] font-bold uppercase tracking-wide text-slate-600 dark:text-slate-400">
-                  Attending Doctor:
+                  Attending Clinician:
                 </span>
                 <span className="flex-1 font-medium border-b border-dashed border-slate-400 dark:border-slate-500 pb-0.5">
                   {record.doctor_name || "Authorized Clinician"}
@@ -340,13 +369,20 @@ export function MedicalHistoryViewModal({
               <p className="text-[11px] text-slate-500">Date: ________________________________</p>
             </div>
             <div className="space-y-8 text-right flex flex-col items-end">
-              <p className="font-semibold text-slate-700">Dentist Signature & Stamp:</p>
+              <p className="font-semibold text-slate-700">Attending Clinician Signature & Stamp:</p>
               <div className="border-b border-dashed border-slate-600 w-full"></div>
               <p className="text-[11px] text-slate-500">
                 {record.doctor_name || "Authorized Clinician"}
               </p>
             </div>
           </div>
+
+          {/* FACILITY FOOTER NOTE */}
+          {facilityFooter && (
+            <div className="pt-4 mt-6 border-t border-dashed border-slate-300 dark:border-slate-800 text-center text-xs text-slate-600 dark:text-slate-400 print:text-slate-600">
+              {facilityFooter}
+            </div>
+          )}
         </div>
 
         <DialogFooter className="p-4 border-t gap-2 sm:gap-0 bg-slate-50/50 dark:bg-slate-900/40 print:hidden">

@@ -1,14 +1,20 @@
-// Utility for managing business details from localStorage
+﻿// Utility for managing business and receipt details from localStorage or cached settings
 
 export interface BusinessDetails {
   clinic_name?: string;
   clinic_address?: string;
   clinic_phone?: string;
+  clinic_email?: string;
+  subtitle?: string;
+  receipt_prefix?: string;
+  receipt_footer?: string;
   name?: string;
   address?: string;
   phone?: string;
+  email?: string;
   contactNumber?: string;
   contact_number?: string;
+  currency?: string;
   branch?: {
     id: number;
     name: string;
@@ -17,6 +23,7 @@ export interface BusinessDetails {
     contactNumber?: string;
     contact_number?: string;
     phone?: string;
+    email?: string;
   };
 }
 
@@ -42,6 +49,11 @@ export function getClinicName(): string {
   return details?.clinic_name || details?.name || details?.branch?.name || "CHART DENTAL";
 }
 
+export function getClinicSubtitle(): string {
+  const details = getBusinessDetails();
+  return details?.subtitle || "";
+}
+
 export function getClinicAddress(): string {
   const details = getBusinessDetails();
   const addr = details?.clinic_address || details?.address || details?.branch?.address;
@@ -65,7 +77,17 @@ export function getClinicPhone(): string {
   );
 }
 
+export function getClinicEmail(): string {
+  const details = getBusinessDetails();
+  return details?.clinic_email || details?.email || details?.branch?.email || "";
+}
+
+export function getReceiptFooter(): string {
+  const details = getBusinessDetails();
+  return details?.receipt_footer || "Thank you for your visit!";
+}
+
 export function getBranchCurrency(): string {
   const details = getBusinessDetails();
-  return details?.branch?.currency || "UGX";
+  return details?.currency || details?.branch?.currency || "USD";
 }
