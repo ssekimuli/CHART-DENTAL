@@ -109,3 +109,148 @@
     border-radius: 20px;
   }
 }
+
+/* ==========================================================================
+   FACILITY NAME PRINT & PDF WATERMARK STYLES
+   ========================================================================== */
+
+.print-watermark-overlay {
+  display: none;
+}
+
+.print-watermark-embed {
+  display: none;
+}
+
+@media print {
+  body {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Ensure modal backdrop does not gray out or black out printed paper */
+  [data-radix-portal] > [data-state],
+  div[data-state][class*=fixed][class*=inset-0] {
+    background: transparent !important;
+  }
+
+  /* Allow modal dialogs to flow across pages naturally */
+  [role=dialog] {
+    position: static !important;
+    max-height: none !important;
+    max-width: 100% !important;
+    overflow: visible !important;
+    transform: none !important;
+    box-shadow: none !important;
+    border: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .print-watermark-overlay {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    pointer-events: none !important;
+    z-index: 99999 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    visibility: visible !important;
+  }
+
+  .print-watermark-embed {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-around !important;
+    align-items: center !important;
+    pointer-events: none !important;
+    z-index: 50 !important;
+    visibility: visible !important;
+    overflow: hidden !important;
+  }
+
+  .print-watermark-text {
+    font-size: clamp(34px, 5.5vw, 62px) !important;
+    font-weight: 900 !important;
+    color: rgba(15, 23, 42, 0.08) !important;
+    text-transform: uppercase !important;
+    letter-spacing: 6px !important;
+    transform: rotate(-32deg) !important;
+    text-align: center !important;
+    line-height: 1.25 !important;
+    max-width: 85% !important;
+    word-break: break-word !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    visibility: visible !important;
+  }
+}
+
+/* Watermark visibility for html2canvas & html2pdf PDF exports */
+#invoice-content .print-watermark-embed {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  align-items: center;
+  pointer-events: none;
+  z-index: 10;
+  user-select: none;
+  overflow: hidden;
+}
+
+#invoice-content .print-watermark-embed .print-watermark-text {
+  font-size: 44px;
+  font-weight: 900;
+  color: rgba(15, 23, 42, 0.08);
+  text-transform: uppercase;
+  letter-spacing: 6px;
+  transform: rotate(-32deg);
+  text-align: center;
+  line-height: 1.25;
+  word-break: break-word;
+  user-select: none;
+}
+
+#receipt-content .print-watermark-embed {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  align-items: center;
+  pointer-events: none;
+  z-index: 10;
+  user-select: none;
+  overflow: hidden;
+}
+
+#receipt-content .print-watermark-embed .print-watermark-text {
+  font-size: 20px;
+  font-weight: 900;
+  color: rgba(15, 23, 42, 0.09);
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  transform: rotate(-32deg);
+  text-align: center;
+  line-height: 1.25;
+  word-break: break-word;
+  user-select: none;
+}

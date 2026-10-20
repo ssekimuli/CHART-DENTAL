@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { PrintWatermark } from "@/components/print-watermark";
 import { cn } from "@/lib/utils";
 import { Send, Mail, MessageCircle, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -738,7 +739,7 @@ export function PeriodontalChart({
           body * {
             visibility: hidden;
           }
-          #periodontal-print-section, #periodontal-print-section * {
+          #periodontal-print-section, #periodontal-print-section *, .print-watermark-embed, .print-watermark-embed * {
             visibility: visible;
           }
           #periodontal-print-section {
@@ -753,7 +754,8 @@ export function PeriodontalChart({
           }
         }
       `}</style>
-      <Card id="periodontal-print-section" className="border border-[#A3D8E1]/30 rounded-3xl shadow-[0_10px_30px_rgba(44,63,77,0.02)] print:border-none print:shadow-none">
+      <Card id="periodontal-print-section" className="relative overflow-hidden border border-[#A3D8E1]/30 rounded-3xl shadow-[0_10px_30px_rgba(44,63,77,0.02)] print:border-none print:shadow-none">
+        <PrintWatermark embedInContent />
         <CardHeader className="flex flex-row items-center justify-between border-b pb-4 print:border-b-0">
           <div>
             <CardTitle className="text-xl font-extrabold text-[#2C3F4D]">

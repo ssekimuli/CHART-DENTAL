@@ -9,6 +9,7 @@ import { useCurrency } from '@/hooks/use-currency';
 import { Loader2 } from 'lucide-react';
 import { getClinicName, getClinicAddress, getClinicPhone, getClinicSubtitle, getClinicEmail, getReceiptFooter } from '@/lib/business-details';
 import { getFacilityReceiptSettings, FacilityReceiptSettings } from '@/lib/api';
+import { PrintWatermark } from '@/components/print-watermark';
 
 export default function ReceiptPage() {
   const params = useParams();
@@ -69,12 +70,13 @@ export default function ReceiptPage() {
       const html2pdf = (await import('html2pdf.js')).default;
       const element = document.getElementById('receipt-content');
       
+      if (!element) return;
       const opt = {
         margin:       0,
         filename:     `Receipt-${invoice?.receiptNumber || invoice?.id || 'doc'}.pdf`,
-        image:        { type: 'jpeg', quality: 0.98 },
+        image:        { type: 'jpeg' as const, quality: 0.98 },
         html2canvas:  { scale: 2, useCORS: true },
-        jsPDF:        { unit: 'mm', format: paperSize === '58mm' ? [58, 200] : [80, 200], orientation: 'portrait' }
+        jsPDF:        { unit: 'mm', format: paperSize === '58mm' ? [58, 200] : [80, 200], orientation: 'portrait' as const }
       };
       
       html2pdf().set(opt).from(element).save();
@@ -229,7 +231,8 @@ export default function ReceiptPage() {
          </div>
       </div>
 
-      <div className="receipt-container" id="receipt-content">
+      <div className="receipt-container relative overflow-hidden" id="receipt-content">
+        <PrintWatermark facilityName={clinicName} embedInContent />
         <div className="text-center mb-2">
             <h2 className="font-bold uppercase tracking-wider" style={{ fontSize: '16px', margin: '0 0 2px 0' }}>{clinicName}</h2>
             {clinicSubtitle && <div style={{ fontSize: '11px', fontStyle: 'italic', marginBottom: '2px', color: '#555' }}>{clinicSubtitle}</div>}
