@@ -36,6 +36,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import QRCode from "qrcode";
+import { useReactToPrint } from "react-to-print";
 import {
   getClinicName,
   getClinicSubtitle,
@@ -171,9 +172,23 @@ export function MedicalHistoryViewModal({
 
   const fullName = `${patient.first_name || ""} ${patient.last_name || ""}`.trim() || "Patient";
 
-  const handlePrint = () => {
-    window.print();
-  };
+  const handlePrint = useReactToPrint({
+    contentRef: printableRef,
+    documentTitle: `Medical-Form-V-${fullName.replace(/\s+/g, '_')}-${record?.id || 'record'}`,
+    pageStyle: `
+      @page {
+        size: A4 portrait;
+        margin: 8mm;
+      }
+      @media print {
+        body {
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+          background: #ffffff !important;
+        }
+      }
+    `,
+  });
 
   const handleDownloadPDF = async () => {
     try {

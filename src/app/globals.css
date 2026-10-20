@@ -128,9 +128,25 @@
     print-color-adjust: exact !important;
   }
 
+  /* When printing from a modal dialog or medical form, completely hide all background page chrome */
+  body:has([role="dialog"]) > *:not([data-radix-portal]),
+  body:has([data-radix-portal] [role="dialog"]) > *:not([data-radix-portal]),
+  body:has(#medical-form-v-content) > *:not([data-radix-portal]) {
+    display: none !important;
+  }
+
+  [data-radix-portal] {
+    position: static !important;
+    display: block !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
   /* Ensure modal backdrop does not gray out or black out printed paper */
   [data-radix-portal] > [data-state],
   div[data-state][class*=fixed][class*=inset-0] {
+    display: none !important;
     background: transparent !important;
   }
 
@@ -139,12 +155,19 @@
     position: static !important;
     max-height: none !important;
     max-width: 100% !important;
+    width: 100% !important;
     overflow: visible !important;
     transform: none !important;
     box-shadow: none !important;
     border: none !important;
     margin: 0 !important;
     padding: 0 !important;
+    background: white !important;
+  }
+
+  /* Hide modal close button during printing */
+  [role=dialog] > button {
+    display: none !important;
   }
 
   .print-watermark-overlay {
