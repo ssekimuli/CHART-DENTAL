@@ -5515,3 +5515,37 @@ export const sendXrayRequestDocument = async (
 
 
 
+
+export interface FacilityReceiptSettings {
+  clinic_name: string | null;
+  subtitle: string | null;
+  address: string | null;
+  phone: string | null;
+  email: string | null;
+  receipt_prefix: string | null;
+  currency: string | null;
+  receipt_footer: string | null;
+  updated_at?: string;
+}
+
+export const getFacilityReceiptSettings = async (): Promise<FacilityReceiptSettings> => {
+  try {
+    const response = await customAxios.get('/settings/receipt');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching facility receipt settings:', error);
+    throw error;
+  }
+};
+
+export const updateFacilityReceiptSettings = async (
+  payload: Partial<FacilityReceiptSettings>
+): Promise<{ message: string; data: FacilityReceiptSettings }> => {
+  try {
+    const response = await customAxios.post('/settings/receipt', payload);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating facility receipt settings:', error);
+    throw error;
+  }
+};

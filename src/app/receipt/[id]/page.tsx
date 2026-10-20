@@ -7,7 +7,9 @@ import { getInvoiceById, getPatientById } from '@/lib/api';
 import moment from 'moment';
 import { useCurrency } from '@/hooks/use-currency';
 import { Loader2 } from 'lucide-react';
-import { getClinicName, getClinicAddress, getClinicPhone } from '@/lib/business-details';
+import { getClinicName, getClinicAddress, getClinicPhone, getClinicSubtitle, getClinicEmail, getReceiptFooter } from '@/lib/business-details';
+import { getFacilityReceiptSettings, FacilityReceiptSettings } from '@/lib/api';
+import { PrintWatermark } from '@/components/print-watermark';
 
 export default function ReceiptPage() {
   const params = useParams();
@@ -17,6 +19,7 @@ export default function ReceiptPage() {
   const [patient, setPatient] = useState<Patient | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(true);
   const [paperSize, setPaperSize] = useState<'80mm' | '58mm'>('80mm');
+  const [receiptSettings, setReceiptSettings] = useState<FacilityReceiptSettings | null>(null);
 
   useEffect(() => {
     if (typeof id !== 'string') {
@@ -27,6 +30,12 @@ export default function ReceiptPage() {
     const fetchData = async () => {
       setIsLoading(true);
       try {
+        try {
+          const rSettings = await getFacilityReceiptSettings();
+          if (rSettings) setReceiptSettings(rSettings);
+        } catch (sErr) {
+          console.warn('Could not load facility receipt settings:', sErr);
+        }
         const invoiceData = await getInvoiceById(id as string);
         if (invoiceData) {
           setInvoice(invoiceData);
@@ -61,12 +70,13 @@ export default function ReceiptPage() {
       const html2pdf = (await import('html2pdf.js')).default;
       const element = document.getElementById('receipt-content');
       
+      if (!element) return;
       const opt = {
         margin:       0,
         filename:     `Receipt-${invoice?.receiptNumber || invoice?.id || 'doc'}.pdf`,
-        image:        { type: 'jpeg', quality: 0.98 },
+        image:        { type: 'jpeg' as const, quality: 0.98 },
         html2canvas:  { scale: 2, useCORS: true },
-        jsPDF:        { unit: 'mm', format: paperSize === '58mm' ? [58, 200] : [80, 200], orientation: 'portrait' }
+        jsPDF:        { unit: 'mm', format: paperSize === '58mm' ? [58, 200] : [80, 200], orientation: 'portrait' as const }
       };
       
       html2pdf().set(opt).from(element).save();
@@ -112,9 +122,12 @@ export default function ReceiptPage() {
 
   if (!invoice) return null;
 
-  const clinicName = invoice.branch?.name || getClinicName();
-  const clinicAddress = invoice.branch?.address || getClinicAddress();
-  const clinicPhone = invoice.branch?.contactNumber || (invoice.branch as any)?.phone || (invoice.branch as any)?.contact_number || getClinicPhone();
+  const clinicName = receiptSettings?.clinic_name || invoice.branch?.name || getClinicName();
+  const clinicSubtitle = receiptSettings?.subtitle || getClinicSubtitle();
+  const clinicAddress = receiptSettings?.address || invoice.branch?.address || getClinicAddress();
+  const clinicPhone = receiptSettings?.phone || invoice.branch?.contactNumber || (invoice.branch as any)?.phone || (invoice.branch as any)?.contact_number || getClinicPhone();
+  const clinicEmail = receiptSettings?.email || (invoice.branch as any)?.email || getClinicEmail();
+  const receiptFooterNote = receiptSettings?.receipt_footer || getReceiptFooter();
 
   const patientDisplayName = invoice.patientName || (patient ? `${patient.first_name} ${patient.last_name}` : 'Walk-in');
   const patientPhone = patient?.phone || invoice.patient?.phone || (invoice as any)?.patientPhone;
@@ -218,11 +231,14 @@ export default function ReceiptPage() {
          </div>
       </div>
 
-      <div className="receipt-container" id="receipt-content">
+      <div className="receipt-container relative overflow-hidden" id="receipt-content">
+        <PrintWatermark facilityName={clinicName} embedInContent />
         <div className="text-center mb-2">
-            <h2 className="font-bold" style={{ fontSize: '16px', margin: '0 0 4px 0' }}>{clinicName}</h2>
+            <h2 className="font-bold uppercase tracking-wider" style={{ fontSize: '16px', margin: '0 0 2px 0' }}>{clinicName}</h2>
+            {clinicSubtitle && <div style={{ fontSize: '11px', fontStyle: 'italic', marginBottom: '2px', color: '#555' }}>{clinicSubtitle}</div>}
             {clinicAddress && <div>{clinicAddress}</div>}
             {clinicPhone && <div>Tel: {clinicPhone}</div>}
+            {clinicEmail && <div>Email: {clinicEmail}</div>}
         </div>
 
         <div className="border-b pb-2 mb-2">
@@ -296,9 +312,8 @@ export default function ReceiptPage() {
             </div>
         </div>
 
-        <div className="text-center mt-2 border-t pt-2">
-            <div>Thank you for your visit!</div>
-            <div>Get well soon.</div>
+        <div className="text-center mt-2 border-t pt-2" style={{ whiteSpace: 'pre-line' }}>
+            <div>{receiptFooterNote || "Thank you for your visit! Get well soon."}</div>
         </div>
       </div>
     </>

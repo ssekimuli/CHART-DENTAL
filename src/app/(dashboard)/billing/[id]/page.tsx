@@ -15,6 +15,7 @@ import { hasPermission } from '@/lib/user';
 import moment from 'moment';
 import { useCurrency } from '@/hooks/use-currency';
 import { InvoicePrinter } from '@/components/thermal-printer/invoice-printer';
+import { PrintWatermark } from '@/components/print-watermark';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -147,7 +148,7 @@ export default function InvoiceDetailPage() {
           margin:       0.5,
           filename:     `invoice_${invoice?.id || 'unknown'}.pdf`,
           image:        { type: 'jpeg' as const, quality: 0.98 },
-          html2canvas:  { scale: 2 },
+          html2canvas:  { scale: 2, useCORS: true },
           jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' as const }
         };
         html2pdf().set(opt).from(element).save();
@@ -204,7 +205,8 @@ export default function InvoiceDetailPage() {
         Back
       </Button>
 
-      <Card id="invoice-content">
+      <Card id="invoice-content" className="relative overflow-hidden print:border-none print:shadow-none">
+        <PrintWatermark facilityName={getClinicName()} embedInContent />
         <CardHeader className="flex flex-row items-center justify-between" data-html2canvas-ignore="true">
           <div>
               <p className="text-sm text-muted-foreground">Invoice #{invoice.id}</p>

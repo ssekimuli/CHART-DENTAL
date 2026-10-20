@@ -6,6 +6,7 @@ import {
   DialogContent,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { PrintWatermark } from "@/components/print-watermark";
 import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
@@ -200,7 +201,8 @@ export function XrayRequestViewModal({
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[92vh] overflow-y-auto p-0 print:border-none print:shadow-none print:max-w-full print:p-0">
         {/* PRINTABLE REQUISITION CASE SHEET */}
-        <div className="p-6 md:p-8 space-y-5 bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 print:p-0 print:text-black">
+        <div className="relative p-6 md:p-8 space-y-5 bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 print:p-0 print:text-black">
+          <PrintWatermark facilityName={facilityClinicName} embedInContent />
           {/* HEADER / CLINIC WATERMARK */}
           <div className="flex items-start justify-between pb-3 border-b-2 border-dashed border-slate-800 dark:border-slate-200">
             <div>

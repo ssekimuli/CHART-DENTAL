@@ -4,6 +4,7 @@ import "./globals.css";
 import { cn } from "@/lib/utils";
 import { Toaster } from "@/components/ui/toaster";
 import { Analytics } from "@vercel/analytics/next";
+import { PrintWatermark } from "@/components/print-watermark";
 
 export const metadata: Metadata = {
   title: "Dentio",
@@ -35,6 +36,7 @@ export default function RootLayout({
         )}
         suppressHydrationWarning
       >
+        <PrintWatermark />
         {children}
         <Analytics />
         <Toaster />
