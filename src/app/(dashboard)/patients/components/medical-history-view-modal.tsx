@@ -172,25 +172,127 @@ export function MedicalHistoryViewModal({
 
   const fullName = `${patient.first_name || ""} ${patient.last_name || ""}`.trim() || "Patient";
 
-  const handlePrint = useReactToPrint({
-    contentRef: printableRef,
-    documentTitle: `Medical-Form-V-${fullName.replace(/\s+/g, '_')}-${record?.id || 'record'}`,
-    pageStyle: `
-      @page {
-        size: A4 portrait;
-        margin: 8mm;
-      }
-      @media print {
-        body {
+  const handlePrint = () => {
+    const content = printableRef.current;
+    if (!content) return;
+
+    // Remove any previous print iframe
+    const oldIframe = document.getElementById("medical-form-print-iframe");
+    if (oldIframe) oldIframe.remove();
+
+    const iframe = document.createElement("iframe");
+    iframe.id = "medical-form-print-iframe";
+    iframe.style.position = "fixed";
+    iframe.style.right = "0";
+    iframe.style.bottom = "0";
+    iframe.style.width = "0";
+    iframe.style.height = "0";
+    iframe.style.border = "none";
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentWindow?.document;
+    if (!doc) {
+      window.print();
+      return;
+    }
+
+    // Collect all stylesheets from main document
+    const headNodes: string[] = [];
+    document.querySelectorAll("link[rel='stylesheet'], style").forEach((node) => {
+      headNodes.push(node.outerHTML);
+    });
+
+    const printStyles = `
+      <style>
+        @page {
+          size: A4 portrait;
+          margin: 8mm;
+        }
+        * {
           -webkit-print-color-adjust: exact !important;
           print-color-adjust: exact !important;
-          background: #ffffff !important;
+          box-sizing: border-box;
         }
-      }
-    `,
-  });
+        html, body {
+          margin: 0 !important;
+          padding: 0 !important;
+          background: #ffffff !important;
+          color: #0f172a !important;
+          font-family: inherit;
+        }
+        #medical-form-v-content {
+          display: block !important;
+          visibility: visible !important;
+          position: relative !important;
+          width: 100% !important;
+          padding: 8px !important;
+          margin: 0 !important;
+          background: #ffffff !important;
+          color: #0f172a !important;
+          overflow: hidden !important;
+        }
+        #medical-form-v-content .print-watermark-embed {
+          position: absolute !important;
+          inset: 0 !important;
+          width: 100% !important;
+          height: 100% !important;
+          display: flex !important;
+          flex-direction: column !important;
+          justify-content: space-around !important;
+          align-items: center !important;
+          pointer-events: none !important;
+          z-index: 5 !important;
+          visibility: visible !important;
+        }
+        #medical-form-v-content .print-watermark-text {
+          font-size: clamp(34px, 5vw, 56px) !important;
+          font-weight: 900 !important;
+          color: rgba(15, 23, 42, 0.08) !important;
+          text-transform: uppercase !important;
+          letter-spacing: 6px !important;
+          transform: rotate(-32deg) !important;
+          text-align: center !important;
+          line-height: 1.25 !important;
+          max-width: 90% !important;
+          visibility: visible !important;
+        }
+        .print\\:hidden {
+          display: none !important;
+        }
+      </style>
+    `;
 
-  const handleDownloadPDF = async () => {
+    doc.open();
+    doc.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Medical-Form-V-${fullName.replace(/\s+/g, "_")}-${record.id || "record"}</title>
+          ${headNodes.join("\n")}
+          ${printStyles}
+        </head>
+        <body class="bg-white text-slate-900">
+          ${content.outerHTML}
+        </body>
+      </html>
+    `);
+    doc.close();
+
+    // Give browser time to lay out and render image/QR, then open print dialog
+    setTimeout(() => {
+      try {
+        iframe.contentWindow?.focus();
+        iframe.contentWindow?.print();
+      } catch (err) {
+        console.error("Print error:", err);
+      } finally {
+        setTimeout(() => {
+          iframe.remove();
+        }, 3000);
+      }
+    }, 400);
+  };
+const handleDownloadPDF = async () => {
     try {
       setIsGeneratingPdf(true);
       const html2pdf = (await import("html2pdf.js")).default;
