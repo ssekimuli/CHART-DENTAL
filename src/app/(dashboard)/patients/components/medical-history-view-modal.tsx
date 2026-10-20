@@ -26,6 +26,7 @@ import {
   Building2,
   Share2,
   Mail,
+  Download,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -34,6 +35,15 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import QRCode from "qrcode";
+import {
+  getClinicName,
+  getClinicSubtitle,
+  getClinicAddress,
+  getClinicPhone,
+  getClinicEmail,
+  getReceiptFooter,
+} from "@/lib/business-details";
 
 function WhatsAppIcon({ className = "h-4 w-4" }: { className?: string }) {
   return (
@@ -63,6 +73,9 @@ export function MedicalHistoryViewModal({
 }: MedicalHistoryViewModalProps) {
   const { selectedBranch, availableBranches } = useBranch();
   const [receiptSettings, setReceiptSettings] = React.useState<FacilityReceiptSettings | null>(null);
+  const [qrCodeDataUrl, setQrCodeDataUrl] = React.useState<string>("");
+  const [isGeneratingPdf, setIsGeneratingPdf] = React.useState<boolean>(false);
+  const printableRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
     let isMounted = true;
@@ -82,23 +95,107 @@ export function MedicalHistoryViewModal({
     };
   }, [isOpen]);
 
+  const currentBranch = availableBranches.find(
+    (b) => String(b.id) === String(selectedBranch || (patient && patient.branch_id))
+  ) || availableBranches[0];
+
+  const localClinicName = typeof window !== "undefined" ? getClinicName() : "";
+  const facilityName =
+    receiptSettings?.clinic_name ||
+    (localClinicName && localClinicName !== "CHART DENTAL" ? localClinicName : "") ||
+    currentBranch?.name ||
+    localClinicName ||
+    "DENTAL & ORAL HEALTHCARE CLINIC";
+
+  const facilitySubtitle =
+    receiptSettings?.subtitle ||
+    (typeof window !== "undefined" ? getClinicSubtitle() : "") ||
+    "";
+
+  const facilityAddress =
+    receiptSettings?.address ||
+    (typeof window !== "undefined" ? getClinicAddress() : "") ||
+    currentBranch?.address ||
+    "";
+
+  const facilityPhone =
+    receiptSettings?.phone ||
+    (typeof window !== "undefined" ? getClinicPhone() : "") ||
+    (currentBranch as any)?.contactNumber ||
+    (currentBranch as any)?.contact_number ||
+    (currentBranch as any)?.phone ||
+    "";
+
+  const facilityEmail =
+    receiptSettings?.email ||
+    (typeof window !== "undefined" ? getClinicEmail() : "") ||
+    (currentBranch as any)?.email ||
+    "";
+
+  const facilityFooter =
+    receiptSettings?.receipt_footer ||
+    (typeof window !== "undefined" ? getReceiptFooter() : "") ||
+    "";
+
+  // Build the 4 requested QR code fields: CLINIC NAME, ADDRESS, PHONE, EMAIL
+  React.useEffect(() => {
+    let isMounted = true;
+    const qrData = [
+      `CLINIC NAME: ${facilityName}`,
+      `ADDRESS: ${facilityAddress || "Clinic Premises"}`,
+      `PHONE: ${facilityPhone || "Not Specified"}`,
+      `EMAIL: ${facilityEmail || "Not Specified"}`,
+    ].join("\n");
+
+    QRCode.toDataURL(qrData, {
+      margin: 1,
+      width: 256,
+      color: {
+        dark: "#000000",
+        light: "#ffffff",
+      },
+    })
+      .then((url) => {
+        if (isMounted) setQrCodeDataUrl(url);
+      })
+      .catch((err) => {
+        console.error("Failed to generate Clinic QR Code:", err);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [facilityName, facilityAddress, facilityPhone, facilityEmail]);
+
   if (!record) return null;
 
   const fullName = `${patient.first_name || ""} ${patient.last_name || ""}`.trim() || "Patient";
 
-  const currentBranch = availableBranches.find(
-    (b) => String(b.id) === String(selectedBranch || patient.branch_id)
-  ) || availableBranches[0];
-
-  const facilityName = receiptSettings?.clinic_name || currentBranch?.name || "DENTAL & ORAL HEALTHCARE CLINIC";
-  const facilitySubtitle = receiptSettings?.subtitle || "";
-  const facilityAddress = receiptSettings?.address || currentBranch?.address || "";
-  const facilityPhone = receiptSettings?.phone || (currentBranch as any)?.contactNumber || (currentBranch as any)?.phone || "";
-  const facilityEmail = receiptSettings?.email || "";
-  const facilityFooter = receiptSettings?.receipt_footer || "";
-
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleDownloadPDF = async () => {
+    try {
+      setIsGeneratingPdf(true);
+      const html2pdf = (await import("html2pdf.js")).default;
+      const element = printableRef.current;
+      if (!element) return;
+
+      const opt = {
+        margin: 8,
+        filename: `Medical-Form-V-Record-${record.id || "doc"}.pdf`,
+        image: { type: 'jpeg' as const, quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: "mm", format: "a4", orientation: 'portrait' as const },
+      };
+
+      await html2pdf().set(opt).from(element).save();
+    } catch (err) {
+      console.error("Failed to generate PDF:", err);
+    } finally {
+      setIsGeneratingPdf(false);
+    }
   };
 
   const formattedDate = record.date ? moment(record.date).format("MMMM DD, YYYY") : "Undated";
@@ -145,11 +242,15 @@ export function MedicalHistoryViewModal({
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[92vh] overflow-y-auto p-0 print:border-none print:shadow-none print:max-w-full print:p-0">
         {/* PRINTABLE CASE SHEET WRAPPER */}
-        <div className="relative p-6 md:p-8 space-y-5 bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 print:p-0 print:text-black">
+        <div
+          ref={printableRef}
+          id="medical-form-v-content"
+          className="relative p-6 md:p-8 space-y-5 bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 print:p-0 print:text-black"
+        >
           <PrintWatermark facilityName={facilityName} embedInContent />
-          {/* HEADER / CLINIC WATERMARK */}
-          <div className="flex items-start justify-between pb-3 border-b-2 border-dashed border-slate-800 dark:border-slate-200">
-            <div>
+          {/* HEADER / CLINIC WATERMARK & QR CODE */}
+          <div className="flex items-start justify-between pb-3 border-b-2 border-dashed border-slate-800 dark:border-slate-200 gap-4">
+            <div className="flex-1 pr-2">
               <div className="flex items-center gap-2">
                 <span className="text-xl font-extrabold tracking-tight text-teal-700 dark:text-teal-400 print:text-black">
                   {facilityName}
@@ -161,7 +262,7 @@ export function MedicalHistoryViewModal({
                 </p>
               )}
               <p className="text-xs font-semibold uppercase tracking-wider text-teal-800 dark:text-teal-300 print:text-slate-800 mt-0.5">
-                Medical Form
+                Medical Form V &mdash; Clinical Case Sheet
               </p>
               <div className="text-[11px] text-muted-foreground print:text-slate-600 mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5">
                 {facilityAddress && <span>Address: {facilityAddress}</span>}
@@ -169,13 +270,28 @@ export function MedicalHistoryViewModal({
                 {facilityEmail && <span>Email: {facilityEmail}</span>}
               </div>
             </div>
-            <div className="text-right">
-              <span className="font-mono text-xs font-bold text-teal-700 dark:text-teal-400 print:text-black">
-                RECORD #{record.id || "N/A"}
-              </span>
-              <p className="text-xs text-muted-foreground mt-0.5 flex items-center justify-end gap-1 print:text-slate-600">
-                <Calendar className="h-3 w-3" /> {formattedDate}
-              </p>
+
+            <div className="flex items-center gap-3 shrink-0">
+              {qrCodeDataUrl && (
+                <div className="flex flex-col items-center justify-center p-1 bg-white rounded border border-slate-300 shadow-xs print:border-slate-500">
+                  <img
+                    src={qrCodeDataUrl}
+                    alt="Clinic Information QR Code"
+                    className="w-16 h-16 object-contain block"
+                  />
+                  <span className="text-[8px] font-bold tracking-wider uppercase text-slate-700 print:text-black mt-0.5">
+                    CLINIC QR
+                  </span>
+                </div>
+              )}
+              <div className="text-right">
+                <span className="font-mono text-xs font-bold text-teal-700 dark:text-teal-400 print:text-black">
+                  RECORD #{record.id || "N/A"}
+                </span>
+                <p className="text-xs text-muted-foreground mt-0.5 flex items-center justify-end gap-1 print:text-slate-600">
+                  <Calendar className="h-3 w-3" /> {formattedDate}
+                </p>
+              </div>
             </div>
           </div>
 
@@ -240,34 +356,24 @@ export function MedicalHistoryViewModal({
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               <span className="text-xs font-bold uppercase tracking-wider text-teal-800 dark:text-teal-300 print:text-black">
-                1. Chief Complaint
+                1. Chief Complaint & History of Present Illness
               </span>
               <span className="flex-1 border-b border-dashed border-slate-300 dark:border-slate-700" />
             </div>
-            <div className="border-b border-dashed border-slate-400 dark:border-slate-600 pb-1.5 pt-0.5 text-sm min-h-[26px]">
-              {record.chief_complaint || "None recorded"}
+            <div className="border-b border-dashed border-slate-400 dark:border-slate-600 pb-1.5 pt-0.5 text-xs whitespace-pre-wrap min-h-[26px]">
+              {record.chief_complaint || "No chief complaint noted"}
             </div>
+            {record.history_complaint && (
+              <p className="text-[11px] text-muted-foreground pt-0.5 italic">
+                History: {record.history_complaint}
+              </p>
+            )}
           </div>
 
-          {/* HISTORY OF PRESENT COMPLAINT */}
-          {record.history_complaint && (
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 print:text-black">
-                  History of Present Complaint / Illness
-                </span>
-                <span className="flex-1 border-b border-dashed border-slate-300 dark:border-slate-700" />
-              </div>
-              <div className="border-b border-dashed border-slate-400 dark:border-slate-600 pb-1.5 pt-0.5 text-sm whitespace-pre-wrap min-h-[26px]">
-                {record.history_complaint}
-              </div>
-            </div>
-          )}
-
-          {/* 2. ORAL EXAMINATION */}
+          {/* 2. CLINICAL EXAMINATION */}
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-teal-800 dark:text-teal-300 print:text-black">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 print:text-black">
                 2. Clinical Oral Examination
               </span>
               <span className="flex-1 border-b border-dashed border-slate-300 dark:border-slate-700" />
@@ -388,9 +494,19 @@ export function MedicalHistoryViewModal({
         </div>
 
         <DialogFooter className="p-4 border-t gap-2 sm:gap-0 bg-slate-50/50 dark:bg-slate-900/40 print:hidden">
-          <div className="flex items-center gap-2 mr-auto">
+          <div className="flex items-center gap-2 mr-auto flex-wrap">
             <Button variant="outline" size="sm" onClick={handlePrint}>
               <Printer className="mr-2 h-4 w-4" /> Print Case Sheet
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleDownloadPDF}
+              disabled={isGeneratingPdf}
+              className="border-teal-500/40 text-teal-700 dark:text-teal-300 hover:bg-teal-50 dark:hover:bg-teal-950/40"
+            >
+              <Download className="mr-2 h-4 w-4" />
+              {isGeneratingPdf ? "Generating PDF..." : "Download PDF"}
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
