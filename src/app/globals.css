@@ -254,3 +254,43 @@
   word-break: break-word;
   user-select: none;
 }
+/* Medical Form V & Printable Clinical Sheets Watermark */
+#medical-form-v-content .print-watermark-embed,
+.print-watermark-container .print-watermark-embed,
+[data-watermark="true"] .print-watermark-embed {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  align-items: center;
+  pointer-events: none;
+  z-index: 5;
+  user-select: none;
+  overflow: hidden;
+}
+
+#medical-form-v-content .print-watermark-embed .print-watermark-text,
+.print-watermark-container .print-watermark-embed .print-watermark-text,
+[data-watermark="true"] .print-watermark-embed .print-watermark-text {
+  font-size: clamp(34px, 5vw, 56px);
+  font-weight: 900;
+  color: rgba(15, 23, 42, 0.08);
+  text-transform: uppercase;
+  letter-spacing: 6px;
+  transform: rotate(-32deg);
+  text-align: center;
+  line-height: 1.25;
+  max-width: 90%;
+  word-break: break-word;
+  user-select: none;
+}
+
+.dark #medical-form-v-content .print-watermark-embed .print-watermark-text,
+.dark .print-watermark-container .print-watermark-embed .print-watermark-text,
+.dark [data-watermark="true"] .print-watermark-embed .print-watermark-text {
+  color: rgba(255, 255, 255, 0.07);
+}

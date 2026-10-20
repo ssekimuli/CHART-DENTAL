@@ -186,7 +186,36 @@ export function MedicalHistoryViewModal({
         margin: 8,
         filename: `Medical-Form-V-Record-${record.id || "doc"}.pdf`,
         image: { type: 'jpeg' as const, quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true },
+        html2canvas: {
+          scale: 2,
+          useCORS: true,
+          logging: false,
+          onclone: (clonedDoc: any) => {
+            const clonedContent = clonedDoc.getElementById("medical-form-v-content");
+            if (clonedContent) {
+              clonedContent.style.backgroundColor = "#ffffff";
+              clonedContent.style.color = "#0f172a";
+
+              const watermark = clonedContent.querySelector(".print-watermark-embed") as HTMLElement | null;
+              if (watermark) {
+                watermark.style.display = "flex";
+                watermark.style.position = "absolute";
+                watermark.style.inset = "0";
+                watermark.style.width = "100%";
+                watermark.style.height = "100%";
+                watermark.style.zIndex = "10";
+                watermark.style.visibility = "visible";
+              }
+              const watermarkTexts = clonedContent.querySelectorAll(".print-watermark-text");
+              watermarkTexts.forEach((node: any) => {
+                const el = node as HTMLElement;
+                el.style.color = "rgba(15, 23, 42, 0.08)";
+                el.style.visibility = "visible";
+                el.style.display = "block";
+              });
+            }
+          },
+        },
         jsPDF: { unit: "mm", format: "a4", orientation: 'portrait' as const },
       };
 
@@ -197,6 +226,7 @@ export function MedicalHistoryViewModal({
       setIsGeneratingPdf(false);
     }
   };
+
 
   const formattedDate = record.date ? moment(record.date).format("MMMM DD, YYYY") : "Undated";
 
