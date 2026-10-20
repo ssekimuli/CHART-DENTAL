@@ -36,6 +36,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import QRCode from "qrcode";
+import { useReactToPrint } from "react-to-print";
 import {
   getClinicName,
   getClinicSubtitle,
@@ -172,10 +173,126 @@ export function MedicalHistoryViewModal({
   const fullName = `${patient.first_name || ""} ${patient.last_name || ""}`.trim() || "Patient";
 
   const handlePrint = () => {
-    window.print();
-  };
+    const content = printableRef.current;
+    if (!content) return;
 
-  const handleDownloadPDF = async () => {
+    // Remove any previous print iframe
+    const oldIframe = document.getElementById("medical-form-print-iframe");
+    if (oldIframe) oldIframe.remove();
+
+    const iframe = document.createElement("iframe");
+    iframe.id = "medical-form-print-iframe";
+    iframe.style.position = "fixed";
+    iframe.style.right = "0";
+    iframe.style.bottom = "0";
+    iframe.style.width = "0";
+    iframe.style.height = "0";
+    iframe.style.border = "none";
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentWindow?.document;
+    if (!doc) {
+      window.print();
+      return;
+    }
+
+    // Collect all stylesheets from main document
+    const headNodes: string[] = [];
+    document.querySelectorAll("link[rel='stylesheet'], style").forEach((node) => {
+      headNodes.push(node.outerHTML);
+    });
+
+    const printStyles = `
+      <style>
+        @page {
+          size: A4 portrait;
+          margin: 8mm;
+        }
+        * {
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+          box-sizing: border-box;
+        }
+        html, body {
+          margin: 0 !important;
+          padding: 0 !important;
+          background: #ffffff !important;
+          color: #0f172a !important;
+          font-family: inherit;
+        }
+        #medical-form-v-content {
+          display: block !important;
+          visibility: visible !important;
+          position: relative !important;
+          width: 100% !important;
+          padding: 8px !important;
+          margin: 0 !important;
+          background: #ffffff !important;
+          color: #0f172a !important;
+          overflow: hidden !important;
+        }
+        #medical-form-v-content .print-watermark-embed {
+          position: absolute !important;
+          inset: 0 !important;
+          width: 100% !important;
+          height: 100% !important;
+          display: flex !important;
+          flex-direction: column !important;
+          justify-content: space-around !important;
+          align-items: center !important;
+          pointer-events: none !important;
+          z-index: 5 !important;
+          visibility: visible !important;
+        }
+        #medical-form-v-content .print-watermark-text {
+          font-size: clamp(34px, 5vw, 56px) !important;
+          font-weight: 900 !important;
+          color: rgba(15, 23, 42, 0.08) !important;
+          text-transform: uppercase !important;
+          letter-spacing: 6px !important;
+          transform: rotate(-32deg) !important;
+          text-align: center !important;
+          line-height: 1.25 !important;
+          max-width: 90% !important;
+          visibility: visible !important;
+        }
+        .print\\:hidden {
+          display: none !important;
+        }
+      </style>
+    `;
+
+    doc.open();
+    doc.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Medical-Form-V-${fullName.replace(/\s+/g, "_")}-${record.id || "record"}</title>
+          ${headNodes.join("\n")}
+          ${printStyles}
+        </head>
+        <body class="bg-white text-slate-900">
+          ${content.outerHTML}
+        </body>
+      </html>
+    `);
+    doc.close();
+
+    // Give browser time to lay out and render image/QR, then open print dialog
+    setTimeout(() => {
+      try {
+        iframe.contentWindow?.focus();
+        iframe.contentWindow?.print();
+      } catch (err) {
+        console.error("Print error:", err);
+      } finally {
+        setTimeout(() => {
+          iframe.remove();
+        }, 3000);
+      }
+    }, 400);
+  };
+const handleDownloadPDF = async () => {
     try {
       setIsGeneratingPdf(true);
       const html2pdf = (await import("html2pdf.js")).default;
@@ -186,8 +303,44 @@ export function MedicalHistoryViewModal({
         margin: 8,
         filename: `Medical-Form-V-Record-${record.id || "doc"}.pdf`,
         image: { type: 'jpeg' as const, quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true },
+        html2canvas: {
+          scale: 2,
+          useCORS: true,
+          logging: false,
+          scrollY: 0,
+          scrollX: 0,
+          windowWidth: 1024,
+          onclone: (clonedDoc: any) => {
+            const clonedContent = clonedDoc.getElementById("medical-form-v-content");
+            if (clonedContent) {
+              clonedContent.style.backgroundColor = "#ffffff";
+              clonedContent.style.color = "#0f172a";
+              clonedContent.style.maxHeight = "none";
+              clonedContent.style.height = "auto";
+              clonedContent.style.overflow = "visible";
+
+              const watermark = clonedContent.querySelector(".print-watermark-embed") as HTMLElement | null;
+              if (watermark) {
+                watermark.style.display = "flex";
+                watermark.style.position = "absolute";
+                watermark.style.inset = "0";
+                watermark.style.width = "100%";
+                watermark.style.height = "100%";
+                watermark.style.zIndex = "5";
+                watermark.style.visibility = "visible";
+              }
+              const watermarkTexts = clonedContent.querySelectorAll(".print-watermark-text");
+              watermarkTexts.forEach((node: any) => {
+                const el = node as HTMLElement;
+                el.style.color = "rgba(15, 23, 42, 0.08)";
+                el.style.visibility = "visible";
+                el.style.display = "block";
+              });
+            }
+          },
+        },
         jsPDF: { unit: "mm", format: "a4", orientation: 'portrait' as const },
+        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
       };
 
       await html2pdf().set(opt).from(element).save();
@@ -197,6 +350,7 @@ export function MedicalHistoryViewModal({
       setIsGeneratingPdf(false);
     }
   };
+
 
   const formattedDate = record.date ? moment(record.date).format("MMMM DD, YYYY") : "Undated";
 
@@ -469,28 +623,41 @@ export function MedicalHistoryViewModal({
             </span>
           </div>
 
-          {/* 7. SIGNATURE SECTION (FOR PRINTING) */}
-          <div className="hidden print:grid grid-cols-2 gap-10 pt-10 mt-8 text-xs">
-            <div className="space-y-8">
-              <p className="font-semibold text-slate-700">Patient / Guardian Signature:</p>
-              <div className="border-b border-dashed border-slate-600 w-full"></div>
-              <p className="text-[11px] text-slate-500">Date: ________________________________</p>
-            </div>
-            <div className="space-y-8 text-right flex flex-col items-end">
-              <p className="font-semibold text-slate-700">Attending Clinician Signature & Stamp:</p>
-              <div className="border-b border-dashed border-slate-600 w-full"></div>
-              <p className="text-[11px] text-slate-500">
-                {record.doctor_name || "Authorized Clinician"}
-              </p>
-            </div>
-          </div>
+          {/* 7. ATTESTATION & SIGN-OFF BLOCK */}
+          <div className="pt-8 mt-6 border-t border-dashed border-slate-300 dark:border-slate-700 text-xs">
+            <div className="flex flex-row items-end justify-between gap-6">
+              <div className="space-y-1">
+                <span className="text-[11px] font-bold text-slate-600 dark:text-slate-400">
+                  Date of Examination:
+                </span>
+                <p className="text-sm font-bold text-slate-900 dark:text-slate-100 print:text-black">
+                  {formattedDate}
+                </p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 print:text-slate-600 pt-1">
+                  Facility Branch: <span className="font-medium text-slate-700 dark:text-slate-300 print:text-black">{facilityName}</span>
+                </p>
+              </div>
 
-          {/* FACILITY FOOTER NOTE */}
-          {facilityFooter && (
-            <div className="pt-4 mt-6 border-t border-dashed border-slate-300 dark:border-slate-800 text-center text-xs text-slate-600 dark:text-slate-400 print:text-slate-600">
-              {facilityFooter}
+              <div className="flex flex-col items-end text-right space-y-1">
+                <div className="w-60 border-b-2 border-slate-800 dark:border-slate-300 print:border-black mb-1"></div>
+                <p className="text-sm font-bold text-slate-900 dark:text-slate-100 print:text-black">
+                  {(record.doctor_name || "Authorized Clinician").startsWith("Dr")
+                    ? (record.doctor_name || "Authorized Clinician")
+                    : `Dr. ${record.doctor_name || "Authorized Clinician"}`}
+                </p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 print:text-slate-600">
+                  Attending Dental Surgeon / Clinician
+                </p>
+              </div>
             </div>
-          )}
+
+            {/* FACILITY FOOTER NOTE */}
+            {facilityFooter && (
+              <div className="pt-4 mt-6 border-t border-dashed border-slate-300 dark:border-slate-700 text-center text-xs text-slate-500 dark:text-slate-400 print:text-slate-600">
+                {facilityFooter}
+              </div>
+            )}
+          </div>
         </div>
 
         <DialogFooter className="p-4 border-t gap-2 sm:gap-0 bg-slate-50/50 dark:bg-slate-900/40 print:hidden">
