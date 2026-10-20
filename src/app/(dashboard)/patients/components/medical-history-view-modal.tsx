@@ -307,11 +307,17 @@ const handleDownloadPDF = async () => {
           scale: 2,
           useCORS: true,
           logging: false,
+          scrollY: 0,
+          scrollX: 0,
+          windowWidth: 1024,
           onclone: (clonedDoc: any) => {
             const clonedContent = clonedDoc.getElementById("medical-form-v-content");
             if (clonedContent) {
               clonedContent.style.backgroundColor = "#ffffff";
               clonedContent.style.color = "#0f172a";
+              clonedContent.style.maxHeight = "none";
+              clonedContent.style.height = "auto";
+              clonedContent.style.overflow = "visible";
 
               const watermark = clonedContent.querySelector(".print-watermark-embed") as HTMLElement | null;
               if (watermark) {
@@ -320,7 +326,7 @@ const handleDownloadPDF = async () => {
                 watermark.style.inset = "0";
                 watermark.style.width = "100%";
                 watermark.style.height = "100%";
-                watermark.style.zIndex = "10";
+                watermark.style.zIndex = "5";
                 watermark.style.visibility = "visible";
               }
               const watermarkTexts = clonedContent.querySelectorAll(".print-watermark-text");
@@ -334,6 +340,7 @@ const handleDownloadPDF = async () => {
           },
         },
         jsPDF: { unit: "mm", format: "a4", orientation: 'portrait' as const },
+        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
       };
 
       await html2pdf().set(opt).from(element).save();
@@ -616,28 +623,41 @@ const handleDownloadPDF = async () => {
             </span>
           </div>
 
-          {/* 7. SIGNATURE SECTION (FOR PRINTING) */}
-          <div className="hidden print:grid grid-cols-2 gap-10 pt-10 mt-8 text-xs">
-            <div className="space-y-8">
-              <p className="font-semibold text-slate-700">Patient / Guardian Signature:</p>
-              <div className="border-b border-dashed border-slate-600 w-full"></div>
-              <p className="text-[11px] text-slate-500">Date: ________________________________</p>
-            </div>
-            <div className="space-y-8 text-right flex flex-col items-end">
-              <p className="font-semibold text-slate-700">Attending Clinician Signature & Stamp:</p>
-              <div className="border-b border-dashed border-slate-600 w-full"></div>
-              <p className="text-[11px] text-slate-500">
-                {record.doctor_name || "Authorized Clinician"}
-              </p>
-            </div>
-          </div>
+          {/* 7. ATTESTATION & SIGN-OFF BLOCK */}
+          <div className="pt-8 mt-6 border-t border-dashed border-slate-300 dark:border-slate-700 text-xs">
+            <div className="flex flex-row items-end justify-between gap-6">
+              <div className="space-y-1">
+                <span className="text-[11px] font-bold text-slate-600 dark:text-slate-400">
+                  Date of Examination:
+                </span>
+                <p className="text-sm font-bold text-slate-900 dark:text-slate-100 print:text-black">
+                  {formattedDate}
+                </p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 print:text-slate-600 pt-1">
+                  Facility Branch: <span className="font-medium text-slate-700 dark:text-slate-300 print:text-black">{facilityName}</span>
+                </p>
+              </div>
 
-          {/* FACILITY FOOTER NOTE */}
-          {facilityFooter && (
-            <div className="pt-4 mt-6 border-t border-dashed border-slate-300 dark:border-slate-800 text-center text-xs text-slate-600 dark:text-slate-400 print:text-slate-600">
-              {facilityFooter}
+              <div className="flex flex-col items-end text-right space-y-1">
+                <div className="w-60 border-b-2 border-slate-800 dark:border-slate-300 print:border-black mb-1"></div>
+                <p className="text-sm font-bold text-slate-900 dark:text-slate-100 print:text-black">
+                  {(record.doctor_name || "Authorized Clinician").startsWith("Dr")
+                    ? (record.doctor_name || "Authorized Clinician")
+                    : `Dr. ${record.doctor_name || "Authorized Clinician"}`}
+                </p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 print:text-slate-600">
+                  Attending Dental Surgeon / Clinician
+                </p>
+              </div>
             </div>
-          )}
+
+            {/* FACILITY FOOTER NOTE */}
+            {facilityFooter && (
+              <div className="pt-4 mt-6 border-t border-dashed border-slate-300 dark:border-slate-700 text-center text-xs text-slate-500 dark:text-slate-400 print:text-slate-600">
+                {facilityFooter}
+              </div>
+            )}
+          </div>
         </div>
 
         <DialogFooter className="p-4 border-t gap-2 sm:gap-0 bg-slate-50/50 dark:bg-slate-900/40 print:hidden">
