@@ -10,6 +10,7 @@ import { Loader2 } from 'lucide-react';
 import { getClinicName, getClinicAddress, getClinicPhone, getClinicSubtitle, getClinicEmail, getReceiptFooter } from '@/lib/business-details';
 import { getFacilityReceiptSettings, FacilityReceiptSettings } from '@/lib/api';
 import { PrintWatermark } from '@/components/print-watermark';
+import QRCode from 'qrcode';
 
 export default function ReceiptPage() {
   const params = useParams();
@@ -20,6 +21,7 @@ export default function ReceiptPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [paperSize, setPaperSize] = useState<'80mm' | '58mm'>('80mm');
   const [receiptSettings, setReceiptSettings] = useState<FacilityReceiptSettings | null>(null);
+  const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>('');
 
   useEffect(() => {
     if (typeof id !== 'string') {
@@ -60,6 +62,25 @@ export default function ReceiptPage() {
     fetchData();
   }, [id]);
 
+  useEffect(() => {
+    if (!invoice) return;
+    const qrExtra = receiptSettings?.qr_code_info_data?.trim() || "";
+    const receiptNo = invoice.receiptNumber || `REC-${invoice.id}`;
+    const dateStr = invoice.issueDate || moment((invoice as any).createdAt).format('YYYY-MM-DD');
+    const qrData = qrExtra
+      ? `${qrExtra}\nREC:${receiptNo}|AMT:${invoice.paidAmount}|DATE:${dateStr}`
+      : `DENTAL-REC:${receiptNo}|AMT:${invoice.paidAmount}|DATE:${dateStr}`;
+
+    QRCode.toDataURL(qrData, {
+      margin: 1,
+      width: 256,
+      errorCorrectionLevel: 'L',
+      color: { dark: '#000000', light: '#ffffff' }
+    })
+      .then(url => setQrCodeDataUrl(url))
+      .catch(err => console.error('Failed to generate receipt QR:', err));
+  }, [invoice, receiptSettings]);
+
   const handlePrint = () => {
     window.print();
   };
@@ -76,10 +97,10 @@ export default function ReceiptPage() {
         filename:     `Receipt-${invoice?.receiptNumber || invoice?.id || 'doc'}.pdf`,
         image:        { type: 'jpeg' as const, quality: 0.98 },
         html2canvas:  { scale: 2, useCORS: true },
-        jsPDF:        { unit: 'mm', format: paperSize === '58mm' ? [58, 200] : [80, 200], orientation: 'portrait' as const }
+        jsPDF:        { unit: 'mm', format: (paperSize === '58mm' ? [58, 200] : [80, 200]) as any, orientation: 'portrait' as const }
       };
       
-      html2pdf().set(opt).from(element).save();
+      html2pdf().set(opt as any).from(element).save();
     } catch (error) {
       console.error('Error generating PDF:', error);
     }
@@ -311,6 +332,16 @@ export default function ReceiptPage() {
                 <span>{formatCurrency(invoice.amount - invoice.paidAmount)}</span>
             </div>
         </div>
+
+        {qrCodeDataUrl && (
+          <div className="flex justify-center my-3" style={{ display: 'flex', justifyContent: 'center', marginTop: '10px', marginBottom: '8px' }}>
+            <img
+              src={qrCodeDataUrl}
+              alt="Receipt Verification QR"
+              style={{ width: paperSize === '58mm' ? '85px' : '110px', height: paperSize === '58mm' ? '85px' : '110px' }}
+            />
+          </div>
+        )}
 
         <div className="text-center mt-2 border-t pt-2" style={{ whiteSpace: 'pre-line' }}>
             <div>{receiptFooterNote || "Thank you for your visit! Get well soon."}</div>

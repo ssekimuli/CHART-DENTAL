@@ -5525,6 +5525,9 @@ export interface FacilityReceiptSettings {
   receipt_prefix: string | null;
   currency: string | null;
   receipt_footer: string | null;
+  qr_code_info_data?: string | null;
+  logo?: string | null;
+  logo_url?: string | null;
   updated_at?: string;
 }
 
@@ -5546,6 +5549,33 @@ export const updateFacilityReceiptSettings = async (
     return response.data;
   } catch (error) {
     console.error('Error updating facility receipt settings:', error);
+    throw error;
+  }
+};
+
+export const getQrCodeInfoData = async (branchId?: string | number): Promise<string> => {
+  try {
+    const url = branchId ? `/settings/qr-code-info-data?branch_id=${branchId}` : '/settings/qr-code-info-data';
+    const response = await customAxios.get(url);
+    return response.data?.qr_code_info_data || response.data?.data?.qr_code_info_data || '';
+  } catch (error) {
+    console.error('Error fetching qr code info data:', error);
+    return '';
+  }
+};
+
+export const updateQrCodeInfoData = async (
+  qrCodeInfoData: string,
+  branchId?: string | number
+): Promise<{ success: boolean; qr_code_info_data: string }> => {
+  try {
+    const response = await customAxios.post('/settings/qr-code-info-data', {
+      qr_code_info_data: qrCodeInfoData,
+      branch_id: branchId,
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error updating qr code info data:', error);
     throw error;
   }
 };
