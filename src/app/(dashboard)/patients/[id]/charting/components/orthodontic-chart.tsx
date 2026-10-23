@@ -20,7 +20,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { MoreHorizontal, Pencil, PlusCircle, Trash } from "lucide-react";
+import { MoreHorizontal, Pencil, PlusCircle, Trash, Receipt } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -168,7 +168,31 @@ export function OrthodonticChart({ initialRecords, onSave, onUpdate, onDelete }:
                         <TableCell>{record.date}</TableCell>
                         <TableCell>{record.appliance}</TableCell>
                         <TableCell>{record.applianceLocation || 'N/A'}</TableCell>
-                        <TableCell>{record.treatmentPhase || 'N/A'}</TableCell>
+                        <TableCell>
+                          <div className="font-medium text-xs">{record.treatmentPhase || 'N/A'}</div>
+                          {record.treatmentPhase?.toLowerCase().includes('initial') && (
+                            <div className="flex flex-wrap items-center gap-1 mt-1 text-[10px]">
+                              {record.amount && Number(record.amount) > 0 && (
+                                <span className="font-mono font-bold text-teal-700 dark:text-teal-400 bg-teal-50 dark:bg-teal-950/40 px-1 py-0.5 rounded border border-teal-200 dark:border-teal-800">
+                                  USh {Number(record.amount).toLocaleString()}
+                                </span>
+                              )}
+                              {record.period && (
+                                <span className="text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded">
+                                  ⏱ {record.period}
+                                </span>
+                              )}
+                              {record.invoice_id && (
+                                <a
+                                  href={`/billing`}
+                                  className="text-blue-600 dark:text-blue-400 hover:underline font-bold flex items-center gap-0.5"
+                                >
+                                  Inv #{record.invoice_id}
+                                </a>
+                              )}
+                            </div>
+                          )}
+                        </TableCell>
                         <TableCell>{record.wireSize || record.wireSizeUpper || record.wireSizeLower ? `${record.wireSizeUpper || ''} / ${record.wireSizeLower || ''}` : 'N/A'}</TableCell>
                         <TableCell className="max-w-xs truncate">{record.notes}</TableCell>
                         {canUpdateChart && (
@@ -181,6 +205,13 @@ export function OrthodonticChart({ initialRecords, onSave, onUpdate, onDelete }:
                                         </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end">
+                                        {record.invoice_id && (
+                                          <DropdownMenuItem asChild>
+                                            <a href="/billing" className="cursor-pointer text-blue-600 dark:text-blue-400">
+                                              <Receipt className="mr-2 h-4 w-4" /> View in Billing
+                                            </a>
+                                          </DropdownMenuItem>
+                                        )}
                                         <DropdownMenuItem onClick={() => handleOpenForm(record)}>
                                             <Pencil className="mr-2 h-4 w-4" /> Edit
                                         </DropdownMenuItem>

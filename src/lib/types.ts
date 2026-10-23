@@ -407,6 +407,8 @@ export type LaboratoryOrder = {
   id: string | number;
   clientId: string | number;
   client?: Client;
+  patientName?: string;
+  lab?: string;
   item: string;
   tooth?: number;
   status: 'Draft' | 'Received' | 'In Production' | 'Ready for Delivery' | 'Delivered' | 'Cancelled';
@@ -502,6 +504,11 @@ export type OrthodonticRecord = {
   appliance: string;
   applianceLocation?: string;
   treatmentPhase?: string;
+  amount?: number | string;
+  period?: string;
+  procedures?: string;
+  invoice_id?: string | number;
+  medical_history_id?: string | number;
   wireSize?: string;
   wireSizeUpper?: string;
   wireSizeLower?: string;
