@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import type { Patient } from "@/lib/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, Pencil, Trash, Eye } from "lucide-react";
+import { MoreHorizontal, Pencil, Trash, Eye, Plus } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -95,6 +95,10 @@ export function PatientsTable({ data, onView, onEdit, onDelete }: PatientsTableP
                     <DropdownMenuItem onClick={() => onView(patient.id.toString())}>
                         <Eye className="mr-2 h-4 w-4" />
                         View
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => router.push(`/patients/${patient.id}/charting`)}>
+                        <Plus className="mr-2 h-4 w-4 text-teal-600 dark:text-teal-400" />
+                        New Treatment
                     </DropdownMenuItem>
                     {canUpdate && (
                       <DropdownMenuItem onClick={() => onEdit(patient)}>

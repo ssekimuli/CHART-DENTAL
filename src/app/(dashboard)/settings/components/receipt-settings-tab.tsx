@@ -31,6 +31,7 @@ export function ReceiptSettingsTab() {
     receipt_prefix: "REC-",
     currency: "USD",
     receipt_footer: "",
+    qr_code_info_data: "",
   });
 
   const fetchSettings = async () => {
@@ -46,6 +47,7 @@ export function ReceiptSettingsTab() {
         receipt_prefix: data.receipt_prefix || "REC-",
         currency: data.currency || "USD",
         receipt_footer: data.receipt_footer || "",
+        qr_code_info_data: data.qr_code_info_data || "",
         updated_at: data.updated_at,
       });
     } catch (error: any) {
@@ -219,6 +221,20 @@ export function ReceiptSettingsTab() {
               />
               <p className="text-xs text-muted-foreground">
                 Appears at the bottom of printed thermal/A4 slips and digital receipts.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="qr-code-info">QR Code Information / Verification Data</Label>
+              <Textarea
+                id="qr-code-info"
+                rows={2}
+                placeholder="e.g. Verification URL, Clinic Portal URL, or Tax/Reg Number (embedded in Medical Forms & Receipts QR)"
+                value={formData.qr_code_info_data || ""}
+                onChange={(e) => handleChange("qr_code_info_data", e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Embedded directly into the QR codes scanned from printed/downloaded Medical Records and Receipts.
               </p>
             </div>
           </form>

@@ -21,8 +21,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Mail, MessageCircle, Loader2, Send, Smartphone, Package, FileText, Edit2, Trash2 } from "lucide-react";
-import { sendLabOrder, updateLabOrderStatus } from "@/lib/api";
+import { MoreHorizontal, Mail, MessageCircle, Loader2, Send, Smartphone, Package, FileText, Edit2, Trash2, Receipt } from "lucide-react";
+import { sendLabOrder, updateLabOrderStatus, generateLabOrderInvoice } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -287,11 +287,41 @@ function LabOrderActions({ order, onStatusChange, onEdit, onUpdate, onDelete }: 
             <DropdownMenuContent align="end" className="w-48">
                 <DropdownMenuLabel className="font-semibold">Actions</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                {order.invoiceId && (
+                {!order.invoiceId ? (
+                  <>
+                    <DropdownMenuItem
+                      onClick={async () => {
+                        try {
+                          setIsUpdatingStatus(true);
+                          const res = await generateLabOrderInvoice(order.id);
+                          toast({
+                            title: "Invoice Generated",
+                            description: "Invoice generated successfully and sent to billing.",
+                          });
+                          const updated = res.order || { ...order, status: 'In Production', invoiceId: res.invoice_id || res.invoice?.id };
+                          onStatusChange?.(updated);
+                        } catch (err: any) {
+                          toast({
+                            variant: "destructive",
+                            title: "Failed to generate invoice",
+                            description: err?.response?.data?.message || err?.message || "Could not generate invoice.",
+                          });
+                        } finally {
+                          setIsUpdatingStatus(false);
+                        }
+                      }}
+                      className="cursor-pointer text-emerald-600 dark:text-emerald-400 font-medium"
+                    >
+                      <Receipt className="mr-2 h-4 w-4" />
+                      Generate Invoice
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                  </>
+                ) : (
                   <>
                     <DropdownMenuItem
                       onClick={() => router.push(`/billing/${order.invoiceId}`)}
-                      className="cursor-pointer text-blue-600 dark:text-blue-400"
+                      className="cursor-pointer text-blue-600 dark:text-blue-400 font-medium"
                     >
                       <FileText className="mr-2 h-4 w-4" />
                       View Invoice

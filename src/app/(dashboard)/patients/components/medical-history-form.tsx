@@ -19,7 +19,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { createMedicalHistory, updateMedicalHistory } from "@/lib/api";
+import { createMedicalHistory, updateMedicalHistory, updatePatient } from "@/lib/api";
 import type { MedicalHistory, Patient } from "@/lib/types";
 import {
   FileText,
@@ -50,6 +50,11 @@ export interface PatientBasicInfo {
   email?: string;
   address?: string;
   branch_id?: string | number;
+  mrn?: string;
+  file_number?: string;
+  next_visit?: string;
+  nextVisit?: string;
+  [key: string]: any;
 }
 
 interface MedicalHistoryFormProps {
@@ -87,6 +92,9 @@ export function MedicalHistoryForm({
   );
   const [doctorName, setDoctorName] = useState<string>(
     initialData?.doctor_name || ""
+  );
+  const [nextVisitDate, setNextVisitDate] = useState<string>(
+    patient.next_visit || (initialData as any)?.next_visit || ""
   );
   const [chiefComplaint, setChiefComplaint] = useState<string>(
     initialData?.chief_complaint || ""
@@ -145,6 +153,7 @@ export function MedicalHistoryForm({
     if (initialData) {
       setDate(initialData.date ? String(initialData.date).split("T")[0] : format(new Date(), "yyyy-MM-dd"));
       setDoctorName(initialData.doctor_name || "");
+      setNextVisitDate(patient.next_visit || (initialData as any)?.next_visit || "");
       setChiefComplaint(initialData.chief_complaint || "");
       setHistoryComplaint(initialData.history_complaint || "");
       setExtraOralExam(initialData.extra_oral_exam || "");
@@ -158,6 +167,7 @@ export function MedicalHistoryForm({
     } else {
       setDate(format(new Date(), "yyyy-MM-dd"));
       setDoctorName("");
+      setNextVisitDate(patient.next_visit || "");
       setChiefComplaint("");
       setHistoryComplaint("");
       setExtraOralExam("");
@@ -206,7 +216,8 @@ export function MedicalHistoryForm({
         consent_notes: consentNotes,
         treatment_note: treatmentNote,
         doctor_name: doctorName,
-      };
+        next_visit: nextVisitDate || undefined,
+      } as any;
       if (onSuccess) {
         onSuccess(draftRecord);
       }
@@ -250,6 +261,15 @@ export function MedicalHistoryForm({
           title: "Medical History Saved",
           description: "New clinical case sheet recorded successfully.",
         });
+      }
+
+      if (nextVisitDate && nextVisitDate !== patient.next_visit) {
+        try {
+          await updatePatient(patient.id, { nextVisit: nextVisitDate, next_visit: nextVisitDate } as any);
+          patient.next_visit = nextVisitDate;
+        } catch (pErr) {
+          console.warn("Could not sync next visit date to patient profile:", pErr);
+        }
       }
 
       if (onSuccess) {
@@ -334,8 +354,8 @@ export function MedicalHistoryForm({
               </div>
             </div>
 
-            {/* Visit Meta (Date & Attending Doctor) */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 mt-3 border-t border-border/60">
+            {/* Visit Meta (Date, Attending Doctor & Next Appointment) */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 mt-3 border-t border-border/60">
               <div className="space-y-1.5">
                 <Label htmlFor="record_date" className="text-xs font-medium flex items-center gap-1.5">
                   <Calendar className="h-3.5 w-3.5 text-muted-foreground" /> Examination Date
@@ -352,14 +372,27 @@ export function MedicalHistoryForm({
 
               <div className="space-y-1.5">
                 <Label htmlFor="doctor_name" className="text-xs font-medium flex items-center gap-1.5">
-                  <Stethoscope className="h-3.5 w-3.5 text-muted-foreground" /> Attending Dentist / Clinician
+                  <Stethoscope className="h-3.5 w-3.5 text-muted-foreground" /> Dental Officer / Dental Surgeon
                 </Label>
                 <Input
                   id="doctor_name"
-                  placeholder="e.g., Dr. Sarah Mukasa, BDS"
+                  placeholder="e.g., Sarah Mukasa, BDS"
                   value={doctorName}
                   onChange={(e) => setDoctorName(e.target.value)}
                   className="h-9 text-xs"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="next_visit" className="text-xs font-medium flex items-center gap-1.5">
+                  <Calendar className="h-3.5 w-3.5 text-teal-600 dark:text-teal-400" /> Next Appointment Date
+                </Label>
+                <Input
+                  id="next_visit"
+                  type="date"
+                  value={nextVisitDate}
+                  onChange={(e) => setNextVisitDate(e.target.value)}
+                  className="h-9 text-xs border-teal-200 dark:border-teal-800 focus-visible:ring-teal-500"
                 />
               </div>
             </div>
