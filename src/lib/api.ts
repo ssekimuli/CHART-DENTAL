@@ -1244,9 +1244,21 @@ export const updateLabOrderStatus = async (id: string | number, status: string):
             sentDate: response.data.sent_date ? response.data.sent_date.split('T')[0] : '',
             dueDate: response.data.due_date ? response.data.due_date.split('T')[0] : '',
             branchId: String(response.data.branch_id),
+            invoiceId: response.data.invoice_id,
+            invoiceNumber: response.data.invoice_number,
         };
     } catch (error) {
         console.error('Error updating lab order status:', error);
+        throw error;
+    }
+}
+
+export const generateLabOrderInvoice = async (id: string | number): Promise<any> => {
+    try {
+        const response = await customAxios.post(`/management/lab-orders/${id}/generate-invoice`);
+        return response.data;
+    } catch (error) {
+        console.error('Error generating lab order invoice:', error);
         throw error;
     }
 }
@@ -5513,6 +5525,17 @@ export const sendXrayRequestDocument = async (
     }
 };
 
+export const generateXrayRequestInvoice = async (id: string | number): Promise<any> => {
+    console.log('API CALL: generateXrayRequestInvoice', { id });
+    try {
+        const response = await customAxios.post(`/xray-requests/${id}/generate-invoice`);
+        return response.data;
+    } catch (error) {
+        console.error('Error generating xray invoice:', error);
+        throw error;
+    }
+};
+
 
 
 
@@ -5525,6 +5548,9 @@ export interface FacilityReceiptSettings {
   receipt_prefix: string | null;
   currency: string | null;
   receipt_footer: string | null;
+  qr_code_info_data?: string | null;
+  logo?: string | null;
+  logo_url?: string | null;
   updated_at?: string;
 }
 
@@ -5546,6 +5572,33 @@ export const updateFacilityReceiptSettings = async (
     return response.data;
   } catch (error) {
     console.error('Error updating facility receipt settings:', error);
+    throw error;
+  }
+};
+
+export const getQrCodeInfoData = async (branchId?: string | number): Promise<string> => {
+  try {
+    const url = branchId ? `/settings/qr-code-info-data?branch_id=${branchId}` : '/settings/qr-code-info-data';
+    const response = await customAxios.get(url);
+    return response.data?.qr_code_info_data || response.data?.data?.qr_code_info_data || '';
+  } catch (error) {
+    console.error('Error fetching qr code info data:', error);
+    return '';
+  }
+};
+
+export const updateQrCodeInfoData = async (
+  qrCodeInfoData: string,
+  branchId?: string | number
+): Promise<{ success: boolean; qr_code_info_data: string }> => {
+  try {
+    const response = await customAxios.post('/settings/qr-code-info-data', {
+      qr_code_info_data: qrCodeInfoData,
+      branch_id: branchId,
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error updating qr code info data:', error);
     throw error;
   }
 };

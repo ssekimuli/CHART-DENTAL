@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import type { MedicalHistory } from "@/lib/types";
 import { type PatientBasicInfo } from "./medical-history-form";
+import { useRouter } from "next/navigation";
 import {
   Printer,
   ShieldCheck,
@@ -27,6 +28,9 @@ import {
   Share2,
   Mail,
   Download,
+  Plus,
+  Maximize2,
+  QrCode,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -72,9 +76,11 @@ export function MedicalHistoryViewModal({
   onOpenChange,
   onEdit,
 }: MedicalHistoryViewModalProps) {
+  const router = useRouter();
   const { selectedBranch, availableBranches } = useBranch();
   const [receiptSettings, setReceiptSettings] = React.useState<FacilityReceiptSettings | null>(null);
   const [qrCodeDataUrl, setQrCodeDataUrl] = React.useState<string>("");
+  const [isQrZoomOpen, setIsQrZoomOpen] = React.useState<boolean>(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = React.useState<boolean>(false);
   const printableRef = React.useRef<HTMLDivElement>(null);
 
@@ -138,19 +144,17 @@ export function MedicalHistoryViewModal({
     (typeof window !== "undefined" ? getReceiptFooter() : "") ||
     "";
 
-  // Build the 4 requested QR code fields: CLINIC NAME, ADDRESS, PHONE, EMAIL
+  // Build structured QR code payload embedding qr_code_info_data & clinic information
   React.useEffect(() => {
     let isMounted = true;
-    const qrData = [
-      `CLINIC NAME: ${facilityName}`,
-      `ADDRESS: ${facilityAddress || "Clinic Premises"}`,
-      `PHONE: ${facilityPhone || "Not Specified"}`,
-      `EMAIL: ${facilityEmail || "Not Specified"}`,
-    ].join("\n");
+    const effectiveQrInfo = receiptSettings?.qr_code_info_data?.trim() || "";
+    const phonePart = facilityPhone ? ` | Tel: ${facilityPhone}` : "";
+    const qrData = effectiveQrInfo || `${facilityName}${phonePart}`;
 
     QRCode.toDataURL(qrData, {
       margin: 1,
       width: 256,
+      errorCorrectionLevel: "L",
       color: {
         dark: "#000000",
         light: "#ffffff",
@@ -427,15 +431,22 @@ const handleDownloadPDF = async () => {
 
             <div className="flex items-center gap-3 shrink-0">
               {qrCodeDataUrl && (
-                <div className="flex flex-col items-center justify-center p-1 bg-white rounded border border-slate-300 shadow-xs print:border-slate-500">
+                <div
+                  onClick={() => setIsQrZoomOpen(true)}
+                  title="Click to enlarge and scan QR Code"
+                  className="flex flex-col items-center justify-center p-1 bg-white rounded-lg border border-slate-300 shadow-xs hover:border-teal-500 hover:shadow-md cursor-pointer transition-all print:border-slate-500 group relative"
+                >
                   <img
                     src={qrCodeDataUrl}
                     alt="Clinic Information QR Code"
-                    className="w-16 h-16 object-contain block"
+                    className="w-24 h-24 object-contain block"
                   />
-                  <span className="text-[8px] font-bold tracking-wider uppercase text-slate-700 print:text-black mt-0.5">
-                    CLINIC QR
-                  </span>
+                  <div className="flex items-center gap-1 mt-0.5">
+                    <span className="text-[9px] font-bold tracking-wider uppercase text-teal-800 print:text-black">
+                      CLINIC QR
+                    </span>
+                    <Maximize2 className="h-2.5 w-2.5 text-teal-600 group-hover:scale-125 transition-transform print:hidden" />
+                  </div>
                 </div>
               )}
               <div className="text-right">
@@ -497,10 +508,18 @@ const handleDownloadPDF = async () => {
               </div>
               <div className="flex items-end gap-1.5 flex-1 min-w-[200px]">
                 <span className="text-[11px] font-bold uppercase tracking-wide text-slate-600 dark:text-slate-400">
-                  Attending Clinician:
+                  Dental Officer / Dental Surgeon:
                 </span>
                 <span className="flex-1 font-medium border-b border-dashed border-slate-400 dark:border-slate-500 pb-0.5">
-                  {record.doctor_name || "Authorized Clinician"}
+                  {record.doctor_name || "Authorized Dental Surgeon"}
+                </span>
+              </div>
+              <div className="flex items-end gap-1.5 flex-1 min-w-[200px]">
+                <span className="text-[11px] font-bold uppercase tracking-wide text-slate-600 dark:text-slate-400">
+                  Next Appointment Date:
+                </span>
+                <span className="flex-1 font-medium border-b border-dashed border-slate-400 dark:border-slate-500 pb-0.5 text-teal-700 dark:text-teal-400 font-semibold">
+                  {patient.next_visit || (record as any).next_visit || "Not scheduled"}
                 </span>
               </div>
             </div>
@@ -641,12 +660,10 @@ const handleDownloadPDF = async () => {
               <div className="flex flex-col items-end text-right space-y-1">
                 <div className="w-60 border-b-2 border-slate-800 dark:border-slate-300 print:border-black mb-1"></div>
                 <p className="text-sm font-bold text-slate-900 dark:text-slate-100 print:text-black">
-                  {(record.doctor_name || "Authorized Clinician").startsWith("Dr")
-                    ? (record.doctor_name || "Authorized Clinician")
-                    : `Dr. ${record.doctor_name || "Authorized Clinician"}`}
+                  {record.doctor_name || "Authorized Dental Surgeon"}
                 </p>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 print:text-slate-600">
-                  Attending Dental Surgeon / Clinician
+                  Dental Officer / Dental Surgeon
                 </p>
               </div>
             </div>
@@ -694,6 +711,16 @@ const handleDownloadPDF = async () => {
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
+          <Button
+            size="sm"
+            className="bg-teal-600 hover:bg-teal-700 text-white font-medium shadow-sm"
+            onClick={() => {
+              onOpenChange(false);
+              router.push(`/patients/${patient.id}/charting`);
+            }}
+          >
+            <Plus className="mr-1.5 h-4 w-4" /> New Treatment
+          </Button>
           {onEdit && (
             <Button
               variant="outline"
@@ -711,6 +738,36 @@ const handleDownloadPDF = async () => {
           </Button>
         </DialogFooter>
       </DialogContent>
+      {/* ENLARGED HIGH-DEFINITION QR SCANNER MODAL */}
+      <Dialog open={isQrZoomOpen} onOpenChange={setIsQrZoomOpen}>
+        <DialogContent className="max-w-md p-6 text-center">
+          <DialogHeader>
+            <DialogTitle className="flex items-center justify-center gap-2 text-lg">
+              <QrCode className="h-5 w-5 text-teal-600" />
+              Scan Clinic QR Code
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-xs text-muted-foreground mt-1">
+            Point your smartphone camera or handheld barcode scanner directly at the screen to read data instantly.
+          </p>
+          <div className="flex justify-center p-4 my-2 bg-white rounded-xl border border-slate-200 shadow-inner">
+            <img
+              src={qrCodeDataUrl}
+              alt="Enlarged Clinic QR Code"
+              className="w-64 h-64 object-contain"
+            />
+          </div>
+          <div className="flex items-center justify-center gap-1.5 text-xs text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 p-2 rounded-lg border border-emerald-200 dark:border-emerald-800">
+            <ShieldCheck className="h-4 w-4" />
+            <span>High-Contrast Uncompressed Scanner Mode</span>
+          </div>
+          <DialogFooter className="mt-4 sm:justify-center">
+            <Button variant="outline" onClick={() => setIsQrZoomOpen(false)} className="w-full">
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }
