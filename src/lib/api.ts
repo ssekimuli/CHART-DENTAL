@@ -1244,9 +1244,21 @@ export const updateLabOrderStatus = async (id: string | number, status: string):
             sentDate: response.data.sent_date ? response.data.sent_date.split('T')[0] : '',
             dueDate: response.data.due_date ? response.data.due_date.split('T')[0] : '',
             branchId: String(response.data.branch_id),
+            invoiceId: response.data.invoice_id,
+            invoiceNumber: response.data.invoice_number,
         };
     } catch (error) {
         console.error('Error updating lab order status:', error);
+        throw error;
+    }
+}
+
+export const generateLabOrderInvoice = async (id: string | number): Promise<any> => {
+    try {
+        const response = await customAxios.post(`/management/lab-orders/${id}/generate-invoice`);
+        return response.data;
+    } catch (error) {
+        console.error('Error generating lab order invoice:', error);
         throw error;
     }
 }
@@ -5510,6 +5522,17 @@ export const sendXrayRequestDocument = async (
             success: false,
             message: error?.response?.data?.error || error?.response?.data?.message || error?.message || 'Failed to send requisition document'
         };
+    }
+};
+
+export const generateXrayRequestInvoice = async (id: string | number): Promise<any> => {
+    console.log('API CALL: generateXrayRequestInvoice', { id });
+    try {
+        const response = await customAxios.post(`/xray-requests/${id}/generate-invoice`);
+        return response.data;
+    } catch (error) {
+        console.error('Error generating xray invoice:', error);
+        throw error;
     }
 };
 

@@ -9,7 +9,7 @@ import {
   ChevronDown,
   ChevronUp,
   Tag,
-  DollarSign,
+  Receipt,
   FileText,
   MousePointerClick,
   RotateCcw,
@@ -207,7 +207,7 @@ export function TreatmentPlanForm({
   const procedureOptions = useMemo(() => {
     return systemTreatments.map((st) => ({
       value: String(st.id),
-      label: `${st.procedure}${st.cost ? ` • $${Number(st.cost).toFixed(2)}` : ""}`,
+      label: `${st.procedure}${st.cost ? ` • ${Number(st.cost).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : ""}`,
       category: st.category || "General Procedures",
     }));
   }, [systemTreatments]);
@@ -420,7 +420,7 @@ export function TreatmentPlanForm({
           <DialogDescription className="text-xs">
             {isEditing
               ? "Update tooth number, procedure name, or treatment fee"
-              : "Select tooth number, choose procedure, and save — clean & simple!"}
+              : "Enter or select tooth number on left, pick procedure in middle, and enter price on right."}
           </DialogDescription>
         </DialogHeader>
 
@@ -465,126 +465,6 @@ export function TreatmentPlanForm({
               </div>
             </div>
 
-            {/* VISUAL TOOTH QUICK SELECTOR */}
-            <div className="rounded-xl border p-3.5 bg-slate-50/40 dark:bg-slate-900/20 space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <MousePointerClick className="h-4 w-4 text-teal-600 dark:text-teal-400" />
-                  <span className="text-xs font-bold text-slate-900 dark:text-slate-100">
-                    Interactive Tooth Quick Selector
-                  </span>
-                  <span className="text-[11px] text-muted-foreground italic">
-                    (Click any tooth to add below)
-                  </span>
-                </div>
-                {items.some((it) => it.tooth !== null && it.tooth !== undefined) && (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setItems([
-                        {
-                          id: Math.random().toString(36).substring(2, 9),
-                          tooth: null,
-                          procedure: "",
-                          cost: 0,
-                          showNotes: false,
-                        },
-                      ])
-                    }
-                    className="text-[11px] font-semibold text-rose-600 hover:text-rose-700 flex items-center gap-1"
-                  >
-                    <RotateCcw className="h-3 w-3" /> Reset
-                  </button>
-                )}
-              </div>
-
-              {/* Upper Arch */}
-              <div className="flex items-center justify-center gap-1 flex-wrap pt-1">
-                <span className="text-[10px] font-bold text-slate-400 w-5 text-center">UR</span>
-                {UR_TEETH.map((t) => {
-                  const isAssigned = items.some((it) => it.tooth === t);
-                  return (
-                    <button
-                      key={t}
-                      type="button"
-                      title={`Tooth #${t} • ${getFriendlyToothName(t)}`}
-                      onClick={() => handleToothBoxClick(t)}
-                      className={`w-7 h-7 rounded text-[11px] font-bold transition-all border ${
-                        isAssigned
-                          ? "bg-teal-600 border-teal-700 text-white shadow-sm scale-105"
-                          : "bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:border-teal-500"
-                      }`}
-                    >
-                      {t}
-                    </button>
-                  );
-                })}
-                <div className="h-6 w-0.5 bg-slate-300 dark:bg-slate-700 mx-1" />
-                {UL_TEETH.map((t) => {
-                  const isAssigned = items.some((it) => it.tooth === t);
-                  return (
-                    <button
-                      key={t}
-                      type="button"
-                      title={`Tooth #${t} • ${getFriendlyToothName(t)}`}
-                      onClick={() => handleToothBoxClick(t)}
-                      className={`w-7 h-7 rounded text-[11px] font-bold transition-all border ${
-                        isAssigned
-                          ? "bg-teal-600 border-teal-700 text-white shadow-sm scale-105"
-                          : "bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:border-teal-500"
-                      }`}
-                    >
-                      {t}
-                    </button>
-                  );
-                })}
-                <span className="text-[10px] font-bold text-slate-400 w-5 text-center">UL</span>
-              </div>
-
-              {/* Lower Arch */}
-              <div className="flex items-center justify-center gap-1 flex-wrap pt-0.5">
-                <span className="text-[10px] font-bold text-slate-400 w-5 text-center">LR</span>
-                {LR_TEETH.map((t) => {
-                  const isAssigned = items.some((it) => it.tooth === t);
-                  return (
-                    <button
-                      key={t}
-                      type="button"
-                      title={`Tooth #${t} • ${getFriendlyToothName(t)}`}
-                      onClick={() => handleToothBoxClick(t)}
-                      className={`w-7 h-7 rounded text-[11px] font-bold transition-all border ${
-                        isAssigned
-                          ? "bg-teal-600 border-teal-700 text-white shadow-sm scale-105"
-                          : "bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:border-teal-500"
-                      }`}
-                    >
-                      {t}
-                    </button>
-                  );
-                })}
-                <div className="h-6 w-0.5 bg-slate-300 dark:bg-slate-700 mx-1" />
-                {LL_TEETH.map((t) => {
-                  const isAssigned = items.some((it) => it.tooth === t);
-                  return (
-                    <button
-                      key={t}
-                      type="button"
-                      title={`Tooth #${t} • ${getFriendlyToothName(t)}`}
-                      onClick={() => handleToothBoxClick(t)}
-                      className={`w-7 h-7 rounded text-[11px] font-bold transition-all border ${
-                        isAssigned
-                          ? "bg-teal-600 border-teal-700 text-white shadow-sm scale-105"
-                          : "bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:border-teal-500"
-                      }`}
-                    >
-                      {t}
-                    </button>
-                  );
-                })}
-                <span className="text-[10px] font-bold text-slate-400 w-5 text-center">LL</span>
-              </div>
-            </div>
-
             {/* PROCEDURES LIST HEADER */}
             <div className="flex items-center justify-between pt-1">
               <span className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
@@ -603,66 +483,74 @@ export function TreatmentPlanForm({
               )}
             </div>
 
-            {/* DYNAMIC ITEM CARDS */}
+            {/* COLUMN HEADERS */}
+            <div className="flex items-center gap-2.5 px-3.5 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+              <div className="w-36 shrink-0 flex items-center gap-1">
+                <Tag className="h-3 w-3 text-teal-600 dark:text-teal-400" /> Tooth #
+              </div>
+              <div className="flex-1 min-w-0 flex items-center gap-1">
+                <Stethoscope className="h-3 w-3 text-teal-600 dark:text-teal-400" /> Procedure (Search & Select)
+              </div>
+              <div className="w-28 shrink-0 flex items-center gap-1">
+                <Receipt className="h-3 w-3 text-teal-600 dark:text-teal-400" /> Price / Cost
+              </div>
+              {items.length > 1 && <div className="w-8 shrink-0" />}
+            </div>
+
+            {/* DYNAMIC ITEM ROWS: LEFT (Tooth #) | MIDDLE (Procedure) | RIGHT (Price/Cost) */}
             <div className="space-y-3">
               {items.map((it, idx) => (
                 <div
                   key={it.id}
-                  className={`rounded-xl border p-3.5 transition-all space-y-3 bg-white dark:bg-slate-900 shadow-sm ${
-                    it.tooth
-                      ? "border-teal-500/50 dark:border-teal-500/40"
+                  className={`rounded-xl border p-3 bg-white dark:bg-slate-900 shadow-xs space-y-2.5 transition-all ${
+                    it.tooth !== null && it.tooth !== undefined
+                      ? "border-teal-500/40 dark:border-teal-500/30"
                       : "border-slate-200 dark:border-slate-800"
                   }`}
                 >
-                  {/* Card Header: Item Badge + Tooth Dropdown + Delete */}
-                  <div className="flex items-center gap-2.5">
-                    <span className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-teal-100 dark:bg-teal-950/70 text-teal-800 dark:text-teal-300">
-                      Item #{idx + 1}
-                    </span>
-
-                    <div className="flex-1">
-                      <Select
-                        value={it.tooth !== null && it.tooth !== undefined ? String(it.tooth) : "general"}
-                        onValueChange={(val) => {
-                          const newTooth = val === "general" ? null : Number(val);
+                  <div className="flex items-start gap-2.5">
+                    {/* 1. LEFT: TOOTH NUMBER (Enter manually or select from dropdown) */}
+                    <div className="w-36 shrink-0 relative">
+                      <Input
+                        type="text"
+                        placeholder="Tooth # (e.g. 16)"
+                        value={it.tooth !== null && it.tooth !== undefined ? String(it.tooth) : ""}
+                        onChange={(e) => {
+                          const val = e.target.value.trim();
+                          const num = val === "" ? null : isNaN(Number(val)) ? null : Number(val);
                           setItems((prev) =>
-                            prev.map((item, i) => (i === idx ? { ...item, tooth: newTooth } : item))
+                            prev.map((item, i) => (i === idx ? { ...item, tooth: num } : item))
                           );
                         }}
-                      >
-                        <SelectTrigger className="h-8 text-xs font-medium bg-slate-50/60 dark:bg-slate-800/40">
-                          <SelectValue placeholder="Select tooth..." />
-                        </SelectTrigger>
-                        <SelectContent className="max-h-64">
-                          <SelectItem value="general">
-                            General / Full Mouth (No Tooth #)
-                          </SelectItem>
-                          {ALL_TEETH.map((t) => (
-                            <SelectItem key={t} value={String(t)}>
-                              Tooth #{t} • {getFriendlyToothName(t)}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        className="h-9 text-xs font-semibold pr-7"
+                      />
+                      <div className="absolute right-1 top-1">
+                        <Select
+                          value={it.tooth !== null && it.tooth !== undefined ? String(it.tooth) : "general"}
+                          onValueChange={(val) => {
+                            const newTooth = val === "general" ? null : Number(val);
+                            setItems((prev) =>
+                              prev.map((item, i) => (i === idx ? { ...item, tooth: newTooth } : item))
+                            );
+                          }}
+                        >
+                          <SelectTrigger className="h-7 w-6 p-0 border-0 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 focus:ring-0 focus:ring-offset-0">
+                            <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                          </SelectTrigger>
+                          <SelectContent className="max-h-64">
+                            <SelectItem value="general">Full Mouth (No Tooth #)</SelectItem>
+                            {ALL_TEETH.map((t) => (
+                              <SelectItem key={t} value={String(t)}>
+                                Tooth #{t} • {getFriendlyToothName(t)}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
 
-                    {items.length > 1 && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleRemoveItem(idx)}
-                        className="h-8 w-8 text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/30"
-                        title="Remove item"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-
-                  {/* Procedure Combobox & Cost Field */}
-                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-start">
-                    <div className="sm:col-span-8 space-y-1.5">
+                    {/* 2. MIDDLE: PROCEDURE SEARCH & SELECT */}
+                    <div className="flex-1 min-w-0">
                       <Combobox
                         options={procedureOptions}
                         value={it.procedureId || ""}
@@ -671,72 +559,84 @@ export function TreatmentPlanForm({
                         searchPlaceholder="Type procedure name or code..."
                         emptyMessage="No procedure found."
                       />
-
-                      {/* Quick Pick Chips */}
-                      <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
-                        <span className="text-[10px] font-medium text-muted-foreground">
-                          Quick:
-                        </span>
-                        {POPULAR_PROCEDURES.map((pop) => (
-                          <button
-                            key={pop.label}
-                            type="button"
-                            onClick={() => handleApplyQuickProcedure(idx, pop.name, pop.defaultCost)}
-                            className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border transition-all ${
-                              it.procedure.toLowerCase().includes(pop.label.toLowerCase())
-                                ? "bg-teal-600 border-teal-600 text-white shadow-xs"
-                                : "bg-slate-100 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-teal-400"
-                            }`}
-                          >
-                            {pop.label}
-                          </button>
-                        ))}
-                      </div>
                     </div>
 
-                    <div className="sm:col-span-4 space-y-1">
-                      <div className="relative">
-                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground">
-                          $
-                        </span>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          value={it.cost}
-                          onChange={(e) => {
-                            const val = parseFloat(e.target.value) || 0;
-                            setItems((prev) =>
-                              prev.map((item, i) => (i === idx ? { ...item, cost: val } : item))
-                            );
-                          }}
-                          placeholder="0.00"
-                          className="pl-7 h-9 text-xs font-bold"
-                        />
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() =>
+                    {/* 3. RIGHT: PRICE / COST (Auto-filled or entered manually) */}
+                    <div className="w-28 shrink-0">
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={it.cost}
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value) || 0;
                           setItems((prev) =>
-                            prev.map((item, i) =>
-                              i === idx ? { ...item, showNotes: !item.showNotes } : item
-                            )
-                          )
-                        }
-                        className="text-[11px] font-medium text-teal-600 dark:text-teal-400 hover:underline flex items-center gap-1 pt-0.5"
-                      >
-                        {it.showNotes ? (
-                          <>
-                            <ChevronUp className="h-3 w-3" /> Hide Notes
-                          </>
-                        ) : (
-                          <>
-                            <ChevronDown className="h-3 w-3" /> + Add Note / Condition
-                          </>
-                        )}
-                      </button>
+                            prev.map((item, i) => (i === idx ? { ...item, cost: val } : item))
+                          );
+                        }}
+                        placeholder="0.00"
+                        className="px-3 h-9 text-xs font-bold text-teal-600 dark:text-teal-400"
+                      />
                     </div>
+
+                    {/* REMOVE BUTTON */}
+                    {items.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleRemoveItem(idx)}
+                        className="h-9 w-8 shrink-0 text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/30"
+                        title="Remove item"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+
+                  {/* Quick Pick Chips & Note Toggle */}
+                  <div className="flex items-center justify-between gap-2 flex-wrap pt-0.5">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-[10px] font-medium text-muted-foreground">
+                        Quick Pick:
+                      </span>
+                      {POPULAR_PROCEDURES.map((pop) => (
+                        <button
+                          key={pop.label}
+                          type="button"
+                          onClick={() => handleApplyQuickProcedure(idx, pop.name, pop.defaultCost)}
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border transition-all ${
+                            it.procedure.toLowerCase().includes(pop.label.toLowerCase())
+                              ? "bg-teal-600 border-teal-600 text-white shadow-xs"
+                              : "bg-slate-100 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-teal-400"
+                          }`}
+                        >
+                          {pop.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setItems((prev) =>
+                          prev.map((item, i) =>
+                            i === idx ? { ...item, showNotes: !item.showNotes } : item
+                          )
+                        )
+                      }
+                      className="text-[11px] font-medium text-teal-600 dark:text-teal-400 hover:underline flex items-center gap-1"
+                    >
+                      {it.showNotes ? (
+                        <>
+                          <ChevronUp className="h-3 w-3" /> Hide Notes
+                        </>
+                      ) : (
+                        <>
+                          <ChevronDown className="h-3 w-3" /> + Add Note / Condition
+                        </>
+                      )}
+                    </button>
                   </div>
 
                   {/* Optional Condition & Notes */}
@@ -811,7 +711,7 @@ export function TreatmentPlanForm({
                 Total Estimated Amount:
               </span>
               <span className="text-base font-extrabold text-teal-700 dark:text-teal-400">
-                ${totalCost.toFixed(2)}{" "}
+                {totalCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{" "}
                 <span className="text-xs font-semibold text-muted-foreground">
                   ({items.length} {items.length === 1 ? "procedure" : "procedures"})
                 </span>

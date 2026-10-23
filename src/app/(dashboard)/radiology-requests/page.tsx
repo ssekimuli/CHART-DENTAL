@@ -38,7 +38,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { useBranch } from "@/context/branch-context";
-import { getXrayRequests, deleteXrayRequest, updateXrayRequest } from "@/lib/api";
+import { getXrayRequests, deleteXrayRequest, updateXrayRequest, generateXrayRequestInvoice } from "@/lib/api";
 import type { XrayRequest } from "@/lib/types";
 import { XrayRequestFormModal } from "./components/xray-request-form-modal";
 import { XrayRequestViewModal } from "./components/xray-request-view-modal";
@@ -274,6 +274,28 @@ export default function RadiologyRequestsPage() {
     setShareRecord(item);
     setShareChannel("email");
     setIsShareDialogOpen(true);
+  };
+
+  const handleGenerateInvoice = async (item: XrayRequest) => {
+    if (!item.id) return;
+    try {
+      toast({
+        title: "Generating Invoice...",
+        description: `Generating invoice for requisition #${item.id}`,
+      });
+      await generateXrayRequestInvoice(item.id);
+      toast({
+        title: "Invoice Generated",
+        description: `Billing invoice generated successfully for requisition #${item.id}`,
+      });
+      fetchRecords();
+    } catch (err: any) {
+      toast({
+        title: "Invoice Generation Failed",
+        description: err?.response?.data?.message || err?.message || "Failed to generate invoice",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleDelete = async (id: string | number) => {
@@ -701,6 +723,13 @@ export default function RadiologyRequestsPage() {
                               <span>Invoice #{item.invoice_id}</span>
                               <ExternalLink className="h-2.5 w-2.5" />
                             </Link>
+                          ) : Number(item.amount || 0) > 0 ? (
+                            <button
+                              onClick={() => handleGenerateInvoice(item)}
+                              className="text-[10px] text-teal-600 dark:text-teal-400 hover:underline flex items-center gap-0.5 mt-0.5 font-sans font-medium"
+                            >
+                              + Gen Invoice
+                            </button>
                           ) : (
                             <span className="text-[10px] text-muted-foreground block font-sans">
                               Unbilled
@@ -784,6 +813,17 @@ export default function RadiologyRequestsPage() {
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" className="text-xs">
                                 <DropdownMenuLabel>Requisition Actions</DropdownMenuLabel>
+                                {item.invoice_id ? (
+                                  <DropdownMenuItem asChild>
+                                    <Link href="/billing" className="cursor-pointer">
+                                      <FileText className="mr-2 h-3.5 w-3.5 text-teal-600" /> View in Billing
+                                    </Link>
+                                  </DropdownMenuItem>
+                                ) : Number(item.amount || 0) > 0 ? (
+                                  <DropdownMenuItem onClick={() => handleGenerateInvoice(item)} className="cursor-pointer text-teal-600 font-medium">
+                                    <Plus className="mr-2 h-3.5 w-3.5" /> Generate Invoice
+                                  </DropdownMenuItem>
+                                ) : null}
                                 <DropdownMenuItem onClick={() => handleView(item)}>
                                   <Printer className="mr-2 h-3.5 w-3.5" /> View & Print Form
                                 </DropdownMenuItem>
